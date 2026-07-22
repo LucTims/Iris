@@ -1,15 +1,9 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Livre-Génie | Créez votre livre numérique par IA",
-  description: "Transformez votre expertise en un livre numérique vendable, en discutant simplement avec un assistant IA.",
+  title: "LivreGénie | L'IA au service de l'édition",
+  description: "LivreGénie accompagne les experts dans la création, le design et la publication de leurs ouvrages.",
 };
 
 export default function RootLayout({
@@ -18,11 +12,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="fr"
-      className={`${inter.variable} h-full antialiased dark`}
-    >
-      <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-hidden">
+    <html lang="fr" className="light">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Outfit:wght@100..900&display=swap"
+          rel="stylesheet"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="bg-white text-neutral-900 font-body antialiased selection:bg-neutral-200">
         {children}
       </body>
     </html>
