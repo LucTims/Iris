@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LivreGénie | L'IA au service de l'édition",
-  description: "LivreGénie accompagne les experts dans la création, le design et la publication de leurs ouvrages.",
+  title: "Iris | La 1ère plateforme de co-création littéraire assistée par IA",
+  description: "Iris accompagne les experts et créateurs dans la rédaction, le design et la publication de leurs livres numériques.",
 };
 
 export default function RootLayout({
