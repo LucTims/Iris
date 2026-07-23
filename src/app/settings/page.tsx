@@ -1,108 +1,95 @@
+"use client";
+
 import Link from "next/link";
+import Sidebar from "@/components/Sidebar";
 
 export default function SettingsPage() {
   return (
-    <>
-      <nav className="bg-surface/80 backdrop-blur-md sticky top-0 z-50 shadow-sm border-b border-outline-variant">
-        <div className="flex justify-between items-center w-full px-6 max-w-[1200px] mx-auto h-16">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="font-heading text-2xl font-extrabold text-secondary">Iris</Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-sm font-semibold text-on-surface-variant hover:text-secondary transition-colors">Retour au Dashboard</Link>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
+      <Sidebar />
 
-      <div className="max-w-[1000px] mx-auto px-6 py-12">
-        <div className="mb-8">
-          <h1 className="font-heading text-3xl font-bold text-on-surface">Paramètres</h1>
-          <p className="text-on-surface-variant mt-2">Gérez votre profil, vos préférences et les paramètres de votre compte.</p>
-        </div>
+      <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-10">
+        <header className="bg-white border-b border-neutral-200/80 sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all">
+              <span className="material-symbols-outlined text-base">arrow_back</span>
+              <span>Tableau de bord</span>
+            </Link>
+            <h1 className="font-heading font-extrabold text-xl text-neutral-900 flex items-center gap-2">
+              <span className="material-symbols-outlined text-secondary">settings</span>
+              <span>Paramètres du Compte</span>
+            </h1>
+          </div>
+        </header>
 
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Settings Sidebar */}
-          <aside className="w-full md:w-64 space-y-1">
-            <button className="w-full flex items-center justify-between px-4 py-3 bg-secondary-container text-on-secondary-container rounded-xl font-bold transition-all">
-              <div className="flex items-center gap-3">
+        <main className="p-4 sm:p-6 md:p-10 max-w-5xl mx-auto w-full space-y-8">
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Settings Sidebar */}
+            <aside className="w-full md:w-64 space-y-1">
+              <button className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-900 text-white rounded-xl font-bold text-xs">
                 <span className="material-symbols-outlined text-lg">person</span>
-                <span>Profil</span>
-              </div>
-            </button>
-            <button className="w-full flex items-center justify-between px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-xl transition-all">
-              <div className="flex items-center gap-3">
+                <span>Profil Auteur</span>
+              </button>
+              <button className="w-full flex items-center gap-3 px-4 py-3 text-neutral-600 hover:bg-neutral-100 rounded-xl font-medium text-xs">
                 <span className="material-symbols-outlined text-lg">psychology</span>
                 <span>Préférences IA</span>
-              </div>
-            </button>
-            <button className="w-full flex items-center justify-between px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-xl transition-all">
-              <div className="flex items-center gap-3">
+              </button>
+              <button className="w-full flex items-center gap-3 px-4 py-3 text-neutral-600 hover:bg-neutral-100 rounded-xl font-medium text-xs">
                 <span className="material-symbols-outlined text-lg">notifications</span>
                 <span>Notifications</span>
-              </div>
-            </button>
-            <button className="w-full flex items-center justify-between px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-xl transition-all">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-lg">lock</span>
-                <span>Sécurité</span>
-              </div>
-            </button>
-            <Link href="/billing" className="w-full flex items-center justify-between px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-xl transition-all">
-              <div className="flex items-center gap-3">
+              </button>
+              <Link href="/billing" className="w-full flex items-center gap-3 px-4 py-3 text-neutral-600 hover:bg-neutral-100 rounded-xl font-medium text-xs">
                 <span className="material-symbols-outlined text-lg">credit_card</span>
-                <span>Abonnement</span>
-              </div>
-            </Link>
-          </aside>
+                <span>Abonnement & Facturation</span>
+              </Link>
+            </aside>
 
-          {/* Settings Content */}
-          <main className="flex-1 bg-white rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-outline-variant">
-              <h2 className="font-heading text-xl font-bold text-on-surface mb-6">Informations Personnelles</h2>
-              
-              <div className="flex items-center gap-6 mb-8">
-                <div className="w-24 h-24 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center overflow-hidden">
-                  <span className="material-symbols-outlined text-4xl text-outline">person</span>
+            {/* Settings Content */}
+            <main className="flex-1 bg-white rounded-2xl border border-neutral-200/80 shadow-2xs overflow-hidden">
+              <div className="p-6 sm:p-8 border-b border-neutral-100 space-y-6">
+                <h2 className="font-heading text-lg font-bold text-neutral-900">Informations Personnelles</h2>
+                
+                <div className="flex items-center gap-6">
+                  <div className="w-20 h-20 rounded-full bg-orange-100 border border-orange-200 flex items-center justify-center text-secondary font-extrabold font-heading text-2xl">
+                    ML
+                  </div>
+                  <div>
+                    <button className="bg-secondary text-white text-xs px-4 py-2 rounded-xl font-bold hover:bg-orange-600 transition-colors mb-1">
+                      Changer l&apos;avatar
+                    </button>
+                    <p className="text-[11px] text-neutral-400">JPG, PNG. Max 2MB.</p>
+                  </div>
                 </div>
-                <div>
-                  <button className="bg-secondary text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary/90 transition-colors mb-2">
-                    Changer l&apos;avatar
-                  </button>
-                  <p className="text-xs text-on-surface-variant">JPG, GIF ou PNG. Max 2MB.</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase">Prénom</label>
+                    <input type="text" defaultValue="Martin" className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-xs font-medium focus:border-secondary outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase">Nom</label>
+                    <input type="text" defaultValue="Laurent" className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-xs font-medium focus:border-secondary outline-none" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase">Adresse E-mail</label>
+                    <input type="email" defaultValue="martin@exemple.com" className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-xs font-medium focus:border-secondary outline-none" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase">Biographie de l&apos;Auteur</label>
+                    <textarea rows={3} defaultValue="Entrepreneur et auteur passionné par la transmission d'expertise et l'écriture." className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-xs font-medium focus:border-secondary outline-none"></textarea>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-on-surface mb-1.5">Prénom</label>
-                  <input type="text" defaultValue="Amadou" className="w-full px-4 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-on-surface mb-1.5">Nom</label>
-                  <input type="text" defaultValue="Hampâté Bâ" className="w-full px-4 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all" />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-on-surface mb-1.5">Email</label>
-                  <input type="email" defaultValue="amadou@exemple.com" className="w-full px-4 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all" />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-on-surface mb-1.5">Bio</label>
-                  <textarea rows={4} defaultValue="Auteur passionné par les traditions orales africaines." className="w-full px-4 py-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all"></textarea>
-                </div>
+              <div className="p-6 bg-neutral-50 flex justify-end gap-3">
+                <button className="bg-secondary text-white px-6 py-2.5 rounded-xl font-bold text-xs hover:bg-orange-600 transition-colors shadow-2xs">
+                  Enregistrer les modifications
+                </button>
               </div>
-            </div>
-
-            <div className="p-8 bg-surface-container-lowest flex justify-end gap-4">
-              <button className="px-6 py-2.5 rounded-lg font-semibold text-on-surface hover:bg-surface-container transition-colors">
-                Annuler
-              </button>
-              <button className="bg-secondary text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-secondary/90 transition-colors shadow-sm">
-                Enregistrer les modifications
-              </button>
-            </div>
-          </main>
-        </div>
+            </main>
+          </div>
+        </main>
       </div>
-    </>
+    </div>
   );
 }

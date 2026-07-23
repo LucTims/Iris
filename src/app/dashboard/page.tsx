@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Sidebar from "@/components/Sidebar";
 
 export default function DashboardPage() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const myBookProjects = [
     {
@@ -45,88 +46,14 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
-      
-      {/* ================= DESKTOP SIDEBAR ================= */}
-      <aside 
-        className={`hidden md:flex flex-col bg-white border-r border-neutral-200/80 transition-all duration-300 z-40 sticky top-0 h-screen ${
-          sidebarCollapsed ? "w-20" : "w-64"
-        }`}
-      >
-        {/* Workspace Brand Dropdown */}
-        <div className="p-4 border-b border-neutral-100 flex items-center justify-between">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-secondary font-extrabold font-heading text-lg shrink-0">
-              I
-            </div>
-            {!sidebarCollapsed && (
-              <div className="truncate">
-                <span className="font-heading font-bold text-sm text-neutral-900 block truncate">
-                  Iris Studio
-                </span>
-                <span className="text-[10px] text-neutral-400 font-mono">Plan Auteur Pro</span>
-              </div>
-            )}
-          </div>
-          {!sidebarCollapsed && (
-            <span className="material-symbols-outlined text-neutral-400 text-lg cursor-pointer">
-              unfold_more
-            </span>
-          )}
-        </div>
-
-        {/* Sidebar Nav Links Specific to Iris */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {[
-            { id: "dashboard", label: "Tableau de bord", icon: "dashboard", href: "/dashboard" },
-            { id: "projets", label: "Mes Livres & Projets", icon: "menu_book", href: "/redaction" },
-            { id: "assistant", label: "Assistant Iris IA", icon: "auto_awesome", href: "/redaction" },
-            { id: "couverture", label: "Studio de Couverture", icon: "palette", href: "/redaction" },
-            { id: "export", label: "Mise en page & KDP", icon: "design_services", href: "/docs" },
-            { id: "ventes", label: "Lecteurs & Téléchargements", icon: "group", href: "/dashboard" },
-            { id: "facturation", label: "Abonnement & Mots", icon: "credit_card", href: "/billing" },
-            { id: "parametres", label: "Paramètres", icon: "settings", href: "/settings" },
-            { id: "aide", label: "Centre d'aide & FAQ", icon: "help_center", href: "/faq" },
-          ].map((item) => {
-            const isActive = activeTab === item.id;
-            return (
-              <Link 
-                key={item.id} 
-                href={item.href}
-                onClick={() => setActiveTab(item.id)}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  isActive 
-                    ? "bg-neutral-100 text-neutral-900 font-bold shadow-2xs" 
-                    : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
-                }`}
-              >
-                <span className={`material-symbols-outlined text-xl ${isActive ? "text-secondary" : "text-neutral-400"}`}>
-                  {item.icon}
-                </span>
-                {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Collapse Sidebar Button */}
-        <div className="p-3 border-t border-neutral-100">
-          <button 
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold text-neutral-500 hover:text-neutral-900 rounded-lg hover:bg-neutral-50 transition-colors"
-          >
-            <span className="material-symbols-outlined text-lg">
-              {sidebarCollapsed ? "side_navigation" : "dock_to_right"}
-            </span>
-            {!sidebarCollapsed && <span>Réduire le menu</span>}
-          </button>
-        </div>
-      </aside>
+      {/* GLOBAL REUSABLE SIDEBAR */}
+      <Sidebar />
 
       {/* ================= MAIN CONTENT AREA ================= */}
       <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-10">
         
-        {/* Top Header Bar */}
-        <header className="bg-white border-b border-neutral-200/80 sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
+        {/* Top Header Bar (Seamless without dividing border line) */}
+        <header className="bg-[#F9FAFB] sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
           
           {/* Mobile Header Title */}
           <div className="flex items-center gap-2 md:hidden">
@@ -135,22 +62,16 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          {/* Search Bar */}
-          <div className="hidden sm:flex items-center flex-1 max-w-xl mx-auto">
-            <div className="relative w-full">
-              <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 text-lg">
-                search
-              </span>
-              <input 
-                type="text" 
-                placeholder="Rechercher un livre, un chapitre, une note... ⌘K" 
-                className="w-full bg-neutral-100/80 border border-transparent rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-neutral-800 focus:bg-white focus:border-neutral-300 outline-none transition-all"
-              />
-            </div>
-          </div>
+          {/* Spacer */}
+          <div className="flex-1"></div>
 
           {/* Right Header Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 relative">
+            <Link href="/" className="hidden lg:flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200/70 px-3 py-2 rounded-xl transition-all">
+              <span className="material-symbols-outlined text-base">arrow_back</span>
+              <span>Accueil du site</span>
+            </Link>
+
             <Link href="/redaction" className="flex items-center gap-2 bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs">
               <span className="material-symbols-outlined text-base">add</span>
               <span>Nouveau Livre</span>
@@ -160,8 +81,74 @@ export default function DashboardPage() {
               <span className="material-symbols-outlined text-lg">notifications</span>
             </button>
 
-            <div className="w-9 h-9 rounded-full bg-orange-100 border border-orange-200 flex items-center justify-center text-secondary font-extrabold font-heading text-sm shadow-2xs">
-              ML
+            {/* User Profile Dropdown Button */}
+            <div className="relative">
+              <button 
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm shadow-2xs hover:ring-2 hover:ring-orange-300 transition-all cursor-pointer"
+                title="Menu Profil"
+              >
+                ML
+              </button>
+
+              {/* Dropdown Menu */}
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-4 py-3 border-b border-neutral-100">
+                    <p className="font-heading font-bold text-sm text-neutral-900">Martin Laurent</p>
+                    <p className="text-xs text-neutral-500 truncate">martin@exemple.com</p>
+                    <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-[10px] font-bold text-secondary">
+                      Plan Pro Auteur
+                    </span>
+                  </div>
+
+                  <div className="py-1">
+                    <Link 
+                      href="/dashboard" 
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+                    >
+                      <span className="material-symbols-outlined text-base text-neutral-400">dashboard</span>
+                      <span>Tableau de bord</span>
+                    </Link>
+                    <Link 
+                      href="/projects" 
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+                    >
+                      <span className="material-symbols-outlined text-base text-neutral-400">menu_book</span>
+                      <span>Mes Livres & Projets</span>
+                    </Link>
+                    <Link 
+                      href="/settings" 
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+                    >
+                      <span className="material-symbols-outlined text-base text-neutral-400">settings</span>
+                      <span>Paramètres du compte</span>
+                    </Link>
+                    <Link 
+                      href="/" 
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+                    >
+                      <span className="material-symbols-outlined text-base text-neutral-400">home</span>
+                      <span>Page d&apos;accueil du site</span>
+                    </Link>
+                  </div>
+
+                  <div className="pt-1 border-t border-neutral-100">
+                    <Link 
+                      href="/login" 
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-base text-red-500">logout</span>
+                      <span>Se déconnecter</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -212,7 +199,7 @@ export default function DashboardPage() {
                 <span>Rédiger un chapitre avec Iris</span>
               </button>
             </Link>
-            <Link href="/redaction">
+            <Link href="/cover-studio">
               <button className="bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-800 text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-2xs flex items-center gap-2">
                 <span className="material-symbols-outlined text-neutral-500 text-base">palette</span>
                 <span>Designer une couverture HD</span>
@@ -224,7 +211,7 @@ export default function DashboardPage() {
                 <span>Générer un plan de livre</span>
               </button>
             </Link>
-            <Link href="/docs">
+            <Link href="/export">
               <button className="bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-800 text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-2xs flex items-center gap-2">
                 <span className="material-symbols-outlined text-neutral-500 text-base">download</span>
                 <span>Exporter en EPUB / PDF</span>

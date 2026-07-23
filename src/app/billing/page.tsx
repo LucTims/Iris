@@ -1,112 +1,73 @@
+"use client";
+
 import Link from "next/link";
+import Sidebar from "@/components/Sidebar";
 
 export default function BillingPage() {
   return (
-    <>
-      <nav className="bg-surface/80 backdrop-blur-md sticky top-0 z-50 shadow-sm border-b border-outline-variant">
-        <div className="flex justify-between items-center w-full px-6 max-w-[1200px] mx-auto h-16">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="font-heading text-2xl font-extrabold text-secondary">Iris</Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-sm font-semibold text-on-surface-variant hover:text-secondary transition-colors">Retour au Dashboard</Link>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
+      <Sidebar />
 
-      <div className="max-w-[1000px] mx-auto px-6 py-12">
-        <div className="mb-8">
-          <h1 className="font-heading text-3xl font-bold text-on-surface">Abonnement & Facturation</h1>
-          <p className="text-on-surface-variant mt-2">Gérez votre plan actuel, vos méthodes de paiement et téléchargez vos factures.</p>
-        </div>
+      <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-10">
+        <header className="bg-white border-b border-neutral-200/80 sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all">
+              <span className="material-symbols-outlined text-base">arrow_back</span>
+              <span>Tableau de bord</span>
+            </Link>
+            <h1 className="font-heading font-extrabold text-xl text-neutral-900 flex items-center gap-2">
+              <span className="material-symbols-outlined text-secondary">credit_card</span>
+              <span>Abonnement & Facturation</span>
+            </h1>
+          </div>
+        </header>
 
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Settings Sidebar */}
-          <aside className="w-full md:w-64 space-y-1">
-            <Link href="/settings" className="w-full flex items-center justify-between px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-xl transition-all">
-              <div className="flex items-center gap-3">
+        <main className="p-4 sm:p-6 md:p-10 max-w-5xl mx-auto w-full space-y-8">
+          <div className="flex flex-col md:flex-row gap-8">
+            <aside className="w-full md:w-64 space-y-1">
+              <Link href="/settings" className="w-full flex items-center gap-3 px-4 py-3 text-neutral-600 hover:bg-neutral-100 rounded-xl font-medium text-xs">
                 <span className="material-symbols-outlined text-lg">person</span>
                 <span>Profil</span>
-              </div>
-            </Link>
-            <button className="w-full flex items-center justify-between px-4 py-3 bg-secondary-container text-on-secondary-container rounded-xl font-bold transition-all">
-              <div className="flex items-center gap-3">
+              </Link>
+              <button className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-900 text-white rounded-xl font-bold text-xs">
                 <span className="material-symbols-outlined text-lg">credit_card</span>
-                <span>Abonnement</span>
-              </div>
-            </button>
-            <button className="w-full flex items-center justify-between px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-xl transition-all">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-lg">receipt_long</span>
-                <span>Factures</span>
-              </div>
-            </button>
-          </aside>
+                <span>Abonnement & Mots</span>
+              </button>
+            </aside>
 
-          {/* Billing Content */}
-          <main className="flex-1 space-y-6">
-            
-            {/* Current Plan Card */}
-            <div className="bg-white rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
-              <div className="p-8">
-                <div className="flex justify-between items-start mb-6">
+            <main className="flex-1 space-y-6">
+              <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-2xs overflow-hidden p-6 sm:p-8 space-y-6">
+                <div className="flex justify-between items-start">
                   <div>
-                    <span className="inline-block py-1 px-3 rounded-full bg-success-teal/10 text-success-teal font-mono text-xs font-bold tracking-widest mb-3">
+                    <span className="inline-block py-1 px-3 rounded-full bg-orange-50 text-secondary border border-orange-200 text-[10px] font-bold tracking-wider mb-2">
                       PLAN ACTUEL
                     </span>
-                    <h2 className="font-heading text-2xl font-bold text-on-surface">Auteur Pro</h2>
-                    <p className="text-on-surface-variant mt-1">4 900 FCFA / mois</p>
+                    <h2 className="font-heading text-2xl font-extrabold text-neutral-900">Auteur Pro</h2>
+                    <p className="text-xs text-neutral-500 mt-0.5">4 900 FCFA / mois</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-on-surface">Prochain prélèvement</p>
-                    <p className="text-sm text-on-surface-variant">12 Octobre 2024</p>
+                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">Actif</span>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span>Quota Mots Générés IA (Mois en cours)</span>
+                    <span className="text-secondary font-bold">145,400 mots / Illimité</span>
+                  </div>
+                  <div className="w-full h-2.5 bg-neutral-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-secondary rounded-full w-[45%]"></div>
                   </div>
                 </div>
 
-                <div className="w-full h-2 bg-surface-container-high rounded-full overflow-hidden mb-2">
-                  <div className="h-full bg-secondary rounded-full w-[45%]"></div>
-                </div>
-                <p className="text-xs text-on-surface-variant mb-6">45,000 mots générés sur illimités ce mois-ci.</p>
-
-                <div className="flex gap-4">
-                  <button className="bg-surface-container text-on-surface px-4 py-2 rounded-lg font-semibold hover:bg-surface-container-high transition-colors text-sm">
-                    Annuler l&apos;abonnement
-                  </button>
-                  <Link href="/pricing" className="bg-secondary text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary/90 transition-colors text-sm shadow-sm">
-                    Changer de forfait
+                <div className="flex gap-3 pt-2">
+                  <Link href="/pricing" className="bg-secondary text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-orange-600 transition-colors shadow-2xs">
+                    Changer de Forfait
                   </Link>
                 </div>
               </div>
-            </div>
-
-            {/* Payment Method */}
-            <div className="bg-white rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
-              <div className="p-8">
-                <h3 className="font-heading text-lg font-bold text-on-surface mb-6">Moyen de paiement</h3>
-                
-                <div className="flex items-center justify-between p-4 border border-outline-variant rounded-xl mb-4 bg-surface-container-lowest">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-8 bg-surface-container rounded border border-outline-variant flex items-center justify-center font-mono font-bold text-secondary text-xs">
-                      VISA
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-on-surface">Visa terminant par 4242</p>
-                      <p className="text-xs text-on-surface-variant">Expire le 12/26</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-success-teal bg-success-teal/10 px-2 py-1 rounded">Par défaut</span>
-                </div>
-
-                <button className="text-sm font-semibold text-secondary hover:underline flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[18px]">add</span>
-                  Ajouter un moyen de paiement
-                </button>
-              </div>
-            </div>
-
-          </main>
-        </div>
+            </main>
+          </div>
+        </main>
       </div>
-    </>
+    </div>
   );
 }

@@ -37,8 +37,28 @@ body {
   font-family: var(--font-body);
   background-color: #ffffff;
   color: #111827;
+  font-size: 15px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Enhancements for high-readability text like Claude/ChatGPT */
+.chat-bubble-text {
+  font-size: 1.05rem; /* ~17px */
+  line-height: 1.65;
+  color: #1f2937;
+}
+
+.chat-bubble-user {
+  font-size: 1.05rem; /* ~17px */
+  line-height: 1.6;
+}
+
+.manuscript-text {
+  font-size: 1.15rem; /* ~18.5px */
+  line-height: 1.75;
+  color: #111827;
 }
 
 /* Material Symbols configuration */

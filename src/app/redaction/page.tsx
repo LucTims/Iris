@@ -1,221 +1,456 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Sidebar from "@/components/Sidebar";
+import RichManuscriptEditor from "@/components/RichManuscriptEditor";
+
+interface Message {
+  id: number;
+  sender: "ai" | "user";
+  text: string;
+  time: string;
+  suggestedTextToInsert?: string;
+}
+
+interface Chapter {
+  id: number;
+  number: number;
+  title: string;
+  content: string;
+  status: "Brouillon" | "En cours" | "Terminé";
+}
 
 export default function RedactionPage() {
-  const [input, setInput] = useState("");
+  // Global Layout State
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  // Chat Panel Resizing & Collapsing State
+  const [chatWidth, setChatWidth] = useState(420); // Default 420px
+  const [isResizing, setIsResizing] = useState(false);
+  const [isChatCollapsed, setIsChatCollapsed] = useState(false);
+
+  // Book Project State
+  const [bookTitle, setBookTitle] = useState("L'Épopée de Soundiata");
+  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
+
+  const [chapters, setChapters] = useState<Chapter[]>([
+    {
+      id: 1,
+      number: 1,
+      title: "Chapitre 1 : L'Ombre du Baobab",
+      content: `Le soleil de midi écrasait le Mandé d'une chaleur de plomb, transformant l'horizon en un miroir frémissant où se confondaient la terre rouge et le ciel de nacre. Sous le grand baobab qui veillait sur Niani depuis des générations, le silence n'était troublé que par le bourdonnement lancinant des insectes et le souffle court d'un enfant qui refusait de s'avouer vaincu.\n\nSoundiata, les jambes inertes mais le regard embrasé d'une volonté farouche, fixait la branche basse de l'arbre séculaire. Pour beaucoup, il n'était qu'un fils infirme, un prince sans royaume intérieur. Mais dans le secret de son âme, une force commençait à gronder, plus puissante que les armées de son demi-frère Dankaran Touman.`,
+      status: "En cours"
+    },
+    {
+      id: 2,
+      number: 2,
+      title: "Chapitre 2 : Le Serment de Sogolon",
+      content: `Sogolon Kèdjou regardait son fils avec des yeux emplis de larmes et de fierté. Le pilon de baobab reposait sur le sol dusty, témoin des moqueries et des humiliations subies. Mais ce jour-là, l'air lui-même semblait retenir son souffle.`,
+      status: "Brouillon"
+    },
+    {
+      id: 3,
+      number: 3,
+      title: "Chapitre 3 : L'Éveil du Lion",
+      content: `C'est en saisissant la barre de fer forgee par Farakourou que l'impossible se produisit. Le fer se courba, la terre trembla, et sous les yeux stupéfaits du Mandé, Soundiata se mit debout.`,
+      status: "Brouillon"
+    }
+  ]);
+
+  // Chat Conversation State
+  const [chatInput, setChatInput] = useState("");
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      sender: "ai",
+      text: "Bonjour Martin ! Je suis votre assistant co-auteur. Je vois que vous travaillez sur le premier chapitre de \"L'Épopée de Soundiata\". C'est un récit épique fascinant.\n\nPour rendre le départ du héros plus poignant, souhaiteriez-vous mettre l'accent sur sa force intérieure naissante ou sur la résilience de sa mère ?",
+      time: "09:41"
+    }
+  ]);
+
+  const [isAiThinking, setIsAiThinking] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isAiThinking]);
+
+  // Resizing Handler via Mouse Drag
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      const newWidth = window.innerWidth - e.clientX;
+      if (newWidth >= 280 && newWidth <= 720) {
+        setChatWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
+
+  // Calculate current word count
+  const currentChapter = chapters[activeChapterIndex] || chapters[0];
+  const wordCount = currentChapter.content.trim() ? currentChapter.content.trim().split(/\s+/).length : 0;
+
+  // Handle Sending a User Message & AI Response
+  const handleSendMessage = (textToSend?: string) => {
+    const query = textToSend || chatInput;
+    if (!query.trim()) return;
+
+    const userMsg: Message = {
+      id: Date.now(),
+      sender: "user",
+      text: query,
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    if (!textToSend) setChatInput("");
+    setIsAiThinking(true);
+
+    // Simulate AI intelligent response & paragraph suggestion
+    setTimeout(() => {
+      let aiText = "";
+      let suggestionToInsert = "";
+
+      if (query.toLowerCase().includes("table des matières") || query.toLowerCase().includes("plan")) {
+        aiText = "Voici une proposition de structure en 5 chapitres pour votre livre :\n1. L'Ombre du Baobab (L'Enfance et l'Épreuve)\n2. Le Serment de Sogolon (La Traversée de l'Exil)\n3. L'Éveil du Lion (La Prise de Conscience)\n4. L'Alliance des Royaumes (La Préparation au Combat)\n5. La Victoire de Kirina (Le Couronnement de l'Empire)";
+      } else if (query.toLowerCase().includes("continuer") || query.toLowerCase().includes("suite") || query.toLowerCase().includes("force")) {
+        aiText = "Excellente orientation. Voici la suite suggérée pour ce paragraphe :";
+        suggestionToInsert = "\n\nChaque pas qu'il s'apprêtait à faire n'était pas seulement un redressement physique, mais le premier acte de libération de tout un peuple. Sogolon fixait son fils, sachant que la prophétie venait d'amorcer son accomplissement inéluctable.";
+      } else {
+        aiText = `Très intéressant ! J'ai bien pris en compte votre remarque sur "${query}". Souhaitez-vous que je rédige le passage correspondant ou préfériez-vous ajuster le ton de narration (plus poétique, plus direct ou dramatique) ?`;
+        suggestionToInsert = `\n\nLe vent du sud apporta avec lui les effluves de terre mouillée et le murmure des ancêtres. C'était le signal que Soundiata attendait depuis si longtemps.`;
+      }
+
+      const aiMsg: Message = {
+        id: Date.now() + 1,
+        sender: "ai",
+        text: aiText,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        suggestedTextToInsert: suggestionToInsert || undefined
+      };
+
+      setMessages((prev) => [...prev, aiMsg]);
+      setIsAiThinking(false);
+    }, 1200);
+  };
+
+  // Insert AI Generated Paragraph directly into Manuscript Editor
+  const handleInsertIntoManuscript = (textToInsert: string) => {
+    const updated = [...chapters];
+    updated[activeChapterIndex].content += textToInsert;
+    setChapters(updated);
+  };
+
+  // Start New Book Project Workflow
+  const handleStartNewProject = () => {
+    const titlePrompt = prompt("Entrez le titre de votre nouveau projet de livre :", "Le Guide de l'Auteur Moderne");
+    if (!titlePrompt) return;
+
+    setBookTitle(titlePrompt);
+    setChapters([
+      {
+        id: Date.now(),
+        number: 1,
+        title: "Chapitre 1 : Introduction & Vision",
+        content: `Bienvenue dans l'écriture de votre ouvrage "${titlePrompt}".\n\nCommencez à saisir vos idées ici ou demandez à l'assistant IA à droite de vous proposer un plan complet ou une introduction.`,
+        status: "Brouillon"
+      }
+    ]);
+    setActiveChapterIndex(0);
+    setMessages([
+      {
+        id: Date.now(),
+        sender: "ai",
+        text: `Félicitations pour le lancement de votre nouveau livre "${titlePrompt}" ! 🎉\n\nJe suis prêt à vous aider. Quel est le public cible et le message principal que vous souhaitez transmettre dans cet ouvrage ?`,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      }
+    ]);
+  };
 
   return (
-    <>
-      {/* Top Navigation Bar */}
-      <header className="bg-surface/80 backdrop-blur-md shadow-sm sticky top-0 z-50 h-16">
-        <nav className="flex justify-between items-center w-full px-6 max-w-[1200px] mx-auto h-full">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="font-heading text-2xl font-extrabold text-secondary">Iris</Link>
-            <div className="hidden md:flex gap-6">
-              <Link href="/" className="font-heading text-base text-on-surface-variant hover:text-secondary transition-colors">Dashboard</Link>
-              <Link href="/dashboard" className="font-heading text-base text-secondary font-bold border-b-2 border-secondary pb-1">Mes Projets</Link>
-              <Link href="#" className="font-heading text-base text-on-surface-variant hover:text-secondary transition-colors">Tutoriels</Link>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row h-screen overflow-hidden">
+      {/* 1. REUSABLE GLOBAL SIDEBAR (LEFT SIDE) */}
+      <Sidebar />
+
+      {/* MAIN STUDIO CONTAINER */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* 2. SLEEK ESSENTIAL HEADER BAR */}
+        <header className="bg-white border-b border-neutral-200/80 h-16 px-6 flex items-center justify-between gap-4 shrink-0 z-30">
+          {/* Left: Book Title & Active Chapter Picker */}
           <div className="flex items-center gap-4">
-            <button className="material-symbols-outlined p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors">notifications</button>
-            <button className="material-symbols-outlined p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors">settings</button>
-            <div className="h-8 w-8 rounded-full overflow-hidden border border-outline-variant bg-secondary-container flex items-center justify-center">
-              <img className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4Ge4Ks-D6bymKU3iAidRYrczLQncpvEACDGQTYXMq0aS2KdiVyhYkkbrkWTikvwFfUdUCwhU11mpsB04GIQBBlz3jtAPuMo5Uk1E_XKMwa5TDcoap0d5S40la_E6cTezLgbXxxYZNtsjG-HJez58VsiebAYr6_-OSFXsA6UR_8WPDu86zpFZHsURMqJn7c2Pxybe5RoccP44ONiGCGubLFbVZJ2PJVOlGXXz-Iz_Obfo6pKzjIIQ" alt="User Avatar" />
-            </div>
-            <button className="bg-secondary text-on-secondary px-4 py-2 rounded-lg font-heading text-base font-semibold hover:opacity-90 transition-opacity">Nouveau Livre</button>
-          </div>
-        </nav>
-      </header>
+            <Link
+              href="/projects"
+              className="flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all"
+            >
+              <span className="material-symbols-outlined text-base">arrow_back</span>
+              <span className="hidden sm:inline">Mes Livres</span>
+            </Link>
 
-      <main className="flex h-[calc(100vh-64px)] overflow-hidden">
-        {/* Left Sidebar */}
-        <aside className="h-full w-64 bg-surface-container-low hidden lg:flex flex-col p-4 space-y-2 border-r border-outline-variant">
-          <div className="flex items-center gap-3 mb-6 px-2">
-            <div className="w-10 h-10 rounded-lg overflow-hidden bg-secondary-container flex items-center justify-center">
-              <img className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1zQq7oV_GGYv_hT3TBNK24gpMH1peMnPAF2Zlkw0aGPSwaR3SjcWxLDCmmBL_hIWuoozmfqNl-SvSNOQU8o4Bmnv_MX8Dm2g0E7KUQm0e6WV-ueZ7PTTc98a7BJMNvIbkwdHPiLVwpPKfWC2DamO70UQRqH0DxsfwivR_pG_lg9Lf2Gm7q_2zkKJNoMD7rB45efXqzcXjVDMt_LUTHwPOZfm7svbO7LW2pTIMZi0bStMkbGE3cnE" alt="Book Cover" />
-            </div>
-            <div>
-              <h2 className="font-heading text-base font-semibold leading-tight text-secondary">L&apos;Épopée de Soundiata</h2>
-              <p className="text-sm text-on-surface-variant">Chapitre 3 en cours</p>
-            </div>
-          </div>
-
-          <nav className="flex-1 space-y-1">
-            <button className="w-full flex items-center gap-3 px-3 py-2 bg-secondary-container text-on-secondary-container rounded-lg font-bold transition-all duration-200">
-              <span className="material-symbols-outlined">edit_note</span>
-              <span className="text-sm">Rédaction</span>
-            </button>
-            <button className="w-full flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all duration-200">
-              <span className="material-symbols-outlined">account_tree</span>
-              <span className="text-sm">Structure</span>
-            </button>
-            <button className="w-full flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all duration-200">
-              <span className="material-symbols-outlined">auto_stories</span>
-              <span className="text-sm">Couverture</span>
-            </button>
-            <button className="w-full flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all duration-200">
-              <span className="material-symbols-outlined">ios_share</span>
-              <span className="text-sm">Exporter</span>
-            </button>
-          </nav>
-
-          <div className="pt-4 border-t border-outline-variant space-y-1">
-            <button className="w-full bg-secondary-container text-on-secondary-container py-3 rounded-xl font-heading font-semibold text-center hover:shadow-md transition-shadow">Aperçu PDF</button>
-            <button className="w-full flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all">
-              <span className="material-symbols-outlined">help_outline</span>
-              <span className="text-sm">Aide</span>
-            </button>
-            <button className="w-full flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all">
-              <span className="material-symbols-outlined">exit_to_app</span>
-              <span className="text-sm">Quitter</span>
-            </button>
-          </div>
-        </aside>
-
-        {/* Main Content Area: Split Screen */}
-        <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-          {/* AI Chat Interface (Left) */}
-          <section className="w-full md:w-[400px] xl:w-[480px] h-full bg-white border-r border-outline-variant flex flex-col relative z-10">
-            <div className="p-4 border-b border-outline-variant bg-surface flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-success-teal animate-pulse"></span>
-                <span className="font-heading font-semibold text-on-surface">Assistant Auteur</span>
-              </div>
-              <button className="material-symbols-outlined text-outline">more_horiz</button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* AI Bubble */}
-              <div className="flex flex-col items-start gap-2 max-w-[85%]">
-                <div className="bg-ai-bubble text-on-surface p-4 rounded-xl rounded-tl-sm shadow-sm">
-                  Bonjour ! Je vois que vous travaillez sur le premier chapitre de <span className="italic">&quot;L&apos;Épopée de Soundiata&quot;</span>. C&apos;est un sujet fascinant.
-                  <br /><br />
-                  Pour rendre le départ de Soundiata du Mandé plus poignant, souhaiteriez-vous mettre l&apos;accent sur sa force intérieure naissante ou sur la douleur de sa mère, Sogolon ?
-                </div>
-                <span className="text-[10px] text-outline font-mono font-semibold tracking-widest ml-1">AI ASSISTANT • 09:41</span>
-              </div>
-
-              {/* Suggested Prompts (Chips) */}
-              <div className="flex flex-wrap gap-2 py-2">
-                <button className="px-4 py-1.5 border border-outline-variant rounded-full text-sm text-on-surface-variant hover:border-secondary hover:text-secondary transition-colors">La force intérieure</button>
-                <button className="px-4 py-1.5 border border-outline-variant rounded-full text-sm text-on-surface-variant hover:border-secondary hover:text-secondary transition-colors">La douleur de Sogolon</button>
-                <button className="px-4 py-1.5 border border-outline-variant rounded-full text-sm text-on-surface-variant hover:border-secondary hover:text-secondary transition-colors">Les deux à la fois</button>
-              </div>
-
-              {/* User Bubble */}
-              <div className="flex flex-col items-end gap-2 ml-auto max-w-[85%]">
-                <div className="bg-user-bubble text-white p-4 rounded-xl rounded-tr-sm shadow-sm">
-                  Je pense que mettre l&apos;accent sur la force de Soundiata créera un contraste plus fort avec son handicap physique initial.
-                </div>
-                <span className="text-[10px] text-outline font-mono font-semibold tracking-widest mr-1">VOUS • 09:43</span>
-              </div>
-
-              {/* AI Bubble 2 */}
-              <div className="flex flex-col items-start gap-2 max-w-[85%]">
-                <div className="bg-ai-bubble text-on-surface p-4 rounded-xl rounded-tl-sm shadow-sm">
-                  Excellent choix. Cela renforce le thème de la résilience. Voici une proposition de paragraphe pour l&apos;ouverture du chapitre 1. Qu&apos;en pensez-vous ?
-                </div>
-              </div>
-            </div>
-
-            {/* Chat Input Area */}
-            <div className="p-4 bg-surface border-t border-outline-variant">
-              <div className="relative flex items-center bg-white border border-outline-variant rounded-full px-4 py-2 shadow-sm focus-within:ring-2 focus-within:ring-secondary/20 focus-within:border-secondary transition-all">
-                <button className="material-symbols-outlined text-outline hover:text-secondary mr-2">add_circle</button>
+            <div className="flex items-center gap-2">
+              {/* Editable Book Title Input */}
+              <div className="flex items-center gap-1.5 bg-neutral-100/80 hover:bg-white border border-neutral-200 focus-within:border-secondary focus-within:bg-white rounded-xl px-3 py-1 transition-all">
+                <span className="material-symbols-outlined text-sm text-neutral-400">edit</span>
                 <input
-                  className="flex-1 border-none focus:ring-0 text-base py-2 bg-transparent outline-none"
-                  placeholder="Posez une question ou demandez une correction..."
                   type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  value={bookTitle}
+                  onChange={(e) => setBookTitle(e.target.value)}
+                  className="font-heading font-extrabold text-sm sm:text-base text-neutral-900 bg-transparent border-none outline-none focus:ring-0 w-40 sm:w-56 truncate"
+                  placeholder="Titre du livre..."
+                  title="Cliquer pour modifier le titre du livre"
                 />
-                <button className="bg-secondary text-white p-2 rounded-full flex items-center justify-center hover:opacity-90 active:scale-95 transition-all">
-                  <span className="material-symbols-outlined">send</span>
-                </button>
               </div>
-            </div>
-          </section>
 
-          {/* Text Editor (Right) */}
-          <section className="flex-1 h-full bg-surface-container-lowest flex flex-col">
-            {/* Editor Toolbar */}
-            <div className="h-12 border-b border-outline-variant flex items-center justify-between px-6 bg-white/50 backdrop-blur-sm">
-              <div className="flex items-center gap-4">
-                <div className="flex border-r border-outline-variant pr-4 gap-1">
-                  <button className="material-symbols-outlined p-1.5 rounded hover:bg-surface-container text-on-surface-variant">format_bold</button>
-                  <button className="material-symbols-outlined p-1.5 rounded hover:bg-surface-container text-on-surface-variant">format_italic</button>
-                  <button className="material-symbols-outlined p-1.5 rounded hover:bg-surface-container text-on-surface-variant">format_list_bulleted</button>
-                </div>
-                <div className="flex gap-1">
-                  <button className="material-symbols-outlined p-1.5 rounded hover:bg-surface-container text-on-surface-variant">undo</button>
-                  <button className="material-symbols-outlined p-1.5 rounded hover:bg-surface-container text-on-surface-variant">redo</button>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-outline font-mono font-semibold tracking-widest">1,248 MOTS</span>
-                <div className="w-[1px] h-4 bg-outline-variant"></div>
-                <span className="text-sm text-success-teal font-medium flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px]">cloud_done</span> Enregistré
-                </span>
-              </div>
+              <select
+                value={activeChapterIndex}
+                onChange={(e) => setActiveChapterIndex(Number(e.target.value))}
+                className="bg-orange-50 border border-orange-200 text-secondary text-xs font-bold px-3 py-1.5 rounded-xl outline-none cursor-pointer"
+              >
+                {chapters.map((chap, idx) => (
+                  <option key={chap.id} value={idx}>
+                    {chap.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Right Essential Actions */}
+          <div className="flex items-center gap-3">
+            {/* Live Stats */}
+            <div className="hidden lg:flex items-center gap-3 bg-neutral-50 px-3.5 py-1.5 rounded-xl border border-neutral-200/70 text-xs">
+              <span className="font-mono font-bold text-neutral-700">{wordCount} MOTS</span>
+              <div className="w-[1px] h-3.5 bg-neutral-300"></div>
+              <span className="text-emerald-600 font-bold flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">cloud_done</span> Enregistré
+              </span>
             </div>
 
-            {/* Manuscript View */}
-            <div className="flex-1 overflow-y-auto p-6 md:p-12 lg:p-20">
-              <div className="max-w-[720px] mx-auto space-y-12">
-                {/* Progress Indicator */}
-                <div className="flex items-center justify-center w-full mb-16">
-                  <div className="flex items-center w-full max-w-md">
-                    <div className="flex flex-col items-center flex-1 relative">
-                      <div className="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center font-bold text-sm z-10">1</div>
-                      <span className="absolute top-10 text-[10px] font-mono font-semibold tracking-widest text-secondary whitespace-nowrap">BRIEF</span>
-                    </div>
-                    <div className="flex-1 h-[2px] bg-secondary"></div>
-                    <div className="flex flex-col items-center flex-1 relative">
-                      <div className="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center font-bold text-sm z-10 ring-4 ring-secondary/20">
-                        <div className="w-2 h-2 rounded-full bg-warning-amber animate-ping"></div>
-                      </div>
-                      <span className="absolute top-10 text-[10px] font-mono font-bold tracking-widest text-secondary whitespace-nowrap">RÉDACTION</span>
-                    </div>
-                    <div className="flex-1 h-[2px] bg-outline-variant"></div>
-                    <div className="flex flex-col items-center flex-1 relative">
-                      <div className="w-8 h-8 rounded-full bg-surface-container-highest text-outline flex items-center justify-center font-bold text-sm z-10">3</div>
-                      <span className="absolute top-10 text-[10px] font-mono font-semibold tracking-widest text-outline whitespace-nowrap">DESIGN</span>
-                    </div>
-                    <div className="flex-1 h-[2px] bg-outline-variant"></div>
-                    <div className="flex flex-col items-center flex-1 relative">
-                      <div className="w-8 h-8 rounded-full bg-surface-container-highest text-outline flex items-center justify-center font-bold text-sm z-10">4</div>
-                      <span className="absolute top-10 text-[10px] font-mono font-semibold tracking-widest text-outline whitespace-nowrap">EXPORT</span>
-                    </div>
+            <button
+              onClick={handleStartNewProject}
+              className="bg-neutral-100 hover:bg-neutral-200/80 text-neutral-800 text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
+              title="Démarrer un nouveau projet"
+            >
+              <span className="material-symbols-outlined text-base text-secondary">add_circle</span>
+              <span className="hidden sm:inline">Nouveau Projet</span>
+            </button>
+
+            <Link
+              href="/export"
+              className="bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+              <span>Exporter PDF</span>
+            </Link>
+
+            {/* Profile Menu Toggle */}
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm cursor-pointer hover:ring-2 hover:ring-orange-300 transition-all"
+              >
+                ML
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50">
+                  <div className="px-4 py-3 border-b border-neutral-100">
+                    <p className="font-heading font-bold text-sm text-neutral-900">Martin Laurent</p>
+                    <p className="text-xs text-neutral-500 truncate">martin@exemple.com</p>
+                  </div>
+                  <div className="py-1">
+                    <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
+                      <span className="material-symbols-outlined text-base text-neutral-400">dashboard</span>
+                      <span>Tableau de bord</span>
+                    </Link>
+                    <Link href="/settings" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
+                      <span className="material-symbols-outlined text-base text-neutral-400">settings</span>
+                      <span>Paramètres</span>
+                    </Link>
+                  </div>
+                  <div className="pt-1 border-t border-neutral-100">
+                    <Link href="/login" className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50">
+                      <span className="material-symbols-outlined text-base text-red-500">logout</span>
+                      <span>Se déconnecter</span>
+                    </Link>
                   </div>
                 </div>
+              )}
+            </div>
+          </div>
+        </header>
 
-                {/* Content */}
-                <article className="max-w-none">
-                  <h1 className="font-heading text-5xl font-extrabold text-on-surface mb-8 leading-tight tracking-tight">Chapitre 1 : L&apos;Ombre du Baobab</h1>
-                  <p className="text-lg leading-relaxed mb-6">
-                    Le soleil de midi écrasait le Mandé d&apos;une chaleur de plomb, transformant l&apos;horizon en un miroir frémissant où se confondaient la terre rouge et le ciel de nacre. Sous le grand baobab qui veillait sur Niani depuis des générations, le silence n&apos;était troublé que par le bourdonnement lancinant des insectes et le souffle court d&apos;un enfant qui refusait de s&apos;avouer vaincu.
-                  </p>
-                  <p className="text-lg leading-relaxed mb-6">
-                    Soundiata, les jambes inertes mais le regard embrasé d&apos;une volonté farouche, fixait la branche basse de l&apos;arbre séculaire. Pour beaucoup, il n&apos;était qu&apos;un fils infirme, un prince sans royaume intérieur. Mais dans le secret de son âme, une force commençait à gronder, plus puissante que les armées de son demi-frère Dankaran Touman.
-                  </p>
-                </article>
+        {/* 3. SPLIT WORKSPACE (TEXT EDITOR IN MIDDLE, CHAT ON RIGHT) */}
+        <div className="flex-1 flex flex-row overflow-hidden relative">
+          {/* ================= 3A. RICH MANUSCRIPT EDITOR (MIDDLE / MAIN AREA) ================= */}
+          <RichManuscriptEditor
+            initialContent={currentChapter.content}
+            chapterTitle={currentChapter.title}
+            onTitleChange={(newTitle) => {
+              const updated = [...chapters];
+              updated[activeChapterIndex].title = newTitle;
+              setChapters(updated);
+            }}
+            onContentChange={(newHtml) => {
+              const updated = [...chapters];
+              updated[activeChapterIndex].content = newHtml;
+              setChapters(updated);
+            }}
+            onContinueWithAi={() => handleSendMessage("Rédiger la suite de ce chapitre avec l'IA")}
+          />
 
-                {/* Floating Action Bar */}
-                <div className="flex justify-center pt-12">
-                  <button className="group flex items-center gap-2 bg-white border border-secondary/30 text-secondary px-6 py-3 rounded-full hover:bg-secondary hover:text-white transition-all shadow-lg">
-                    <span className="material-symbols-outlined">auto_awesome</span>
-                    <span className="font-heading font-semibold">Continuer l&apos;écriture avec l&apos;IA</span>
+          {/* ================= 3B. DRAGGABLE RESIZER HANDLE ================= */}
+          {!isChatCollapsed && (
+            <div
+              onMouseDown={() => setIsResizing(true)}
+              className={`w-1.5 hover:w-2 bg-neutral-200/70 hover:bg-secondary cursor-col-resize transition-all shrink-0 z-20 flex items-center justify-center group ${
+                isResizing ? "bg-secondary w-2" : ""
+              }`}
+              title="Faites glisser pour ajuster la largeur du chat IA"
+            >
+              <div className="w-1 h-8 rounded-full bg-neutral-400 group-hover:bg-white transition-colors"></div>
+            </div>
+          )}
+
+          {/* ================= 3C. AI CHAT ASSISTANT PANEL (RIGHT SIDE, RESIZABLE) ================= */}
+          {!isChatCollapsed && (
+            <aside
+              style={{ width: `${chatWidth}px` }}
+              className="h-full bg-white border-l border-neutral-200/80 flex flex-col shrink-0 relative shadow-lg z-10"
+            >
+              {/* Chat Header */}
+              <div className="p-4 border-b border-neutral-100 bg-neutral-50/50 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="font-heading font-extrabold text-sm text-neutral-900">
+                    Assistant Co-Auteur IA
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setIsChatCollapsed(true)}
+                    className="p-1 rounded-lg text-neutral-400 hover:text-neutral-800 hover:bg-neutral-200/60 transition-colors"
+                    title="Masquer le panneau de chat"
+                  >
+                    <span className="material-symbols-outlined text-lg">close</span>
                   </button>
                 </div>
               </div>
-            </div>
-          </section>
+
+              {/* Chat Messages Feed */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex flex-col gap-1.5 max-w-[92%] ${
+                      msg.sender === "user" ? "ml-auto items-end" : "items-start"
+                    }`}
+                  >
+                    <div
+                      className={`p-4 rounded-2xl shadow-2xs whitespace-pre-wrap ${
+                        msg.sender === "user"
+                          ? "bg-secondary text-white rounded-tr-xs chat-bubble-user font-medium"
+                          : "bg-neutral-100 text-neutral-900 rounded-tl-xs chat-bubble-text border border-neutral-200/60"
+                      }`}
+                    >
+                      {msg.text}
+
+                      {/* Insertion Button if AI proposed manuscript text */}
+                      {msg.suggestedTextToInsert && (
+                        <div className="mt-3 pt-3 border-t border-neutral-200/80 flex justify-end">
+                          <button
+                            onClick={() => handleInsertIntoManuscript(msg.suggestedTextToInsert!)}
+                            className="bg-white hover:bg-orange-50 border border-secondary/40 text-secondary text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-2xs"
+                          >
+                            <span className="material-symbols-outlined text-sm">add_to_photos</span>
+                            <span>Insérer dans le chapitre</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-neutral-400 font-mono font-bold tracking-wider px-1">
+                      {msg.sender === "user" ? "VOUS" : "IRIS IA"} • {msg.time}
+                    </span>
+                  </div>
+                ))}
+
+                {isAiThinking && (
+                  <div className="flex items-center gap-2 text-xs font-semibold text-neutral-400 p-2">
+                    <span className="material-symbols-outlined text-base text-secondary animate-spin">
+                      progress_activity
+                    </span>
+                    <span>Iris formule une réponse...</span>
+                  </div>
+                )}
+                <div ref={chatBottomRef} />
+              </div>
+
+              {/* Quick Action Prompt Chips */}
+              <div className="p-3 bg-neutral-50/50 border-t border-neutral-100 flex flex-wrap gap-1.5 shrink-0">
+                <button
+                  onClick={() => handleSendMessage("Proposer un plan en 5 chapitres pour ce livre")}
+                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:border-secondary hover:text-secondary rounded-full text-xs font-semibold text-neutral-700 transition-all shadow-2xs"
+                >
+                  💡 Proposer un plan
+                </button>
+                <button
+                  onClick={() => handleSendMessage("Développer le paragraphe actuel avec plus de détails")}
+                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:border-secondary hover:text-secondary rounded-full text-xs font-semibold text-neutral-700 transition-all shadow-2xs"
+                >
+                  ✨ Enrichir le texte
+                </button>
+                <button
+                  onClick={() => handleSendMessage("Proposer 3 titres accrocheurs pour ce projet")}
+                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:border-secondary hover:text-secondary rounded-full text-xs font-semibold text-neutral-700 transition-all shadow-2xs"
+                >
+                  🎨 Idées de titres
+                </button>
+              </div>
+
+              {/* Chat Input Bar */}
+              <div className="p-3 bg-white border-t border-neutral-200/80 shrink-0">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }}
+                  className="relative flex items-center bg-neutral-50 border border-neutral-200 rounded-2xl px-3 py-2 focus-within:ring-2 focus-within:ring-secondary/20 focus-within:border-secondary transition-all"
+                >
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Discutez ou demandez à l'IA..."
+                    className="flex-1 bg-transparent border-none outline-none text-xs font-medium text-neutral-900 placeholder:text-neutral-400 py-1"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-secondary text-white p-2 rounded-xl flex items-center justify-center hover:opacity-90 active:scale-95 transition-all ml-1 shadow-2xs"
+                  >
+                    <span className="material-symbols-outlined text-base">send</span>
+                  </button>
+                </form>
+              </div>
+            </aside>
+          )}
         </div>
-      </main>
-    </>
+      </div>
+    </div>
   );
 }
