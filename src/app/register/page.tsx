@@ -36,10 +36,10 @@ export default function RegisterPage() {
         {/* Top Logo */}
         <div className="relative z-10">
           <Link href="/" className="inline-flex items-center gap-3 group">
-            <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center text-white font-heading font-extrabold text-2xl shadow-md group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-white font-heading font-extrabold text-xl shadow-md group-hover:scale-105 transition-transform">
               I
             </div>
-            <span className="font-heading font-extrabold text-3xl sm:text-4xl tracking-tight text-white">
+            <span className="font-heading font-extrabold text-3xl tracking-tight text-white">
               Iris
             </span>
           </Link>
@@ -50,16 +50,16 @@ export default function RegisterPage() {
           <span className="inline-block px-3.5 py-1 rounded-full bg-orange-500/20 text-orange-400 font-bold text-xs uppercase tracking-widest border border-orange-500/30">
             Rejoignez la révolution littéraire
           </span>
-          <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight leading-tight">
+          <h1 className="font-heading text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
             Co-créez vos livres numériques en quelques <em className="text-secondary not-italic">minutes.</em>
           </h1>
-          <p className="text-lg sm:text-xl text-neutral-300 font-normal leading-relaxed">
+          <p className="text-base sm:text-lg text-neutral-400 font-normal leading-relaxed">
             Créez votre compte gratuit et accédez au premier assistant IA conçu spécifiquement pour les auteurs, experts et créateurs de contenu.
           </p>
         </div>
 
         {/* Footer Note */}
-        <div className="relative z-10 text-sm text-neutral-400 font-medium">
+        <div className="relative z-10 text-xs text-neutral-500 font-medium">
           © {new Date().getFullYear()} BoomBooks. Tous droits réservés.
         </div>
       </div>
