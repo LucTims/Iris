@@ -104,33 +104,6 @@ export default function RegisterPage() {
               </svg>
               <span>S&apos;inscrire avec Google</span>
             </button>
-
-            {/* Microsoft */}
-            <button 
-              type="button" 
-              onClick={() => router.push("/dashboard")}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-neutral-200 hover:border-neutral-300 rounded-2xl text-sm font-bold text-neutral-800 bg-white hover:bg-neutral-50/80 transition-all shadow-2xs"
-            >
-              <svg className="w-5 h-5 shrink-0" viewBox="0 0 23 23">
-                <path fill="#f35325" d="M1 1h10v10H1z"/>
-                <path fill="#81bc06" d="M12 1h10v10H12z"/>
-                <path fill="#05a6f0" d="M1 12h10v10H1z"/>
-                <path fill="#ffba08" d="M12 12h10v10H12z"/>
-              </svg>
-              <span>S&apos;inscrire avec Microsoft</span>
-            </button>
-
-            {/* Apple */}
-            <button 
-              type="button" 
-              onClick={() => router.push("/dashboard")}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-neutral-200 hover:border-neutral-300 rounded-2xl text-sm font-bold text-neutral-800 bg-white hover:bg-neutral-50/80 transition-all shadow-2xs"
-            >
-              <svg className="w-5 h-5 shrink-0 fill-current text-neutral-900" viewBox="0 0 170 170">
-                <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.34.13-9.14-1.92-14.42-6.15-3.37-2.76-7.25-7.46-11.64-14.1-6.42-9.68-11.4-20.67-14.94-32.96-3.54-12.3-5.31-23.77-5.31-34.42 0-15.06 3.65-27.42 10.96-37.07 7.31-9.66 16.5-14.57 27.56-14.74 4.58 0 9.77 1.15 15.58 3.44 5.8 2.3 9.87 3.45 12.2 3.45 2.12 0 6.27-1.22 12.46-3.66 6.19-2.44 11.45-3.57 15.78-3.39 12.08.77 21.68 5.16 28.8 13.18-10.74 6.53-15.98 15.61-15.72 27.24.26 9.07 3.86 16.71 10.8 22.92 6.94 6.21 15.2 9.76 24.78 10.65-2.58 7.73-6.06 15.42-10.44 23.07zM119.22 31.96c0-7.14 2.62-14.07 7.85-20.79 5.23-6.72 11.96-10.84 20.19-12.37.52 1.3.78 2.58.78 3.84 0 7.23-2.68 14.28-8.04 21.15-5.36 6.87-12.18 10.9-20.46 12.09-.08-1.3-.26-2.61-.32-3.92z"/>
-              </svg>
-              <span>S&apos;inscrire avec Apple</span>
-            </button>
           </div>
 
           {/* Divider */}
