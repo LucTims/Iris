@@ -2,9 +2,13 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import DoodleFeatherMascot from "@/components/DoodleFeatherMascot";
+import dynamic from "next/dynamic";
 import HeroProductShowcase from "@/components/HeroProductShowcase";
 import Footer from "@/components/Footer";
+
+const DoodleFeatherMascot = dynamic(() => import("@/components/DoodleFeatherMascot"), {
+  ssr: false,
+});
 
 export default function Home() {
   return (
