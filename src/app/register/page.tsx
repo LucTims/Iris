@@ -36,10 +36,10 @@ export default function RegisterPage() {
         {/* Top Logo */}
         <div className="relative z-10">
           <Link href="/" className="inline-flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-white font-heading font-extrabold text-xl shadow-md group-hover:scale-105 transition-transform">
+            <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center text-white font-heading font-extrabold text-2xl shadow-md group-hover:scale-105 transition-transform">
               I
             </div>
-            <span className="font-heading font-extrabold text-3xl tracking-tight text-white">
+            <span className="font-heading font-extrabold text-3xl sm:text-4xl tracking-tight text-white">
               Iris
             </span>
           </Link>
@@ -50,16 +50,16 @@ export default function RegisterPage() {
           <span className="inline-block px-3.5 py-1 rounded-full bg-orange-500/20 text-orange-400 font-bold text-xs uppercase tracking-widest border border-orange-500/30">
             Rejoignez la révolution littéraire
           </span>
-          <h1 className="font-heading text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+          <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight leading-tight">
             Co-créez vos livres numériques en quelques <em className="text-secondary not-italic">minutes.</em>
           </h1>
-          <p className="text-base sm:text-lg text-neutral-400 font-normal leading-relaxed">
+          <p className="text-lg sm:text-xl text-neutral-300 font-normal leading-relaxed">
             Créez votre compte gratuit et accédez au premier assistant IA conçu spécifiquement pour les auteurs, experts et créateurs de contenu.
           </p>
         </div>
 
         {/* Footer Note */}
-        <div className="relative z-10 text-xs text-neutral-500 font-medium">
+        <div className="relative z-10 text-sm text-neutral-400 font-medium">
           © {new Date().getFullYear()} BoomBooks. Tous droits réservés.
         </div>
       </div>
@@ -69,21 +69,21 @@ export default function RegisterPage() {
         <div className="w-full max-w-md mx-auto space-y-8">
           
           {/* Header */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             {/* Logo shown on mobile */}
             <div className="lg:hidden mb-6">
-              <Link href="/" className="inline-flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-white font-heading font-bold text-lg">
+              <Link href="/" className="inline-flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-white font-heading font-bold text-xl">
                   I
                 </div>
-                <span className="font-heading font-bold text-2xl text-neutral-900">Iris</span>
+                <span className="font-heading font-bold text-3xl text-neutral-900">Iris</span>
               </Link>
             </div>
 
             <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
               Créer un compte
             </h2>
-            <p className="text-sm text-neutral-500 leading-relaxed">
+            <p className="text-base text-neutral-600 leading-relaxed font-normal">
               Inscrivez-vous gratuitement et lancez votre premier projet de livre dès aujourd&apos;hui.
             </p>
           </div>
@@ -94,7 +94,7 @@ export default function RegisterPage() {
             <button 
               type="button" 
               onClick={() => router.push("/dashboard")}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-neutral-200 hover:border-neutral-300 rounded-2xl text-sm font-bold text-neutral-800 bg-white hover:bg-neutral-50/80 transition-all shadow-2xs"
+              className="w-full flex items-center justify-center gap-3 px-5 py-3.5 border border-neutral-200 hover:border-neutral-300 rounded-2xl text-base font-bold text-neutral-800 bg-white hover:bg-neutral-50 transition-all shadow-2xs"
             >
               <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -109,25 +109,25 @@ export default function RegisterPage() {
           {/* Divider */}
           <div className="relative flex items-center justify-center my-6">
             <div className="w-full border-t border-neutral-200"></div>
-            <span className="absolute bg-white px-4 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+            <span className="absolute bg-white px-4 text-xs sm:text-sm font-bold text-neutral-400 uppercase tracking-wider">
               ou
             </span>
           </div>
 
           {/* Registration Form */}
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form className="space-y-5" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 text-red-700 border border-red-200 px-4 py-3 rounded-xl text-xs font-semibold">
+              <div className="bg-red-50 text-red-700 border border-red-200 px-4 py-3 rounded-xl text-sm font-semibold">
                 {error}
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">
+              <label className="block text-sm font-bold text-neutral-800 mb-2 uppercase tracking-wider">
                 Nom complet *
               </label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-lg">
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-xl">
                   person
                 </span>
                 <input 
@@ -135,18 +135,18 @@ export default function RegisterPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Jean Dupont" 
-                  className="w-full pl-11 pr-4 py-3 text-sm border border-neutral-200 rounded-2xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all outline-none bg-white text-neutral-900 placeholder:text-neutral-400"
+                  className="w-full pl-12 pr-4 py-3.5 text-base border border-neutral-200 rounded-2xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all outline-none bg-white text-neutral-900 placeholder:text-neutral-400 font-medium"
                   required 
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">
+              <label className="block text-sm font-bold text-neutral-800 mb-2 uppercase tracking-wider">
                 Adresse e-mail *
               </label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-lg">
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-xl">
                   mail
                 </span>
                 <input 
@@ -154,18 +154,18 @@ export default function RegisterPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="vous@exemple.com" 
-                  className="w-full pl-11 pr-4 py-3 text-sm border border-neutral-200 rounded-2xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all outline-none bg-white text-neutral-900 placeholder:text-neutral-400"
+                  className="w-full pl-12 pr-4 py-3.5 text-base border border-neutral-200 rounded-2xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all outline-none bg-white text-neutral-900 placeholder:text-neutral-400 font-medium"
                   required 
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">
+              <label className="block text-sm font-bold text-neutral-800 mb-2 uppercase tracking-wider">
                 Mot de passe *
               </label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-lg">
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-xl">
                   lock
                 </span>
                 <input 
@@ -173,7 +173,7 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••" 
-                  className="w-full pl-11 pr-4 py-3 text-sm border border-neutral-200 rounded-2xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all outline-none bg-white text-neutral-900 placeholder:text-neutral-400"
+                  className="w-full pl-12 pr-4 py-3.5 text-base border border-neutral-200 rounded-2xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all outline-none bg-white text-neutral-900 placeholder:text-neutral-400 font-medium"
                   required
                 />
               </div>
@@ -181,10 +181,10 @@ export default function RegisterPage() {
 
             <button 
               type="submit" 
-              className="w-full bg-secondary hover:bg-orange-600 text-white font-bold py-3.5 rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 group mt-2"
+              className="w-full bg-secondary hover:bg-orange-600 text-white text-base sm:text-lg font-bold py-4 rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 group mt-2"
             >
               <span>Créer mon compte gratuitement</span>
-              <span className="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">
+              <span className="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">
                 arrow_forward
               </span>
             </button>
@@ -192,9 +192,9 @@ export default function RegisterPage() {
 
           {/* Switch link */}
           <div className="pt-4 text-center border-t border-neutral-100">
-            <p className="text-xs text-neutral-500 font-medium">
+            <p className="text-sm text-neutral-600 font-medium">
               Vous avez déjà un compte ?{" "}
-              <Link href="/login" className="font-bold text-secondary hover:underline">
+              <Link href="/register" className="font-bold text-secondary hover:underline">
                 Connexion ici
               </Link>
             </p>
