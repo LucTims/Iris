@@ -149,13 +149,13 @@ export default function ProjectsPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
+            <Link
+              href="/projects/new"
               className="flex items-center gap-2 bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-xs"
             >
               <span className="material-symbols-outlined text-base">add</span>
               <span>Nouveau Livre</span>
-            </button>
+            </Link>
 
             {/* Profile Dropdown */}
             <div className="relative">
@@ -355,29 +355,54 @@ export default function ProjectsPage() {
               ))}
             </div>
           ) : (
-            /* List View */
-            <div className="bg-white rounded-2xl border border-neutral-200/80 overflow-hidden divide-y divide-neutral-100">
-              {filteredProjects.map((book) => (
-                <div key={book.id} className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-neutral-50/80 transition-colors">
-                  <div className="flex items-center gap-4 min-w-0 flex-1">
-                    <div className="w-14 h-18 rounded-xl bg-neutral-200 overflow-hidden shrink-0 border border-neutral-300">
+            /* List View (Table Format matching BoomBooks typography) */
+            <div className="bg-white rounded-2xl border border-neutral-200/80 overflow-hidden">
+              
+              {/* Table Header */}
+              <div className="hidden sm:grid grid-cols-12 gap-4 px-5 py-4 border-b border-neutral-100 bg-neutral-50/50">
+                <div className="col-span-1 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Ordre</div>
+                <div className="col-span-6 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Titre</div>
+                <div className="col-span-3 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Auteur</div>
+                <div className="col-span-2 text-[10px] font-bold text-neutral-400 uppercase tracking-widest text-right">Statut</div>
+              </div>
+
+              <div className="divide-y divide-neutral-100">
+              {filteredProjects.map((book, index) => (
+                <div key={book.id} className="p-4 sm:p-5 flex flex-col sm:grid sm:grid-cols-12 items-start sm:items-center gap-4 hover:bg-neutral-50/80 transition-colors">
+                  
+                  {/* Ordre */}
+                  <div className="hidden sm:flex col-span-1 flex-col items-center justify-center gap-0.5 bg-neutral-100/50 w-8 py-1 rounded-lg">
+                    <span className="material-symbols-outlined text-[10px] text-neutral-400 hover:text-neutral-700 cursor-pointer">expand_less</span>
+                    <span className="material-symbols-outlined text-[10px] text-neutral-400 hover:text-neutral-700 cursor-pointer">expand_more</span>
+                  </div>
+
+                  {/* Titre */}
+                  <div className="col-span-6 flex items-center gap-4 min-w-0">
+                    <div className="w-14 h-10 sm:w-16 sm:h-12 rounded-lg bg-neutral-200 overflow-hidden shrink-0 border border-neutral-200 shadow-2xs">
                       <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
                     </div>
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-heading font-bold text-base text-neutral-900 truncate">
-                          {book.title}
-                        </h3>
-                        <span className="bg-orange-50 border border-orange-200 text-secondary text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
-                          {book.status}
-                        </span>
-                      </div>
-                      <p className="text-xs text-neutral-500 truncate font-medium">{book.subtitle}</p>
-                      <p className="text-[11px] text-neutral-400 font-mono">{book.pages} • {book.words} • {book.lastEdited}</p>
+                    <div className="min-w-0 space-y-0.5">
+                      <h3 className="font-heading font-extrabold text-sm text-neutral-900 truncate">
+                        {book.title}
+                      </h3>
+                      <p className="text-[11px] font-bold text-emerald-600 truncate">{book.words}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
+                  {/* Auteur */}
+                  <div className="col-span-3 text-xs font-semibold text-neutral-500">
+                    Martin Laurent
+                  </div>
+
+                  {/* Statut & Plateforme */}
+                  <div className="col-span-2 flex items-center justify-end">
+                    <span className="bg-orange-50 text-secondary text-[11px] font-bold px-3 py-1 rounded-full shrink-0">
+                      {book.status}
+                    </span>
+                  </div>
+                  
+                  {/* Mobile Only Actions */}
+                  <div className="flex sm:hidden items-center gap-3 w-full justify-end border-t pt-3 mt-2">
                     <Link
                       href="/redaction"
                       className="bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5"
@@ -401,6 +426,7 @@ export default function ProjectsPage() {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           )}
         </main>

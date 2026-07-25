@@ -26,7 +26,6 @@ export default function Sidebar() {
   const navItems = [
     { id: "dashboard", label: "Tableau de bord", icon: "dashboard", href: "/dashboard" },
     { id: "projets", label: "Mes Livres & Projets", icon: "menu_book", href: "/projects" },
-    { id: "assistant", label: "Assistant Iris IA", icon: "auto_awesome", href: "/redaction" },
     { id: "couverture", label: "Studio de Couverture", icon: "palette", href: "/cover-studio" },
     { id: "export", label: "Mise en page & KDP", icon: "design_services", href: "/export" },
     { id: "ventes", label: "Lecteurs & Téléchargements", icon: "group", href: "/analytics" },
@@ -66,7 +65,7 @@ export default function Sidebar() {
           className="w-8 h-8 rounded-xl bg-neutral-100/80 hover:bg-neutral-200/70 border border-neutral-200/60 text-neutral-600 hover:text-neutral-900 transition-all flex items-center justify-center shadow-2xs hover:scale-105 active:scale-95 cursor-pointer"
         >
           <span className="material-symbols-outlined text-lg">
-            {collapsed ? "dock_to_right" : "side_navigation"}
+            {collapsed ? "keyboard_double_arrow_right" : "keyboard_double_arrow_left"}
           </span>
         </button>
       </div>
@@ -74,7 +73,10 @@ export default function Sidebar() {
       {/* Main Navigation List */}
       <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          const isActive = 
+            pathname === item.href || 
+            (item.href !== "/dashboard" && pathname.startsWith(item.href)) ||
+            (item.href === "/projects" && pathname.startsWith("/redaction"));
           return (
             <Link
               key={item.id}
@@ -87,9 +89,7 @@ export default function Sidebar() {
               }`}
             >
               <span
-                className={`material-symbols-outlined text-xl shrink-0 transition-transform group-hover:scale-110 ${
-                  isActive ? "text-secondary font-bold" : "text-neutral-500"
-                }`}
+                className={`material-symbols-outlined text-[26px] shrink-0 transition-transform group-hover:scale-110 text-inherit`}
               >
                 {item.icon}
               </span>
@@ -106,7 +106,7 @@ export default function Sidebar() {
           title={collapsed ? "Page d'accueil" : undefined}
           className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium text-neutral-600 hover:text-neutral-900 rounded-xl hover:bg-neutral-50 transition-colors"
         >
-          <span className="material-symbols-outlined text-xl text-neutral-500 shrink-0">home</span>
+          <span className="material-symbols-outlined text-[26px] text-inherit shrink-0">home</span>
           {!collapsed && <span>Page d&apos;accueil</span>}
         </Link>
 
@@ -115,7 +115,7 @@ export default function Sidebar() {
           title={collapsed ? "Se déconnecter" : undefined}
           className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors"
         >
-          <span className="material-symbols-outlined text-xl text-red-500 shrink-0">logout</span>
+          <span className="material-symbols-outlined text-[26px] text-inherit shrink-0">logout</span>
           {!collapsed && <span>Se déconnecter</span>}
         </Link>
 
@@ -123,8 +123,8 @@ export default function Sidebar() {
           onClick={toggleCollapsed}
           className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-neutral-400 hover:text-neutral-800 rounded-xl hover:bg-neutral-50 transition-colors pt-2 border-t border-neutral-100 mt-1 cursor-pointer"
         >
-          <span className="material-symbols-outlined text-xl text-neutral-600 shrink-0">
-            {collapsed ? "dock_to_right" : "side_navigation"}
+          <span className="material-symbols-outlined text-[26px] text-inherit shrink-0">
+            {collapsed ? "keyboard_double_arrow_right" : "keyboard_double_arrow_left"}
           </span>
           {!collapsed && <span>Réduire le menu</span>}
         </button>

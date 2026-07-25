@@ -8,7 +8,7 @@ import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white text-neutral-900 font-body selection:bg-orange-100 flex flex-col justify-between">
+    <div className="min-h-screen bg-white text-neutral-900 font-landing selection:bg-orange-100 flex flex-col justify-between">
       
       {/* Navigation Bar */}
       <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-neutral-200/80">

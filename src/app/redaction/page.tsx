@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import RichManuscriptEditor from "@/components/RichManuscriptEditor";
 
@@ -22,6 +23,9 @@ interface Chapter {
 }
 
 export default function RedactionPage() {
+  const searchParams = useSearchParams();
+  const isNewProject = searchParams?.get("new") === "true";
+
   // Global Layout State
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -77,6 +81,121 @@ export default function RedactionPage() {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isAiThinking]);
 
+  // Load project on mount
+  useEffect(() => {
+    const projectContextStr = localStorage.getItem("iris_current_project");
+    const projectContext = projectContextStr ? JSON.parse(projectContextStr) : null;
+
+    if (projectContext && projectContext.title) {
+      setBookTitle(projectContext.title);
+    }
+    
+    if (isNewProject) {
+      setChapters([
+        {
+          id: 1,
+          number: 1,
+          title: "Plan Détaillé (En génération...)",
+          content: "",
+          status: "Brouillon"
+        }
+      ]);
+      setMessages([]);
+      setIsAiThinking(true);
+      
+      let isSubscribed = true;
+
+      const generatePlan = async () => {
+        try {
+          const response = await fetch("/api/generate-plan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(projectContext || {})
+          });
+
+          if (!response.ok) throw new Error("Erreur API");
+          
+          setIsAiThinking(false);
+
+          const aiMessageId = Date.now();
+          setMessages([
+            {
+              id: aiMessageId,
+              sender: "ai",
+              text: "",
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }
+          ]);
+
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
+          
+          if (reader) {
+            let done = false;
+            let currentText = "";
+            
+            while (!done) {
+              const { value, done: doneReading } = await reader.read();
+              done = doneReading;
+              if (value) {
+                const chunkValue = decoder.decode(value, { stream: true });
+                currentText += chunkValue;
+                
+                if (isSubscribed) {
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === aiMessageId ? { ...msg, text: currentText } : msg
+                  ));
+                }
+              }
+            }
+            
+            if (isSubscribed) {
+              setChapters(prev => prev.map(chap => 
+                chap.id === 1 ? { ...chap, content: currentText, title: "Plan Détaillé", status: "En cours" } : chap
+              ));
+            }
+          }
+        } catch (error) {
+          console.error("Génération échouée", error);
+          setIsAiThinking(false);
+          setMessages([
+            {
+              id: Date.now(),
+              sender: "ai",
+              text: "⚠️ Une erreur est survenue lors de la génération. Avez-vous bien ajouté votre clé API `GOOGLE_GENERATIVE_AI_API_KEY` dans le fichier `.env.local` et redémarré le serveur de développement ?",
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }
+          ]);
+        }
+      };
+
+      generatePlan();
+
+      return () => {
+        isSubscribed = false;
+      };
+    } else if (projectContextStr) {
+      // Si ce n'est pas un nouveau projet mais qu'on a un projet en mémoire, on vide le chat par défaut
+      setMessages([
+        {
+          id: 1,
+          sender: "ai",
+          text: `Bonjour ! Je suis Iris IA, votre co-auteur. Je suis prêt à travailler sur votre projet "${projectContext?.title}". Que voulez-vous faire ?`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+      setChapters([
+        {
+          id: 1,
+          number: 1,
+          title: "Chapitre 1",
+          content: "Commencez à écrire ici...",
+          status: "Brouillon"
+        }
+      ]);
+    }
+  }, [isNewProject]);
+
   // Resizing Handler via Mouse Drag
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -122,32 +241,66 @@ export default function RedactionPage() {
     if (!textToSend) setChatInput("");
     setIsAiThinking(true);
 
-    // Simulate AI intelligent response & paragraph suggestion
-    setTimeout(() => {
-      let aiText = "";
-      let suggestionToInsert = "";
+    const chatRequest = async () => {
+      try {
+        const projectContextStr = localStorage.getItem("iris_current_project");
+        const projectContext = projectContextStr ? JSON.parse(projectContextStr) : null;
+        
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [...messages, userMsg],
+            context: {
+              title: bookTitle,
+              synopsis: projectContext?.synopsis || currentChapter.content.substring(0, 500),
+              tone: projectContext?.tone || "professionnel"
+            }
+          })
+        });
 
-      if (query.toLowerCase().includes("table des matières") || query.toLowerCase().includes("plan")) {
-        aiText = "Voici une proposition de structure en 5 chapitres pour votre livre :\n1. L'Ombre du Baobab (L'Enfance et l'Épreuve)\n2. Le Serment de Sogolon (La Traversée de l'Exil)\n3. L'Éveil du Lion (La Prise de Conscience)\n4. L'Alliance des Royaumes (La Préparation au Combat)\n5. La Victoire de Kirina (Le Couronnement de l'Empire)";
-      } else if (query.toLowerCase().includes("continuer") || query.toLowerCase().includes("suite") || query.toLowerCase().includes("force")) {
-        aiText = "Excellente orientation. Voici la suite suggérée pour ce paragraphe :";
-        suggestionToInsert = "\n\nChaque pas qu'il s'apprêtait à faire n'était pas seulement un redressement physique, mais le premier acte de libération de tout un peuple. Sogolon fixait son fils, sachant que la prophétie venait d'amorcer son accomplissement inéluctable.";
-      } else {
-        aiText = `Très intéressant ! J'ai bien pris en compte votre remarque sur "${query}". Souhaitez-vous que je rédige le passage correspondant ou préfériez-vous ajuster le ton de narration (plus poétique, plus direct ou dramatique) ?`;
-        suggestionToInsert = `\n\nLe vent du sud apporta avec lui les effluves de terre mouillée et le murmure des ancêtres. C'était le signal que Soundiata attendait depuis si longtemps.`;
+        if (!response.ok) throw new Error("API Chat Error");
+
+        setIsAiThinking(false);
+
+        const aiMessageId = Date.now() + 1;
+        setMessages(prev => [...prev, {
+          id: aiMessageId,
+          sender: "ai",
+          text: "",
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        }]);
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (reader) {
+          let currentText = "";
+          let done = false;
+          while (!done) {
+            const { value, done: doneReading } = await reader.read();
+            done = doneReading;
+            if (value) {
+              currentText += decoder.decode(value, { stream: true });
+              setMessages(prev => prev.map(msg => 
+                msg.id === aiMessageId ? { ...msg, text: currentText } : msg
+              ));
+            }
+          }
+        }
+      } catch (error) {
+        console.error(error);
+        setIsAiThinking(false);
+        setMessages(prev => [...prev, {
+          id: Date.now() + 2,
+          sender: "ai",
+          text: "⚠️ Désolé, je rencontre une erreur de communication. Veuillez réessayer.",
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        }]);
       }
-
-      const aiMsg: Message = {
-        id: Date.now() + 1,
-        sender: "ai",
-        text: aiText,
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        suggestedTextToInsert: suggestionToInsert || undefined
-      };
-
-      setMessages((prev) => [...prev, aiMsg]);
-      setIsAiThinking(false);
-    }, 1200);
+    };
+    
+    chatRequest();
   };
 
   // Insert AI Generated Paragraph directly into Manuscript Editor

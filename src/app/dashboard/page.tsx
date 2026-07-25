@@ -3,10 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
+import QuillAnimation from "@/components/QuillAnimation";
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const hasProjects = false; // Toggle to true when user has projects
 
   const myBookProjects = [
     {
@@ -72,7 +74,7 @@ export default function DashboardPage() {
               <span>Accueil du site</span>
             </Link>
 
-            <Link href="/redaction" className="flex items-center gap-2 bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs">
+            <Link href="/projects/new" className="flex items-center gap-2 bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs">
               <span className="material-symbols-outlined text-base">add</span>
               <span>Nouveau Livre</span>
             </Link>
@@ -171,10 +173,10 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <Link href="/redaction" className="shrink-0 w-full md:w-auto z-10">
+            <Link href="/projects/new" className="shrink-0 w-full md:w-auto z-10">
               <button className="w-full md:w-auto bg-white text-secondary hover:bg-orange-50 text-xs sm:text-sm font-bold px-6 py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
-                <span>Ouvrir l&apos;Assistant IA</span>
-                <span className="material-symbols-outlined text-base">arrow_forward</span>
+                <span>Créer un nouveau livre</span>
+                <span className="material-symbols-outlined text-base">menu_book</span>
               </button>
             </Link>
           </div>
@@ -191,35 +193,13 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* 3. IRIS QUICK ACTION PILLS */}
-          <div className="flex flex-wrap items-center gap-3">
-            <Link href="/redaction">
-              <button className="bg-white border border-neutral-200 hover:border-orange-300 hover:bg-orange-50/50 text-neutral-800 text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-2xs flex items-center gap-2">
-                <span className="material-symbols-outlined text-secondary text-base">edit_note</span>
-                <span>Rédiger un chapitre avec Iris</span>
-              </button>
-            </Link>
-            <Link href="/cover-studio">
-              <button className="bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-800 text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-2xs flex items-center gap-2">
-                <span className="material-symbols-outlined text-neutral-500 text-base">palette</span>
-                <span>Designer une couverture HD</span>
-              </button>
-            </Link>
-            <Link href="/redaction">
-              <button className="bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-800 text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-2xs flex items-center gap-2">
-                <span className="material-symbols-outlined text-neutral-500 text-base">account_tree</span>
-                <span>Générer un plan de livre</span>
-              </button>
-            </Link>
-            <Link href="/export">
-              <button className="bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-800 text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-2xs flex items-center gap-2">
-                <span className="material-symbols-outlined text-neutral-500 text-base">download</span>
-                <span>Exporter en EPUB / PDF</span>
-              </button>
-            </Link>
-          </div>
+          {/* QUILL ANIMATION — Empty State Hero */}
+          {!hasProjects && (
+            <QuillAnimation />
+          )}
 
-          {/* 4. IRIS CORE METRICS (3 KPI Cards) */}
+          {/* 4. IRIS CORE METRICS (3 KPI Cards) — Only when projects exist */}
+          {hasProjects && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             
             {/* Card 1: Books in progress */}
@@ -265,8 +245,10 @@ export default function DashboardPage() {
             </div>
 
           </div>
+          )}
 
-          {/* 5. MES LIVRES & PROJETS EN COURS */}
+          {/* 5. MES LIVRES & PROJETS EN COURS — Only when projects exist */}
+          {hasProjects && (
           <div className="space-y-4 pt-4">
             <div className="flex items-center justify-between">
               <div>
@@ -332,6 +314,7 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
+          )}
 
           {/* 6. FONCTIONNALITÉS & OUTILS IRIS */}
           <div className="space-y-4 pt-6">
@@ -402,13 +385,9 @@ export default function DashboardPage() {
           <span className="material-symbols-outlined text-xl">dashboard</span>
           <span className="text-[10px]">Accueil</span>
         </Link>
-        <Link href="/redaction" className="flex flex-col items-center gap-1 text-neutral-500 hover:text-neutral-900">
+        <Link href="/projects" className="flex flex-col items-center gap-1 text-neutral-500 hover:text-neutral-900">
           <span className="material-symbols-outlined text-xl">menu_book</span>
           <span className="text-[10px]">Mes Livres</span>
-        </Link>
-        <Link href="/redaction" className="flex flex-col items-center gap-1 text-neutral-500 hover:text-neutral-900">
-          <span className="material-symbols-outlined text-xl">auto_awesome</span>
-          <span className="text-[10px]">Studio IA</span>
         </Link>
         <Link href="/billing" className="flex flex-col items-center gap-1 text-neutral-500 hover:text-neutral-900">
           <span className="material-symbols-outlined text-xl">credit_card</span>
