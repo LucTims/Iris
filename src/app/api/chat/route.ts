@@ -1,5 +1,5 @@
 import { google } from "@ai-sdk/google";
-import { streamText, Message } from "ai";
+import { streamText } from "ai";
 import { NextResponse } from "next/server";
 
 export const maxDuration = 30;
@@ -17,9 +17,7 @@ Ton : ${context?.tone}
 
 Réponds de manière concise, encourageante et professionnelle. Tu peux proposer des idées, des suites de phrases, ou corriger le style.`;
 
-    // Convertir les messages du format frontend vers le format attendu par Vercel AI SDK
-    const aiMessages: Message[] = messages.map((msg: any) => ({
-      id: msg.id.toString(),
+    const aiMessages: any[] = messages.map((msg: any) => ({
       role: msg.sender === "ai" ? "assistant" : "user",
       content: msg.text,
     }));

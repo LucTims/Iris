@@ -41,7 +41,7 @@ const PageBreak = Node.create({
 
   addCommands() {
     return {
-      setPageBreak: () => ({ chain }) => {
+      setPageBreak: () => ({ chain }: any) => {
         return chain().insertContent({ type: this.name }).run();
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,10 +73,10 @@ const FontSize = Extension.create({
   },
   addCommands() {
     return {
-      setFontSize: fontSize => ({ chain }) => {
+      setFontSize: (fontSize: any) => ({ chain }: any) => {
         return chain().setMark('textStyle', { fontSize }).run();
       },
-      unsetFontSize: () => ({ chain }) => {
+      unsetFontSize: () => ({ chain }: any) => {
         return chain().setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run();
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -106,7 +106,7 @@ const Highlight = Extension.create({
   },
   addCommands() {
     return {
-      setHighlight: backgroundColor => ({ chain }) => {
+      setHighlight: (backgroundColor: any) => ({ chain }: any) => {
         return chain().setMark('textStyle', { backgroundColor }).run();
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -175,14 +175,14 @@ export default function RichManuscriptEditor({
 
   useEffect(() => {
     if (editor && initialContent && initialContent !== editor.getHTML()) {
-      editor.commands.setContent(initialContent, false);
+      editor.commands.setContent(initialContent, { emitUpdate: false });
     }
   }, [initialContent, editor]);
 
   // Close Top Dropdown Menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      if (menuRef.current && !menuRef.current.contains(event.target as globalThis.Node)) {
         setActiveMenu(null);
       }
     };
