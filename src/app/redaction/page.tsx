@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
@@ -22,7 +22,7 @@ interface Chapter {
   status: "Brouillon" | "En cours" | "Terminé";
 }
 
-export default function RedactionPage() {
+function RedactionContent() {
   const searchParams = useSearchParams();
   const isNewProject = searchParams?.get("new") === "true";
 
@@ -605,5 +605,20 @@ export default function RedactionPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RedactionPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-full items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm text-neutral-500 font-medium animate-pulse">Chargement de votre studio...</p>
+        </div>
+      </div>
+    }>
+      <RedactionContent />
+    </Suspense>
   );
 }
