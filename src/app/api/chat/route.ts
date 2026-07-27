@@ -1,11 +1,22 @@
 import { google } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Accès non autorisé. Veuillez vous connecter." },
+        { status: 401 }
+      );
+    }
+
     const { messages, context } = await req.json();
 
     const systemPrompt = `Tu es un assistant de rédaction de livre intelligent appelé Iris IA. 

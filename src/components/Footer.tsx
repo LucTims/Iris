@@ -42,16 +42,16 @@ export default function Footer() {
           </span>
         </div>
 
-        {/* Bottom Bar: BoomBooks (Replacing Google at the bottom left) */}
+        {/* Bottom Bar: Boom (Replacing Google at the bottom left) */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-6 text-sm text-neutral-600">
           <div className="flex items-center">
             <span className="font-heading font-bold text-2xl text-neutral-900 tracking-tight">
-              BoomBooks
+              Boom
             </span>
           </div>
 
           <div className="flex items-center gap-8 font-medium">
-            <Link href="/about" className="hover:text-neutral-900 transition-colors">À propos de BoomBooks</Link>
+            <Link href="/about" className="hover:text-neutral-900 transition-colors">À propos de Boom</Link>
             <Link href="/privacy" className="hover:text-neutral-900 transition-colors">Confidentialité</Link>
             <Link href="/terms" className="hover:text-neutral-900 transition-colors">Conditions</Link>
           </div>

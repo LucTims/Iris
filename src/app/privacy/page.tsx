@@ -40,7 +40,7 @@ export default function PrivacyPage() {
           <p>Dernière mise à jour : 22 Juillet 2026</p>
           <h2 className="font-heading text-xl font-bold text-neutral-900 pt-4">1. Protection de vos données</h2>
           <p>
-            BoomBooks et la plateforme Iris s&apos;engagent à protéger la confidentialité de vos données personnelles et le contenu privé de vos projets littéraires.
+            Boom et la plateforme Iris s&apos;engagent à protéger la confidentialité de vos données personnelles et le contenu privé de vos projets littéraires.
           </p>
 
           <h2 className="font-heading text-xl font-bold text-neutral-900 pt-4">2. Propriété Intellectuelle des Écrits</h2>

@@ -35,15 +35,39 @@ export default function NewBookWizard() {
     if (step > 1) setStep(step - 1);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Sauvegarder le contexte du projet pour que le studio puisse le récupérer
-    const projectContext = {
-      ...formData,
-      createdAt: new Date().toISOString()
-    };
-    localStorage.setItem("iris_current_project", JSON.stringify(projectContext));
-    
+    setIsSubmitting(true);
+
+    try {
+      const projectContext = {
+        ...formData,
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem("iris_current_project", JSON.stringify(projectContext));
+
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.project?.id) {
+          localStorage.setItem("iris_current_project_id", data.project.id);
+          router.push(`/redaction?projectId=${data.project.id}&new=true`);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Erreur lors de la création du projet:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+
     router.push("/redaction?new=true");
   };
 

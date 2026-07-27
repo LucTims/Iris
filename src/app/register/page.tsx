@@ -3,20 +3,60 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const supabase = createClient();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError("");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`
+      }
+    });
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email && name) {
-      router.push("/dashboard");
-    } else {
+    if (!email || !name || !password) {
       setError("Veuillez remplir tous les champs obligatoires.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setMessage("");
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+        },
+        emailRedirectTo: `${window.location.origin}/dashboard`
+      }
+    });
+
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+    } else {
+      setMessage("Compte créé avec succès ! Un e-mail de confirmation vous a été envoyé pour valider votre compte.");
     }
   };
 
@@ -60,7 +100,7 @@ export default function RegisterPage() {
 
         {/* Footer Note */}
         <div className="relative z-10 text-xs text-neutral-500 font-medium">
-          © {new Date().getFullYear()} BoomBooks. Tous droits réservés.
+          © {new Date().getFullYear()} Boom. Tous droits réservés.
         </div>
       </div>
 
@@ -93,8 +133,9 @@ export default function RegisterPage() {
             {/* Google */}
             <button 
               type="button" 
-              onClick={() => router.push("/dashboard")}
-              className="w-full flex items-center justify-center gap-3 px-5 py-3.5 border border-neutral-200 hover:border-neutral-300 rounded-2xl text-base font-bold text-neutral-800 bg-white hover:bg-neutral-50 transition-all shadow-2xs"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-3 px-5 py-3.5 border border-neutral-200 hover:border-neutral-300 rounded-2xl text-base font-bold text-neutral-800 bg-white hover:bg-neutral-50 transition-all shadow-2xs disabled:opacity-50"
             >
               <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -102,7 +143,7 @@ export default function RegisterPage() {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
               </svg>
-              <span>S&apos;inscrire avec Google</span>
+              <span>{loading ? "Création du compte..." : "S'inscrire avec Google"}</span>
             </button>
           </div>
 
@@ -119,6 +160,11 @@ export default function RegisterPage() {
             {error && (
               <div className="bg-red-50 text-red-700 border border-red-200 px-4 py-3 rounded-xl text-sm font-semibold">
                 {error}
+              </div>
+            )}
+            {message && (
+              <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-3 rounded-xl text-sm font-semibold">
+                {message}
               </div>
             )}
 

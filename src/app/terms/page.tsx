@@ -40,7 +40,7 @@ export default function TermsPage() {
           <p>Dernière mise à jour : 22 Juillet 2026</p>
           <h2 className="font-heading text-xl font-bold text-neutral-900 pt-4">1. Acceptation des Conditions</h2>
           <p>
-            En accédant et en utilisant le service Iris édité par BoomBooks, vous acceptez sans réserve les présentes conditions d&apos;utilisation.
+            En accédant et en utilisant le service Iris édité par Boom, vous acceptez sans réserve les présentes conditions d&apos;utilisation.
           </p>
 
           <h2 className="font-heading text-xl font-bold text-neutral-900 pt-4">2. Utilisation du Service</h2>

@@ -1,50 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import QuillAnimation from "@/components/QuillAnimation";
+import { useUser } from "@/hooks/useUser";
 
 export default function DashboardPage() {
+  const { displayName, displayEmail, signOut } = useUser();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const hasProjects = false; // Toggle to true when user has projects
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const myBookProjects = [
-    {
-      id: 1,
-      title: "Les Secrets de la Comptabilité",
-      subtitle: "Guide pratique pour entrepreneurs",
-      pages: "124 pages",
-      words: "38 400 mots",
-      progress: 75,
-      lastEdited: "Modifié il y a 2h",
-      status: "En rédaction",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBmHjpfXMS5mZURo-hMytc9lu01zIIe20Dc2PJjc4tAv-6TEZTzX4_azD3023Ugo2wLJ_LUG7UULw8Yme0I-X6syRwZBYkeOCiO9LEnodNUZnWKODxKM7YGva5CqnMu0Zu_eOhSaVcY8fTwwrR9mcXRcOWI4rmA6HYs1mlwsoDOseaaHKK6V3LyqBSzeNp8xmleiO1ULIGU3NazhNU0XhN1-pRXGL7h3aIGa-pBV8wktip5xmho4CU"
-    },
-    {
-      id: 2,
-      title: "Cuisine & Saveurs d'Afrique de l'Ouest",
-      subtitle: "Recettes traditionnelles et secrets culinaires",
-      pages: "45 pages",
-      words: "14 200 mots",
-      progress: 42,
-      lastEdited: "Modifié hier",
-      status: "En rédaction",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDJ0119WJs_FCdKQvLh1ekfLcgIY2g0W2VxrO-uU5IxzxmuB9KpEGUHZ4KPlDFr4IXeOTYN7rCPTsfG-4RMCet_q12Qhqcs7cab0wqSaE1us5REYRc2X3FZq-QCy3-DTxXLhZWDI0Rj4MAZ83zgth6I23Y0zWEVEBmpg8AyFramQCi1nm8XAar7nkPXdGXGmi_lzZUtyOS3MfwWL5Ibxw2BR_LC2Juf-25_J-t3Is7lIypYjQrOYWQ"
-    },
-    {
-      id: 3,
-      title: "L'Épopée de l'Empire du Mali",
-      subtitle: "Roman et fresque historique",
-      pages: "312 pages",
-      words: "92 800 mots",
-      progress: 90,
-      lastEdited: "Modifié il y a 3 jours",
-      status: "Mise en page",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDGRAgG7Jw7lhtyjl_qycdr17eAh1sSdzeBtBqV6Jf_pca9o7vpcgG1l5N8fdVANh6k6KkiWrFxl5CYNn1G54_uXtfxm29eSLlUSZwvUjmcneOfim7dPuqjsRaMSc8XMHzziv2W3qvt12vJa8cngWhZXEGheRfcCjQWLIVkqWm2qWLC7HvGOf0HpWE8YZvfCK05Pa2T5a4G1pFkjEwo6nYh8QZdznpTywVswOT2-Ih9su6bp6cznEY"
+  useEffect(() => {
+    async function loadProjects() {
+      try {
+        const res = await fetch("/api/projects");
+        if (res.ok) {
+          const data = await res.json();
+          setProjects(data.projects || []);
+        }
+      } catch (err) {
+        console.error("Erreur de chargement des projets:", err);
+      } finally {
+        setLoading(false);
+      }
     }
-  ];
+    loadProjects();
+  }, []);
+
+  const hasProjects = projects.length > 0;
+  const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
@@ -90,17 +77,17 @@ export default function DashboardPage() {
                 className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm shadow-2xs hover:ring-2 hover:ring-orange-300 transition-all cursor-pointer"
                 title="Menu Profil"
               >
-                ML
+                {userInitials}
               </button>
 
               {/* Dropdown Menu */}
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                   <div className="px-4 py-3 border-b border-neutral-100">
-                    <p className="font-heading font-bold text-sm text-neutral-900">Martin Laurent</p>
-                    <p className="text-xs text-neutral-500 truncate">martin@exemple.com</p>
+                    <p className="font-heading font-bold text-sm text-neutral-900">{displayName}</p>
+                    <p className="text-xs text-neutral-500 truncate">{displayEmail}</p>
                     <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-[10px] font-bold text-secondary">
-                      Plan Pro Auteur
+                      Plan Gratuit
                     </span>
                   </div>
 
@@ -264,47 +251,34 @@ export default function DashboardPage() {
 
             {/* Book Projects Cards */}
             <div className="grid grid-cols-1 gap-4">
-              {myBookProjects.map((book) => (
+              {projects.map((book) => (
                 <div 
                   key={book.id} 
                   className="bg-white rounded-3xl border border-neutral-200/80 p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
                 >
                   <div className="flex items-center gap-4">
-                    <img 
-                      src={book.image} 
-                      alt={book.title} 
-                      className="w-14 h-18 object-cover rounded-xl border border-neutral-200 shadow-xs shrink-0" 
-                    />
+                    <div className="w-12 h-16 bg-orange-50 border border-orange-200 rounded-xl flex items-center justify-center text-secondary text-xl font-bold shrink-0">
+                      📖
+                    </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-secondary bg-orange-50 px-2 py-0.5 rounded-md">
-                          {book.status}
+                          {book.status || "En cours"}
                         </span>
-                        <span className="text-xs text-neutral-400">• {book.lastEdited}</span>
+                        <span className="text-xs text-neutral-400">• {new Date(book.updated_at || book.created_at).toLocaleDateString()}</span>
                       </div>
                       <h4 className="font-heading font-bold text-base text-neutral-900">
                         {book.title}
                       </h4>
                       <p className="text-xs text-neutral-500">
-                        {book.subtitle} — <strong className="text-neutral-700">{book.pages} ({book.words})</strong>
+                        {book.subtitle || book.category || "Projet de livre"}
                       </p>
                     </div>
                   </div>
 
-                  {/* Progress & Action */}
-                  <div className="w-full md:w-64 space-y-2 shrink-0">
-                    <div className="flex justify-between items-center text-xs font-bold text-neutral-700">
-                      <span>Progression</span>
-                      <span>{book.progress}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-secondary rounded-full transition-all duration-500" 
-                        style={{ width: `${book.progress}%` }}
-                      ></div>
-                    </div>
-                    <Link href="/redaction" className="block pt-1">
-                      <button className="w-full bg-neutral-100 hover:bg-secondary hover:text-white text-neutral-800 text-xs font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1">
+                  <div className="w-full md:w-auto shrink-0">
+                    <Link href={`/redaction?projectId=${book.id}`}>
+                      <button className="w-full md:w-auto bg-secondary text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-orange-600 transition-colors flex items-center justify-center gap-1.5">
                         <span>Reprendre la rédaction</span>
                         <span className="material-symbols-outlined text-sm">arrow_forward</span>
                       </button>

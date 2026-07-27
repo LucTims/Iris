@@ -22,9 +22,18 @@ interface Chapter {
   status: "Brouillon" | "En cours" | "Terminé";
 }
 
+import { useUser } from "@/hooks/useUser";
+
 function RedactionContent() {
   const searchParams = useSearchParams();
   const isNewProject = searchParams?.get("new") === "true";
+  const urlProjectId = searchParams?.get("projectId");
+  const { displayName, displayEmail, signOut } = useUser();
+  const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
+
+  // Save status: 'saved' | 'saving' | 'error'
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(urlProjectId || null);
 
   // Global Layout State
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -35,7 +44,7 @@ function RedactionContent() {
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
 
   // Book Project State
-  const [bookTitle, setBookTitle] = useState("L'Épopée de Soundiata");
+  const [bookTitle, setBookTitle] = useState("Mon Projet de Livre");
   const [activeChapterIndex, setActiveChapterIndex] = useState(0);
 
   const [chapters, setChapters] = useState<Chapter[]>([
@@ -195,6 +204,48 @@ function RedactionContent() {
       ]);
     }
   }, [isNewProject]);
+
+  // Debounced Autosave Effect
+  useEffect(() => {
+    if (saveStatus !== "saving") return;
+
+    const timer = setTimeout(async () => {
+      const currentChap = chapters[activeChapterIndex];
+      const pId = currentProjectId || localStorage.getItem("iris_current_project_id");
+
+      if (pId && currentChap?.id) {
+        try {
+          const res = await fetch(`/api/projects/${pId}/chapters/${currentChap.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: currentChap.title,
+              content: currentChap.content,
+              status: currentChap.status
+            })
+          });
+
+          if (res.ok) {
+            setSaveStatus("saved");
+            return;
+          }
+        } catch (err) {
+          console.error("Erreur d'autosave API:", err);
+        }
+      }
+
+      // Fallback: local storage save
+      const projectContextStr = localStorage.getItem("iris_current_project");
+      const projectContext = projectContextStr ? JSON.parse(projectContextStr) : {};
+      localStorage.setItem("iris_current_project", JSON.stringify({
+        ...projectContext,
+        content: currentChap?.content
+      }));
+      setSaveStatus("saved");
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [chapters, saveStatus, activeChapterIndex, currentProjectId]);
 
   // Resizing Handler via Mouse Drag
   useEffect(() => {
@@ -389,9 +440,21 @@ function RedactionContent() {
             <div className="hidden lg:flex items-center gap-3 bg-neutral-50 px-3.5 py-1.5 rounded-xl border border-neutral-200/70 text-xs">
               <span className="font-mono font-bold text-neutral-700">{wordCount} MOTS</span>
               <div className="w-[1px] h-3.5 bg-neutral-300"></div>
-              <span className="text-emerald-600 font-bold flex items-center gap-1">
-                <span className="material-symbols-outlined text-sm">cloud_done</span> Enregistré
-              </span>
+              {saveStatus === "saving" && (
+                <span className="text-orange-500 font-bold flex items-center gap-1 animate-pulse">
+                  <span className="material-symbols-outlined text-sm animate-spin">sync</span> Enregistrement...
+                </span>
+              )}
+              {saveStatus === "saved" && (
+                <span className="text-emerald-600 font-bold flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">cloud_done</span> Enregistré
+                </span>
+              )}
+              {saveStatus === "error" && (
+                <span className="text-red-500 font-bold flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">cloud_off</span> Erreur
+                </span>
+              )}
             </div>
 
             <button
@@ -417,7 +480,7 @@ function RedactionContent() {
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm cursor-pointer hover:ring-2 hover:ring-orange-300 transition-all"
               >
-                ML
+                {userInitials}
               </button>
 
               {userMenuOpen && (
@@ -458,11 +521,13 @@ function RedactionContent() {
               const updated = [...chapters];
               updated[activeChapterIndex].title = newTitle;
               setChapters(updated);
+              setSaveStatus("saving");
             }}
             onContentChange={(newHtml) => {
               const updated = [...chapters];
               updated[activeChapterIndex].content = newHtml;
               setChapters(updated);
+              setSaveStatus("saving");
             }}
             onContinueWithAi={() => handleSendMessage("Rédiger la suite de ce chapitre avec l'IA")}
           />

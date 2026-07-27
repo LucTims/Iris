@@ -1,12 +1,23 @@
 import { google } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 
 // Autoriser le temps d'exécution maximal pour l'IA (idéal pour Vercel)
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Accès non autorisé. Veuillez vous connecter." },
+        { status: 401 }
+      );
+    }
+
     const {
       title,
       subtitle,

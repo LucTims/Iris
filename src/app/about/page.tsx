@@ -34,13 +34,13 @@ export default function AboutPage() {
       <main className="pt-36 pb-20 max-w-7xl mx-auto px-6 w-full">
         <div className="text-center max-w-3xl mx-auto mb-20">
           <span className="inline-block py-1.5 px-4 rounded-full bg-orange-50 border border-orange-200 text-secondary font-bold text-xs uppercase tracking-widest mb-4">
-            À PROPOS DE BOOMBOOKS
+            À PROPOS DE BOOM
           </span>
           <h1 className="font-heading text-4xl sm:text-6xl font-extrabold text-neutral-900 tracking-tight mb-6">
             Démocratiser l&apos;écriture et l&apos;auto-édition par l&apos;IA
           </h1>
           <p className="text-lg text-neutral-600 leading-relaxed">
-            BoomBooks est la plateforme technologique qui conçoit Iris, la première solution de co-création littéraire dédiée aux créateurs, entrepreneurs et passionnés.
+            Boom est l&apos;entreprise technologique qui conçoit Iris, la première solution de co-création littéraire dédiée aux créateurs, entrepreneurs et passionnés.
           </p>
         </div>
 

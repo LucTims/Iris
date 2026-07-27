@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useUser } from "@/hooks/useUser";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { signOut, displayName } = useUser();
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -110,14 +112,14 @@ export default function Sidebar() {
           {!collapsed && <span>Page d&apos;accueil</span>}
         </Link>
 
-        <Link
-          href="/login"
+        <button
+          onClick={signOut}
           title={collapsed ? "Se déconnecter" : undefined}
-          className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+          className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
         >
           <span className="material-symbols-outlined text-[26px] text-inherit shrink-0">logout</span>
-          {!collapsed && <span>Se déconnecter</span>}
-        </Link>
+          {!collapsed && <span className="truncate">Se déconnecter</span>}
+        </button>
 
         <button
           onClick={toggleCollapsed}

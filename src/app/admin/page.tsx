@@ -1,6 +1,31 @@
+"use client";
+
 import Link from "next/link";
+import { useUser } from "@/hooks/useUser";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function AdminDashboardPage() {
+  const { user, profile, loading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && (!user || profile?.role !== "admin")) {
+      router.push("/dashboard");
+    }
+  }, [user, profile, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user || profile?.role !== "admin") {
+    return null;
+  }
   return (
     <div className="min-h-screen flex bg-surface-container-lowest">
       {/* Admin Sidebar */}
