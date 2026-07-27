@@ -3,8 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
+import { useUser } from "@/hooks/useUser";
 
 export default function AnalyticsPage() {
+  const { displayName, displayEmail, signOut } = useUser();
+  const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   return (
@@ -33,14 +36,14 @@ export default function AnalyticsPage() {
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm cursor-pointer hover:ring-2 hover:ring-orange-300 transition-all"
               >
-                ML
+                {userInitials}
               </button>
 
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50">
                   <div className="px-4 py-3 border-b border-neutral-100">
-                    <p className="font-heading font-bold text-sm text-neutral-900">Martin Laurent</p>
-                    <p className="text-xs text-neutral-500 truncate">martin@exemple.com</p>
+                    <p className="font-heading font-bold text-sm text-neutral-900">{displayName}</p>
+                    <p className="text-xs text-neutral-500 truncate">{displayEmail}</p>
                   </div>
                   <div className="py-1">
                     <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">

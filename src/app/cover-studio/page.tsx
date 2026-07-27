@@ -3,19 +3,22 @@
 import { useState } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
+import { useUser } from "@/hooks/useUser";
 
 export default function CoverStudioPage() {
+  const { displayName, displayEmail, signOut } = useUser();
+  const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   // Cover customizer state
   const [title, setTitle] = useState("Les Secrets de la Comptabilité");
   const [subtitle, setSubtitle] = useState("Guide pratique pour entrepreneurs");
-  const [author, setAuthor] = useState("Martin Laurent");
+  const [author, setAuthor] = useState(displayName || "Auteur");
   const [selectedTheme, setSelectedTheme] = useState("Corporate Prestige");
   const [accentColor, setAccentColor] = useState("#F95738");
   const [bgColor, setBgColor] = useState("#0D0D0E");
   const [layoutStyle, setLayoutStyle] = useState("Minimalist Centered");
-  const [promptText, setPromptText] = useState("Illustration abstraite géométrique dorée et moderne de croissance financière");
+  const [promptText, setPromptText] = useState("Illustration abstraite géométrique dorée et moderne");
   const [isGenerating, setIsGenerating] = useState(false);
 
   const stylePresets = [
@@ -30,7 +33,54 @@ export default function CoverStudioPage() {
     setIsGenerating(true);
     setTimeout(() => {
       setIsGenerating(false);
-    }, 1500);
+    }, 800);
+  };
+
+  const handleDownloadHD = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1600;
+    canvas.height = 2400;
+    const ctx = canvas.getContext("2d");
+
+    if (ctx) {
+      // Fill background
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Accent Circle
+      ctx.beginPath();
+      ctx.arc(800, 1200, 300, 0, 2 * Math.PI);
+      ctx.strokeStyle = accentColor;
+      ctx.lineWidth = 12;
+      ctx.stroke();
+
+      // Top Tag
+      ctx.fillStyle = accentColor;
+      ctx.font = "bold 32px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("ÉDITION BEST-SELLER", 800, 200);
+
+      // Title
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 72px sans-serif";
+      ctx.fillText(title || "Titre du livre", 800, 450);
+
+      // Subtitle
+      ctx.fillStyle = "#CCCCCC";
+      ctx.font = "36px sans-serif";
+      ctx.fillText(subtitle || "Sous-titre", 800, 550);
+
+      // Author
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 44px sans-serif";
+      ctx.fillText(author || displayName || "Nom de l'auteur", 800, 2200);
+
+      // Trigger download
+      const link = document.createElement("a");
+      link.download = `Couverture_${(title || "Livre").replace(/\s+/g, "_")}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
   };
 
   return (
@@ -54,8 +104,8 @@ export default function CoverStudioPage() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => alert("Couverture enregistrée avec succès !")}
-              className="bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-2"
+              onClick={handleDownloadHD}
+              className="bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer"
             >
               <span className="material-symbols-outlined text-base">download</span>
               <span>Télécharger HD</span>
@@ -67,14 +117,14 @@ export default function CoverStudioPage() {
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm cursor-pointer hover:ring-2 hover:ring-orange-300 transition-all"
               >
-                ML
+                {userInitials}
               </button>
 
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50">
                   <div className="px-4 py-3 border-b border-neutral-100">
-                    <p className="font-heading font-bold text-sm text-neutral-900">Martin Laurent</p>
-                    <p className="text-xs text-neutral-500 truncate">martin@exemple.com</p>
+                    <p className="font-heading font-bold text-sm text-neutral-900">{displayName}</p>
+                    <p className="text-xs text-neutral-500 truncate">{displayEmail}</p>
                   </div>
                   <div className="py-1">
                     <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">

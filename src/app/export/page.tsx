@@ -3,8 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
+import { useUser } from "@/hooks/useUser";
 
 export default function ExportPage() {
+  const { displayName, displayEmail, signOut } = useUser();
+  const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   // Export settings
@@ -14,12 +17,72 @@ export default function ExportPage() {
   const [includeHeaders, setIncludeHeaders] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
 
+  const getManuscriptHTML = () => {
+    const projectContextStr = localStorage.getItem("iris_current_project");
+    const projectContext = projectContextStr ? JSON.parse(projectContextStr) : null;
+    const title = projectContext?.title || "Mon Livre Iris";
+    const content = projectContext?.content || "<p>Chapitre 1 : Introduction...</p>";
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            @page { size: ${pageSize.includes("A4") ? "A4" : "A5"}; margin: 20mm; }
+            body { font-family: Georgia, Garamond, serif; font-size: 11pt; line-height: 1.6; color: #111; padding: 40px; }
+            h1 { font-size: 24pt; text-align: center; margin-top: 50px; margin-bottom: 20px; text-transform: uppercase; }
+            h2 { font-size: 16pt; margin-top: 40px; border-bottom: 1px solid #ddd; pb: 8px; }
+            p { text-indent: 1.5em; margin-bottom: 0.5em; text-align: justify; }
+            .header { text-align: center; font-size: 9pt; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 30px; }
+          </style>
+        </head>
+        <body>
+          ${includeHeaders ? `<div class="header">${title} — ${displayName}</div>` : ''}
+          <h1>${title}</h1>
+          <div>${content}</div>
+        </body>
+      </html>
+    `;
+  };
+
   const handleExportPDF = () => {
     setIsExporting(true);
-    setTimeout(() => {
+    const htmlContent = getManuscriptHTML();
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        setIsExporting(false);
+      }, 500);
+    } else {
       setIsExporting(false);
-      alert("Votre livre a été mis en page et exporté au format PDF avec succès ! Le téléchargement a démarré.");
-    }, 1500);
+    }
+  };
+
+  const handleExportDocx = () => {
+    const htmlContent = getManuscriptHTML();
+    const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Manuscrit_Iris_${new Date().toISOString().slice(0, 10)}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportEpub = () => {
+    const htmlContent = getManuscriptHTML();
+    const blob = new Blob([htmlContent], { type: 'application/epub+zip' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Manuscrit_Iris_${new Date().toISOString().slice(0, 10)}.epub.html`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -164,7 +227,7 @@ export default function ExportPage() {
 
               <div className="space-y-2">
                 <button
-                  onClick={() => alert("Export EPUB téléchargé avec succès !")}
+                  onClick={handleExportEpub}
                   className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs p-3 rounded-xl transition-all flex items-center justify-between"
                 >
                   <span className="flex items-center gap-2">
@@ -175,12 +238,12 @@ export default function ExportPage() {
                 </button>
 
                 <button
-                  onClick={() => alert("Document Word .docx exporté !")}
+                  onClick={handleExportDocx}
                   className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs p-3 rounded-xl transition-all flex items-center justify-between"
                 >
                   <span className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-base">description</span>
-                    <span>Format Microsoft Word (.docx)</span>
+                    <span>Format Microsoft Word (.doc)</span>
                   </span>
                   <span className="material-symbols-outlined text-base">download</span>
                 </button>

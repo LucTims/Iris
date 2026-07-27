@@ -1,132 +1,114 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
-
-interface BookProject {
-  id: number;
-  title: string;
-  subtitle: string;
-  pages: string;
-  words: string;
-  progress: number;
-  lastEdited: string;
-  status: "En rédaction" | "Mise en page" | "Terminé";
-  category: string;
-  image: string;
-}
+import { useUser } from "@/hooks/useUser";
 
 export default function ProjectsPage() {
+  const { displayName, displayEmail, signOut } = useUser();
+  const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("Tous");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // New book form state
   const [newTitle, setNewTitle] = useState("");
   const [newSubtitle, setNewSubtitle] = useState("");
   const [newCategory, setNewCategory] = useState("Business & Entrepreneuriat");
 
-  const [projects, setProjects] = useState<BookProject[]>([
-    {
-      id: 1,
-      title: "Les Secrets de la Comptabilité",
-      subtitle: "Guide pratique pour entrepreneurs",
-      pages: "124 pages",
-      words: "38 400 mots",
-      progress: 75,
-      lastEdited: "Modifié il y a 2h",
-      status: "En rédaction",
-      category: "Business & Finance",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBmHjpfXMS5mZURo-hMytc9lu01zIIe20Dc2PJjc4tAv-6TEZTzX4_azD3023Ugo2wLJ_LUG7UULw8Yme0I-X6syRwZBYkeOCiO9LEnodNUZnWKODxKM7YGva5CqnMu0Zu_eOhSaVcY8fTwwrR9mcXRcOWI4rmA6HYs1mlwsoDOseaaHKK6V3LyqBSzeNp8xmleiO1ULIGU3NazhNU0XhN1-pRXGL7h3aIGa-pBV8wktip5xmho4CU"
-    },
-    {
-      id: 2,
-      title: "Cuisine & Saveurs d'Afrique de l'Ouest",
-      subtitle: "Recettes traditionnelles et secrets culinaires",
-      pages: "45 pages",
-      words: "14 200 mots",
-      progress: 42,
-      lastEdited: "Modifié hier",
-      status: "En rédaction",
-      category: "Cuisine & Art de vivre",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDJ0119WJs_FCdKQvLh1ekfLcgIY2g0W2VxrO-uU5IxzxmuB9KpEGUHZ4KPlDFr4IXeOTYN7rCPTsfG-4RMCet_q12Qhqcs7cab0wqSaE1us5REYRc2X3FZq-QCy3-DTxXLhZWDI0Rj4MAZ83zgth6I23Y0zWEVEBmpg8AyFramQCi1nm8XAar7nkPXdGXGmi_lzZUtyOS3MfwWL5Ibxw2BR_LC2Juf-25_J-t3Is7lIypYjQrOYWQ"
-    },
-    {
-      id: 3,
-      title: "L'Épopée de l'Empire du Mali",
-      subtitle: "Roman et fresque historique",
-      pages: "312 pages",
-      words: "92 800 mots",
-      progress: 90,
-      lastEdited: "Modifié il y a 3 jours",
-      status: "Mise en page",
-      category: "Histoire & Fiction",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDGRAgG7Jw7lhtyjl_qycdr17eAh1sSdzeBtBqV6Jf_pca9o7vpcgG1l5N8fdVANh6k6KkiWrFxl5CYNn1G54_uXtfxm29eSLlUSZwvUjmcneOfim7dPuqjsRaMSc8XMHzziv2W3qvt12vJa8cngWhZXEGheRfcCjQWLIVkqWm2qWLC7HvGOf0HpWE8YZvfCK05Pa2T5a4G1pFkjEwo6nYh8QZdznpTywVswOT2-Ih9su6bp6cznEY"
-    },
-    {
-      id: 4,
-      title: "Guide du Digital & E-Commerce en Afrique",
-      subtitle: "Lancer et scaler son business en ligne",
-      pages: "180 pages",
-      words: "52 000 mots",
-      progress: 100,
-      lastEdited: "Terminé la semaine dernière",
-      status: "Terminé",
-      category: "Tech & Marketing",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuA4Ge4Ks-D6bymKU3iAidRYrczLQncpvEACDGQTYXMq0aS2KdiVyhYkkbrkWTikvwFfUdUCwhU11mpsB04GIQBBlz3jtAPuMo5Uk1E_XKMwa5TDcoap0d5S40la_E6cTezLgbXxxYZNtsjG-HJez58VsiebAYr6_-OSFXsA6UR_8WPDu86zpFZHsURMqJn7c2Pxybe5RoccP44ONiGCGubLFbVZJ2PJVOlGXXz-Iz_Obfo6pKzjIIQ"
+  const [projects, setProjects] = useState<any[]>([]);
+
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/projects");
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(data.projects || []);
+      }
+    } catch (err) {
+      console.error("Erreur de chargement des projets:", err);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
 
   const filteredProjects = projects.filter((project) => {
     const matchesSearch =
-      project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.category.toLowerCase().includes(searchQuery.toLowerCase());
+      (project.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (project.subtitle || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (project.category || "").toLowerCase().includes(searchQuery.toLowerCase());
 
     if (activeFilter === "Tous") return matchesSearch;
     return matchesSearch && project.status === activeFilter;
   });
 
-  const handleCreateBook = (e: React.FormEvent) => {
+  const handleCreateBook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    const newBook: BookProject = {
-      id: Date.now(),
-      title: newTitle,
-      subtitle: newSubtitle || "Nouveau projet de livre",
-      pages: "0 page",
-      words: "0 mot",
-      progress: 5,
-      lastEdited: "À l'instant",
-      status: "En rédaction",
-      category: newCategory,
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBmHjpfXMS5mZURo-hMytc9lu01zIIe20Dc2PJjc4tAv-6TEZTzX4_azD3023Ugo2wLJ_LUG7UULw8Yme0I-X6syRwZBYkeOCiO9LEnodNUZnWKODxKM7YGva5CqnMu0Zu_eOhSaVcY8fTwwrR9mcXRcOWI4rmA6HYs1mlwsoDOseaaHKK6V3LyqBSzeNp8xmleiO1ULIGU3NazhNU0XhN1-pRXGL7h3aIGa-pBV8wktip5xmho4CU"
-    };
+    try {
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newTitle,
+          subtitle: newSubtitle || "Nouveau projet de livre",
+          category: newCategory
+        })
+      });
 
-    setProjects([newBook, ...projects]);
-    setNewTitle("");
-    setNewSubtitle("");
-    setIsCreateModalOpen(false);
-  };
-
-  const handleDeleteBook = (id: number) => {
-    if (confirm("Voulez-vous vraiment supprimer ce projet de livre ?")) {
-      setProjects(projects.filter((p) => p.id !== id));
+      if (res.ok) {
+        fetchProjects();
+        setNewTitle("");
+        setNewSubtitle("");
+        setIsCreateModalOpen(false);
+      }
+    } catch (err) {
+      console.error("Erreur de création de projet:", err);
     }
   };
 
-  const handleDuplicateBook = (project: BookProject) => {
-    const duplicated: BookProject = {
-      ...project,
-      id: Date.now(),
-      title: `${project.title} (Copie)`,
-      lastEdited: "Modifié à l'instant"
-    };
-    setProjects([duplicated, ...projects]);
+  const handleDeleteBook = async (id: string) => {
+    if (confirm("Voulez-vous vraiment supprimer ce projet de livre ?")) {
+      try {
+        const res = await fetch(`/api/projects/${id}`, {
+          method: "DELETE"
+        });
+        if (res.ok) {
+          setProjects(prev => prev.filter(p => p.id !== id));
+        }
+      } catch (err) {
+        console.error("Erreur de suppression:", err);
+      }
+    }
+  };
+
+  const handleDuplicateBook = async (project: any) => {
+    try {
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `${project.title} (Copie)`,
+          subtitle: project.subtitle,
+          category: project.category
+        })
+      });
+      if (res.ok) {
+        fetchProjects();
+      }
+    } catch (err) {
+      console.error("Erreur de duplication:", err);
+    }
   };
 
   return (
