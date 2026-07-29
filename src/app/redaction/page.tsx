@@ -93,6 +93,33 @@ function RedactionContent() {
 
   // Load project on mount
   useEffect(() => {
+    const pId = urlProjectId || currentProjectId;
+
+    if (pId) {
+      // Fetch real project and chapters from Supabase DB
+      fetch(`/api/projects/${pId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.project) {
+            setBookTitle(data.project.title);
+            setCurrentProjectId(data.project.id);
+          }
+          if (data.chapters && data.chapters.length > 0) {
+            setChapters(
+              data.chapters.map((ch: any) => ({
+                id: ch.id,
+                number: ch.number,
+                title: ch.title || `Chapitre ${ch.number}`,
+                content: ch.content || "",
+                status: ch.status || "Brouillon"
+              }))
+            );
+          }
+        })
+        .catch((err) => console.error("Erreur de chargement du projet:", err));
+      return;
+    }
+
     const projectContextStr = localStorage.getItem("iris_current_project");
     const projectContext = projectContextStr ? JSON.parse(projectContextStr) : null;
 
@@ -166,16 +193,19 @@ function RedactionContent() {
             }
           }
         } catch (error) {
-          console.error("Génération échouée", error);
-          setIsAiThinking(false);
-          setMessages([
-            {
-              id: Date.now(),
-              sender: "ai",
-              text: "⚠️ Une erreur est survenue lors de la génération. Avez-vous bien ajouté votre clé API `GOOGLE_GENERATIVE_AI_API_KEY` dans le fichier `.env.local` et redémarré le serveur de développement ?",
-              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            }
-          ]);
+          console.error("Erreur lors de la génération du plan:", error);
+          if (isSubscribed) {
+            setIsAiThinking(false);
+            setMessages(prev => [
+              ...prev,
+              {
+                id: Date.now(),
+                sender: "ai",
+                text: "Désolé, une erreur est survenue lors de la génération du plan. Veuillez réinstaller votre prompt ou réessayer.",
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              }
+            ]);
+          }
         }
       };
 
@@ -204,7 +234,7 @@ function RedactionContent() {
         }
       ]);
     }
-  }, [isNewProject]);
+  }, [urlProjectId, isNewProject]);
 
   // Debounced Autosave Effect
   useEffect(() => {
@@ -229,20 +259,18 @@ function RedactionContent() {
           if (res.ok) {
             setSaveStatus("saved");
             return;
+          } else {
+            setSaveStatus("error");
+            return;
           }
         } catch (err) {
           console.error("Erreur d'autosave API:", err);
+          setSaveStatus("error");
+          return;
         }
       }
 
-      // Fallback: local storage save
-      const projectContextStr = localStorage.getItem("iris_current_project");
-      const projectContext = projectContextStr ? JSON.parse(projectContextStr) : {};
-      localStorage.setItem("iris_current_project", JSON.stringify({
-        ...projectContext,
-        content: currentChap?.content
-      }));
-      setSaveStatus("saved");
+      setSaveStatus("error");
     }, 1500);
 
     return () => clearTimeout(timer);
@@ -502,10 +530,10 @@ function RedactionContent() {
                     </Link>
                   </div>
                   <div className="pt-1 border-t border-neutral-100">
-                    <Link href="/login" className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50">
+                    <button onClick={signOut} className="w-full text-left flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50">
                       <span className="material-symbols-outlined text-base text-red-500">logout</span>
                       <span>Se déconnecter</span>
-                    </Link>
+                    </button>
                   </div>
                 </div>
               )}

@@ -127,14 +127,13 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="pt-1 border-t border-neutral-100">
-                    <Link 
-                      href="/login" 
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                    <button 
+                      onClick={() => { setUserMenuOpen(false); signOut(); }}
+                      className="w-full text-left flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
                     >
                       <span className="material-symbols-outlined text-base text-red-500">logout</span>
                       <span>Se déconnecter</span>
-                    </Link>
+                    </button>
                   </div>
                 </div>
               )}

@@ -19,9 +19,37 @@ export async function POST(req: Request) {
 
     const { messages, context, model: chosenModel } = await req.json();
 
-    const selectedModelName = chosenModel || "gemini-2.5-flash";
+    // 1. Fetch user profile & plan
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, plan")
+      .eq("id", user.id)
+      .single();
 
-    // Track usage in Supabase ai_usage table
+    const userPlan = profile?.plan || "free";
+    const userRole = profile?.role || "user";
+
+    // 2. Server Whitelist: Force gemini-2.5-flash for free users attempting gemini-2.5-pro
+    let selectedModelName = chosenModel || "gemini-2.5-flash";
+    if (selectedModelName === "gemini-2.5-pro" && userPlan === "free" && userRole !== "admin") {
+      selectedModelName = "gemini-2.5-flash";
+    }
+
+    // 3. Quota Enforcement: Check monthly usage count
+    const { count: usageCount } = await supabase
+      .from("ai_usage")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
+
+    const FREE_LIMIT = 50;
+    if (userPlan === "free" && userRole !== "admin" && (usageCount || 0) >= FREE_LIMIT) {
+      return NextResponse.json(
+        { error: "Quota mensuel d'IA atteint (50 générations). Passez au Plan Pro pour un accès illimité." },
+        { status: 429 }
+      );
+    }
+
+    // 4. Track usage in Supabase ai_usage table
     try {
       await supabase.from("ai_usage").insert({
         user_id: user.id,

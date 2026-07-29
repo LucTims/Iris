@@ -142,10 +142,10 @@ export default function ExportPage() {
                     </Link>
                   </div>
                   <div className="pt-1 border-t border-neutral-100">
-                    <Link href="/login" className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50">
+                    <button onClick={signOut} className="w-full text-left flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50">
                       <span className="material-symbols-outlined text-base text-red-500">logout</span>
                       <span>Se déconnecter</span>
-                    </Link>
+                    </button>
                   </div>
                 </div>
               )}
