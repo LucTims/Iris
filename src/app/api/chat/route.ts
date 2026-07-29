@@ -17,7 +17,20 @@ export async function POST(req: Request) {
       );
     }
 
-    const { messages, context } = await req.json();
+    const { messages, context, model: chosenModel } = await req.json();
+
+    const selectedModelName = chosenModel || "gemini-2.5-flash";
+
+    // Track usage in Supabase ai_usage table
+    try {
+      await supabase.from("ai_usage").insert({
+        user_id: user.id,
+        action: "chat_assistant",
+        model: selectedModelName
+      });
+    } catch (trackErr) {
+      console.warn("Usage tracking error:", trackErr);
+    }
 
     const systemPrompt = `Tu es un assistant de rédaction de livre intelligent appelé Iris IA. 
 Tu aides un auteur à écrire son livre.
@@ -26,7 +39,7 @@ Titre : ${context?.title}
 Synopsis : ${context?.synopsis}
 Ton : ${context?.tone}
 
-Réponds de manière concise, encourageante et professionnelle. Tu peux proposer des idées, des suites de phrases, ou corriger le style.`;
+Réponds de manière concise, encourageante et professionnelle. Tu peux proposer des idées, des suites de phrases, ou corriger the style.`;
 
     const aiMessages: any[] = messages.map((msg: any) => ({
       role: msg.sender === "ai" ? "assistant" : "user",
@@ -34,7 +47,7 @@ Réponds de manière concise, encourageante et professionnelle. Tu peux proposer
     }));
 
     const result = streamText({
-      model: google("gemini-2.5-flash"),
+      model: google(selectedModelName),
       system: systemPrompt,
       messages: aiMessages,
     });

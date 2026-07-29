@@ -28,7 +28,21 @@ export async function POST(req: Request) {
       characters,
       length,
       instructions,
+      model: chosenModel
     } = await req.json();
+
+    const selectedModelName = chosenModel || "gemini-2.5-flash";
+
+    // Track usage in Supabase ai_usage table
+    try {
+      await supabase.from("ai_usage").insert({
+        user_id: user.id,
+        action: "generate_plan",
+        model: selectedModelName
+      });
+    } catch (trackErr) {
+      console.warn("Usage tracking error:", trackErr);
+    }
 
     const prompt = `Tu es un auteur et éditeur de livres professionnels (bestsellers). 
 Je souhaite écrire un livre. Voici les détails du projet :
@@ -52,7 +66,7 @@ Sois créatif, pertinent par rapport au public cible, et respecte scrupuleusemen
 Ne me fais pas une introduction générique, commence directement par le plan avec des titres accrocheurs.`;
 
     const result = streamText({
-      model: google("gemini-2.5-flash"),
+      model: google(selectedModelName),
       system: "Tu es un assistant de rédaction de livre intelligent, appelé Iris IA. Tu aides les auteurs à structurer et rédiger leurs ouvrages.",
       prompt: prompt,
     });
