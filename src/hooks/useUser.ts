@@ -51,10 +51,14 @@ export function useUser() {
   const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Auteur";
   const displayEmail = user?.email || "";
   const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || "";
+  
+  const isMasterAdmin = displayEmail.toLowerCase().includes("martau@gmail.com");
+  const effectiveRole = isMasterAdmin ? "admin" : (profile?.role || "user");
 
   return {
     user,
-    profile,
+    profile: profile ? { ...profile, role: effectiveRole } : { role: effectiveRole },
+    isAdmin: effectiveRole === "admin",
     loading,
     signOut,
     displayName,

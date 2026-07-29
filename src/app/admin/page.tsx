@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AdminDashboardPage() {
-  const { user, profile, loading } = useUser();
+  const { user, profile, isAdmin, loading, displayEmail } = useUser();
   const router = useRouter();
   const supabase = createClient();
 
@@ -18,14 +18,14 @@ export default function AdminDashboardPage() {
   });
 
   useEffect(() => {
-    if (!loading && (!user || profile?.role !== "admin")) {
+    if (!loading && (!user || !isAdmin)) {
       router.push("/dashboard");
     }
-  }, [user, profile, loading, router]);
+  }, [user, isAdmin, loading, router]);
 
   useEffect(() => {
     async function loadAdminStats() {
-      if (!user || profile?.role !== "admin") return;
+      if (!user || !isAdmin) return;
       try {
         const [usersRes, projRes, aiRes] = await Promise.all([
           supabase.from("profiles").select("*", { count: "exact", head: true }),
@@ -43,7 +43,7 @@ export default function AdminDashboardPage() {
       }
     }
     loadAdminStats();
-  }, [user, profile]);
+  }, [user, isAdmin]);
 
   if (loading) {
     return (
@@ -53,7 +53,7 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (!user || profile?.role !== "admin") {
+  if (!user || !isAdmin) {
     return null;
   }
   return (
