@@ -1,0 +1,73 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
+
+export async function PATCH(req: Request) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Vérification stricte
+    if (!user || user.email !== "www.martau@gmail.com") {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
+    const { userId, newPlan } = await req.json();
+
+    if (!userId || !newPlan) {
+      return NextResponse.json({ error: "Données manquantes" }, { status: 400 });
+    }
+
+    const supabaseAdmin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // 1. Mettre à jour la table `profiles`
+    const { error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .update({ plan: newPlan, updated_at: new Date().toISOString() })
+      .eq("id", userId);
+
+    if (profileError) {
+      throw profileError;
+    }
+
+    // 2. Mettre à jour / Créer un abonnement
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 30); // Donne 30 jours par défaut
+
+    const { data: existingSub } = await supabaseAdmin
+      .from("subscriptions")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (existingSub) {
+      await supabaseAdmin
+        .from("subscriptions")
+        .update({
+          plan_id: newPlan === "free" ? "plan_free" : `plan_${newPlan}`,
+          status: newPlan === "free" ? "canceled" : "active",
+          current_period_end: endDate.toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", existingSub.id);
+    } else {
+      await supabaseAdmin
+        .from("subscriptions")
+        .insert({
+          user_id: userId,
+          plan_id: newPlan === "free" ? "plan_free" : `plan_${newPlan}`,
+          status: newPlan === "free" ? "canceled" : "active",
+          current_period_end: endDate.toISOString()
+        });
+    }
+
+    return NextResponse.json({ success: true, plan: newPlan });
+
+  } catch (error: any) {
+    console.error("Erreur mise à jour utilisateur:", error);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
+}

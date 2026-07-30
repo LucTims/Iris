@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { useUser } from "@/hooks/useUser";
 
-export default function ExportPage() {
+function ExportPageContent() {
   const { displayName, displayEmail, signOut } = useUser();
   const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get("projectId");
 
   // Export settings
   const [pageSize, setPageSize] = useState("A5 (148 x 210 mm)");
@@ -17,30 +20,72 @@ export default function ExportPage() {
   const [includeHeaders, setIncludeHeaders] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Project data state
+  const [projectTitle, setProjectTitle] = useState("Mon Livre Iris");
+  const [projectContent, setProjectContent] = useState("<p>Chapitre 1 : Introduction...</p>");
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // 1. Essayer de récupérer le projet depuis l'API si projectId est présent
+    if (projectId) {
+      fetch(`/api/projects/${projectId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.project) {
+            setProjectTitle(data.project.title);
+            setCoverUrl(data.project.cover_url);
+            
+            // Reconstruire le contenu à partir des chapitres
+            if (data.chapters && data.chapters.length > 0) {
+              const fullContent = data.chapters
+                .map((ch: any) => `<h2>${ch.title}</h2><div>${ch.content || ""}</div>`)
+                .join("");
+              setProjectContent(fullContent);
+            }
+          }
+        })
+        .catch((err) => console.error("Erreur de chargement du projet:", err));
+    } else {
+      // 2. Fallback localStorage
+      const projectContextStr = localStorage.getItem("iris_current_project");
+      if (projectContextStr) {
+        try {
+          const projectContext = JSON.parse(projectContextStr);
+          if (projectContext.title) setProjectTitle(projectContext.title);
+          if (projectContext.content) setProjectContent(projectContext.content);
+          if (projectContext.cover_url) setCoverUrl(projectContext.cover_url);
+        } catch(e) {}
+      }
+    }
+  }, [projectId]);
+
   const getManuscriptHTML = () => {
-    const projectContextStr = localStorage.getItem("iris_current_project");
-    const projectContext = projectContextStr ? JSON.parse(projectContextStr) : null;
-    const title = projectContext?.title || "Mon Livre Iris";
-    const content = projectContext?.content || "<p>Chapitre 1 : Introduction...</p>";
 
     return `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>${title}</title>
+          <title>${projectTitle}</title>
           <style>
             @page { size: ${pageSize.includes("A4") ? "A4" : "A5"}; margin: 20mm; }
-            body { font-family: Georgia, Garamond, serif; font-size: 11pt; line-height: 1.6; color: #111; padding: 40px; }
+            @page :first { margin: 0; }
+            body { font-family: Georgia, Garamond, serif; font-size: 11pt; line-height: 1.6; color: #111; margin: 0; padding: 0; }
+            .content-wrapper { padding: 20mm; }
             h1 { font-size: 24pt; text-align: center; margin-top: 50px; margin-bottom: 20px; text-transform: uppercase; }
-            h2 { font-size: 16pt; margin-top: 40px; border-bottom: 1px solid #ddd; pb: 8px; }
+            h2 { font-size: 16pt; margin-top: 40px; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
             p { text-indent: 1.5em; margin-bottom: 0.5em; text-align: justify; }
             .header { text-align: center; font-size: 9pt; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 30px; }
+            .cover-page { width: 100vw; height: 100vh; page-break-after: always; display: flex; justify-content: center; align-items: center; margin: 0; padding: 0; overflow: hidden; background: white; }
+            .cover-page img { width: 100%; height: 100%; object-fit: cover; }
           </style>
         </head>
         <body>
-          ${includeHeaders ? `<div class="header">${title} — ${displayName}</div>` : ''}
-          <h1>${title}</h1>
-          <div>${content}</div>
+          ${coverUrl ? `<div class="cover-page"><img src="${coverUrl}" alt="Couverture" /></div>` : ''}
+          <div class="content-wrapper">
+            ${includeHeaders ? `<div class="header">${projectTitle} — ${displayName}</div>` : ''}
+            <h1>${projectTitle}</h1>
+            <div>${projectContent}</div>
+          </div>
         </body>
       </html>
     `;
@@ -122,14 +167,14 @@ export default function ExportPage() {
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm cursor-pointer hover:ring-2 hover:ring-orange-300 transition-all"
               >
-                ML
+                {userInitials}
               </button>
 
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50">
                   <div className="px-4 py-3 border-b border-neutral-100">
-                    <p className="font-heading font-bold text-sm text-neutral-900">Martin Laurent</p>
-                    <p className="text-xs text-neutral-500 truncate">martin@exemple.com</p>
+                    <p className="font-heading font-bold text-sm text-neutral-900">{displayName || "Utilisateur"}</p>
+                    <p className="text-xs text-neutral-500 truncate">{displayEmail || ""}</p>
                   </div>
                   <div className="py-1">
                     <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
@@ -252,37 +297,45 @@ export default function ExportPage() {
           </div>
 
           {/* Live Page Preview (Right Column) */}
-          <div className="lg:col-span-7 flex flex-col items-center justify-center bg-neutral-200/60 rounded-3xl p-6 sm:p-10 border border-neutral-300 relative min-h-[600px]">
-            <span className="absolute top-4 left-4 bg-neutral-900 text-white px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider">
+          <div className="lg:col-span-7 flex flex-col items-center justify-center bg-neutral-200/60 rounded-3xl p-6 sm:p-10 border border-neutral-300 relative min-h-[600px] overflow-hidden">
+            <span className="absolute top-4 left-4 bg-neutral-900 text-white px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider z-10">
               Aperçu Imprimable ({pageSize})
             </span>
 
-            {/* A5 / Book Page Mockup */}
-            <div className="bg-white w-full max-w-md aspect-[1/1.4] rounded-xl shadow-2xl p-8 sm:p-12 flex flex-col justify-between text-neutral-900 border border-neutral-300 font-serif">
-              {includeHeaders && (
-                <div className="flex justify-between items-center text-[10px] text-neutral-400 font-sans border-b border-neutral-100 pb-2">
-                  <span>LES SECRETS DE LA COMPTABILITÉ</span>
-                  <span>CHAPITRE 1</span>
+            <div className="flex gap-6 overflow-x-auto w-full pb-4 items-center justify-start snap-x" style={{ paddingLeft: 'max(0px, calc(50% - 14rem))' }}>
+              {/* Cover Page Mockup */}
+              {coverUrl && (
+                <div className="bg-white shrink-0 w-full max-w-sm sm:max-w-md aspect-[1/1.4] rounded-xl shadow-2xl overflow-hidden border border-neutral-300 snap-center relative">
+                  <img src={coverUrl} alt="Couverture" className="w-full h-full object-cover" />
                 </div>
               )}
 
-              <div className="my-auto space-y-4">
-                <h2 className="font-heading font-extrabold text-xl text-neutral-900 tracking-tight font-sans">
-                  Chapitre 1 : Les Fondations
-                </h2>
-                <p className="text-xs sm:text-sm leading-relaxed text-neutral-800">
-                  La comptabilité n&apos;est pas seulement une obligation fiscale : c&apos;est la boussole stratégique de tout entrepreneur désireux de bâtir une entreprise pérenne et rentable.
-                </p>
-                <p className="text-xs sm:text-sm leading-relaxed text-neutral-800">
-                  Dans ce premier chapitre, nous allons démystifier les concepts clés du bilan, du compte de résultat et du flux de trésorerie sans jargon inutile.
-                </p>
+              {/* A5 / Book Page Mockup */}
+              <div className="bg-white shrink-0 w-full max-w-sm sm:max-w-md aspect-[1/1.4] rounded-xl shadow-2xl p-8 sm:p-12 flex flex-col justify-between text-neutral-900 border border-neutral-300 font-serif snap-center">
+                {includeHeaders && (
+                  <div className="flex justify-between items-center text-[10px] text-neutral-400 font-sans border-b border-neutral-100 pb-2">
+                    <span className="uppercase">{projectTitle.substring(0, 30)}</span>
+                    <span>CHAPITRE 1</span>
+                  </div>
+                )}
+
+                <div className="my-auto space-y-4">
+                  <h2 className="font-heading font-extrabold text-xl text-neutral-900 tracking-tight font-sans">
+                    Chapitre 1 : Introduction
+                  </h2>
+                  <div 
+                    className="text-xs sm:text-sm leading-relaxed text-neutral-800 line-clamp-12"
+                    dangerouslySetInnerHTML={{ __html: projectContent }}
+                  >
+                  </div>
+                </div>
+
+                {includeHeaders && (
+                  <div className="text-center text-[10px] text-neutral-400 font-sans border-t border-neutral-100 pt-2">
+                    - 1 -
+                  </div>
+                )}
               </div>
-
-              {includeHeaders && (
-                <div className="text-center text-[10px] text-neutral-400 font-sans border-t border-neutral-100 pt-2">
-                  - 15 -
-                </div>
-              )}
             </div>
 
             <div className="mt-6 flex items-center gap-3">
@@ -298,5 +351,13 @@ export default function ExportPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function ExportPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">Chargement...</div>}>
+      <ExportPageContent />
+    </Suspense>
   );
 }

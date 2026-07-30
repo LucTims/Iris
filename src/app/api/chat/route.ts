@@ -2,6 +2,7 @@ import { google } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 export const maxDuration = 30;
 
@@ -14,6 +15,15 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Accès non autorisé. Veuillez vous connecter." },
         { status: 401 }
+      );
+    }
+
+    // Rate Limiting anti-abus (10 requêtes / minute / utilisateur)
+    const rateLimit = await checkRateLimit(`chat_${user.id}`, 10, 60 * 1000);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "Trop de requêtes. Veuillez patienter quelques instants." },
+        { status: 429 }
       );
     }
 

@@ -7,7 +7,7 @@ import QuillAnimation from "@/components/QuillAnimation";
 import { useUser } from "@/hooks/useUser";
 
 export default function DashboardPage() {
-  const { displayName, displayEmail, signOut } = useUser();
+  const { displayName, displayEmail, signOut, isAdmin } = useUser();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
@@ -124,6 +124,17 @@ export default function DashboardPage() {
                       <span className="material-symbols-outlined text-base text-neutral-400">home</span>
                       <span>Page d&apos;accueil du site</span>
                     </Link>
+                    
+                    {isAdmin && (
+                      <Link 
+                        href="/admin" 
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-base text-emerald-600">admin_panel_settings</span>
+                        <span>Espace Administration</span>
+                      </Link>
+                    )}
                   </div>
 
                   <div className="pt-1 border-t border-neutral-100">

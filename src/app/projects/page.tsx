@@ -145,14 +145,14 @@ export default function ProjectsPage() {
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm cursor-pointer hover:ring-2 hover:ring-orange-300 transition-all"
               >
-                ML
+                {userInitials}
               </button>
 
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50">
                   <div className="px-4 py-3 border-b border-neutral-100">
-                    <p className="font-heading font-bold text-sm text-neutral-900">Martin Laurent</p>
-                    <p className="text-xs text-neutral-500 truncate">martin@exemple.com</p>
+                    <p className="font-heading font-bold text-sm text-neutral-900">{displayName || "Utilisateur"}</p>
+                    <p className="text-xs text-neutral-500 truncate">{displayEmail || ""}</p>
                   </div>
                   <div className="py-1">
                     <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
@@ -263,7 +263,7 @@ export default function ProjectsPage() {
                   {/* Book Cover Thumbnail Header */}
                   <div className="h-48 bg-neutral-900 relative overflow-hidden flex items-center justify-center">
                     <img
-                      src={book.image}
+                      src={book.cover_url || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop"}
                       alt={book.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-95"
                     />
@@ -287,32 +287,40 @@ export default function ProjectsPage() {
                       </p>
                     </div>
 
-                    {/* Progress Bar */}
+                    {/* Progress Bar (Masquée ou adaptée) */}
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs font-semibold text-neutral-600">
                         <span>Progression</span>
-                        <span className="text-secondary font-bold">{book.progress}%</span>
+                        <span className="text-secondary font-bold">En cours</span>
                       </div>
                       <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-secondary rounded-full transition-all duration-300"
-                          style={{ width: `${book.progress}%` }}
+                          style={{ width: "50%" }}
                         ></div>
                       </div>
                       <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono pt-1">
-                        <span>{book.pages} • {book.words}</span>
-                        <span>{book.lastEdited}</span>
+                        <span>{book.chapters?.[0]?.count || 0} chapitres</span>
+                        <span>{new Date(book.updated_at).toLocaleDateString()}</span>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
                     <div className="pt-3 border-t border-neutral-100 flex items-center justify-between gap-2">
                       <Link
-                        href="/redaction"
+                        href={`/redaction?projectId=${book.id}`}
                         className="flex-1 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5"
                       >
                         <span className="material-symbols-outlined text-base">edit_note</span>
                         <span>Ouvrir Studio</span>
+                      </Link>
+
+                      <Link
+                        href={`/cover-studio?projectId=${book.id}`}
+                        className="p-2.5 rounded-xl bg-orange-50 text-secondary hover:bg-orange-100 transition-colors flex items-center justify-center"
+                        title="Créer une couverture"
+                      >
+                        <span className="material-symbols-outlined text-base">palette</span>
                       </Link>
 
                       <div className="flex items-center gap-1">
@@ -361,19 +369,19 @@ export default function ProjectsPage() {
                   {/* Titre */}
                   <div className="col-span-6 flex items-center gap-4 min-w-0">
                     <div className="w-14 h-10 sm:w-16 sm:h-12 rounded-lg bg-neutral-200 overflow-hidden shrink-0 border border-neutral-200 shadow-2xs">
-                      <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
+                      <img src={book.cover_url || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop"} alt={book.title} className="w-full h-full object-cover" />
                     </div>
                     <div className="min-w-0 space-y-0.5">
                       <h3 className="font-heading font-extrabold text-sm text-neutral-900 truncate">
                         {book.title}
                       </h3>
-                      <p className="text-[11px] font-bold text-emerald-600 truncate">{book.words}</p>
+                      <p className="text-[11px] font-bold text-emerald-600 truncate">{book.chapters?.[0]?.count || 0} chapitres</p>
                     </div>
                   </div>
 
                   {/* Auteur */}
-                  <div className="col-span-3 text-xs font-semibold text-neutral-500">
-                    Martin Laurent
+                  <div className="col-span-3 text-xs font-semibold text-neutral-500 truncate">
+                    {displayName || "Auteur"}
                   </div>
 
                   {/* Statut & Plateforme */}
@@ -393,7 +401,7 @@ export default function ProjectsPage() {
                       <span>Studio</span>
                     </Link>
                     <Link
-                      href="/cover-studio"
+                      href={`/cover-studio?projectId=${book.id}`}
                       className="bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold px-3 py-2 rounded-xl transition-all flex items-center gap-1"
                     >
                       <span className="material-symbols-outlined text-base">palette</span>

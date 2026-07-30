@@ -497,7 +497,7 @@ function RedactionContent() {
             </button>
 
             <Link
-              href="/export"
+              href={currentProjectId ? `/export?projectId=${currentProjectId}` : "/export"}
               className="bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
             >
               <span className="material-symbols-outlined text-base">picture_as_pdf</span>
@@ -516,8 +516,8 @@ function RedactionContent() {
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50">
                   <div className="px-4 py-3 border-b border-neutral-100">
-                    <p className="font-heading font-bold text-sm text-neutral-900">Martin Laurent</p>
-                    <p className="text-xs text-neutral-500 truncate">martin@exemple.com</p>
+                    <p className="font-heading font-bold text-sm text-neutral-900">{displayName || "Utilisateur"}</p>
+                    <p className="text-xs text-neutral-500 truncate">{displayEmail || ""}</p>
                   </div>
                   <div className="py-1">
                     <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">

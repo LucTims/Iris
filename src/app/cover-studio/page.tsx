@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { useUser } from "@/hooks/useUser";
 
-export default function CoverStudioPage() {
+function CoverStudioContent() {
   const { displayName, displayEmail, signOut } = useUser();
   const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const projectId = searchParams.get("projectId");
 
   // Cover customizer state
   const [title, setTitle] = useState("Les Secrets de la Comptabilité");
@@ -36,7 +40,7 @@ export default function CoverStudioPage() {
     }, 800);
   };
 
-  const handleDownloadHD = () => {
+  const generateCanvas = () => {
     const canvas = document.createElement("canvas");
     canvas.width = 1600;
     canvas.height = 2400;
@@ -74,14 +78,49 @@ export default function CoverStudioPage() {
       ctx.fillStyle = "#FFFFFF";
       ctx.font = "bold 44px sans-serif";
       ctx.fillText(author || displayName || "Nom de l'auteur", 800, 2200);
+    }
+    return canvas;
+  };
 
-      // Trigger download
-      const link = document.createElement("a");
-      link.download = `Couverture_${(title || "Livre").replace(/\s+/g, "_")}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+  const handleDownloadHD = () => {
+    const canvas = generateCanvas();
+    const link = document.createElement("a");
+    link.download = `Couverture_${(title || "Livre").replace(/\s+/g, "_")}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  };
+
+  const handleApplyToBook = async () => {
+    if (!projectId) {
+      alert("Erreur: Aucun projet sélectionné. Veuillez ouvrir ce studio depuis un projet spécifique.");
+      return;
+    }
+    
+    try {
+      const canvas = generateCanvas();
+      // Use jpeg format to reduce size and not kill the db (around 300-500kb instead of MBs)
+      const coverUrl = canvas.toDataURL("image/jpeg", 0.8);
+      
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cover_url: coverUrl })
+      });
+
+      if (res.ok) {
+        alert("Couverture appliquée avec succès !");
+        router.push("/projects");
+      } else {
+        const data = await res.json();
+        alert(`Erreur: ${data.error}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erreur de connexion.");
     }
   };
+
+
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
@@ -315,7 +354,7 @@ export default function CoverStudioPage() {
 
             <div className="mt-8 flex items-center gap-3">
               <button
-                onClick={() => alert("Couverture appliquée au livre avec succès !")}
+                onClick={handleApplyToBook}
                 className="bg-secondary text-white font-bold text-xs px-6 py-3 rounded-xl hover:bg-orange-600 transition-all shadow-md flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-base">check_circle</span>
@@ -326,5 +365,13 @@ export default function CoverStudioPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function CoverStudioPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">Chargement du studio...</div>}>
+      <CoverStudioContent />
+    </Suspense>
   );
 }

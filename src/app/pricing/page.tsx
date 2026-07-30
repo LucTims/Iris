@@ -1,7 +1,35 @@
+"use client";
+
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function PricingPage() {
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handleCheckout = async (planId: string, amount: number) => {
+    setLoadingPlan(planId);
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId, amount }),
+      });
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url; // Redirect to SebPay
+      } else {
+        alert("Erreur lors de la création du paiement: " + (data.error || "Inconnue"));
+      }
+    } catch (error) {
+      alert("Erreur de connexion.");
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white font-body text-neutral-900 flex flex-col justify-between">
       {/* Header / Navbar */}
@@ -48,54 +76,55 @@ export default function PricingPage() {
 
         {/* Pricing Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-20">
-          
-          {/* Starter Plan */}
+          {/* Standard Plan (8000) */}
           <div className="bg-white rounded-3xl border border-neutral-200 p-8 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">Gratuit</span>
-              <h3 className="font-heading text-2xl font-bold text-neutral-900 mt-1 mb-2">Découverte</h3>
-              <p className="text-sm text-neutral-500 mb-6">Pour tester Iris et rédiger vos premiers chapitres.</p>
+              <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">Pour débuter</span>
+              <h3 className="font-heading text-2xl font-bold text-neutral-900 mt-1 mb-2">Auteur Standard</h3>
+              <p className="text-sm text-neutral-500 mb-6">Pour écrire vos premiers livres professionnels.</p>
               <div className="mb-8">
-                <span className="text-4xl font-extrabold text-neutral-900">0 FCFA</span>
-                <span className="text-neutral-500 font-medium"> /mois</span>
+                <span className="text-4xl font-extrabold text-neutral-900">8 000 FCFA</span>
+                <span className="text-neutral-500 font-medium"> / 30 jours</span>
               </div>
 
               <ul className="space-y-3 text-sm text-neutral-700 mb-8">
                 <li className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
-                  <span>1 projet de livre actif</span>
+                  <span>Jusqu'à 3 projets de livres</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
-                  <span>5 000 mots générés / mois</span>
+                  <span>50 000 mots générés par mois</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
-                  <span>Export texte & structuration IA</span>
+                  <span>Export PDF Standard</span>
                 </li>
               </ul>
             </div>
 
-            <Link href="/register">
-              <button className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-900 font-bold py-3.5 rounded-2xl transition-colors">
-                Commencer gratuitement
-              </button>
-            </Link>
+            <button 
+              onClick={() => handleCheckout("plan_standard", 8000)}
+              disabled={loadingPlan !== null}
+              className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-900 font-bold py-3.5 rounded-2xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loadingPlan === "plan_standard" ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : "Payer via Mobile Money"}
+            </button>
           </div>
 
-          {/* Pro Plan */}
+          {/* Pro Plan (10000) */}
           <div className="bg-neutral-900 text-white rounded-3xl p-8 shadow-xl relative overflow-hidden flex flex-col justify-between border-2 border-neutral-900">
             <div className="absolute top-4 right-4 bg-secondary text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
               Populaire
             </div>
 
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-orange-400">Pour créateurs</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-orange-400">Pour créateurs réguliers</span>
               <h3 className="font-heading text-2xl font-bold text-white mt-1 mb-2">Auteur Pro</h3>
-              <p className="text-sm text-neutral-400 mb-6">Pour publier des livres complets prêts pour Amazon KDP.</p>
+              <p className="text-sm text-neutral-400 mb-6">Pour publier sans limites avec couverture HD.</p>
               <div className="mb-8">
-                <span className="text-4xl font-extrabold text-white">4 900 FCFA</span>
-                <span className="text-neutral-400 font-medium"> /mois</span>
+                <span className="text-4xl font-extrabold text-white">10 000 FCFA</span>
+                <span className="text-neutral-400 font-medium"> / 30 jours</span>
               </div>
 
               <ul className="space-y-3 text-sm text-neutral-200 mb-8">
@@ -105,58 +134,66 @@ export default function PricingPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-secondary text-lg">check_circle</span>
-                  <span>Mots illimités avec l&apos;IA Iris</span>
+                  <span>Génération de textes illimitée</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-secondary text-lg">check_circle</span>
-                  <span>Génération de couvertures HD par IA</span>
+                  <span>Génération de couvertures HD (IA)</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-secondary text-lg">check_circle</span>
-                  <span>Export PDF & EPUB prêt à vendre</span>
+                  <span>Export PDF & EPUB KDP Ready</span>
                 </li>
               </ul>
             </div>
 
-            <Link href="/register">
-              <button className="w-full bg-secondary hover:bg-orange-600 text-white font-bold py-3.5 rounded-2xl transition-colors shadow-lg">
-                Démarrer mon essai Pro
-              </button>
-            </Link>
+            <button 
+              onClick={() => handleCheckout("plan_pro", 10000)}
+              disabled={loadingPlan !== null}
+              className="w-full bg-secondary hover:bg-orange-600 text-white font-bold py-3.5 rounded-2xl transition-colors shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loadingPlan === "plan_pro" ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : "Payer via Mobile Money"}
+            </button>
           </div>
 
-          {/* Enterprise / Team Plan */}
+          {/* Ultra Plan (25000) */}
           <div className="bg-white rounded-3xl border border-neutral-200 p-8 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">Maison d&apos;Édition</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">Pour les agences et gros volumes</span>
               <h3 className="font-heading text-2xl font-bold text-neutral-900 mt-1 mb-2">Studio & Éditeur</h3>
-              <p className="text-sm text-neutral-500 mb-6">Pour les équipes et maisons d&apos;édition digitales.</p>
+              <p className="text-sm text-neutral-500 mb-6">Capacité maximale et toutes les nouvelles fonctionnalités.</p>
               <div className="mb-8">
-                <span className="text-4xl font-extrabold text-neutral-900">14 900 FCFA</span>
-                <span className="text-neutral-500 font-medium"> /mois</span>
+                <span className="text-4xl font-extrabold text-neutral-900">25 000 FCFA</span>
+                <span className="text-neutral-500 font-medium"> / 30 jours</span>
               </div>
 
               <ul className="space-y-3 text-sm text-neutral-700 mb-8">
                 <li className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
-                  <span>Tout ce qu&apos;il y a dans Auteur Pro</span>
+                  <span>Toutes les fonctionnalités Pro</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
-                  <span>5 sièges utilisateurs / collaborateurs</span>
+                  <span>Bande passante et modèles IA prioritaires</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
-                  <span>Support prioritaire 24/7 & Formats personnalisés</span>
+                  <span>Accès en avant-première aux nouveautés</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
+                  <span>Support VIP</span>
                 </li>
               </ul>
             </div>
 
-            <Link href="/contact">
-              <button className="w-full bg-neutral-900 hover:bg-black text-white font-bold py-3.5 rounded-2xl transition-colors">
-                Contacter l&apos;équipe
-              </button>
-            </Link>
+            <button 
+              onClick={() => handleCheckout("plan_studio", 25000)}
+              disabled={loadingPlan !== null}
+              className="w-full bg-neutral-900 hover:bg-black text-white font-bold py-3.5 rounded-2xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loadingPlan === "plan_studio" ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : "Payer via Mobile Money"}
+            </button>
           </div>
 
         </div>

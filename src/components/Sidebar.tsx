@@ -7,7 +7,7 @@ import { useUser } from "@/hooks/useUser";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { signOut, displayName } = useUser();
+  const { signOut, displayName, isAdmin } = useUser();
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -35,6 +35,10 @@ export default function Sidebar() {
     { id: "parametres", label: "Paramètres", icon: "settings", href: "/settings" },
     { id: "aide", label: "Centre d'aide & FAQ", icon: "help_center", href: "/faq" },
   ];
+
+  if (isAdmin) {
+    navItems.push({ id: "admin", label: "Espace Admin", icon: "admin_panel_settings", href: "/admin" });
+  }
 
   if (!mounted) return null;
 
