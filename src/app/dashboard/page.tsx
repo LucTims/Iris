@@ -363,26 +363,6 @@ export default function DashboardPage() {
         </main>
       </div>
 
-      {/* ================= MOBILE BOTTOM NAVIGATION BAR ================= */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-50 px-4 py-2 flex items-center justify-around">
-        <Link href="/dashboard" className="flex flex-col items-center gap-1 text-secondary font-bold">
-          <span className="material-symbols-outlined text-xl">dashboard</span>
-          <span className="text-[10px]">Accueil</span>
-        </Link>
-        <Link href="/projects" className="flex flex-col items-center gap-1 text-neutral-500 hover:text-neutral-900">
-          <span className="material-symbols-outlined text-xl">menu_book</span>
-          <span className="text-[10px]">Mes Livres</span>
-        </Link>
-        <Link href="/billing" className="flex flex-col items-center gap-1 text-neutral-500 hover:text-neutral-900">
-          <span className="material-symbols-outlined text-xl">credit_card</span>
-          <span className="text-[10px]">Abonnement</span>
-        </Link>
-        <Link href="/settings" className="flex flex-col items-center gap-1 text-neutral-500 hover:text-neutral-900">
-          <span className="material-symbols-outlined text-xl">settings</span>
-          <span className="text-[10px]">Menu</span>
-        </Link>
-      </div>
-
     </div>
   );
 }
