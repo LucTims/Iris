@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <defs>
+    <!-- Dégradé principal orange Iris -->
+    <linearGradient id="featherMain" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F9A825"/>
+      <stop offset="35%" stop-color="#F48C42"/>
+      <stop offset="70%" stop-color="#F27538"/>
+      <stop offset="100%" stop-color="#E8652C"/>
+    </linearGradient>
+    <!-- Dégradé plus clair pour certaines barbes -->
+    <linearGradient id="featherLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDCB6E"/>
+      <stop offset="50%" stop-color="#F9A34A"/>
+      <stop offset="100%" stop-color="#F48C42"/>
+    </linearGradient>
+    <!-- Dégradé pour la tige -->
+    <linearGradient id="stemColor" x1="0%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#F48C42"/>
+      <stop offset="100%" stop-color="#D4632A"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(200, 245)">
+
+    <!-- ===== CÔTÉ GAUCHE DE LA PLUME (barbes) ===== -->
+
+    <!-- Barbe gauche 1 (tout en haut, petite, pointue) -->
+    <path d="M -8,-195 C -25,-185, -50,-165, -55,-145 C -45,-155, -20,-175, -5,-185 Z"
+          fill="url(#featherMain)" stroke="white" stroke-width="1.5"/>
+
+    <!-- Barbe gauche 2 -->
+    <path d="M -10,-175 C -35,-160, -70,-135, -80,-110 C -65,-125, -30,-150, -5,-165 Z"
+          fill="url(#featherLight)" stroke="white" stroke-width="1.5"/>
+
+    <!-- Barbe gauche 3 -->
+    <path d="M -12,-150 C -45,-130, -85,-100, -95,-70 C -78,-90, -38,-125, -7,-140 Z"
+          fill="url(#featherMain)" stroke="white" stroke-width="1.5"/>
+
+    <!-- Barbe gauche 4 -->
+    <path d="M -14,-125 C -50,-100, -95,-65, -105,-30 C -85,-55, -42,-95, -8,-115 Z"
+          fill="url(#featherLight)" stroke="white" stroke-width="1.5"/>
+
+    <!-- Barbe gauche 5 -->
+    <path d="M -15,-95 C -55,-68, -100,-28, -108,10 C -88,-18, -45,-60, -10,-85 Z"
+          fill="url(#featherMain)" stroke="white" stroke-width="1.5"/>
+
+    <!-- Barbe gauche 6 -->
+    <path d="M -16,-65 C -55,-35, -95,8, -100,45 C -82,15, -45,-28, -10,-55 Z"
+          fill="url(#featherLight)" stroke="white" stroke-width="1.5"/>
+
+    <!-- Barbe gauche 7 (bas) -->
+    <path d="M -15,-35 C -48,-5, -80,35, -82,68 C -68,38, -38,0, -10,-25 Z"
+          fill="url(#featherMain)" stroke="white" stroke-width="1.5"/>
+
+    <!-- Barbe gauche 8 (tout en bas, petite) -->
+    <path d="M -12,-5 C -35,18, -55,52, -55,75 C -45,50, -28,22, -8,2 Z"
+          fill="url(#featherLight)" stroke="white" stroke-width="1.5"/>
+
+
+    <!-- ===== CÔTÉ DROIT DE LA PLUME (barbes) ===== -->
+
+    <!-- Barbe droite 1 (tout en haut, la pointe) -->
+    <path d="M 0,-200 C 10,-192, 25,-178, 30,-165 C 18,-172, 5,-188, -2,-195 Z"
+          fill="url(#featherMain)" stroke="white" stroke-width="1.5"/>
+
+    <!-- Barbe droite 2 -->
+    <path d="M 2,-180 C 20,-168, 48,-145, 55,-125 C 40,-138, 15,-160, 0,-172 Z"
+          fill="url(#featherLight)" stroke="white" stroke-width="1.5"/>
+
+    <!-- Barbe droite 3 -->
+    <path d="M 4,-155 C 28,-138, 62,-110, 72,-82 C 55,-100, 22,-132, 2,-148 Z"
+          fill="url(#featherMain)" stroke="white" stroke-width="1.5"/>
+
+    <!-- Barbe droite 4 -->
+    <path d="M 5,-128 C 32,-108, 68,-75, 78,-42 C 60,-62, 25,-100, 3,-120 Z"
+          fill="url(#featherLight)" stroke="white" stroke-width="1.5"/>
+
+    <!-- Barbe droite 5 -->
+    <path d="M 6,-98 C 35,-75, 72,-35, 80,0 C 62,-25, 28,-68, 4,-90 Z"
+          fill="url(#featherMain)" stroke="white" stroke-width="1.5"/>
+
+    <!-- Barbe droite 6 -->
+    <path d="M 7,-68 C 35,-42, 68,0, 72,35 C 58,8, 28,-35, 5,-58 Z"
+          fill="url(#featherLight)" stroke="white" stroke-width="1.5"/>
+
+    <!-- Barbe droite 7 -->
+    <path d="M 6,-38 C 28,-15, 52,22, 55,50 C 42,28, 20,-5, 4,-28 Z"
+          fill="url(#featherMain)" stroke="white" stroke-width="1.5"/>
+
+    <!-- Barbe droite 8 (petite, bas) -->
+    <path d="M 4,-10 C 18,5, 35,30, 35,50 C 26,35, 12,10, 2,-2 Z"
+          fill="url(#featherLight)" stroke="white" stroke-width="1.5"/>
+
+
+    <!-- ===== TIGE CENTRALE (rachis) ===== -->
+    <line x1="-2" y1="-200" x2="-5" y2="85" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- ===== BOUCLE D'ÉCRITURE EN BAS ===== -->
+    <path d="
+      M -5, 85
+      C -5, 105, -2, 130, 8, 148
+      C 18, 166, 35, 175, 45, 170
+      C 55, 165, 55, 150, 45, 140
+      C 35, 130, 18, 135, 15, 148
+      C 12, 160, 18, 170, 28, 172
+    "
+    fill="none" stroke="url(#stemColor)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  </g>
+</svg>

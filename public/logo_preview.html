@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Logo Iris - Prévisualisation</title>
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 40px; }
+    h1 { font-size: 2rem; margin: 0; }
+    .preview-row { display: flex; gap: 40px; align-items: center; flex-wrap: wrap; justify-content: center; }
+    .card { padding: 40px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+    .card.dark { background: #111827; border: 1px solid #374151; }
+    .card.light { background: #ffffff; border: 1px solid #e5e7eb; }
+    .card img { width: 180px; height: 180px; }
+    .label { font-size: 14px; opacity: 0.7; }
+    .card.light .label { color: #374151; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand img { width: 48px; height: 48px; }
+    .brand-name { font-size: 2rem; font-weight: 800; }
+    .brand-name.dark { color: white; }
+    .brand-name.orange { color: #F95738; }
+  </style>
+</head>
+<body>
+  <h1>Logo Iris - Preview</h1>
+  <div class="preview-row">
+    <div class="card dark">
+      <img src="iris_logo_feather.svg" alt="Logo Iris sur fond sombre">
+      <span class="label">Fond sombre</span>
+    </div>
+    <div class="card light">
+      <img src="iris_logo_feather.svg" alt="Logo Iris sur fond clair">
+      <span class="label" style="color:#555">Fond clair</span>
+    </div>
+  </div>
+  <div class="preview-row">
+    <div class="card dark">
+      <div class="brand">
+        <img src="iris_logo_feather.svg" alt="Logo">
+        <span class="brand-name dark">Iris</span>
+      </div>
+      <span class="label">Avec nom (sombre)</span>
+    </div>
+    <div class="card light">
+      <div class="brand">
+        <img src="iris_logo_feather.svg" alt="Logo">
+        <span class="brand-name orange">Iris</span>
+      </div>
+      <span class="label" style="color:#555">Avec nom (clair)</span>
+    </div>
+  </div>
+</body>
+</html>
