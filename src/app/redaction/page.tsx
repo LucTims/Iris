@@ -84,6 +84,7 @@ function RedactionContent() {
   ]);
 
   const [isAiThinking, setIsAiThinking] = useState(false);
+  const [isGeneratingChapter, setIsGeneratingChapter] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll chat to bottom
@@ -391,6 +392,65 @@ function RedactionContent() {
     setChapters(updated);
   };
 
+  // Generate Full Chapter using AI
+  const handleGenerateFullChapter = async () => {
+    setIsGeneratingChapter(true);
+    
+    try {
+      const projectContextStr = localStorage.getItem("iris_current_project");
+      const projectContext = projectContextStr ? JSON.parse(projectContextStr) : null;
+      
+      const previousChaptersSummary = chapters
+        .slice(0, activeChapterIndex)
+        .map(c => `Chapitre ${c.number} (${c.title}): ${c.content.substring(0, 150)}...`)
+        .join('\n');
+
+      const response = await fetch("/api/generate-chapter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: bookTitle,
+          synopsis: projectContext?.synopsis || "",
+          tone: projectContext?.tone || "professionnel",
+          chapterTitle: currentChapter.title,
+          chapterNumber: currentChapter.number,
+          previousChaptersSummary,
+          model: selectedAiModel
+        })
+      });
+
+      if (!response.ok) throw new Error("Erreur API Generation Chapitre");
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (reader) {
+        let currentText = "";
+        let done = false;
+        
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          done = doneReading;
+          if (value) {
+            currentText += decoder.decode(value, { stream: true });
+            
+            setChapters(prev => {
+              const updated = [...prev];
+              updated[activeChapterIndex].content = currentText;
+              updated[activeChapterIndex].status = "En cours";
+              return updated;
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de la génération du chapitre. Vérifiez votre connexion ou vos crédits IA.");
+    } finally {
+      setIsGeneratingChapter(false);
+    }
+  };
+
   // Start New Book Project Workflow
   const handleStartNewProject = () => {
     const titlePrompt = prompt("Entrez le titre de votre nouveau projet de livre :", "Le Guide de l'Auteur Moderne");
@@ -560,6 +620,8 @@ function RedactionContent() {
               setSaveStatus("saving");
             }}
             onContinueWithAi={() => handleSendMessage("Rédiger la suite de ce chapitre avec l'IA")}
+            onGenerateFullChapter={handleGenerateFullChapter}
+            isGenerating={isGeneratingChapter}
           />
 
           {/* ================= 3B. DRAGGABLE RESIZER HANDLE ================= */}

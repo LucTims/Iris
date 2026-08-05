@@ -122,6 +122,8 @@ interface RichManuscriptEditorProps {
   onContentChange?: (newContent: string) => void;
   onWordCountChange?: (count: number) => void;
   onContinueWithAi?: () => void;
+  onGenerateFullChapter?: () => void;
+  isGenerating?: boolean;
 }
 
 export default function RichManuscriptEditor({
@@ -131,7 +133,9 @@ export default function RichManuscriptEditor({
   onTitleChange,
   onContentChange,
   onWordCountChange,
-  onContinueWithAi
+  onContinueWithAi,
+  onGenerateFullChapter,
+  isGenerating = false
 }: RichManuscriptEditorProps) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -410,11 +414,32 @@ export default function RichManuscriptEditor({
           `}} />
         </div>
 
-        <div className="py-6 flex justify-center w-full">
-          <button onClick={onContinueWithAi} className="bg-white border border-secondary/40 hover:border-secondary text-secondary hover:bg-orange-50 font-bold text-xs px-6 py-3 rounded-full transition-all shadow-md flex items-center gap-2 group cursor-pointer">
-            <span className="material-symbols-outlined text-base group-hover:rotate-12 transition-transform">auto_awesome</span>
-            <span>Continuer la rédaction avec l&apos;IA</span>
-          </button>
+        <div className="py-6 flex flex-col items-center justify-center gap-4 w-full">
+          {/* Si le chapitre est vide ou très court, on propose de tout générer */}
+          {editor.getText().trim().split(/\s+/).length < 20 && onGenerateFullChapter && (
+            <button 
+              onClick={onGenerateFullChapter} 
+              disabled={isGenerating}
+              className={`bg-secondary hover:bg-orange-600 text-white font-bold text-sm px-6 py-3 rounded-full transition-all shadow-md flex items-center gap-2 group cursor-pointer ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <span className={`material-symbols-outlined text-lg ${isGenerating ? 'animate-spin' : 'group-hover:scale-110 transition-transform'}`}>
+                {isGenerating ? 'sync' : 'magic_button'}
+              </span>
+              <span>{isGenerating ? "Génération en cours..." : "✨ Rédiger ce chapitre entier avec l'IA"}</span>
+            </button>
+          )}
+
+          {/* Continuer la rédaction avec l'IA (si déjà du contenu) */}
+          {editor.getText().trim().split(/\s+/).length >= 20 && onContinueWithAi && (
+            <button 
+              onClick={onContinueWithAi} 
+              disabled={isGenerating}
+              className="bg-white border border-secondary/40 hover:border-secondary text-secondary hover:bg-orange-50 font-bold text-xs px-6 py-3 rounded-full transition-all shadow-md flex items-center gap-2 group cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-base group-hover:rotate-12 transition-transform">auto_awesome</span>
+              <span>Continuer la rédaction avec l&apos;IA</span>
+            </button>
+          )}
         </div>
       </div>
 
