@@ -76,9 +76,7 @@ export default function RegisterPage() {
         {/* Top Logo */}
         <div className="relative z-10">
           <Link href="/" className="inline-flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-white font-heading font-extrabold text-xl shadow-md group-hover:scale-105 transition-transform">
-              I
-            </div>
+            <img src="/iris-logo.png" alt="Iris" className="w-10 h-10 object-contain group-hover:scale-105 transition-transform" />
             <span className="font-heading font-extrabold text-3xl tracking-tight text-white">
               Iris
             </span>
@@ -113,9 +111,7 @@ export default function RegisterPage() {
             {/* Logo shown on mobile */}
             <div className="lg:hidden mb-6">
               <Link href="/" className="inline-flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-white font-heading font-bold text-xl">
-                  I
-                </div>
+                <img src="/iris-logo.png" alt="Iris" className="w-9 h-9 object-contain" />
                 <span className="font-heading font-bold text-3xl text-neutral-900">Iris</span>
               </Link>
             </div>

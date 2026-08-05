@@ -14,9 +14,7 @@ export default function Home() {
       <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-neutral-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-secondary flex items-center justify-center text-white font-heading font-extrabold text-lg sm:text-xl shadow-sm group-hover:scale-105 transition-transform">
-              I
-            </div>
+            <img src="/iris-logo.png" alt="Iris" className="w-8 h-8 sm:w-10 sm:h-10 object-contain group-hover:scale-105 transition-transform" />
             <span className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-neutral-900">
               Iris
             </span>

@@ -51,16 +51,11 @@ export default function Sidebar() {
     >
       {/* Sidebar Header (Seamless top section with Iris Typography & Enhanced Toggle Button) */}
       <div className="px-5 py-4 flex items-center justify-between h-16 shrink-0">
-        <Link href="/dashboard" className="flex items-center gap-2.5 overflow-hidden group">
-          {!collapsed ? (
-            <div className="flex flex-col">
-              <span className="font-heading font-extrabold text-2xl tracking-tight text-neutral-900 group-hover:text-secondary transition-colors">
-                Iris
-              </span>
-            </div>
-          ) : (
-            <span className="font-heading font-extrabold text-xl text-secondary w-8 text-center">
-              I
+        <Link href="/dashboard" className="flex items-center gap-2 overflow-hidden group">
+          <img src="/iris-logo.png" alt="Iris" className="w-8 h-8 object-contain shrink-0" />
+          {!collapsed && (
+            <span className="font-heading font-extrabold text-2xl tracking-tight text-neutral-900 group-hover:text-secondary transition-colors">
+              Iris
             </span>
           )}
         </Link>
