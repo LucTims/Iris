@@ -51,7 +51,7 @@ export default function LoginPage() {
         setError(error.message);
         setLoading(false);
       } else {
-        router.push("/dashboard");
+        window.location.href = "/dashboard";
       }
     } else {
       // Magic Link Login
@@ -230,12 +230,15 @@ export default function LoginPage() {
 
             <button 
               type="submit" 
-              className="w-full bg-secondary hover:bg-orange-600 text-white text-base sm:text-lg font-bold py-4 rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 group mt-2"
+              disabled={loading}
+              className="w-full bg-secondary hover:bg-orange-600 text-white text-base sm:text-lg font-bold py-4 rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 group mt-2 disabled:opacity-50"
             >
-              <span>{usePassword ? "Se connecter" : "Recevoir un code par e-mail"}</span>
-              <span className="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">
-                arrow_forward
-              </span>
+              <span>{loading ? "Connexion..." : (usePassword ? "Se connecter" : "Recevoir un code par e-mail")}</span>
+              {!loading && (
+                <span className="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">
+                  arrow_forward
+                </span>
+              )}
             </button>
           </form>
 
