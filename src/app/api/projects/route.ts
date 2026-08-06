@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { title, subtitle, category, audience, synopsis, tone, length } = body;
+    const { title, subtitle, category, audience, synopsis, tone, characters, length, instructions } = body;
 
     if (!title) {
       return NextResponse.json({ error: "Le titre du projet est requis" }, { status: 400 });
@@ -54,6 +54,9 @@ export async function POST(req: Request) {
         audience,
         synopsis,
         tone,
+        characters,
+        length,
+        instructions,
         status: "En cours"
       })
       .select()

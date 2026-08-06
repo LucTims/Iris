@@ -181,12 +181,12 @@ export default function DashboardPage() {
           {/* 2. PERSONALIZED GREETING */}
           <div className="space-y-1">
             <h1 className="font-heading text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight flex items-center gap-2">
-              <span>Bienvenue Martin !</span>
+              <span>Bienvenue {displayName || "Utilisateur"} !</span>
               <span className="text-2xl">✍️</span>
             </h1>
             <p className="text-xs sm:text-sm text-neutral-500 flex items-center gap-1.5 pt-1">
               <span>💡</span>
-              <span>Aujourd&apos;hui est une excellente journée pour avancer sur votre projet &quot;Les Secrets de la Comptabilité&quot;.</span>
+              <span>{hasProjects ? `Aujourd'hui est une excellente journée pour avancer sur votre projet "${projects[0].title}".` : "Aujourd'hui est une excellente journée pour démarrer un nouveau projet."}</span>
             </p>
           </div>
 
@@ -207,7 +207,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <span className="font-heading font-extrabold text-3xl text-neutral-900 block mb-1">
-                  4 Projets
+                  {projects.length} Projet{projects.length !== 1 ? 's' : ''}
                 </span>
                 <span className="text-xs font-semibold text-neutral-500">Livres en cours de rédaction</span>
               </div>
@@ -221,7 +221,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <span className="font-heading font-extrabold text-3xl text-neutral-900 block mb-1">
-                  148 500 mots
+                  N/A
                 </span>
                 <span className="text-xs font-semibold text-neutral-500">Mots générés par Iris</span>
               </div>
@@ -235,7 +235,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <span className="font-heading font-extrabold text-3xl text-neutral-900 block mb-1">
-                  1 240
+                  0
                 </span>
                 <span className="text-xs font-semibold text-neutral-500">Lecteurs & Téléchargements</span>
               </div>
@@ -252,7 +252,7 @@ export default function DashboardPage() {
                 <h3 className="font-heading font-bold text-xl text-neutral-900">Mes Livres &amp; Projets en cours</h3>
                 <p className="text-xs text-neutral-500">Poursuivez la rédaction de vos ouvrages là où vous vous étiez arrêté</p>
               </div>
-              <Link href="/redaction">
+              <Link href="/projects/new">
                 <button className="bg-white border border-neutral-200 text-neutral-700 text-xs font-bold px-4 py-2 rounded-xl hover:bg-neutral-50 transition-colors">
                   + Nouveau Projet
                 </button>
@@ -318,7 +318,7 @@ export default function DashboardPage() {
                   <h4 className="font-heading font-bold text-base text-neutral-900 mb-1">Co-Écriture IA Interactive</h4>
                   <p className="text-xs text-neutral-500 leading-relaxed">Dialoguez avec Iris pour structurer vos paragraphes, enrichir vos idées et adapter le ton littéraire.</p>
                 </div>
-                <Link href="/redaction">
+                <Link href="/projects">
                   <button className="w-full bg-neutral-50 hover:bg-neutral-100 text-neutral-900 text-xs font-bold py-2.5 rounded-xl border border-neutral-200 transition-colors">
                     Ouvrir le studio →
                   </button>
@@ -334,7 +334,7 @@ export default function DashboardPage() {
                   <h4 className="font-heading font-bold text-base text-neutral-900 mb-1">Studio de Couvertures HD</h4>
                   <p className="text-xs text-neutral-500 leading-relaxed">Générez des couvertures visuelles professionnelles adaptées au format Amazon KDP, Kobo et Print.</p>
                 </div>
-                <Link href="/redaction">
+                <Link href="/cover-studio">
                   <button className="w-full bg-neutral-50 hover:bg-neutral-100 text-neutral-900 text-xs font-bold py-2.5 rounded-xl border border-neutral-200 transition-colors">
                     Générer un visuel →
                   </button>
@@ -350,7 +350,7 @@ export default function DashboardPage() {
                   <h4 className="font-heading font-bold text-base text-neutral-900 mb-1">Exportation Multi-Format</h4>
                   <p className="text-xs text-neutral-500 leading-relaxed">Téléchargez vos livres en un clic aux formats EPUB et PDF prêts pour la vente immédiate.</p>
                 </div>
-                <Link href="/docs">
+                <Link href="/export">
                   <button className="w-full bg-neutral-50 hover:bg-neutral-100 text-neutral-900 text-xs font-bold py-2.5 rounded-xl border border-neutral-200 transition-colors">
                     Exporter un livre →
                   </button>

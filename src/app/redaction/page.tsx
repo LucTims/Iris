@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import RichManuscriptEditor from "@/components/RichManuscriptEditor";
+import ImportManuscriptModal from "@/components/ImportManuscriptModal";
+import { parseManuscriptFile } from "@/lib/parser";
 
 interface Message {
   id: number;
@@ -15,7 +17,7 @@ interface Message {
 }
 
 interface Chapter {
-  id: number;
+  id: number | string; // number pour les données de démo locales, UUID (string) une fois persisté en base
   number: number;
   title: string;
   content: string;
@@ -47,6 +49,7 @@ function RedactionContent() {
   // Book Project State
   const [bookTitle, setBookTitle] = useState("Mon Projet de Livre");
   const [activeChapterIndex, setActiveChapterIndex] = useState(0);
+  const [projectData, setProjectData] = useState<any>(null);
 
   const [chapters, setChapters] = useState<Chapter[]>([
     {
@@ -87,72 +90,61 @@ function RedactionContent() {
   const [isGeneratingChapter, setIsGeneratingChapter] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
+  // Manuscript Import State
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isImportLoading, setIsImportLoading] = useState(false);
+
   // Auto-scroll chat to bottom
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isAiThinking]);
 
-  // Load project on mount
+  // Load project on mount / whenever the project identifier in the URL changes
   useEffect(() => {
     const pId = urlProjectId || currentProjectId;
 
     if (pId) {
-      // Fetch real project and chapters from Supabase DB
-      fetch(`/api/projects/${pId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.project) {
-            setBookTitle(data.project.title);
-            setCurrentProjectId(data.project.id);
-          }
-          if (data.chapters && data.chapters.length > 0) {
-            setChapters(
-              data.chapters.map((ch: any) => ({
-                id: ch.id,
-                number: ch.number,
-                title: ch.title || `Chapitre ${ch.number}`,
-                content: ch.content || "",
-                status: ch.status || "Brouillon"
-              }))
-            );
-          }
-        })
-        .catch((err) => console.error("Erreur de chargement du projet:", err));
-      return;
-    }
-
-    const projectContextStr = localStorage.getItem("iris_current_project");
-    const projectContext = projectContextStr ? JSON.parse(projectContextStr) : null;
-
-    if (projectContext && projectContext.title) {
-      setBookTitle(projectContext.title);
-    }
-    
-    if (isNewProject) {
-      setChapters([
-        {
-          id: 1,
-          number: 1,
-          title: "Plan Détaillé (En génération...)",
-          content: "",
-          status: "Brouillon"
-        }
-      ]);
+      // On repart systématiquement d'un chat vide : sans ce reset, la conversation
+      // affichée pouvait appartenir à un tout autre projet ouvert plus tôt dans le
+      // même onglet (le composant n'est pas remonté lors d'une navigation interne
+      // qui ne fait que changer ?projectId=...), donnant l'impression que l'IA
+      // "se souvient" d'un projet qu'elle n'a jamais vu.
       setMessages([]);
-      setIsAiThinking(true);
-      
+      setIsAiThinking(false);
+
       let isSubscribed = true;
 
-      const generatePlan = async () => {
+      const streamPlanIntoChapter = async (
+        project: {
+          id: string; title: string; subtitle?: string; category?: string;
+          audience?: string; synopsis?: string; tone?: string;
+          characters?: string; length?: string; instructions?: string;
+        },
+        chapterId: number | string
+      ) => {
+        setIsAiThinking(true);
+
         try {
           const response = await fetch("/api/generate-plan", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(projectContext || {})
+            body: JSON.stringify({
+              title: project.title,
+              subtitle: project.subtitle,
+              category: project.category,
+              audience: project.audience,
+              synopsis: project.synopsis,
+              tone: project.tone,
+              characters: project.characters,
+              length: project.length,
+              instructions: project.instructions
+            })
           });
 
           if (!response.ok) throw new Error("Erreur API");
-          
+
+          if (!isSubscribed) return;
           setIsAiThinking(false);
 
           const aiMessageId = Date.now();
@@ -161,36 +153,38 @@ function RedactionContent() {
               id: aiMessageId,
               sender: "ai",
               text: "",
-              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
             }
           ]);
 
           const reader = response.body?.getReader();
           const decoder = new TextDecoder();
-          
+
           if (reader) {
             let done = false;
             let currentText = "";
-            
+
             while (!done) {
               const { value, done: doneReading } = await reader.read();
               done = doneReading;
               if (value) {
-                const chunkValue = decoder.decode(value, { stream: true });
-                currentText += chunkValue;
-                
+                currentText += decoder.decode(value, { stream: true });
                 if (isSubscribed) {
-                  setMessages(prev => prev.map(msg => 
+                  setMessages(prev => prev.map(msg =>
                     msg.id === aiMessageId ? { ...msg, text: currentText } : msg
                   ));
                 }
               }
             }
-            
+
             if (isSubscribed) {
-              setChapters(prev => prev.map(chap => 
-                chap.id === 1 ? { ...chap, content: currentText, title: "Plan Détaillé", status: "En cours" } : chap
+              setChapters(prev => prev.map(chap =>
+                chap.id === chapterId
+                  ? { ...chap, content: currentText, title: "Plan Détaillé", status: "En cours" }
+                  : chap
               ));
+              // Réutilise l'autosave existant pour persister le plan généré en base.
+              setSaveStatus("saving");
             }
           }
         } catch (error) {
@@ -202,27 +196,92 @@ function RedactionContent() {
               {
                 id: Date.now(),
                 sender: "ai",
-                text: "Désolé, une erreur est survenue lors de la génération du plan. Veuillez réinstaller votre prompt ou réessayer.",
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                text: "Désolé, une erreur est survenue lors de la génération du plan. Vous pouvez me redemander un plan directement depuis le chat.",
+                time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
               }
             ]);
           }
         }
       };
 
-      generatePlan();
+      const loadProject = async () => {
+        try {
+          const res = await fetch(`/api/projects/${pId}`);
+          const data = await res.json();
+          if (!isSubscribed) return;
+
+          if (!data.project) {
+            console.error("Erreur de chargement du projet:", data.error);
+            return;
+          }
+
+          setBookTitle(data.project.title);
+          setCurrentProjectId(data.project.id);
+          setProjectData(data.project);
+
+          const fetchedChapters: Chapter[] =
+            data.chapters && data.chapters.length > 0
+              ? data.chapters.map((ch: any) => ({
+                  id: ch.id,
+                  number: ch.number,
+                  title: ch.title || `Chapitre ${ch.number}`,
+                  content: ch.content || "",
+                  status: ch.status || "Brouillon"
+                }))
+              : [];
+
+          if (fetchedChapters.length > 0) {
+            setChapters(fetchedChapters);
+          }
+
+          const firstChapter = fetchedChapters[0];
+          const isFreshEmptyProject = isNewProject && firstChapter && !firstChapter.content;
+
+          if (isFreshEmptyProject) {
+            // Auparavant, ce cas n'était jamais atteint : dès qu'un vrai projectId
+            // était présent dans l'URL (systématiquement le cas depuis que l'assistant
+            // de création crée un vrai projet en base avant de rediriger), la fonction
+            // retournait plus haut et ce bloc de génération de plan ne s'exécutait
+            // jamais. Résultat : aucun plan n'était jamais généré automatiquement pour
+            // un nouveau projet créé via l'assistant.
+            await streamPlanIntoChapter(data.project, firstChapter.id);
+          } else {
+            setMessages([
+              {
+                id: 1,
+                sender: "ai",
+                text: `Bonjour ! Je suis Iris IA, votre co-auteur sur "${data.project.title}". Que voulez-vous faire ?`,
+                time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+              }
+            ]);
+          }
+        } catch (err) {
+          console.error("Erreur de chargement du projet:", err);
+        }
+      };
+
+      loadProject();
 
       return () => {
         isSubscribed = false;
       };
-    } else if (projectContextStr) {
-      // Si ce n'est pas un nouveau projet mais qu'on a un projet en mémoire, on vide le chat par défaut
+    }
+
+    // Repli historique : aucun projet réel en base, on retombe sur l'ancien
+    // contexte purement local (ne devrait plus arriver une fois l'assistant
+    // /projects/new utilisé, conservé pour ne rien casser côté anciens liens).
+    const projectContextStr = localStorage.getItem("iris_current_project");
+    const projectContext = projectContextStr ? JSON.parse(projectContextStr) : null;
+
+    if (projectContextStr && projectContext?.title) {
+      setBookTitle(projectContext.title);
+      setProjectData(projectContext);
       setMessages([
         {
           id: 1,
           sender: "ai",
-          text: `Bonjour ! Je suis Iris IA, votre co-auteur. Je suis prêt à travailler sur votre projet "${projectContext?.title}". Que voulez-vous faire ?`,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          text: `Bonjour ! Je suis Iris IA, votre co-auteur. Je suis prêt à travailler sur votre projet "${projectContext.title}". Que voulez-vous faire ?`,
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
         }
       ]);
       setChapters([
@@ -324,9 +383,6 @@ function RedactionContent() {
 
     const chatRequest = async () => {
       try {
-        const projectContextStr = localStorage.getItem("iris_current_project");
-        const projectContext = projectContextStr ? JSON.parse(projectContextStr) : null;
-        
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -335,8 +391,8 @@ function RedactionContent() {
             model: selectedAiModel,
             context: {
               title: bookTitle,
-              synopsis: projectContext?.synopsis || currentChapter.content.substring(0, 500),
-              tone: projectContext?.tone || "professionnel"
+              synopsis: projectData?.synopsis || currentChapter.content.substring(0, 500),
+              tone: projectData?.tone || "professionnel"
             }
           })
         });
@@ -392,14 +448,53 @@ function RedactionContent() {
     setChapters(updated);
   };
 
+  // Contextual AI Actions (Reformuler, Enrichir, etc.)
+  const handleContextualAiAction = async (actionType: string, selectedText: string): Promise<string> => {
+    try {
+      const response = await fetch("/api/ai-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionType,
+          selectedText,
+          synopsis: projectData?.synopsis || "",
+          tone: projectData?.tone || "professionnel",
+          model: selectedAiModel,
+          projectId: currentProjectId
+        })
+      });
+
+      if (!response.ok) throw new Error("Erreur AI contextuelle");
+
+      // For contextual actions, we might just want to wait for the full response to keep it simple,
+      // or we can read the stream and return it. Since onContextualAiAction expects a Promise<string>,
+      // we'll accumulate the stream and return the final string.
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+
+      if (reader) {
+        let done = false;
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          done = doneReading;
+          if (value) {
+            fullText += decoder.decode(value, { stream: !done });
+          }
+        }
+      }
+      return fullText;
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  };
+
   // Generate Full Chapter using AI
   const handleGenerateFullChapter = async () => {
     setIsGeneratingChapter(true);
     
     try {
-      const projectContextStr = localStorage.getItem("iris_current_project");
-      const projectContext = projectContextStr ? JSON.parse(projectContextStr) : null;
-      
       const previousChaptersSummary = chapters
         .slice(0, activeChapterIndex)
         .map(c => `Chapitre ${c.number} (${c.title}): ${c.content.substring(0, 150)}...`)
@@ -410,12 +505,13 @@ function RedactionContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: bookTitle,
-          synopsis: projectContext?.synopsis || "",
-          tone: projectContext?.tone || "professionnel",
+          synopsis: projectData?.synopsis || "",
+          tone: projectData?.tone || "professionnel",
           chapterTitle: currentChapter.title,
           chapterNumber: currentChapter.number,
           previousChaptersSummary,
-          model: selectedAiModel
+          model: selectedAiModel,
+          projectId: currentProjectId
         })
       });
 
@@ -451,31 +547,62 @@ function RedactionContent() {
     }
   };
 
-  // Start New Book Project Workflow
-  const handleStartNewProject = () => {
-    const titlePrompt = prompt("Entrez le titre de votre nouveau projet de livre :", "Le Guide de l'Auteur Moderne");
-    if (!titlePrompt) return;
-
-    setBookTitle(titlePrompt);
-    setChapters([
-      {
-        id: Date.now(),
-        number: 1,
-        title: "Chapitre 1 : Introduction & Vision",
-        content: `Bienvenue dans l'écriture de votre ouvrage "${titlePrompt}".\n\nCommencez à saisir vos idées ici ou demandez à l'assistant IA à droite de vous proposer un plan complet ou une introduction.`,
-        status: "Brouillon"
-      }
-    ]);
-    setActiveChapterIndex(0);
-    setMessages([
-      {
-        id: Date.now(),
-        sender: "ai",
-        text: `Félicitations pour le lancement de votre nouveau livre "${titlePrompt}" ! 🎉\n\nJe suis prêt à vous aider. Quel est le public cible et le message principal que vous souhaitez transmettre dans cet ouvrage ?`,
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-      }
-    ]);
+  // Handle File Selection for Manuscript Import
+  const handleFileSelectedForImport = (file: File) => {
+    setImportFile(file);
+    setIsImportModalOpen(true);
   };
+
+  // Handle Confirmed Manuscript Import
+  const handleConfirmImport = async (splitByChapter: boolean) => {
+    if (!importFile) return;
+
+    setIsImportLoading(true);
+    try {
+      const parsedChapters = await parseManuscriptFile(importFile, { splitByChapter });
+
+      if (!parsedChapters || parsedChapters.length === 0) {
+        alert("Aucun contenu n'a pu être extrait du fichier.");
+        return;
+      }
+
+      if (!splitByChapter) {
+        // Option 2: Single block into current active chapter
+        const combinedHtml = parsedChapters[0].content;
+        const updated = [...chapters];
+        updated[activeChapterIndex] = {
+          ...updated[activeChapterIndex],
+          content: combinedHtml,
+          status: "En cours"
+        };
+        setChapters(updated);
+        setSaveStatus("saving");
+      } else {
+        // Option 1: Split into chapters
+        const newChapters: Chapter[] = parsedChapters.map((pc, idx) => ({
+          id: Date.now() + idx,
+          number: idx + 1,
+          title: pc.title || `Chapitre ${idx + 1}`,
+          content: pc.content || "",
+          status: "Brouillon"
+        }));
+
+        setChapters(newChapters);
+        setActiveChapterIndex(0);
+        setSaveStatus("saving");
+      }
+
+      setIsImportModalOpen(false);
+      setImportFile(null);
+    } catch (error: any) {
+      console.error("Erreur lors de l'importation du manuscrit:", error);
+      alert(error?.message || "Erreur lors de l'importation du fichier.");
+    } finally {
+      setIsImportLoading(false);
+    }
+  };
+
+  // Suppression de handleStartNewProject pour forcer l'usage du wizard /projects/new
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row h-screen overflow-hidden">
@@ -547,14 +674,14 @@ function RedactionContent() {
               )}
             </div>
 
-            <button
-              onClick={handleStartNewProject}
+            <Link
+              href="/projects/new"
               className="bg-neutral-100 hover:bg-neutral-200/80 text-neutral-800 text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
-              title="Démarrer un nouveau projet"
+              title="Démarrer un nouveau projet complet"
             >
               <span className="material-symbols-outlined text-base text-secondary">add_circle</span>
               <span className="hidden sm:inline">Nouveau Projet</span>
-            </button>
+            </Link>
 
             <Link
               href={currentProjectId ? `/export?projectId=${currentProjectId}` : "/export"}
@@ -621,7 +748,9 @@ function RedactionContent() {
             }}
             onContinueWithAi={() => handleSendMessage("Rédiger la suite de ce chapitre avec l'IA")}
             onGenerateFullChapter={handleGenerateFullChapter}
+            onContextualAiAction={handleContextualAiAction}
             isGenerating={isGeneratingChapter}
+            onFileSelected={handleFileSelectedForImport}
           />
 
           {/* ================= 3B. DRAGGABLE RESIZER HANDLE ================= */}
@@ -771,6 +900,20 @@ function RedactionContent() {
           )}
         </div>
       </div>
+
+      {/* Manuscript Import Choice Modal */}
+      <ImportManuscriptModal
+        isOpen={isImportModalOpen}
+        file={importFile}
+        onClose={() => {
+          if (!isImportLoading) {
+            setIsImportModalOpen(false);
+            setImportFile(null);
+          }
+        }}
+        onConfirm={handleConfirmImport}
+        isLoading={isImportLoading}
+      />
     </div>
   );
 }

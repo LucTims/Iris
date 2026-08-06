@@ -14,18 +14,30 @@ export async function POST(req: Request) {
     const signature = req.headers.get("x-sebpay-signature") || req.headers.get("x-signature");
 
     // NOTE: Chaque fournisseur de paiement a sa propre logique de vérification de signature.
-    // L'exemple ci-dessous est le standard HMAC SHA256. 
-    // Commentez ou adaptez cette section selon la documentation exacte de SebPay si nécessaire.
-    if (signature && process.env.SEBPAY_SECRET_KEY) {
-      const expectedSignature = crypto
-        .createHmac("sha256", process.env.SEBPAY_SECRET_KEY)
-        .update(rawBody)
-        .digest("hex");
-        
-      if (signature !== expectedSignature) {
-        console.warn("Signature invalide reçue sur le webhook");
-        // return NextResponse.json({ error: "Signature invalide" }, { status: 400 });
-      }
+    // L'exemple ci-dessous est le standard HMAC SHA256, à ajuster si SebPay documente un format différent.
+    // Ce rejet est obligatoire : c'est le seul mécanisme qui empêche quiconque connaissant un
+    // transaction_id (renvoyé au client au moment du checkout) de forger un faux paiement "réussi".
+    if (!process.env.SEBPAY_SECRET_KEY) {
+      console.error("SEBPAY_SECRET_KEY manquante côté serveur — webhook refusé par sécurité.");
+      return NextResponse.json({ error: "Configuration serveur invalide" }, { status: 500 });
+    }
+
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.SEBPAY_SECRET_KEY)
+      .update(rawBody)
+      .digest("hex");
+
+    const expectedBuffer = Buffer.from(expectedSignature, "hex");
+    const signatureBuffer = signature ? Buffer.from(signature, "hex") : null;
+
+    const isValidSignature =
+      !!signatureBuffer &&
+      signatureBuffer.length === expectedBuffer.length &&
+      crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
+
+    if (!isValidSignature) {
+      console.warn("Signature invalide ou manquante reçue sur le webhook SebPay — requête rejetée.");
+      return NextResponse.json({ error: "Signature invalide" }, { status: 401 });
     }
 
     const body = JSON.parse(rawBody);

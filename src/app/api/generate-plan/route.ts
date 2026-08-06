@@ -3,6 +3,7 @@ import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
+import { checkMonthlyQuota } from "@/lib/ai/quota";
 
 // Autoriser le temps d'exécution maximal pour l'IA (idéal pour Vercel)
 export const maxDuration = 30;
@@ -57,16 +58,11 @@ export async function POST(req: Request) {
       selectedModelName = "gemini-2.5-flash";
     }
 
-    // 3. Quota Enforcement: Check monthly usage count
-    const { count: usageCount } = await supabase
-      .from("ai_usage")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id);
-
-    const FREE_LIMIT = 50;
-    if (userPlan === "free" && userRole !== "admin" && (usageCount || 0) >= FREE_LIMIT) {
+    // 3. Quota Enforcement: Check usage since the start of the current month
+    const quota = await checkMonthlyQuota(supabase, user.id, userPlan, userRole);
+    if (!quota.allowed) {
       return NextResponse.json(
-        { error: "Quota mensuel d'IA atteint (50 générations). Passez au Plan Pro pour un accès illimité." },
+        { error: `Quota mensuel d'IA atteint (${quota.limit} générations). Passez à un plan supérieur pour continuer.` },
         { status: 429 }
       );
     }

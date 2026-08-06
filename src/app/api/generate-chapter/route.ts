@@ -3,6 +3,7 @@ import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
+import { checkMonthlyQuota } from "@/lib/ai/quota";
 
 export const maxDuration = 60; // Autoriser jusqu'à 60 secondes car générer un chapitre prend du temps
 
@@ -34,7 +35,8 @@ export async function POST(req: Request) {
       chapterTitle,
       chapterNumber,
       previousChaptersSummary,
-      model: chosenModel
+      model: chosenModel,
+      projectId
     } = await req.json();
 
     // 1. Fetch user profile & plan
@@ -53,17 +55,12 @@ export async function POST(req: Request) {
       selectedModelName = "gemini-2.5-flash";
     }
 
-    // 3. Quota Enforcement: Check monthly usage count
-    const { count: usageCount } = await supabase
-      .from("ai_usage")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id);
-
-    // Note: We will replace this with the exact word count quota system in Phase 5
-    const FREE_LIMIT = 50; 
-    if (userPlan === "free" && userRole !== "admin" && (usageCount || 0) >= FREE_LIMIT) {
+    // 3. Quota Enforcement: Check usage since the start of the current month
+    // Note: sera remplacé par un système de quota en mots/tokens réels en Phase 5.
+    const quota = await checkMonthlyQuota(supabase, user.id, userPlan, userRole);
+    if (!quota.allowed) {
       return NextResponse.json(
-        { error: "Quota mensuel d'IA atteint. Passez au Plan Pro pour continuer à générer des chapitres." },
+        { error: `Quota mensuel d'IA atteint (${quota.limit} générations). Passez à un plan supérieur pour continuer à générer des chapitres.` },
         { status: 429 }
       );
     }
@@ -72,6 +69,7 @@ export async function POST(req: Request) {
     try {
       await supabase.from("ai_usage").insert({
         user_id: user.id,
+        project_id: projectId || null,
         action: "generate_chapter",
         model: selectedModelName
       });

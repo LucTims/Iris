@@ -54,6 +54,11 @@ export default function NewBookWizard() {
         body: JSON.stringify(formData)
       });
 
+      if (!res.ok) {
+        alert('Erreur lors de la création du projet. Veuillez vérifier votre connexion et réessayer.');
+        return;
+      }
+
       if (res.ok) {
         const data = await res.json();
         if (data.project?.id) {
@@ -64,11 +69,11 @@ export default function NewBookWizard() {
       }
     } catch (err) {
       console.error("Erreur lors de la création du projet:", err);
+      alert('Erreur lors de la création du projet. Veuillez vérifier votre connexion et réessayer.');
+      return;
     } finally {
       setIsSubmitting(false);
     }
-
-    router.push("/redaction?new=true");
   };
 
   const renderStepIndicators = () => {
@@ -303,13 +308,21 @@ export default function NewBookWizard() {
 
               <button
                 type="submit"
-                className="bg-secondary hover:bg-orange-600 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-md transition-all flex items-center gap-2"
+                disabled={isSubmitting}
+                className={`bg-secondary hover:bg-orange-600 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-md transition-all flex items-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {step === totalSteps ? (
-                  <>
-                    <span>Générer mon livre</span>
-                    <span className="material-symbols-outlined text-base">auto_awesome</span>
-                  </>
+                  isSubmitting ? (
+                    <>
+                      <span>Création en cours...</span>
+                      <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Générer mon livre</span>
+                      <span className="material-symbols-outlined text-base">auto_awesome</span>
+                    </>
+                  )
                 ) : (
                   <>
                     <span>Continuer</span>

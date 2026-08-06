@@ -298,7 +298,7 @@ export default function QuillAnimation() {
         transition={{ duration: 0.8, delay: 0.9 }}
         className="mt-8 relative z-20"
       >
-        <Link href="/redaction" className="group">
+        <Link href="/projects/new" className="group">
           <button className="relative bg-gradient-to-r from-orange-500 via-secondary to-amber-500 text-white font-bold text-sm px-8 py-4 rounded-2xl shadow-lg shadow-orange-200/50 hover:shadow-xl hover:shadow-orange-300/50 transition-all duration-300 flex items-center gap-3 group-hover:scale-[1.03] active:scale-[0.98] overflow-hidden cursor-pointer">
             <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
             <span className="material-symbols-outlined text-xl relative z-10">
