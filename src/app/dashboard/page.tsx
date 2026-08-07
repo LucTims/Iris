@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import QuillAnimation from "@/components/QuillAnimation";
+import ExportBookModal from "@/components/ExportBookModal";
 import { useUser } from "@/hooks/useUser";
 
 export default function DashboardPage() {
@@ -12,6 +13,13 @@ export default function DashboardPage() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [selectedProjectForExport, setSelectedProjectForExport] = useState<any | null>(null);
+
+  const handleOpenExportModal = (project: any) => {
+    setSelectedProjectForExport(project);
+    setIsExportModalOpen(true);
+  };
 
   useEffect(() => {
     async function loadProjects() {
@@ -286,7 +294,15 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="w-full md:w-auto shrink-0">
+                  <div className="w-full md:w-auto shrink-0 flex items-center gap-2">
+                    <button
+                      onClick={() => handleOpenExportModal(book)}
+                      className="bg-orange-50 hover:bg-orange-100 text-secondary text-xs font-bold px-3 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                      title="Exporter / Télécharger le livre"
+                    >
+                      <span className="material-symbols-outlined text-base">download</span>
+                      <span className="hidden sm:inline">Exporter</span>
+                    </button>
                     <Link href={`/redaction?projectId=${book.id}`}>
                       <button className="w-full md:w-auto bg-secondary text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-orange-600 transition-colors flex items-center justify-center gap-1.5">
                         <span>Reprendre la rédaction</span>
@@ -363,6 +379,12 @@ export default function DashboardPage() {
         </main>
       </div>
 
+      {/* EXPORT / DOWNLOAD MODAL */}
+      <ExportBookModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        project={selectedProjectForExport}
+      />
     </div>
   );
 }

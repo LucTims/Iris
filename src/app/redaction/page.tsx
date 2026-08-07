@@ -4,16 +4,26 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
-import RichManuscriptEditor from "@/components/RichManuscriptEditor";
+import RichManuscriptEditor, { RichManuscriptEditorHandle } from "@/components/RichManuscriptEditor";
 import ImportManuscriptModal from "@/components/ImportManuscriptModal";
+import ExportBookModal from "@/components/ExportBookModal";
 import { parseManuscriptFile } from "@/lib/parser";
 
-interface Message {
+export interface ChapterModificationPayload {
+  chapterIndex: number;
+  chapterId?: string | number;
+  chapterTitle?: string;
+  summary: string;
+  newContent?: string;
+}
+
+export interface Message {
   id: number;
   sender: "ai" | "user";
   text: string;
   time: string;
   suggestedTextToInsert?: string;
+  chapterModification?: ChapterModificationPayload;
 }
 
 interface Chapter {
@@ -89,11 +99,13 @@ function RedactionContent() {
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [isGeneratingChapter, setIsGeneratingChapter] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<RichManuscriptEditorHandle>(null);
 
-  // Manuscript Import State
+  // Manuscript Import & Export State
   const [importFile, setImportFile] = useState<File | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isImportLoading, setIsImportLoading] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -393,7 +405,10 @@ function RedactionContent() {
               title: bookTitle,
               synopsis: projectData?.synopsis || currentChapter.content.substring(0, 500),
               tone: projectData?.tone || "professionnel"
-            }
+            },
+            chapters,
+            activeChapterIndex,
+            projectId: currentProjectId
           })
         });
 
@@ -401,28 +416,78 @@ function RedactionContent() {
 
         setIsAiThinking(false);
 
-        const aiMessageId = Date.now() + 1;
-        setMessages(prev => [...prev, {
-          id: aiMessageId,
-          sender: "ai",
-          text: "",
-          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-        }]);
+        const contentType = response.headers.get("content-type") || "";
 
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
+        if (contentType.includes("application/json")) {
+          // JSON response returned (MODIFY_CHAPTER intent payload)
+          const json = await response.json();
+          const chatSummaryText = json.chatSummary || json.summary || json.text || json.message || "Modifications effectuées sur le manuscrit.";
+          const modPayload: ChapterModificationPayload | undefined = json.chapterModification;
 
-        if (reader) {
-          let currentText = "";
-          let done = false;
-          while (!done) {
-            const { value, done: doneReading } = await reader.read();
-            done = doneReading;
-            if (value) {
-              currentText += decoder.decode(value, { stream: true });
-              setMessages(prev => prev.map(msg => 
-                msg.id === aiMessageId ? { ...msg, text: currentText } : msg
-              ));
+          const aiMsg: Message = {
+            id: Date.now() + 1,
+            sender: "ai",
+            text: chatSummaryText,
+            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            ...(modPayload && { chapterModification: modPayload })
+          };
+
+          setMessages(prev => [...prev, aiMsg]);
+
+          if (modPayload) {
+            const targetIndex = modPayload.chapterIndex;
+            const newContent = modPayload.newContent;
+
+            // Execute active chapter switch
+            if (targetIndex >= 0 && targetIndex < chapters.length) {
+              setActiveChapterIndex(targetIndex);
+            }
+
+            if (newContent !== undefined) {
+              // Update React state for chapters & trigger Supabase persistence
+              setChapters(prev => {
+                const updated = [...prev];
+                if (targetIndex >= 0 && targetIndex < updated.length) {
+                  updated[targetIndex] = {
+                    ...updated[targetIndex],
+                    content: newContent
+                  };
+                }
+                return updated;
+              });
+              setSaveStatus("saving");
+
+              // Apply content to TipTap editor via a transaction to preserve undo history (Ctrl+Z)
+              setTimeout(() => {
+                editorRef.current?.replaceContent(newContent);
+              }, 50);
+            }
+          }
+        } else {
+          // Plain text stream (CHAT_ONLY intent)
+          const aiMessageId = Date.now() + 1;
+          setMessages(prev => [...prev, {
+            id: aiMessageId,
+            sender: "ai",
+            text: "",
+            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          }]);
+
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
+
+          if (reader) {
+            let currentText = "";
+            let done = false;
+            while (!done) {
+              const { value, done: doneReading } = await reader.read();
+              done = doneReading;
+              if (value) {
+                currentText += decoder.decode(value, { stream: true });
+                setMessages(prev => prev.map(msg => 
+                  msg.id === aiMessageId ? { ...msg, text: currentText } : msg
+                ));
+              }
             }
           }
         }
@@ -443,9 +508,14 @@ function RedactionContent() {
 
   // Insert AI Generated Paragraph directly into Manuscript Editor
   const handleInsertIntoManuscript = (textToInsert: string) => {
-    const updated = [...chapters];
-    updated[activeChapterIndex].content += textToInsert;
-    setChapters(updated);
+    if (editorRef.current) {
+      editorRef.current.insertContent(textToInsert);
+    } else {
+      const updated = [...chapters];
+      updated[activeChapterIndex].content += textToInsert;
+      setChapters(updated);
+      setSaveStatus("saving");
+    }
   };
 
   // Contextual AI Actions (Reformuler, Enrichir, etc.)
@@ -683,13 +753,13 @@ function RedactionContent() {
               <span className="hidden sm:inline">Nouveau Projet</span>
             </Link>
 
-            <Link
-              href={currentProjectId ? `/export?projectId=${currentProjectId}` : "/export"}
+            <button
+              onClick={() => setIsExportModalOpen(true)}
               className="bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
             >
-              <span className="material-symbols-outlined text-base">picture_as_pdf</span>
-              <span>Exporter PDF</span>
-            </Link>
+              <span className="material-symbols-outlined text-base">download</span>
+              <span>Exporter / Télécharger</span>
+            </button>
 
             {/* Profile Menu Toggle */}
             <div className="relative">
@@ -732,6 +802,7 @@ function RedactionContent() {
         <div className="flex-1 flex flex-row overflow-hidden relative">
           {/* ================= 3A. RICH MANUSCRIPT EDITOR (MIDDLE / MAIN AREA) ================= */}
           <RichManuscriptEditor
+            ref={editorRef}
             initialContent={currentChapter.content}
             chapterTitle={currentChapter.title}
             onTitleChange={(newTitle) => {
@@ -832,6 +903,37 @@ function RedactionContent() {
                           </button>
                         </div>
                       )}
+
+                      {/* Action Card for Chapter Modification */}
+                      {msg.chapterModification && (
+                        <div className="mt-3 pt-3 border-t border-blue-200/60 flex flex-col gap-2.5 bg-blue-50/80 -mx-1 -mb-1 p-3 rounded-xl border border-blue-100/90 shadow-2xs">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-base text-[#1b6df9]">auto_fix_high</span>
+                            <span className="text-xs font-bold text-blue-950 truncate">
+                              {msg.chapterModification.chapterTitle || `Chapitre ${msg.chapterModification.chapterIndex + 1}`}
+                            </span>
+                          </div>
+                          {msg.chapterModification.summary && (
+                            <p className="text-[11px] text-blue-900/90 font-medium leading-relaxed font-body">
+                              {msg.chapterModification.summary}
+                            </p>
+                          )}
+                          <div className="flex justify-end pt-1">
+                            <button
+                              onClick={() => {
+                                const idx = msg.chapterModification!.chapterIndex;
+                                if (idx >= 0 && idx < chapters.length) {
+                                  setActiveChapterIndex(idx);
+                                }
+                              }}
+                              className="bg-[#1b6df9] hover:bg-blue-600 active:scale-95 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                            >
+                              <span>Aller au chapitre</span>
+                              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <span className="text-[10px] text-neutral-400 font-mono font-bold tracking-wider px-1">
                       {msg.sender === "user" ? "VOUS" : "IRIS IA"} • {msg.time}
@@ -913,6 +1015,17 @@ function RedactionContent() {
         }}
         onConfirm={handleConfirmImport}
         isLoading={isImportLoading}
+      />
+
+      {/* EXPORT / DOWNLOAD MODAL */}
+      <ExportBookModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        project={{
+          id: currentProjectId || undefined,
+          title: bookTitle,
+          chapters: chapters
+        }}
       />
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
+import ExportBookModal from "@/components/ExportBookModal";
 import { useUser } from "@/hooks/useUser";
 
 export default function ProjectsPage() {
@@ -14,6 +15,8 @@ export default function ProjectsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [selectedProjectForExport, setSelectedProjectForExport] = useState<any | null>(null);
 
   // New book form state
   const [newTitle, setNewTitle] = useState("");
@@ -109,6 +112,11 @@ export default function ProjectsPage() {
     } catch (err) {
       console.error("Erreur de duplication:", err);
     }
+  };
+
+  const handleOpenExportModal = (project: any) => {
+    setSelectedProjectForExport(project);
+    setIsExportModalOpen(true);
   };
 
   return (
@@ -315,9 +323,17 @@ export default function ProjectsPage() {
                         <span>Ouvrir Studio</span>
                       </Link>
 
+                      <button
+                        onClick={() => handleOpenExportModal(book)}
+                        className="p-2.5 rounded-xl bg-orange-50 text-secondary hover:bg-orange-100 transition-colors flex items-center justify-center"
+                        title="Exporter / Télécharger le livre (EPUB, PDF, Word...)"
+                      >
+                        <span className="material-symbols-outlined text-base">download</span>
+                      </button>
+
                       <Link
                         href={`/cover-studio?projectId=${book.id}`}
-                        className="p-2.5 rounded-xl bg-orange-50 text-secondary hover:bg-orange-100 transition-colors flex items-center justify-center"
+                        className="p-2.5 rounded-xl bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-colors flex items-center justify-center"
                         title="Créer une couverture"
                       >
                         <span className="material-symbols-outlined text-base">palette</span>
@@ -384,22 +400,39 @@ export default function ProjectsPage() {
                     {displayName || "Auteur"}
                   </div>
 
-                  {/* Statut & Plateforme */}
-                  <div className="col-span-2 flex items-center justify-end">
+                  {/* Statut & Actions */}
+                  <div className="col-span-2 flex items-center justify-end gap-2">
                     <span className="bg-orange-50 text-secondary text-[11px] font-bold px-3 py-1 rounded-full shrink-0">
                       {book.status}
                     </span>
+
+                    <button
+                      onClick={() => handleOpenExportModal(book)}
+                      className="p-1.5 rounded-lg bg-orange-50 text-secondary hover:bg-orange-100 transition-colors hidden sm:flex items-center justify-center"
+                      title="Exporter / Télécharger"
+                    >
+                      <span className="material-symbols-outlined text-base">download</span>
+                    </button>
                   </div>
                   
                   {/* Mobile Only Actions */}
                   <div className="flex sm:hidden items-center gap-3 w-full justify-end border-t pt-3 mt-2">
                     <Link
-                      href="/redaction"
+                      href={`/redaction?projectId=${book.id}`}
                       className="bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5"
                     >
                       <span className="material-symbols-outlined text-base">edit_note</span>
                       <span>Studio</span>
                     </Link>
+
+                    <button
+                      onClick={() => handleOpenExportModal(book)}
+                      className="bg-orange-50 hover:bg-orange-100 text-secondary text-xs font-bold px-3 py-2 rounded-xl transition-all flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-base">download</span>
+                      <span>Exporter</span>
+                    </button>
+
                     <Link
                       href={`/cover-studio?projectId=${book.id}`}
                       className="bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold px-3 py-2 rounded-xl transition-all flex items-center gap-1"
@@ -407,6 +440,7 @@ export default function ProjectsPage() {
                       <span className="material-symbols-outlined text-base">palette</span>
                       <span className="hidden lg:inline">Couverture</span>
                     </Link>
+
                     <button
                       onClick={() => handleDeleteBook(book.id)}
                       className="p-2 text-neutral-400 hover:text-red-600 rounded-xl hover:bg-red-50"
@@ -510,6 +544,13 @@ export default function ProjectsPage() {
           </div>
         </div>
       )}
+
+      {/* EXPORT / DOWNLOAD MODAL */}
+      <ExportBookModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        project={selectedProjectForExport}
+      />
     </div>
   );
 }
