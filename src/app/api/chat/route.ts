@@ -88,11 +88,47 @@ export async function POST(req: Request) {
     // Detect Intent
     const intent = detectIntent(lastUserMessage);
 
-    // 4. Track usage in Supabase ai_usage table
+    // 4. Resolve available chapters for all branches
+    let availableChapters: ChapterItem[] = Array.isArray(bodyChapters) && bodyChapters.length > 0
+      ? bodyChapters
+      : (Array.isArray(context?.chapters) ? context.chapters : []);
+
+    const projectId = bodyProjectId || context?.projectId;
+    if (availableChapters.length === 0 && projectId) {
+      try {
+        const { data: dbChapters } = await supabase
+          .from("chapters")
+          .select("id, title, content, number, order_index")
+          .eq("project_id", projectId)
+          .order("order_index", { ascending: true });
+
+        if (dbChapters && dbChapters.length > 0) {
+          availableChapters = dbChapters.map((c: any, idx: number) => ({
+            id: c.id,
+            title: c.title,
+            content: c.content,
+            number: c.number || idx + 1,
+            index: idx
+          }));
+        }
+      } catch (dbErr) {
+        console.warn("Could not fetch chapters from DB:", dbErr);
+      }
+    }
+
+    const chaptersOverview = availableChapters.map((c, i) => {
+      const num = c.number || i + 1;
+      const title = c.title || `Chapitre ${num}`;
+      const plainText = c.content ? c.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : "Chapitre vide";
+      const snippet = plainText.length > 500 ? plainText.substring(0, 500) + "..." : plainText;
+      return `[Chapitre ${num} : "${title}"]\nContenu : ${snippet}`;
+    }).join('\n\n');
+
+    // 5. Track usage in Supabase ai_usage table
     try {
       await supabase.from("ai_usage").insert({
         user_id: user.id,
-        project_id: bodyProjectId || context?.projectId || null,
+        project_id: projectId || null,
         action: intent === "MODIFY_CHAPTER" ? "chat_modify_chapter" : "chat_assistant",
         model: selectedModelName
       });
@@ -102,34 +138,6 @@ export async function POST(req: Request) {
 
     // Branch A: MODIFY_CHAPTER
     if (intent === "MODIFY_CHAPTER") {
-      let availableChapters: ChapterItem[] = Array.isArray(bodyChapters) && bodyChapters.length > 0
-        ? bodyChapters
-        : (Array.isArray(context?.chapters) ? context.chapters : []);
-
-      // If no chapters provided in body, try fetching from Supabase if projectId is available
-      const projectId = bodyProjectId || context?.projectId;
-      if (availableChapters.length === 0 && projectId) {
-        try {
-          const { data: dbChapters } = await supabase
-            .from("chapters")
-            .select("id, title, content, number, order_index")
-            .eq("project_id", projectId)
-            .order("order_index", { ascending: true });
-
-          if (dbChapters && dbChapters.length > 0) {
-            availableChapters = dbChapters.map((c: any, idx: number) => ({
-              id: c.id,
-              title: c.title,
-              content: c.content,
-              number: c.number || idx + 1,
-              index: idx
-            }));
-          }
-        } catch (dbErr) {
-          console.warn("Could not fetch chapters from DB:", dbErr);
-        }
-      }
-
       const resolved = resolveTargetChapter({
         userPrompt: lastUserMessage,
         chapters: availableChapters,
@@ -197,13 +205,22 @@ Consignes de génération :
 
     // Branch B: CHAT_ONLY
     const systemPrompt = `Tu es un assistant de rédaction de livre intelligent appelé Iris IA. 
-Tu aides un auteur à écrire son livre.
+Tu es le co-auteur du livre de l'auteur. Tu as un ACCÈS TOTAL à l'ensemble du manuscrit et à TOUS ses chapitres ci-dessous.
+
 Contexte du projet de l'auteur :
-Titre : ${context?.title || "Non défini"}
+Titre du livre : ${context?.title || "Non défini"}
 Synopsis : ${context?.synopsis || "Non défini"}
 Ton : ${context?.tone || "Professionnel"}
+Chapitre actuellement affiché à l'écran : ${activeChapterIndex !== undefined ? `Chapitre ${activeChapterIndex + 1}` : "Non spécifié"}
 
-Réponds de manière concise, encourageante et professionnelle. Tu peux proposer des idées, des suites de phrases, ou corriger le style.`;
+--- SOMMAIRE ET CONTENU DES CHAPITRES DU LIVRE ---
+${chaptersOverview || "Aucun chapitre rédigé pour le moment."}
+--- FIN DU MANUSCRIT ---
+
+Consignes importantes :
+1. Tu as un accès total à TOUS les chapitres ci-dessus. Si l'auteur te pose une question du type "As-tu accès au chapitre 3 ?", "Que contient le chapitre 7 ?", etc., confirme TOUJOURS immédiatement que tu y as accès et réponds en utilisant les données des chapitres ci-dessus.
+2. Si l'auteur te demande d'écrire ou de modifier un chapitre mais sans donner d'ordre explicite d'écrasement immédiat, conseille-le avec précision et bienveillance.
+3. Réponds de manière concise, chaleureuse et professionnelle.`;
 
     const aiMessages: any[] = messages.map((msg: any) => ({
       role: (msg.sender === "ai" || msg.role === "assistant") ? "assistant" : "user",
