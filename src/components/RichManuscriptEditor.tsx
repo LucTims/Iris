@@ -582,7 +582,17 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
             .ProseMirror h1 { font-size: 2.25em; font-weight: 800; margin-bottom: 0.5em; line-height: 1.2; }
             .ProseMirror h2 { font-size: 1.8em; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.5em; }
             .ProseMirror img { max-width: 100%; height: auto; display: block; margin: 1.5em auto; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-          `}} />
+            @media (max-width: 768px) {
+              .ProseMirror > div {
+                width: 100% !important;
+                min-width: 100% !important;
+                padding: 1.25rem !important;
+                margin: 0.5rem auto !important;
+                border-radius: 1rem !important;
+                box-shadow: none !important;
+              }
+            }
+          ` }} />
         </div>
 
       </div>

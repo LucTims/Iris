@@ -10,6 +10,7 @@ export default function Sidebar() {
   const { signOut, displayName, isAdmin } = useUser();
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -134,7 +135,7 @@ export default function Sidebar() {
     </aside>
 
       {/* ================= MOBILE BOTTOM NAVIGATION BAR ================= */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-50 px-4 py-2 flex items-center justify-around">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-50 px-4 py-2 flex items-center justify-around shadow-lg">
         <Link href="/dashboard" className={`flex flex-col items-center gap-1 ${pathname === "/dashboard" ? "text-secondary font-bold" : "text-neutral-500 hover:text-neutral-900"}`}>
           <span className="material-symbols-outlined text-xl">dashboard</span>
           <span className="text-[10px]">Accueil</span>
@@ -143,15 +144,66 @@ export default function Sidebar() {
           <span className="material-symbols-outlined text-xl">menu_book</span>
           <span className="text-[10px]">Mes Livres</span>
         </Link>
-        <Link href="/billing" className={`flex flex-col items-center gap-1 ${pathname.startsWith("/billing") ? "text-secondary font-bold" : "text-neutral-500 hover:text-neutral-900"}`}>
-          <span className="material-symbols-outlined text-xl">credit_card</span>
-          <span className="text-[10px]">Abonnement</span>
+        <Link href="/cover-studio" className={`flex flex-col items-center gap-1 ${pathname.startsWith("/cover-studio") ? "text-secondary font-bold" : "text-neutral-500 hover:text-neutral-900"}`}>
+          <span className="material-symbols-outlined text-xl">palette</span>
+          <span className="text-[10px]">Couverture</span>
         </Link>
-        <Link href="/settings" className={`flex flex-col items-center gap-1 ${pathname.startsWith("/settings") ? "text-secondary font-bold" : "text-neutral-500 hover:text-neutral-900"}`}>
-          <span className="material-symbols-outlined text-xl">settings</span>
+        <button onClick={() => setIsMobileDrawerOpen(!isMobileDrawerOpen)} className={`flex flex-col items-center gap-1 cursor-pointer ${isMobileDrawerOpen ? "text-secondary font-bold" : "text-neutral-500 hover:text-neutral-900"}`}>
+          <span className="material-symbols-outlined text-xl">widgets</span>
           <span className="text-[10px]">Menu</span>
-        </Link>
+        </button>
       </div>
+
+      {/* ================= MOBILE SLIDE-OVER DRAWER MENU ================= */}
+      {isMobileDrawerOpen && (
+        <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-fadeIn">
+          <div className="bg-white rounded-t-3xl p-6 space-y-6 max-h-[85vh] overflow-y-auto border-t border-neutral-200 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
+              <div className="flex items-center gap-2">
+                <img src="/iris-logo.png" alt="Iris" className="w-8 h-8 object-contain" />
+                <span className="font-heading font-extrabold text-xl text-neutral-900">Navigation Iris</span>
+              </div>
+              <button 
+                onClick={() => setIsMobileDrawerOpen(false)}
+                className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {navItems.map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  onClick={() => setIsMobileDrawerOpen(false)}
+                  className={`p-3 rounded-2xl border flex flex-col gap-2 transition-all ${
+                    pathname === item.href
+                      ? "bg-orange-50 border-orange-200 text-secondary font-bold"
+                      : "bg-neutral-50 border-neutral-200/80 text-neutral-800 font-semibold hover:bg-neutral-100"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-2xl">{item.icon}</span>
+                  <span className="text-xs truncate">{item.label}</span>
+                </Link>
+              ))}
+            </div>
+
+            <div className="pt-4 border-t border-neutral-100 flex items-center justify-between">
+              <span className="text-xs font-semibold text-neutral-500">Compte {displayName ? `: ${displayName}` : ""}</span>
+              <button
+                onClick={() => {
+                  setIsMobileDrawerOpen(false);
+                  signOut();
+                }}
+                className="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl transition-colors"
+              >
+                Se déconnecter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

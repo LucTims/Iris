@@ -7,7 +7,7 @@ import Sidebar from "@/components/Sidebar";
 import RichManuscriptEditor, { RichManuscriptEditorHandle } from "@/components/RichManuscriptEditor";
 import ImportManuscriptModal from "@/components/ImportManuscriptModal";
 import ExportBookModal from "@/components/ExportBookModal";
-import { parseManuscriptFile } from "@/lib/parser";
+import { parseManuscriptFile, splitHtmlIntoChapters } from "@/lib/parser";
 
 export interface ChapterModificationPayload {
   chapterIndex: number;
@@ -15,6 +15,8 @@ export interface ChapterModificationPayload {
   chapterTitle?: string;
   summary: string;
   newContent?: string;
+  previousContent?: string;
+  isUndone?: boolean;
 }
 
 export interface Message {
@@ -47,8 +49,9 @@ function RedactionContent() {
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(urlProjectId || null);
 
-  // Global Layout State
+  // Global Layout & Mobile Responsiveness State
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<"editor" | "chat">("editor");
 
   // Chat Panel Resizing & Collapsing State
   const [chatWidth, setChatWidth] = useState(420); // Default 420px
@@ -111,6 +114,17 @@ function RedactionContent() {
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isAiThinking]);
+
+  // Persist chat messages to localStorage whenever they update
+  useEffect(() => {
+    if (currentProjectId && messages.length > 0 && typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`iris_chat_history_${currentProjectId}`, JSON.stringify(messages));
+      } catch (e) {
+        console.warn("Could not save chat history to localStorage:", e);
+      }
+    }
+  }, [messages, currentProjectId]);
 
   // Load project on mount / whenever the project identifier in the URL changes
   useEffect(() => {
@@ -250,22 +264,32 @@ function RedactionContent() {
           const isFreshEmptyProject = isNewProject && firstChapter && !firstChapter.content;
 
           if (isFreshEmptyProject) {
-            // Auparavant, ce cas n'était jamais atteint : dès qu'un vrai projectId
-            // était présent dans l'URL (systématiquement le cas depuis que l'assistant
-            // de création crée un vrai projet en base avant de rediriger), la fonction
-            // retournait plus haut et ce bloc de génération de plan ne s'exécutait
-            // jamais. Résultat : aucun plan n'était jamais généré automatiquement pour
-            // un nouveau projet créé via l'assistant.
             await streamPlanIntoChapter(data.project, firstChapter.id);
           } else {
-            setMessages([
-              {
-                id: 1,
-                sender: "ai",
-                text: `Bonjour ! Je suis Iris IA, votre co-auteur sur "${data.project.title}". Que voulez-vous faire ?`,
-                time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            // Load persisted chat history for this project if available
+            const savedChatKey = `iris_chat_history_${data.project.id}`;
+            const savedChatRaw = typeof window !== "undefined" ? localStorage.getItem(savedChatKey) : null;
+            let restoredChat: Message[] = [];
+            if (savedChatRaw) {
+              try {
+                restoredChat = JSON.parse(savedChatRaw);
+              } catch (e) {
+                console.warn("Could not parse saved chat history:", e);
               }
-            ]);
+            }
+
+            if (restoredChat.length > 0) {
+              setMessages(restoredChat);
+            } else {
+              setMessages([
+                {
+                  id: 1,
+                  sender: "ai",
+                  text: `Bonjour ! Je suis Iris IA, votre co-auteur sur "${data.project.title}". Que voulez-vous faire ?`,
+                  time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                }
+              ]);
+            }
           }
         } catch (err) {
           console.error("Erreur de chargement du projet:", err);
@@ -392,6 +416,7 @@ function RedactionContent() {
     setMessages((prev) => [...prev, userMsg]);
     if (!textToSend) setChatInput("");
     setIsAiThinking(true);
+    setMobileView("chat");
 
     const chatRequest = async () => {
       try {
@@ -438,6 +463,11 @@ function RedactionContent() {
             const targetIndex = modPayload.chapterIndex;
             const newContent = modPayload.newContent;
 
+            // Capture previous content and chapter title before mutation (for 1-click Undo)
+            const targetChap = chapters[targetIndex] || chapters[0];
+            modPayload.previousContent = targetChap?.content || "";
+            modPayload.chapterTitle = targetChap?.title || modPayload.chapterTitle || `Chapitre ${targetIndex + 1}`;
+
             // Execute active chapter switch
             if (targetIndex >= 0 && targetIndex < chapters.length) {
               setActiveChapterIndex(targetIndex);
@@ -457,7 +487,7 @@ function RedactionContent() {
               });
               setSaveStatus("saving");
 
-              // Apply content to TipTap editor via a transaction to preserve undo history (Ctrl+Z)
+              // Apply content to TipTap editor
               setTimeout(() => {
                 editorRef.current?.replaceContent(newContent);
               }, 50);
@@ -623,6 +653,93 @@ function RedactionContent() {
     setIsImportModalOpen(true);
   };
 
+  // Split current document by internal headings (Parties / Chapitres)
+  const handleSplitCurrentDocument = () => {
+    const currentContent = chapters[activeChapterIndex]?.content || "";
+    if (!currentContent || !currentContent.trim()) {
+      alert("Le document actuel est vide.");
+      return;
+    }
+
+    const split = splitHtmlIntoChapters(currentContent, chapters[activeChapterIndex]?.title || "Chapitre 1");
+    if (split.length <= 1) {
+      alert("Aucun grand titre (ex: Première Partie, Deuxième Partie, Chapitre 2) n'a été détecté pour scinder ce document.");
+      return;
+    }
+
+    if (confirm(`Nous avons trouvé ${split.length} parties/chapitres dans ce document (ex: ${split.map(s => s.title).slice(0, 3).join(', ')}...). Voulez-vous le diviser en ${split.length} chapitres distincts dans le sommaire ?`)) {
+      const newChapters: Chapter[] = split.map((sp, idx) => ({
+        id: Date.now() + idx,
+        number: idx + 1,
+        title: sp.title || `Chapitre ${idx + 1}`,
+        content: sp.content || "",
+        status: "Brouillon"
+      }));
+      setChapters(newChapters);
+      setActiveChapterIndex(0);
+      setSaveStatus("saving");
+    }
+  };
+
+  // Handle navigation to modified chapter and scroll editor into view
+  const handleGoToChapter = (targetIndex: number) => {
+    if (targetIndex >= 0 && targetIndex < chapters.length) {
+      setActiveChapterIndex(targetIndex);
+    }
+
+    const container = document.querySelector('.ProseMirror') || document.querySelector('main');
+    if (container) {
+      container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setTimeout(() => {
+      editorRef.current?.getEditor()?.commands.focus();
+    }, 100);
+  };
+
+  // Handle undoing a chapter modification
+  const handleUndoModification = (msgId: number, mod: ChapterModificationPayload) => {
+    if (mod.previousContent === undefined) {
+      alert("Impossible d'annuler cette modification.");
+      return;
+    }
+
+    const targetIndex = mod.chapterIndex;
+    const oldContent = mod.previousContent;
+
+    if (targetIndex >= 0 && targetIndex < chapters.length) {
+      setActiveChapterIndex(targetIndex);
+    }
+
+    setChapters(prev => {
+      const updated = [...prev];
+      if (targetIndex >= 0 && targetIndex < updated.length) {
+        updated[targetIndex] = {
+          ...updated[targetIndex],
+          content: oldContent
+        };
+      }
+      return updated;
+    });
+    setSaveStatus("saving");
+
+    setTimeout(() => {
+      editorRef.current?.replaceContent(oldContent);
+    }, 50);
+
+    setMessages(prev => prev.map(m => {
+      if (m.id === msgId && m.chapterModification) {
+        return {
+          ...m,
+          chapterModification: {
+            ...m.chapterModification,
+            isUndone: true
+          }
+        };
+      }
+      return m;
+    }));
+  };
+
   // Handle Confirmed Manuscript Import
   const handleConfirmImport = async (splitByChapter: boolean) => {
     if (!importFile) return;
@@ -710,7 +827,7 @@ function RedactionContent() {
               <select
                 value={activeChapterIndex}
                 onChange={(e) => setActiveChapterIndex(Number(e.target.value))}
-                className="bg-orange-50 border border-orange-200 text-secondary text-xs font-bold px-3 py-1.5 rounded-xl outline-none cursor-pointer"
+                className="bg-orange-50 border border-orange-200 text-secondary text-xs font-bold px-3 py-1.5 rounded-xl outline-none cursor-pointer max-w-[200px] truncate"
               >
                 {chapters.map((chap, idx) => (
                   <option key={chap.id} value={idx}>
@@ -718,6 +835,18 @@ function RedactionContent() {
                   </option>
                 ))}
               </select>
+
+              {/* Action pour scinder un document long contenant plusieurs sous-parties en chapitres distincts */}
+              {chapters.length === 1 && (
+                <button
+                  onClick={handleSplitCurrentDocument}
+                  className="bg-orange-100 hover:bg-orange-200 text-secondary text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 cursor-pointer border border-orange-300/60 shadow-2xs"
+                  title="Scinder ce document en plusieurs chapitres selon les grands titres (ex: Première Partie, Deuxième Partie, Troisième Partie...)"
+                >
+                  <span className="material-symbols-outlined text-sm">content_cut</span>
+                  <span className="hidden xl:inline">Scinder par chapitres</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -798,37 +927,72 @@ function RedactionContent() {
           </div>
         </header>
 
-        {/* 3. SPLIT WORKSPACE (TEXT EDITOR IN MIDDLE, CHAT ON RIGHT) */}
-        <div className="flex-1 flex flex-row overflow-hidden relative">
-          {/* ================= 3A. RICH MANUSCRIPT EDITOR (MIDDLE / MAIN AREA) ================= */}
-          <RichManuscriptEditor
-            ref={editorRef}
-            initialContent={currentChapter.content}
-            chapterTitle={currentChapter.title}
-            onTitleChange={(newTitle) => {
-              const updated = [...chapters];
-              updated[activeChapterIndex].title = newTitle;
-              setChapters(updated);
-              setSaveStatus("saving");
-            }}
-            onContentChange={(newHtml) => {
-              const updated = [...chapters];
-              updated[activeChapterIndex].content = newHtml;
-              setChapters(updated);
-              setSaveStatus("saving");
-            }}
-            onContinueWithAi={() => handleSendMessage("Rédiger la suite de ce chapitre avec l'IA")}
-            onGenerateFullChapter={handleGenerateFullChapter}
-            onContextualAiAction={handleContextualAiAction}
-            isGenerating={isGeneratingChapter}
-            onFileSelected={handleFileSelectedForImport}
-          />
+        {/* MOBILE VIEW SEGMENTED CONTROL (visible on mobile / small screens) */}
+        <div className="lg:hidden flex items-center justify-center p-2 bg-white border-b border-neutral-200 gap-2 shrink-0 z-30">
+          <button
+            onClick={() => setMobileView("editor")}
+            className={`flex-1 py-2 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+              mobileView === "editor"
+                ? "bg-neutral-900 text-white shadow-2xs"
+                : "bg-neutral-100 text-neutral-600 hover:text-neutral-900"
+            }`}
+          >
+            <span className="material-symbols-outlined text-base">description</span>
+            <span>Éditeur Manuscrit</span>
+          </button>
 
-          {/* ================= 3B. DRAGGABLE RESIZER HANDLE ================= */}
+          <button
+            onClick={() => setMobileView("chat")}
+            className={`flex-1 py-2 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 relative ${
+              mobileView === "chat"
+                ? "bg-secondary text-white shadow-2xs"
+                : "bg-orange-50 text-secondary hover:bg-orange-100"
+            }`}
+          >
+            <span className="material-symbols-outlined text-base">auto_awesome</span>
+            <span>Assistant Iris IA</span>
+            {isAiThinking && <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>}
+          </button>
+        </div>
+
+        {/* 3. SPLIT WORKSPACE (TEXT EDITOR IN MIDDLE, CHAT ON RIGHT) */}
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+          {/* ================= 3A. RICH MANUSCRIPT EDITOR (MIDDLE / MAIN AREA) ================= */}
+          <div className={`flex-1 flex flex-col h-full overflow-hidden min-w-0 ${
+            mobileView === "editor" ? "flex" : "hidden lg:flex"
+          }`}>
+            <RichManuscriptEditor
+              ref={editorRef}
+              initialContent={currentChapter.content}
+              chapterTitle={currentChapter.title}
+              onTitleChange={(newTitle) => {
+                const updated = [...chapters];
+                updated[activeChapterIndex].title = newTitle;
+                setChapters(updated);
+                setSaveStatus("saving");
+              }}
+              onContentChange={(newHtml) => {
+                const updated = [...chapters];
+                updated[activeChapterIndex].content = newHtml;
+                setChapters(updated);
+                setSaveStatus("saving");
+              }}
+              onContinueWithAi={() => {
+                setMobileView("chat");
+                handleSendMessage("Rédiger la suite de ce chapitre avec l'IA");
+              }}
+              onGenerateFullChapter={handleGenerateFullChapter}
+              onContextualAiAction={handleContextualAiAction}
+              isGenerating={isGeneratingChapter}
+              onFileSelected={handleFileSelectedForImport}
+            />
+          </div>
+
+          {/* ================= 3B. DRAGGABLE RESIZER HANDLE (DESKTOP ONLY) ================= */}
           {!isChatCollapsed && (
             <div
               onMouseDown={() => setIsResizing(true)}
-              className={`w-1.5 hover:w-2 bg-neutral-200/70 hover:bg-secondary cursor-col-resize transition-all shrink-0 z-20 flex items-center justify-center group ${
+              className={`hidden lg:flex w-1.5 hover:w-2 bg-neutral-200/70 hover:bg-secondary cursor-col-resize transition-all shrink-0 z-20 items-center justify-center group ${
                 isResizing ? "bg-secondary w-2" : ""
               }`}
               title="Faites glisser pour ajuster la largeur du chat IA"
@@ -840,8 +1004,10 @@ function RedactionContent() {
           {/* ================= 3C. AI CHAT ASSISTANT PANEL (RIGHT SIDE, RESIZABLE) ================= */}
           {!isChatCollapsed && (
             <aside
-              style={{ width: `${chatWidth}px` }}
-              className="h-full bg-white border-l border-neutral-200/80 flex flex-col shrink-0 relative shadow-lg z-10"
+              className={`h-full bg-white border-l border-neutral-200/80 flex-col shrink-0 relative shadow-lg z-10 w-full lg:w-auto ${
+                mobileView === "chat" ? "flex" : "hidden lg:flex"
+              }`}
+              style={{ width: typeof window !== "undefined" && window.innerWidth >= 1024 ? `${chatWidth}px` : undefined }}
             >
               {/* Chat Header */}
               <div className="p-3.5 border-b border-neutral-100 bg-neutral-50/50 flex items-center justify-between shrink-0 gap-2">
@@ -862,6 +1028,27 @@ function RedactionContent() {
                     <option value="gemini-2.5-flash">⚡ Gemini 2.5 Flash (Gratuit)</option>
                     <option value="gemini-2.5-pro">🧠 Gemini 2.5 Pro (Haute Qualité)</option>
                   </select>
+
+                  <button
+                    onClick={() => {
+                      if (confirm("Voulez-vous effacer l'historique de cette discussion pour recommencer à zéro ?")) {
+                        const welcomeMsg: Message = {
+                          id: Date.now(),
+                          sender: "ai",
+                          text: `Bonjour ! Je suis Iris IA, votre co-auteur sur "${bookTitle}". Comment puis-je vous aider ?`,
+                          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                        };
+                        setMessages([welcomeMsg]);
+                        if (currentProjectId && typeof window !== "undefined") {
+                          localStorage.removeItem(`iris_chat_history_${currentProjectId}`);
+                        }
+                      }
+                    }}
+                    className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-200/60 transition-colors cursor-pointer"
+                    title="Réinitialiser et effacer la discussion"
+                  >
+                    <span className="material-symbols-outlined text-base">delete_sweep</span>
+                  </button>
 
                   <button
                     onClick={() => setIsChatCollapsed(true)}
@@ -906,27 +1093,48 @@ function RedactionContent() {
 
                       {/* Action Card for Chapter Modification */}
                       {msg.chapterModification && (
-                        <div className="mt-3 pt-3 border-t border-blue-200/60 flex flex-col gap-2.5 bg-blue-50/80 -mx-1 -mb-1 p-3 rounded-xl border border-blue-100/90 shadow-2xs">
-                          <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-base text-[#1b6df9]">auto_fix_high</span>
-                            <span className="text-xs font-bold text-blue-950 truncate">
-                              {msg.chapterModification.chapterTitle || `Chapitre ${msg.chapterModification.chapterIndex + 1}`}
-                            </span>
+                        <div className={`mt-3 pt-3 border-t flex flex-col gap-2.5 -mx-1 -mb-1 p-3 rounded-xl border shadow-2xs ${
+                          msg.chapterModification.isUndone
+                            ? "bg-neutral-50/90 border-neutral-200"
+                            : "bg-blue-50/80 border-blue-200/90"
+                        }`}>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className={`material-symbols-outlined text-base ${
+                                msg.chapterModification.isUndone ? "text-neutral-500" : "text-[#1b6df9]"
+                              }`}>
+                                {msg.chapterModification.isUndone ? "undo" : "auto_fix_high"}
+                              </span>
+                              <span className="text-xs font-extrabold text-neutral-900 truncate">
+                                {msg.chapterModification.isUndone ? "Modification annulée • " : "Chapitre modifié • "}
+                                <span className="text-blue-900 font-extrabold">
+                                  {msg.chapterModification.chapterTitle || `Chapitre ${msg.chapterModification.chapterIndex + 1}`}
+                                </span>
+                              </span>
+                            </div>
                           </div>
+
                           {msg.chapterModification.summary && (
-                            <p className="text-[11px] text-blue-900/90 font-medium leading-relaxed font-body">
+                            <p className="text-[11px] text-neutral-700 font-medium leading-relaxed font-body">
                               {msg.chapterModification.summary}
                             </p>
                           )}
-                          <div className="flex justify-end pt-1">
+
+                          <div className="flex items-center justify-end gap-2 pt-1 border-t border-neutral-200/50">
+                            {!msg.chapterModification.isUndone && msg.chapterModification.previousContent !== undefined && (
+                              <button
+                                onClick={() => handleUndoModification(msg.id, msg.chapterModification!)}
+                                className="bg-white hover:bg-neutral-100 text-neutral-700 border border-neutral-300 text-xs font-bold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                                title="Annuler cette réécriture et restaurer la version précédente"
+                              >
+                                <span className="material-symbols-outlined text-sm text-neutral-500">undo</span>
+                                <span>Annuler</span>
+                              </button>
+                            )}
+
                             <button
-                              onClick={() => {
-                                const idx = msg.chapterModification!.chapterIndex;
-                                if (idx >= 0 && idx < chapters.length) {
-                                  setActiveChapterIndex(idx);
-                                }
-                              }}
-                              className="bg-[#1b6df9] hover:bg-blue-600 active:scale-95 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                              onClick={() => handleGoToChapter(msg.chapterModification!.chapterIndex)}
+                              className="bg-[#1b6df9] hover:bg-blue-600 active:scale-95 text-white text-xs font-bold px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
                             >
                               <span>Aller au chapitre</span>
                               <span className="material-symbols-outlined text-sm">arrow_forward</span>
