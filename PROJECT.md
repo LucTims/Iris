@@ -1,27 +1,34 @@
-# Project: Livre Genie - Manuscript Import (.docx & .epub)
+# Project: Iris IA - Direct Manuscript Editing from Chat
 
 ## Architecture & Overview
-Application Next.js featuring a TipTap editor on page `/redaction`.
-Feature addition: Uploading `.docx` and `.epub` files, parsing them cleanly to preserve formatting (headings H1-H6, bold, italic, underline, strike, lists, blockquotes, images), presenting a structuring choice modal (split by H1/H2 vs single block), and inserting the structured content into the editor and chapter state.
+Enriching Iris AI assistant in the chat interface (`/api/chat` and client chat component in `/redaction`) to allow direct manuscript editing by AI commands.
+When a user requests editing/enrichment/correction of a chapter (e.g. "Modifie le chapitre 3 pour..."), the system:
+1. Detects intention in `/api/chat` and generates structured output: summary text + chapter modification payload.
+2. Client receives payload, identifies target chapter, updates chapter state and DB, auto-switches active chapter view (`activeChapterIndex`), and updates TipTap editor content cleanly while preserving undo/redo history.
+3. Chat UI renders response with textual summary and a quick action button "Aller au chapitre" to navigate to the modified chapter.
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| 1 | Exploration & Architecture | Discover codebase layout, editor setup, dependencies | None | DONE |
-| 2 | Manuscript Parsing Engine | Install mammoth & jszip; create docxParser, epubParser, chapterSplitter | M1 | DONE |
-| 3 | UI & Structuring Workflow | Add "Importer" button, ImportManuscriptModal, integrate with /redaction chapter state & TipTap | M2 | DONE |
+| 1 | Exploration & Architecture | Discover chat API (`/api/chat`), `/redaction` state management, TipTap undo history integration, DB persistence | None | DONE |
+| 2 | Intent Detection & API Payload Structuring | Implement AI tool calling / structured response in `/api/chat` returning summary + modification payload | M1 | DONE |
+| 3 | Client Chat & TipTap Editor Integration | Handle payload in `/redaction`, auto-switch chapter, update state/DB, update TipTap with undo history, render summary & "Aller au chapitre" button | M2 | DONE |
 | 4 | Verification & E2E Hardening | Automated testing, unit/integration verification, challenger stress tests, forensic audit | M3 | DONE |
 
 ## Interface Contracts
-### Import API / Parser Engine (`src/lib/parser/index.ts`)
-- `parseManuscriptFile(file: File | Blob | ArrayBuffer, options: { splitByChapter: boolean }): Promise<ParsedChapter[]>`
-- `ParsedChapter`: `{ title: string, content: string }` (content is TipTap-compatible HTML)
+### API Route (`/api/chat/route.ts`)
+- Request payload: `{ messages: Message[], context: { title, synopsis, tone }, chapters?: Chapter[], activeChapterIndex?: number, model?: string }`
+- Structured AI response payload:
+  `{ message: string, chatSummary: string, intent: "CHAT_ONLY" | "MODIFY_CHAPTER", chapterModification?: { chapterIndex: number, chapterId?: string | number, chapterTitle?: string, newContent: string, summary: string } }`
+
+### Client Handler (`src/app/redaction/page.tsx` & Chat Components)
+- `handleApplyAIChapterEdit(modification: { chapterIndex: number, newContent: string, summary: string }): void`
+- Auto-switch active tab: `setActiveChapterIndex(chapterIndex)`
+- TipTap editor update preserving history: `editorRef.current?.replaceContent(newContent)` via ProseMirror transaction
 
 ## Code Layout
-- `src/lib/parser/docxParser.ts` - DOCX parser using `mammoth` with French & English style mapping and Base64 images.
-- `src/lib/parser/epubParser.ts` - EPUB parser using `JSZip`, XML DOM parsing for container/OPF manifest/spine, and Base64 images.
-- `src/lib/parser/chapterSplitter.ts` - H1/H2 DOM AST splitter preserving semantic tags with cross-environment DOM fallback.
-- `src/lib/parser/index.ts` - Unified entry point for manuscript extraction.
-- `src/components/ImportManuscriptModal.tsx` - Structuring choice modal ("Diviser par chapitre" vs "Tout garder").
-- `src/components/RichManuscriptEditor.tsx` - Extended editor toolbar & insertion menu with "Importer" button.
-- `src/app/redaction/page.tsx` - Main page integrating import flow with chapter state management.
+- `src/app/api/chat/route.ts` - AI Chat endpoint with tool calling / structured output for chapter editing.
+- `src/lib/ai/intent-detector.ts` - Intent classification (`CHAT_ONLY` vs `MODIFY_CHAPTER`) and target chapter mapping (ordinals, numbers, titles).
+- `src/app/redaction/page.tsx` - Main editing page managing active chapter state, database persistence, and AI payload execution.
+- `src/components/Chat/ChatDrawer.tsx` / `src/components/Chat/ChatMessage.tsx` - Chat UI rendering summaries and "Aller au chapitre" navigation buttons.
+- `src/components/RichManuscriptEditor.tsx` - TipTap editor wrapper with transaction-based content update for undo preservation (`replaceContent`).

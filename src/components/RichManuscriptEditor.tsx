@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { useEditor, EditorContent, ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
@@ -13,6 +13,12 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { FontFamily } from '@tiptap/extension-font-family';
 import { Node, Extension, mergeAttributes } from '@tiptap/core';
 import { PaginationPlus } from 'tiptap-pagination-plus';
+
+export interface RichManuscriptEditorHandle {
+  replaceContent: (newContent: string) => void;
+  insertContent: (content: string) => void;
+  getEditor: () => any;
+}
 
 // --- CUSTOM EXTENSIONS ---
 
@@ -135,19 +141,23 @@ interface RichManuscriptEditorProps {
   onFileSelected?: (file: File) => void;
 }
 
-export default function RichManuscriptEditor({
-  initialContent = "",
-  chapterTitle = "Chapitre 1 : L'Ombre du Baobab",
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onTitleChange,
-  onContentChange,
-  onWordCountChange,
-  onContinueWithAi,
-  onGenerateFullChapter,
-  onContextualAiAction,
-  isGenerating = false,
-  onFileSelected,
-}: RichManuscriptEditorProps) {
+const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscriptEditorProps>(
+  function RichManuscriptEditor(
+    {
+      initialContent = "",
+      chapterTitle = "Chapitre 1 : L'Ombre du Baobab",
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      onTitleChange,
+      onContentChange,
+      onWordCountChange,
+      onContinueWithAi,
+      onGenerateFullChapter,
+      onContextualAiAction,
+      isGenerating = false,
+      onFileSelected,
+    },
+    ref
+  ) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [showRuler, setShowRuler] = useState(true);
@@ -210,6 +220,20 @@ export default function RichManuscriptEditor({
       if (onContentChange) onContentChange(editor.getHTML());
     },
   });
+
+  useImperativeHandle(ref, () => ({
+    replaceContent: (newContent: string) => {
+      if (editor) {
+        editor.chain().focus().selectAll().insertContent(newContent).run();
+      }
+    },
+    insertContent: (content: string) => {
+      if (editor) {
+        editor.chain().focus().insertContent(content).run();
+      }
+    },
+    getEditor: () => editor,
+  }), [editor]);
 
   // Update word count dynamically
   useEffect(() => {
@@ -658,4 +682,8 @@ export default function RichManuscriptEditor({
       )}
     </div>
   );
-}
+});
+
+RichManuscriptEditor.displayName = "RichManuscriptEditor";
+
+export default RichManuscriptEditor;

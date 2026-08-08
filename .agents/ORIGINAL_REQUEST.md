@@ -80,3 +80,43 @@ L'extraction et le parsing des fichiers `.docx` et `.epub` doivent être gérés
 ### Parsing Fonctionnel
 - [ ] L'importation d'un fichier `.docx` de test contenant des titres et du texte gras insère correctement ces éléments dans le composant TipTap de la page (le gras reste gras, les titres restent des titres).
 - [ ] Si l'utilisateur choisit de "tout garder", le texte complet s'affiche dans l'éditeur.
+
+## 2026-08-07T15:39:11Z
+
+# Teamwork Project Prompt — Draft
+
+> Status: Launched
+> Goal: Teamwork agent is executing the task.
+
+Implémentation de l'édition directe de manuscrit par l'assistant IA (Iris IA) depuis l'interface de chat. Lorsqu'un utilisateur demande à l'assistant de réécrire, corriger ou enrichir un chapitre (ex: "Modifie le chapitre 3 pour ajouter plus de suspense"), l'IA doit générer le nouveau contenu du chapitre, mettre à jour l'éditeur en direct, basculer l'affichage sur le chapitre concerné et répondre dans le chat avec un résumé des modifications.
+
+Working directory: c:/Users/helpdesk/Desktop/Iris/livre-genie
+Integrity mode: benchmark
+
+## Requirements
+
+### R1. Détection d'Intention & Tool Calling / Structuration
+Enrichir la route d'API du chat (`/api/chat`) pour détecter quand la demande de l'utilisateur implique une modification directe d'un chapitre (par numéro, titre ou chapitre actif). L'API doit retourner une réponse structurée contenant le résumé pour la discussion et le payload de modification du chapitre.
+
+### R2. Mise à Jour Dynamique du Chapitre & Basculement
+Côté client (`/redaction`), lors de la réception d'une réponse de l'IA contenant une modification de chapitre :
+- Identifier le chapitre cible et mettre à jour son contenu HTML dans l'état et dans la base de données.
+- Basculer automatiquement l'affichage (`activeChapterIndex`) sur ce chapitre.
+- Injecter le nouveau contenu dans l'éditeur TipTap tout en préservant l'historique d'annulation (possibilité d'annuler).
+
+### R3. Rendu du Message de Chat
+Afficher dans le fil de discussion un message clair contenant :
+- Le résumé textuel des modifications apportées par l'IA.
+- Un bouton d'action rapide "Aller au chapitre" permettant de naviguer directement vers le chapitre modifié.
+
+## Acceptance Criteria
+
+### Interaction & IA
+- [ ] Lorsque l'utilisateur écrit "Modifie le chapitre X en..." dans le chat, l'IA génère le texte du chapitre et le résumé explicatif.
+- [ ] Le message de réponse dans le chat contient le résumé et le bouton de navigation rapide.
+
+### Intégration Éditeur
+- [ ] L'éditeur TipTap bascule automatiquement sur le chapitre X et affiche le texte réécrit.
+- [ ] L'utilisateur peut annuler la modification (via Ctrl+Z ou action d'annulation).
+- [ ] Les modifications sont correctement enregistrées dans l'état de l'application et persistées.
+
