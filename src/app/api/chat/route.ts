@@ -85,8 +85,8 @@ export async function POST(req: Request) {
       ? (userMessages[userMessages.length - 1].text || userMessages[userMessages.length - 1].content || "")
       : "";
 
-    // Detect Intent
-    const intent = detectIntent(lastUserMessage);
+    // Detect Intent (with conversation history for confirmations like "oui va y", "tu peux le faire sur le livre ?")
+    const intent = detectIntent(lastUserMessage, messages);
 
     // 4. Resolve available chapters for all branches
     let availableChapters: ChapterItem[] = Array.isArray(bodyChapters) && bodyChapters.length > 0
@@ -119,9 +119,20 @@ export async function POST(req: Request) {
     const chaptersOverview = availableChapters.map((c, i) => {
       const num = c.number || i + 1;
       const title = c.title || `Chapitre ${num}`;
+      
+      // Extract headings (H1, H2, H3)
+      const headingsMatches = (c.content || "").match(/<h[1-3][^>]*>(.*?)<\/h[1-3]>/gi) || [];
+      const extractedHeadings = headingsMatches.map(h => h.replace(/<[^>]*>/g, '').trim()).filter(Boolean);
+
       const plainText = c.content ? c.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : "Chapitre vide";
-      const snippet = plainText.length > 500 ? plainText.substring(0, 500) + "..." : plainText;
-      return `[Chapitre ${num} : "${title}"]\nContenu : ${snippet}`;
+      const snippet = plainText.length > 1000 ? plainText.substring(0, 1000) + "..." : plainText;
+
+      let sectionInfo = "";
+      if (extractedHeadings.length > 0) {
+        sectionInfo = `\n  Parties et sous-titres découverts dans le texte :\n   - ` + extractedHeadings.join('\n   - ');
+      }
+
+      return `[Chapitre ${num} : "${title}"]${sectionInfo}\n  Contenu du texte : ${snippet}`;
     }).join('\n\n');
 
     // 5. Track usage in Supabase ai_usage table
@@ -219,8 +230,9 @@ ${chaptersOverview || "Aucun chapitre rédigé pour le moment."}
 
 Consignes importantes :
 1. Tu as un accès total à TOUS les chapitres ci-dessus. Si l'auteur te pose une question du type "As-tu accès au chapitre 3 ?", "Que contient le chapitre 7 ?", etc., confirme TOUJOURS immédiatement que tu y as accès et réponds en utilisant les données des chapitres ci-dessus.
-2. Si l'auteur te demande d'écrire ou de modifier un chapitre mais sans donner d'ordre explicite d'écrasement immédiat, conseille-le avec précision et bienveillance.
-3. Réponds de manière concise, chaleureuse et professionnelle.`;
+2. NE RECOPIE JAMAIS les balises techniques comme "--- [Chapitre 1...]" ni les extraits bruts du système dans tes réponses conversationnelles.
+3. Ne prétends JAMAIS avoir déjà modifié le livre si tu es en mode texte simple. Si l'auteur souhaite appliquer la réécriture sur le livre, encourage-le avec bienveillance ou confirme la modification.
+4. Réponds de manière concise, chaleureuse et professionnelle.`;
 
     const aiMessages: any[] = messages.map((msg: any) => ({
       role: (msg.sender === "ai" || msg.role === "assistant") ? "assistant" : "user",

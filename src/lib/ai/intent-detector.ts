@@ -39,23 +39,56 @@ export interface ResolvedTargetChapter {
  * Detects whether the user's latest prompt indicates a desire to modify a chapter
  * or is a general chat query.
  */
-export function detectIntent(userPrompt: string): "CHAT_ONLY" | "MODIFY_CHAPTER" {
+export function detectIntent(userPrompt: string, messages?: Array<any>): "CHAT_ONLY" | "MODIFY_CHAPTER" {
   if (!userPrompt || !userPrompt.trim()) return "CHAT_ONLY";
 
   const lower = userPrompt.toLowerCase().trim();
 
-  // Direct modification keywords & patterns in French or English
-  const modifyKeywordsRegex = /(\bmodifi|\bréécri|\breecri|\benrichi|\bretravail|\bcorrig|\brédig|\bredig|\brallong|\braccourc|\breformul|\bchange.*\bchapitre|\bajout.*\bdans le chapitre|\bmet.*\bdans le chapitre|\bchapitre\b.*(\bmodifi|\bréécri|\breecri|\benrichi|\bretravail|\bcorrig|\breformul))/i;
-
-  if (modifyKeywordsRegex.test(lower)) {
+  // 1. Direct request to apply/do on book or manuscript ("tu peux le faire sur le livre ?", "fais-le sur le livre", "applique la modification", "intègre dans le livre")
+  const applyOnBookRegex = /(tu peux (le faire|l'intégrer|l'ajouter|le mettre)|fais-le|fais le|applique|intègre|integre|mets-le|met le|sur le livre|dans le livre|dans le manuscrit|sur le manuscrit|directement)/i;
+  if (applyOnBookRegex.test(lower) && /(livre|manuscrit|fais|fait|procède|procede|intègre|integre|applique|va|vais|ouais|oui|ok)/i.test(lower)) {
     return "MODIFY_CHAPTER";
   }
 
-  // Combination of chapter keyword + action verb
-  const mentionsChapter = /\bchapitre\b|\bchap\b|\bchapter\b/i.test(lower);
-  const actionVerbs = /\b(ajoute|mets|supprime|reformule|ameliore|améliore|transforme|adapte|révise|revise|edite|édite|écris|ecris|réécris|reecris)\b/i.test(lower);
+  // 2. Short confirmation response ("oui va y", "oui", "fais-le", "ok", "go", "d'accord", "vas-y", "procède") after assistant offered modification
+  const isShortConfirmation = /^(oui|oui va y|vas-y|vas y|va y|go|ok|d'accord|daccord|fais-le|fais le|procède|procede|parfait|je veux bien|absolument|volontiers|d'acc)$/i.test(lower);
+  
+  if (isShortConfirmation && Array.isArray(messages) && messages.length >= 2) {
+    const aiMessages = messages.filter((m: any) => m.sender === "ai" || m.role === "assistant");
+    const lastAiMsg = aiMessages.length > 0 ? (aiMessages[aiMessages.length - 1].text || aiMessages[aiMessages.length - 1].content || "") : "";
+    
+    if (/(procéder|proceder|mise à jour|remplacer|intégrer|integre|réécrire|modifier|chapitre|manuscrit|prêt|pret|version)/i.test(lastAiMsg)) {
+      return "MODIFY_CHAPTER";
+    }
+  }
 
-  if (mentionsChapter && actionVerbs) {
+  // 3. Direct writing / editing action verbs in French & English
+  const actionVerbsRegex = /\b(approfondi|approfondis|approfondir|développe|developpe|développer|developper|réécris|reecris|réécrire|reecrire|modifie|modifier|enrichis|enrichir|rallonge|rallonger|raccourcis|raccourcir|retravaille|retravailler|corrige|corriger|reformule|reformuler|remplace|remplacer|ajoute|ajouter|écris|ecris|écrire|ecrire|rédige|redige|rédiger|rediger)\b/i;
+
+  // 4. Document target entities (partie, chapitre, section, manuscrit, texte, extrait, livre, paragraphe, contenu)
+  const targetEntitiesRegex = /\b(chapitre|chap|chapter|partie|section|manuscrit|texte|extrait|livre|paragraphe|contenu|page)\b/i;
+
+  // 5. Deictic / Demonstrative references (cette partie, ce chapitre, cette section, ce texte, la 3ème partie, etc.)
+  const deicticRefRegex = /\b(cette|ce|cet|le|la|les|mon|notre|cette partie|ce chapitre|cette section)\b/i;
+
+  // 6. Explicit writing orders (tu vas écrire, je voudrais que l'on approfondisse, peux-tu rédiger...)
+  const writingOrderRegex = /(tu vas|je voudrais|peux-tu|pourrais-tu|merci de|va)\s*(écrire|ecrire|rédiger|redige|rediger|développer|developper|approfondir|réécrire|reecrire|modifier|enrichir)/i;
+
+  // Rule A: Explicit writing order
+  if (writingOrderRegex.test(lower)) {
+    return "MODIFY_CHAPTER";
+  }
+
+  // Rule B: Action verb + target entity or deictic reference
+  if (actionVerbsRegex.test(lower) && (targetEntitiesRegex.test(lower) || deicticRefRegex.test(lower))) {
+    return "MODIFY_CHAPTER";
+  }
+
+  // Rule C: Combination of chapter/part mention + action verb
+  const mentionsChapterOrPart = /\b(chapitre|chap|chapter|partie|section|manuscrit|texte)\b/i.test(lower);
+  const actionVerbs = /\b(ajoute|mets|supprime|reformule|ameliore|améliore|transforme|adapte|révise|revise|edite|édite|écris|ecris|réécris|reecris|développe|developpe|approfondis|enrichis|allonge)\b/i.test(lower);
+
+  if (mentionsChapterOrPart && actionVerbs) {
     return "MODIFY_CHAPTER";
   }
 
@@ -212,6 +245,17 @@ export function resolveTargetChapter(params: {
           return false;
         });
       }
+    }
+
+    // 4. Try matching internal headings or section names in content if no chapter index matched
+    if (foundIdx === -1) {
+      const normPrompt = normalizeText(userPrompt);
+      foundIdx = chapters.findIndex((c) => {
+        if (!c.content) return false;
+        const headings = (c.content.match(/<h[1-3][^>]*>(.*?)<\/h[1-3]>/gi) || [])
+          .map(h => normalizeText(h.replace(/<[^>]*>/g, '')));
+        return headings.some(h => h.length > 2 && (normPrompt.includes(h) || h.includes(normPrompt)));
+      });
     }
 
     if (foundIdx !== -1) {
