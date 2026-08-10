@@ -49,12 +49,15 @@ export default function Sidebar() {
     { id: "export", label: "Mise en page & KDP", icon: <PenTool strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/export" },
     { id: "ventes", label: "Lecteurs & Téléchargements", icon: <Users strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/analytics" },
     { id: "facturation", label: "Abonnement & Mots", icon: <CreditCard strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/billing" },
+  ];
+
+  const bottomNavItems = [
     { id: "parametres", label: "Paramètres", icon: <Settings strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/settings" },
     { id: "aide", label: "Centre d'aide & FAQ", icon: <HelpCircle strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/faq" },
   ];
 
   if (isAdmin) {
-    navItems.push({ id: "admin", label: "Espace Admin", icon: <ShieldAlert strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/admin" });
+    bottomNavItems.push({ id: "admin", label: "Espace Admin", icon: <ShieldAlert strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/admin" });
   }
 
   if (!mounted) return null;
@@ -117,7 +120,29 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom Footer Links & Collapse Toggle */}
-      <div className="p-3 border-t border-neutral-100 space-y-1 bg-white">
+      <div className="p-3 border-t border-neutral-100 space-y-1 bg-white mt-auto">
+        {bottomNavItems.map((item) => {
+          const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              title={collapsed ? item.label : undefined}
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+                isActive
+                  ? "bg-neutral-100/90 text-neutral-900 font-bold shadow-2xs"
+                  : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
+              }`}
+            >
+              <div className="shrink-0 transition-transform group-hover:scale-110 text-inherit flex items-center justify-center">
+                {item.icon}
+              </div>
+              {!collapsed && <span className="truncate">{item.label}</span>}
+            </Link>
+          );
+        })}
+
+        <div className="pt-2 mt-2 border-t border-neutral-100">
         <button
           onClick={signOut}
           title={collapsed ? "Se déconnecter" : undefined}
@@ -138,6 +163,7 @@ export default function Sidebar() {
           )}
           {!collapsed && <span>Réduire le menu</span>}
         </button>
+      </div>
       </div>
     </aside>
 
