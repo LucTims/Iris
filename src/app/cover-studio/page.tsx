@@ -1,126 +1,41 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { useUser } from "@/hooks/useUser";
+import { Plus, Sparkles, BookOpen } from "lucide-react";
 
-function CoverStudioContent() {
+function CoverStudioHubContent() {
   const { displayName, displayEmail, signOut } = useUser();
   const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const projectId = searchParams.get("projectId");
+  
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Cover customizer state
-  const [title, setTitle] = useState("Les Secrets de la Comptabilité");
-  const [subtitle, setSubtitle] = useState("Guide pratique pour entrepreneurs");
-  const [author, setAuthor] = useState(displayName || "Auteur");
-  const [selectedTheme, setSelectedTheme] = useState("Corporate Prestige");
-  const [accentColor, setAccentColor] = useState("#F95738");
-  const [bgColor, setBgColor] = useState("#0D0D0E");
-  const [layoutStyle, setLayoutStyle] = useState("Minimalist Centered");
-  const [promptText, setPromptText] = useState("Illustration abstraite géométrique dorée et moderne");
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  const stylePresets = [
-    { name: "Corporate Prestige", bg: "#0D0D0E", accent: "#F95738", font: "Outfit" },
-    { name: "Héritage Africain", bg: "#1C140F", accent: "#D97706", font: "Outfit" },
-    { name: "Roman & Émotion", bg: "#0F172A", accent: "#38BDF8", font: "DM Sans" },
-    { name: "Créatif & Vibrant", bg: "#F8FAFC", accent: "#F95738", font: "Outfit" },
-    { name: "Minimaliste Sombre", bg: "#111827", accent: "#10B981", font: "Outfit" }
-  ];
-
-  const handleGenerateAI = () => {
-    setIsGenerating(true);
-    setTimeout(() => {
-      setIsGenerating(false);
-    }, 800);
-  };
-
-  const generateCanvas = () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1600;
-    canvas.height = 2400;
-    const ctx = canvas.getContext("2d");
-
-    if (ctx) {
-      // Fill background
-      ctx.fillStyle = bgColor;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Accent Circle
-      ctx.beginPath();
-      ctx.arc(800, 1200, 300, 0, 2 * Math.PI);
-      ctx.strokeStyle = accentColor;
-      ctx.lineWidth = 12;
-      ctx.stroke();
-
-      // Top Tag
-      ctx.fillStyle = accentColor;
-      ctx.font = "bold 32px sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("ÉDITION BEST-SELLER", 800, 200);
-
-      // Title
-      ctx.fillStyle = "#FFFFFF";
-      ctx.font = "bold 72px sans-serif";
-      ctx.fillText(title || "Titre du livre", 800, 450);
-
-      // Subtitle
-      ctx.fillStyle = "#CCCCCC";
-      ctx.font = "36px sans-serif";
-      ctx.fillText(subtitle || "Sous-titre", 800, 550);
-
-      // Author
-      ctx.fillStyle = "#FFFFFF";
-      ctx.font = "bold 44px sans-serif";
-      ctx.fillText(author || displayName || "Nom de l'auteur", 800, 2200);
-    }
-    return canvas;
-  };
-
-  const handleDownloadHD = () => {
-    const canvas = generateCanvas();
-    const link = document.createElement("a");
-    link.download = `Couverture_${(title || "Livre").replace(/\s+/g, "_")}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-  };
-
-  const handleApplyToBook = async () => {
-    if (!projectId) {
-      alert("Erreur: Aucun projet sélectionné. Veuillez ouvrir ce studio depuis un projet spécifique.");
-      return;
-    }
-    
-    try {
-      const canvas = generateCanvas();
-      // Use jpeg format to reduce size and not kill the db (around 300-500kb instead of MBs)
-      const coverUrl = canvas.toDataURL("image/jpeg", 0.8);
-      
-      const res = await fetch(`/api/projects/${projectId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cover_url: coverUrl })
-      });
-
-      if (res.ok) {
-        alert("Couverture appliquée avec succès !");
-        router.push("/projects");
-      } else {
-        const data = await res.json();
-        alert(`Erreur: ${data.error}`);
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const res = await fetch("/api/projects");
+        if (res.ok) {
+          const data = await res.json();
+          setProjects(data.projects || []);
+        }
+      } catch (err) {
+        console.error("Erreur de chargement des projets:", err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error(err);
-      alert("Erreur de connexion.");
-    }
-  };
+    };
+    fetchProjects();
+  }, []);
 
-
+  const filteredProjects = projects.filter((project) =>
+    (project.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (project.subtitle || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
@@ -129,27 +44,15 @@ function CoverStudioContent() {
 
       {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-10">
-        <header className="bg-[#F9FAFB] sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4 border-b border-neutral-100">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all">
-              <span className="material-symbols-outlined text-base">arrow_back</span>
-              <span>Tableau de bord</span>
-            </Link>
             <h1 className="font-heading font-extrabold text-xl text-neutral-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-secondary">palette</span>
-              <span>Studio de Couverture IA</span>
+              <Sparkles className="w-6 h-6 text-secondary" strokeWidth={2} />
+              <span>Studio de Couverture</span>
             </h1>
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleDownloadHD}
-              className="bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-base">download</span>
-              <span>Télécharger HD</span>
-            </button>
-
             {/* Profile Dropdown */}
             <div className="relative">
               <button
@@ -187,180 +90,101 @@ function CoverStudioContent() {
           </div>
         </header>
 
-        <main className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Controls Editor (Left Column) */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Presets Card */}
-            <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-2xs space-y-4">
-              <h2 className="font-heading font-extrabold text-base text-neutral-900 flex items-center gap-2">
-                <span className="material-symbols-outlined text-secondary text-lg">auto_awesome</span>
-                <span>Thèmes & Styles Pré-configurés</span>
-              </h2>
-
-              <div className="grid grid-cols-1 gap-2">
-                {stylePresets.map((preset) => (
-                  <button
-                    key={preset.name}
-                    onClick={() => {
-                      setSelectedTheme(preset.name);
-                      setBgColor(preset.bg);
-                      setAccentColor(preset.accent);
-                    }}
-                    className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all ${
-                      selectedTheme === preset.name
-                        ? "border-secondary bg-orange-50/60 text-neutral-900 shadow-2xs"
-                        : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
-                    }`}
-                  >
-                    <span>{preset.name}</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-4 h-4 rounded-full border border-neutral-300" style={{ backgroundColor: preset.bg }}></span>
-                      <span className="w-4 h-4 rounded-full" style={{ backgroundColor: preset.accent }}></span>
-                    </div>
-                  </button>
-                ))}
+        <main className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
+          
+          {/* Hero Section */}
+          <div className="bg-white p-8 md:p-10 rounded-3xl border border-neutral-200/80 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/5 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+            
+            <div className="relative z-10 max-w-2xl space-y-4">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 border border-orange-200 text-secondary text-xs font-bold uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5" /> Intelligence Artificielle
               </div>
-            </div>
-
-            {/* Content & Typography Card */}
-            <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-2xs space-y-4">
-              <h2 className="font-heading font-extrabold text-base text-neutral-900">
-                Textes de la Couverture
+              <h2 className="text-3xl md:text-4xl font-heading font-extrabold text-neutral-900">
+                Donnez vie à vos livres avec des couvertures professionnelles.
               </h2>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase mb-1">Titre principal</label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl text-xs font-semibold focus:border-secondary outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase mb-1">Sous-titre</label>
-                  <input
-                    type="text"
-                    value={subtitle}
-                    onChange={(e) => setSubtitle(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl text-xs font-medium focus:border-secondary outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase mb-1">Nom d&apos;Auteur</label>
-                  <input
-                    type="text"
-                    value={author}
-                    onChange={(e) => setAuthor(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl text-xs font-semibold focus:border-secondary outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* AI Graphic Generator Card */}
-            <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-2xs space-y-4">
-              <h2 className="font-heading font-extrabold text-base text-neutral-900 flex items-center gap-2">
-                <span className="material-symbols-outlined text-amber-500">brush</span>
-                <span>Génération d&apos;Illustration par IA</span>
-              </h2>
-
-              <div>
-                <label className="block text-xs font-medium text-neutral-500 mb-1.5">
-                  Décrivez le visuel ou le thème souhaité pour la couverture :
-                </label>
-                <textarea
-                  rows={3}
-                  value={promptText}
-                  onChange={(e) => setPromptText(e.target.value)}
-                  className="w-full p-3 border border-neutral-200 rounded-xl text-xs font-medium focus:border-secondary outline-none"
-                />
-              </div>
-
-              <button
-                onClick={handleGenerateAI}
-                disabled={isGenerating}
-                className="w-full bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
-              >
-                <span className="material-symbols-outlined text-base">
-                  {isGenerating ? "progress_activity" : "auto_awesome"}
-                </span>
-                <span>{isGenerating ? "Génération par l'IA..." : "Générer une illustration HD"}</span>
-              </button>
+              <p className="text-neutral-600 font-medium text-sm md:text-base leading-relaxed">
+                Le Studio de Couverture IA génère des designs uniques et de haute qualité pour vos projets. Sélectionnez l'un de vos livres ci-dessous pour personnaliser sa couverture en quelques clics.
+              </p>
             </div>
           </div>
 
-          {/* Live Preview Screen (Right Column) */}
-          <div className="lg:col-span-7 flex flex-col items-center justify-center bg-neutral-900/90 backdrop-blur-md rounded-3xl p-8 lg:p-12 border border-neutral-800 relative min-h-[600px]">
-            <span className="absolute top-4 left-4 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-mono font-bold text-white uppercase tracking-wider">
-              Aperçu Haute Définition HD
-            </span>
-
-            {/* The Book 3D Mockup Container */}
-            <div
-              className="w-full max-w-sm aspect-[2/3] rounded-2xl p-8 sm:p-10 flex flex-col justify-between shadow-2xl relative overflow-hidden transition-all duration-300 border border-white/10"
-              style={{ backgroundColor: bgColor }}
-            >
-              {/* Subtle background overlay effect */}
-              <div
-                className="absolute -top-20 -right-20 w-64 h-64 rounded-full blur-3xl opacity-30 pointer-events-none"
-                style={{ backgroundColor: accentColor }}
-              ></div>
-              <div
-                className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full blur-3xl opacity-20 pointer-events-none"
-                style={{ backgroundColor: accentColor }}
-              ></div>
-
-              {/* Book Header Label */}
-              <div className="relative z-10 space-y-2">
-                <span
-                  className="text-[10px] font-mono font-extrabold uppercase tracking-widest block"
-                  style={{ color: accentColor }}
-                >
-                  EDITION BEST-SELLER
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h3 className="font-heading font-extrabold text-xl text-neutral-900">
+                Vos Livres & Projets
+              </h3>
+              
+              <div className="relative w-full sm:w-72">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-lg">
+                  search
                 </span>
-                <h3 className="font-heading font-extrabold text-2xl sm:text-3xl text-white leading-tight tracking-tight">
-                  {title || "Titre du livre"}
-                </h3>
-                <p className="text-xs sm:text-sm text-neutral-300 font-medium leading-snug">
-                  {subtitle || "Sous-titre explicatif"}
+                <input
+                  type="text"
+                  placeholder="Rechercher un livre..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:border-secondary outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="flex flex-col justify-center items-center h-48 bg-white border border-neutral-200 rounded-3xl">
+                <span className="material-symbols-outlined animate-spin text-secondary text-3xl">progress_activity</span>
+                <p className="text-sm font-semibold text-neutral-500 mt-3">Chargement de vos projets...</p>
+              </div>
+            ) : filteredProjects.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-12 bg-white border border-neutral-200 rounded-3xl text-center">
+                <div className="w-16 h-16 bg-neutral-50 rounded-2xl flex items-center justify-center mb-4">
+                  <BookOpen className="w-8 h-8 text-neutral-400" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-lg font-bold text-neutral-900 mb-2">Aucun projet trouvé</h3>
+                <p className="text-sm text-neutral-500 max-w-sm mb-6">
+                  {searchQuery ? "Aucun livre ne correspond à votre recherche." : "Vous n'avez pas encore de livre. Allez dans 'Mes Livres & Projets' pour en créer un."}
                 </p>
+                {!searchQuery && (
+                  <Link href="/projects" className="inline-flex items-center gap-2 bg-neutral-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-neutral-800 transition-colors">
+                    <Plus className="w-4 h-4" /> Créer un projet
+                  </Link>
+                )}
               </div>
-
-              {/* Graphic Element Representation */}
-              <div className="relative z-10 my-auto py-8 flex items-center justify-center">
-                <div
-                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-2 border-white/20 flex items-center justify-center shadow-inner"
-                  style={{ borderColor: accentColor }}
-                >
-                  <span className="material-symbols-outlined text-5xl" style={{ color: accentColor }}>
-                    auto_awesome
-                  </span>
-                </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredProjects.map((project) => (
+                  <div key={project.id} className="bg-white border border-neutral-200 hover:border-secondary/50 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all group flex flex-col h-full">
+                    {/* Fake Cover Preview Area */}
+                    <div className="aspect-[4/3] bg-neutral-100 flex items-center justify-center relative overflow-hidden p-6">
+                      {project.cover_url ? (
+                        <div className="relative w-full h-full rounded-lg shadow-sm overflow-hidden flex items-center justify-center bg-white border border-neutral-200/50">
+                          <img src={project.cover_url} alt="Couverture" className="max-h-full object-contain" />
+                        </div>
+                      ) : (
+                        <div className="w-24 h-32 bg-white rounded shadow-sm border border-neutral-200 flex flex-col items-center justify-center gap-2 group-hover:scale-105 transition-transform">
+                          <BookOpen className="w-6 h-6 text-neutral-300" strokeWidth={1.5} />
+                          <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest text-center px-2">Sans Couverture</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="p-5 flex flex-col flex-1">
+                      <div className="flex-1">
+                        <h4 className="font-bold text-neutral-900 line-clamp-1">{project.title}</h4>
+                        <p className="text-xs text-neutral-500 line-clamp-1 mt-1">{project.subtitle || "Sans sous-titre"}</p>
+                      </div>
+                      
+                      <Link 
+                        href={`/cover-studio/${project.id}`}
+                        className="mt-5 w-full bg-secondary/10 hover:bg-secondary/20 text-secondary font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        <span>Modifier la couverture</span>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              {/* Author Footer */}
-              <div className="relative z-10 border-t border-white/10 pt-4 flex items-center justify-between">
-                <div>
-                  <span className="text-[9px] text-neutral-400 font-mono block uppercase tracking-wider">Auteur</span>
-                  <span className="font-heading font-bold text-sm text-white">{author || "Nom de l'auteur"}</span>
-                </div>
-                <span className="text-[10px] font-mono text-neutral-400 font-bold">IRIS BOOKS</span>
-              </div>
-            </div>
-
-            <div className="mt-8 flex items-center gap-3">
-              <button
-                onClick={handleApplyToBook}
-                className="bg-secondary text-white font-bold text-xs px-6 py-3 rounded-xl hover:bg-orange-600 transition-all shadow-md flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-base">check_circle</span>
-                <span>Appliquer au Livre</span>
-              </button>
-            </div>
+            )}
           </div>
         </main>
       </div>
@@ -368,10 +192,10 @@ function CoverStudioContent() {
   );
 }
 
-export default function CoverStudioPage() {
+export default function CoverStudioHubPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">Chargement du studio...</div>}>
-      <CoverStudioContent />
+    <Suspense fallback={<div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center"><span className="material-symbols-outlined animate-spin text-secondary text-3xl">progress_activity</span></div>}>
+      <CoverStudioHubContent />
     </Suspense>
   );
 }
