@@ -4,6 +4,22 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
+import {
+  LayoutDashboard,
+  Library,
+  Palette,
+  PenTool,
+  Users,
+  CreditCard,
+  Settings,
+  HelpCircle,
+  ShieldAlert,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  X,
+  Menu,
+} from "lucide-react";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -27,18 +43,18 @@ export default function Sidebar() {
   };
 
   const navItems = [
-    { id: "dashboard", label: "Tableau de bord", icon: "dashboard", href: "/dashboard" },
-    { id: "projets", label: "Mes Livres & Projets", icon: "menu_book", href: "/projects" },
-    { id: "couverture", label: "Studio de Couverture", icon: "palette", href: "/cover-studio" },
-    { id: "export", label: "Mise en page & KDP", icon: "design_services", href: "/export" },
-    { id: "ventes", label: "Lecteurs & Téléchargements", icon: "group", href: "/analytics" },
-    { id: "facturation", label: "Abonnement & Mots", icon: "credit_card", href: "/billing" },
-    { id: "parametres", label: "Paramètres", icon: "settings", href: "/settings" },
-    { id: "aide", label: "Centre d'aide & FAQ", icon: "help_center", href: "/faq" },
+    { id: "dashboard", label: "Tableau de bord", icon: <LayoutDashboard strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/dashboard" },
+    { id: "projets", label: "Mes Livres & Projets", icon: <Library strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/projects" },
+    { id: "couverture", label: "Studio de Couverture", icon: <Palette strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/cover-studio" },
+    { id: "export", label: "Mise en page & KDP", icon: <PenTool strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/export" },
+    { id: "ventes", label: "Lecteurs & Téléchargements", icon: <Users strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/analytics" },
+    { id: "facturation", label: "Abonnement & Mots", icon: <CreditCard strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/billing" },
+    { id: "parametres", label: "Paramètres", icon: <Settings strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/settings" },
+    { id: "aide", label: "Centre d'aide & FAQ", icon: <HelpCircle strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/faq" },
   ];
 
   if (isAdmin) {
-    navItems.push({ id: "admin", label: "Espace Admin", icon: "admin_panel_settings", href: "/admin" });
+    navItems.push({ id: "admin", label: "Espace Admin", icon: <ShieldAlert strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/admin" });
   }
 
   if (!mounted) return null;
@@ -91,11 +107,9 @@ export default function Sidebar() {
                   : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
               }`}
             >
-              <span
-                className={`material-symbols-outlined text-[26px] shrink-0 transition-transform group-hover:scale-110 text-inherit`}
-              >
+              <div className="shrink-0 transition-transform group-hover:scale-110 text-inherit flex items-center justify-center">
                 {item.icon}
-              </span>
+              </div>
               {!collapsed && <span className="truncate">{item.label}</span>}
             </Link>
           );
@@ -104,21 +118,12 @@ export default function Sidebar() {
 
       {/* Bottom Footer Links & Collapse Toggle */}
       <div className="p-3 border-t border-neutral-100 space-y-1 bg-white">
-        <Link
-          href="/"
-          title={collapsed ? "Page d'accueil" : undefined}
-          className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium text-neutral-600 hover:text-neutral-900 rounded-xl hover:bg-neutral-50 transition-colors"
-        >
-          <span className="material-symbols-outlined text-[26px] text-inherit shrink-0">home</span>
-          {!collapsed && <span>Page d&apos;accueil</span>}
-        </Link>
-
         <button
           onClick={signOut}
           title={collapsed ? "Se déconnecter" : undefined}
           className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
         >
-          <span className="material-symbols-outlined text-[26px] text-inherit shrink-0">logout</span>
+          <LogOut strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />
           {!collapsed && <span className="truncate">Se déconnecter</span>}
         </button>
 
@@ -126,9 +131,11 @@ export default function Sidebar() {
           onClick={toggleCollapsed}
           className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-neutral-400 hover:text-neutral-800 rounded-xl hover:bg-neutral-50 transition-colors pt-2 border-t border-neutral-100 mt-1 cursor-pointer"
         >
-          <span className="material-symbols-outlined text-[26px] text-inherit shrink-0">
-            {collapsed ? "keyboard_double_arrow_right" : "keyboard_double_arrow_left"}
-          </span>
+          {collapsed ? (
+            <PanelLeftOpen strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />
+          ) : (
+            <PanelLeftClose strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />
+          )}
           {!collapsed && <span>Réduire le menu</span>}
         </button>
       </div>
@@ -137,19 +144,19 @@ export default function Sidebar() {
       {/* ================= MOBILE BOTTOM NAVIGATION BAR ================= */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-50 px-4 py-2 flex items-center justify-around shadow-lg">
         <Link href="/dashboard" className={`flex flex-col items-center gap-1 ${pathname === "/dashboard" ? "text-secondary font-bold" : "text-neutral-500 hover:text-neutral-900"}`}>
-          <span className="material-symbols-outlined text-xl">dashboard</span>
+          <LayoutDashboard strokeWidth={1.5} className="w-5 h-5" />
           <span className="text-[10px]">Accueil</span>
         </Link>
         <Link href="/projects" className={`flex flex-col items-center gap-1 ${pathname.startsWith("/projects") || pathname.startsWith("/redaction") ? "text-secondary font-bold" : "text-neutral-500 hover:text-neutral-900"}`}>
-          <span className="material-symbols-outlined text-xl">menu_book</span>
+          <Library strokeWidth={1.5} className="w-5 h-5" />
           <span className="text-[10px]">Mes Livres</span>
         </Link>
         <Link href="/cover-studio" className={`flex flex-col items-center gap-1 ${pathname.startsWith("/cover-studio") ? "text-secondary font-bold" : "text-neutral-500 hover:text-neutral-900"}`}>
-          <span className="material-symbols-outlined text-xl">palette</span>
+          <Palette strokeWidth={1.5} className="w-5 h-5" />
           <span className="text-[10px]">Couverture</span>
         </Link>
         <button onClick={() => setIsMobileDrawerOpen(!isMobileDrawerOpen)} className={`flex flex-col items-center gap-1 cursor-pointer ${isMobileDrawerOpen ? "text-secondary font-bold" : "text-neutral-500 hover:text-neutral-900"}`}>
-          <span className="material-symbols-outlined text-xl">widgets</span>
+          <Menu strokeWidth={1.5} className="w-5 h-5" />
           <span className="text-[10px]">Menu</span>
         </button>
       </div>
@@ -165,9 +172,9 @@ export default function Sidebar() {
               </div>
               <button 
                 onClick={() => setIsMobileDrawerOpen(false)}
-                className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600"
+                className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600 hover:bg-neutral-200 transition-colors"
               >
-                <span className="material-symbols-outlined text-xl">close</span>
+                <X strokeWidth={1.5} className="w-5 h-5" />
               </button>
             </div>
 
@@ -183,7 +190,9 @@ export default function Sidebar() {
                       : "bg-neutral-50 border-neutral-200/80 text-neutral-800 font-semibold hover:bg-neutral-100"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-2xl">{item.icon}</span>
+                  <div className="flex items-center justify-center w-6 h-6">
+                    {item.icon}
+                  </div>
                   <span className="text-xs truncate">{item.label}</span>
                 </Link>
               ))}
