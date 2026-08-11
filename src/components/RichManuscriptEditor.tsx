@@ -39,7 +39,7 @@ const PageBreak = Node.create({
     return ReactNodeViewRenderer(() => {
       return (
         <NodeViewWrapper>
-          <div contentEditable={false} className="w-[calc(100%+8rem)] -ml-16 my-16 h-16 bg-[#F9FAFB] border-y border-neutral-200 flex items-center justify-center select-none shadow-inner">
+          <div contentEditable={false} className="w-[calc(100%+8rem)] -ml-16 my-16 h-16 bg-white border-y border-neutral-200 flex items-center justify-center select-none shadow-inner">
             <span className="text-xs font-mono font-bold text-neutral-400 tracking-widest">NOUVELLE PAGE</span>
           </div>
         </NodeViewWrapper>
@@ -187,7 +187,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
         pageGap: PAGE_GAP_PX,
         pageGapBorderSize: 1,
         pageGapBorderColor: "#e5e5e5",
-        pageBreakBackground: "#f3f4f6",
+        pageBreakBackground: "#ffffff",
         marginTop: 60,
         marginBottom: 60,
         marginLeft: 60,
@@ -515,7 +515,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       )}
 
       {/* ================= 4. EDITOR CANVAS WITH A4 PAGINATION OVERLAY ================= */}
-      <div className="editor-scroll-container flex-1 overflow-y-auto flex flex-col items-center bg-[#F3F4F6]">
+      <div className="editor-scroll-container flex-1 overflow-y-auto flex flex-col items-center bg-white">
         <div 
           className="relative z-10 w-full transition-transform duration-150 relative"
           ref={editorContainerRef}
@@ -566,11 +566,16 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           
           <EditorContent 
             editor={editor} 
-            className="manuscript-page-editor prose prose-neutral max-w-none focus:outline-none"
+            className="manuscript-page-editor prose prose-neutral max-w-none focus:outline-none w-full flex justify-center"
           />
 
           <style dangerouslySetInnerHTML={{__html: `
-            .ProseMirror { word-wrap: break-word; overflow-wrap: break-word; white-space: pre-wrap; }
+            .ProseMirror { 
+              word-wrap: break-word; 
+              overflow-wrap: break-word; 
+              white-space: pre-wrap; 
+              width: 100%;
+            }
             .ProseMirror:focus { outline: none; }
             /* Styling des pages générées par PaginationPlus */
             .ProseMirror > div { 

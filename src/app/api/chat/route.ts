@@ -157,6 +157,17 @@ export async function POST(req: Request) {
         fallbackSynopsis: context?.synopsis
       });
 
+      // Build conversation history summary from recent user and AI messages (up to 8 messages)
+      const recentHistory = messages && messages.length > 1
+        ? messages.slice(-9, -1).map((m: any) => {
+            const sender = (m.sender === "user" || m.role === "user") ? "Auteur" : "Iris IA";
+            const text = m.text || m.content || "";
+            return `${sender} : ${text}`;
+          }).filter((line: string) => line.trim().length > 0).join('\n')
+        : "";
+
+      const historyFormatted = recentHistory ? `\nHistorique récent de la discussion :\n${recentHistory}\n` : "";
+
       const editPrompt = `Tu es un assistant de rédaction de livre intelligent appelé Iris IA.
 L'auteur te demande de modifier ou réécrire un chapitre de son manuscrit.
 
@@ -170,12 +181,12 @@ Contenu actuel du chapitre :
 """
 ${resolved.targetContent || "Chapitre vide."}
 """
-
-Demande de l'auteur :
+${historyFormatted}
+Demande actuelle de l'auteur :
 "${lastUserMessage}"
 
 Consignes de génération :
-1. Rédige le nouveau contenu HTML du chapitre réécrit/enrichi en suivant scrupuleusement les demandes de l'auteur.
+1. Rédige le nouveau contenu HTML du chapitre réécrit/enrichi en tenant compte du contenu actuel, des consignes de l'auteur ET de l'historique récent de la discussion.
 2. Utilise des balises HTML sémantiques valides (<p>, <h2>, <h3>, <strong>, <em>, <ul>, <li>, <blockquote>). N'inclus PAS <html>, <body>, <head> ou des blocs Markdown \`\`\`html.
 3. Rédige un court résumé des modifications (1-2 phrases) pour la propriété 'summary'.
 4. Rédige un message chaleureux et explicatif pour la propriété 'chatSummary' (destiné au fil de discussion).`;

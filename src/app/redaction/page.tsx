@@ -90,14 +90,7 @@ function RedactionContent() {
 
   // Chat Conversation State
   const [chatInput, setChatInput] = useState("");
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      sender: "ai",
-      text: "Bonjour Martin ! Je suis votre assistant co-auteur. Je vois que vous travaillez sur le premier chapitre de \"L'Épopée de Soundiata\". C'est un récit épique fascinant.\n\nPour rendre le départ du héros plus poignant, souhaiteriez-vous mettre l'accent sur sa force intérieure naissante ou sur la résilience de sa mère ?",
-      time: "09:41"
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
 
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [isGeneratingChapter, setIsGeneratingChapter] = useState(false);
@@ -115,11 +108,70 @@ function RedactionContent() {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isAiThinking]);
 
+  // One-time cleanup to fix old QuotaExceededError bloated histories and remove phantom messages
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith("iris_chat_history_")) {
+            const raw = localStorage.getItem(key);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              
+              // 1. Filter out the phantom Soundiata message if it got stuck in memory
+              let cleaned = parsed.filter((msg: any) => 
+                !msg.text || !msg.text.includes("L'Épopée de Soundiata")
+              );
+
+              // 2. Slim down huge HTML payloads
+              if (raw.length > 50000) { 
+                cleaned = cleaned.map((msg: any) => {
+                  if (msg.chapterModification) {
+                    return {
+                      ...msg,
+                      chapterModification: {
+                        ...msg.chapterModification,
+                        previousContent: undefined,
+                        newContent: undefined
+                      }
+                    };
+                  }
+                  return msg;
+                });
+              }
+
+              // Save the cleaned version back
+              localStorage.setItem(key, JSON.stringify(cleaned));
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Error during localStorage cleanup:", e);
+      }
+    }
+  }, []);
+
   // Persist chat messages to localStorage whenever they update
   useEffect(() => {
     if (currentProjectId && messages.length > 0 && typeof window !== "undefined") {
       try {
-        localStorage.setItem(`iris_chat_history_${currentProjectId}`, JSON.stringify(messages));
+        // Optimisation : On retire les très gros blocs de texte (previousContent, newContent)
+        // pour éviter l'erreur 'QuotaExceededError' qui bloquait la sauvegarde du localStorage.
+        const slimMessages = messages.map(msg => {
+          if (msg.chapterModification) {
+            return {
+              ...msg,
+              chapterModification: {
+                ...msg.chapterModification,
+                previousContent: undefined,
+                newContent: undefined
+              }
+            };
+          }
+          return msg;
+        });
+        localStorage.setItem(`iris_chat_history_${currentProjectId}`, JSON.stringify(slimMessages));
       } catch (e) {
         console.warn("Could not save chat history to localStorage:", e);
       }

@@ -2,165 +2,57 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { useUser } from "@/hooks/useUser";
+import { Plus, LayoutTemplate, BookOpen, Settings2 } from "lucide-react";
 
-function ExportPageContent() {
+function ExportHubContent() {
   const { displayName, displayEmail, signOut } = useUser();
   const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const searchParams = useSearchParams();
-  const projectId = searchParams.get("projectId");
-
-  // Export settings
-  const [pageSize, setPageSize] = useState("A5 (148 x 210 mm)");
-  const [fontStyle, setFontStyle] = useState("Garamond Classical");
-  const [marginSize, setMarginSize] = useState("Normales KDP (2 cm)");
-  const [includeHeaders, setIncludeHeaders] = useState(true);
-  const [isExporting, setIsExporting] = useState(false);
-
-  // Project data state
-  const [projectTitle, setProjectTitle] = useState("Mon Livre Iris");
-  const [projectContent, setProjectContent] = useState("<p>Chapitre 1 : Introduction...</p>");
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    // 1. Essayer de récupérer le projet depuis l'API si projectId est présent
-    if (projectId) {
-      fetch(`/api/projects/${projectId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.project) {
-            setProjectTitle(data.project.title);
-            setCoverUrl(data.project.cover_url);
-            
-            // Reconstruire le contenu à partir des chapitres
-            if (data.chapters && data.chapters.length > 0) {
-              const fullContent = data.chapters
-                .map((ch: any) => `<h2>${ch.title}</h2><div>${ch.content || ""}</div>`)
-                .join("");
-              setProjectContent(fullContent);
-            }
-          }
-        })
-        .catch((err) => console.error("Erreur de chargement du projet:", err));
-    } else {
-      // 2. Fallback localStorage
-      const projectContextStr = localStorage.getItem("iris_current_project");
-      if (projectContextStr) {
-        try {
-          const projectContext = JSON.parse(projectContextStr);
-          if (projectContext.title) setProjectTitle(projectContext.title);
-          if (projectContext.content) setProjectContent(projectContext.content);
-          if (projectContext.cover_url) setCoverUrl(projectContext.cover_url);
-        } catch(e) {}
+    const fetchProjects = async () => {
+      try {
+        const res = await fetch("/api/projects");
+        if (res.ok) {
+          const data = await res.json();
+          setProjects(data.projects || []);
+        }
+      } catch (err) {
+        console.error("Erreur de chargement des projets:", err);
+      } finally {
+        setLoading(false);
       }
-    }
-  }, [projectId]);
+    };
+    fetchProjects();
+  }, []);
 
-  const getManuscriptHTML = () => {
-
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${projectTitle}</title>
-          <style>
-            @page { size: ${pageSize.includes("A4") ? "A4" : "A5"}; margin: 20mm; }
-            @page :first { margin: 0; }
-            body { font-family: Georgia, Garamond, serif; font-size: 11pt; line-height: 1.6; color: #111; margin: 0; padding: 0; }
-            .content-wrapper { padding: 20mm; }
-            h1 { font-size: 24pt; text-align: center; margin-top: 50px; margin-bottom: 20px; text-transform: uppercase; }
-            h2 { font-size: 16pt; margin-top: 40px; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
-            p { text-indent: 1.5em; margin-bottom: 0.5em; text-align: justify; }
-            .header { text-align: center; font-size: 9pt; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 30px; }
-            .cover-page { width: 100vw; height: 100vh; page-break-after: always; display: flex; justify-content: center; align-items: center; margin: 0; padding: 0; overflow: hidden; background: white; }
-            .cover-page img { width: 100%; height: 100%; object-fit: cover; }
-          </style>
-        </head>
-        <body>
-          ${coverUrl ? `<div class="cover-page"><img src="${coverUrl}" alt="Couverture" /></div>` : ''}
-          <div class="content-wrapper">
-            ${includeHeaders ? `<div class="header">${projectTitle} — ${displayName}</div>` : ''}
-            <h1>${projectTitle}</h1>
-            <div>${projectContent}</div>
-          </div>
-        </body>
-      </html>
-    `;
-  };
-
-  const handleExportPDF = () => {
-    setIsExporting(true);
-    const htmlContent = getManuscriptHTML();
-    const printWindow = window.open("", "_blank");
-    if (printWindow) {
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-        setIsExporting(false);
-      }, 500);
-    } else {
-      setIsExporting(false);
-    }
-  };
-
-  const handleExportDocx = () => {
-    const htmlContent = getManuscriptHTML();
-    const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Manuscrit_Iris_${new Date().toISOString().slice(0, 10)}.doc`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleExportEpub = () => {
-    const htmlContent = getManuscriptHTML();
-    const blob = new Blob([htmlContent], { type: 'application/epub+zip' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Manuscrit_Iris_${new Date().toISOString().slice(0, 10)}.epub.html`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const filteredProjects = projects.filter((project) =>
+    (project.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (project.subtitle || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
       {/* GLOBAL REUSABLE SIDEBAR */}
       <Sidebar />
 
-      {/* MAIN CONTENT AREA */}
+      {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-10">
-        <header className="bg-[#F9FAFB] sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4 border-b border-neutral-100">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all">
-              <span className="material-symbols-outlined text-base">arrow_back</span>
-              <span>Tableau de bord</span>
-            </Link>
             <h1 className="font-heading font-extrabold text-xl text-neutral-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-secondary">design_services</span>
-              <span>Mise en Page & Exportation PDF / KDP</span>
+              <LayoutTemplate className="w-6 h-6 text-secondary" strokeWidth={2} />
+              <span>Studio Mise en page & KDP</span>
             </h1>
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleExportPDF}
-              disabled={isExporting}
-              className="bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined text-base">
-                {isExporting ? "progress_activity" : "picture_as_pdf"}
-              </span>
-              <span>{isExporting ? "Génération PDF..." : "Exporter en PDF"}</span>
-            </button>
-
             {/* Profile Dropdown */}
             <div className="relative">
               <button
@@ -173,8 +65,8 @@ function ExportPageContent() {
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50">
                   <div className="px-4 py-3 border-b border-neutral-100">
-                    <p className="font-heading font-bold text-sm text-neutral-900">{displayName || "Utilisateur"}</p>
-                    <p className="text-xs text-neutral-500 truncate">{displayEmail || ""}</p>
+                    <p className="font-heading font-bold text-sm text-neutral-900">{displayName}</p>
+                    <p className="text-xs text-neutral-500 truncate">{displayEmail}</p>
                   </div>
                   <div className="py-1">
                     <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
@@ -198,155 +90,101 @@ function ExportPageContent() {
           </div>
         </header>
 
-        <main className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Controls Column (Left) */}
-          <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-2xs space-y-4">
-              <h2 className="font-heading font-extrabold text-base text-neutral-900">
-                Format du Livre & Impression
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase mb-1.5">
-                    Format de la Page
-                  </label>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => setPageSize(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl text-xs font-semibold text-neutral-900 bg-white outline-none focus:border-secondary"
-                  >
-                    <option>A5 (148 x 210 mm) — Standard Livre</option>
-                    <option>6&quot; x 9&quot; (152 x 228 mm) — Amazon KDP</option>
-                    <option>Pocket (110 x 180 mm) — Format de poche</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase mb-1.5">
-                    Police typographique
-                  </label>
-                  <select
-                    value={fontStyle}
-                    onChange={(e) => setFontStyle(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl text-xs font-semibold text-neutral-900 bg-white outline-none focus:border-secondary"
-                  >
-                    <option>Garamond Classical (Sérif littéraire)</option>
-                    <option>Outfit Modern (Sans-sérif épuré)</option>
-                    <option>Georgia Editorial (Sérif élégant)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase mb-1.5">
-                    Marges d&apos;Impression
-                  </label>
-                  <select
-                    value={marginSize}
-                    onChange={(e) => setMarginSize(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl text-xs font-semibold text-neutral-900 bg-white outline-none focus:border-secondary"
-                  >
-                    <option>Normales KDP (2 cm)</option>
-                    <option>Étroites (1.5 cm)</option>
-                    <option>Larges avec reliure (2.5 cm)</option>
-                  </select>
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-xs font-semibold text-neutral-700">En-têtes et numérotation des pages</span>
-                  <input
-                    type="checkbox"
-                    checked={includeHeaders}
-                    onChange={(e) => setIncludeHeaders(e.target.checked)}
-                    className="w-4 h-4 accent-secondary rounded cursor-pointer"
-                  />
-                </div>
+        <main className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
+          
+          {/* Hero Section */}
+          <div className="bg-white p-8 md:p-10 rounded-3xl border border-neutral-200/80 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+            
+            <div className="relative z-10 max-w-2xl space-y-4">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-secondary text-xs font-bold uppercase tracking-wider">
+                <Settings2 className="w-3.5 h-3.5" /> Édition Professionnelle
               </div>
-            </div>
-
-            {/* Formats Export Card */}
-            <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-2xs space-y-4">
-              <h2 className="font-heading font-extrabold text-base text-neutral-900">
-                Exporter dans d&apos;autres formats
+              <h2 className="text-3xl md:text-4xl font-heading font-extrabold text-neutral-900">
+                Préparez votre livre pour l'impression ou les liseuses.
               </h2>
-
-              <div className="space-y-2">
-                <button
-                  onClick={handleExportEpub}
-                  className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs p-3 rounded-xl transition-all flex items-center justify-between"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-base">book</span>
-                    <span>Format ePub (Liseuses & Kindle)</span>
-                  </span>
-                  <span className="material-symbols-outlined text-base">download</span>
-                </button>
-
-                <button
-                  onClick={handleExportDocx}
-                  className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs p-3 rounded-xl transition-all flex items-center justify-between"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-base">description</span>
-                    <span>Format Microsoft Word (.doc)</span>
-                  </span>
-                  <span className="material-symbols-outlined text-base">download</span>
-                </button>
-              </div>
+              <p className="text-neutral-600 font-medium text-sm md:text-base leading-relaxed">
+                Le Studio de Mise en page vous permet d'ajuster les marges pour Amazon KDP, de choisir de superbes polices et d'ajouter des lettrines à vos chapitres. Sélectionnez un projet pour commencer.
+              </p>
             </div>
           </div>
 
-          {/* Live Page Preview (Right Column) */}
-          <div className="lg:col-span-7 flex flex-col items-center justify-center bg-neutral-200/60 rounded-3xl p-6 sm:p-10 border border-neutral-300 relative min-h-[600px] overflow-hidden">
-            <span className="absolute top-4 left-4 bg-neutral-900 text-white px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider z-10">
-              Aperçu Imprimable ({pageSize})
-            </span>
-
-            <div className="flex gap-6 overflow-x-auto w-full pb-4 items-center justify-start snap-x" style={{ paddingLeft: 'max(0px, calc(50% - 14rem))' }}>
-              {/* Cover Page Mockup */}
-              {coverUrl && (
-                <div className="bg-white shrink-0 w-full max-w-sm sm:max-w-md aspect-[1/1.4] rounded-xl shadow-2xl overflow-hidden border border-neutral-300 snap-center relative">
-                  <img src={coverUrl} alt="Couverture" className="w-full h-full object-cover" />
-                </div>
-              )}
-
-              {/* A5 / Book Page Mockup */}
-              <div className="bg-white shrink-0 w-full max-w-sm sm:max-w-md aspect-[1/1.4] rounded-xl shadow-2xl p-8 sm:p-12 flex flex-col justify-between text-neutral-900 border border-neutral-300 font-serif snap-center">
-                {includeHeaders && (
-                  <div className="flex justify-between items-center text-[10px] text-neutral-400 font-sans border-b border-neutral-100 pb-2">
-                    <span className="uppercase">{projectTitle.substring(0, 30)}</span>
-                    <span>CHAPITRE 1</span>
-                  </div>
-                )}
-
-                <div className="my-auto space-y-4">
-                  <h2 className="font-heading font-extrabold text-xl text-neutral-900 tracking-tight font-sans">
-                    Chapitre 1 : Introduction
-                  </h2>
-                  <div 
-                    className="text-xs sm:text-sm leading-relaxed text-neutral-800 line-clamp-12"
-                    dangerouslySetInnerHTML={{ __html: projectContent }}
-                  >
-                  </div>
-                </div>
-
-                {includeHeaders && (
-                  <div className="text-center text-[10px] text-neutral-400 font-sans border-t border-neutral-100 pt-2">
-                    - 1 -
-                  </div>
-                )}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h3 className="font-heading font-extrabold text-xl text-neutral-900">
+                Vos Livres & Projets
+              </h3>
+              
+              <div className="relative w-full sm:w-72">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-lg">
+                  search
+                </span>
+                <input
+                  type="text"
+                  placeholder="Rechercher un livre..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:border-secondary outline-none transition-colors"
+                />
               </div>
             </div>
 
-            <div className="mt-6 flex items-center gap-3">
-              <button
-                onClick={handleExportPDF}
-                className="bg-secondary text-white font-bold text-xs px-6 py-3 rounded-xl hover:bg-orange-600 transition-all shadow-md flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-base">picture_as_pdf</span>
-                <span>Télécharger le Livre Prêt à Imprimer</span>
-              </button>
-            </div>
+            {loading ? (
+              <div className="flex flex-col justify-center items-center h-48 bg-white border border-neutral-200 rounded-3xl">
+                <span className="material-symbols-outlined animate-spin text-secondary text-3xl">progress_activity</span>
+                <p className="text-sm font-semibold text-neutral-500 mt-3">Chargement de vos projets...</p>
+              </div>
+            ) : filteredProjects.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-12 bg-white border border-neutral-200 rounded-3xl text-center">
+                <div className="w-16 h-16 bg-neutral-50 rounded-2xl flex items-center justify-center mb-4">
+                  <BookOpen className="w-8 h-8 text-neutral-400" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-lg font-bold text-neutral-900 mb-2">Aucun projet trouvé</h3>
+                <p className="text-sm text-neutral-500 max-w-sm mb-6">
+                  {searchQuery ? "Aucun livre ne correspond à votre recherche." : "Vous n'avez pas encore de livre. Allez dans 'Mes Livres & Projets' pour en créer un."}
+                </p>
+                {!searchQuery && (
+                  <Link href="/projects" className="inline-flex items-center gap-2 bg-neutral-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-neutral-800 transition-colors">
+                    <Plus className="w-4 h-4" /> Créer un projet
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredProjects.map((project) => (
+                  <div key={project.id} className="bg-white border border-neutral-200 hover:border-secondary/50 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all group flex flex-col h-full">
+                    {/* Cover Preview Area */}
+                    <div className="aspect-[4/3] bg-neutral-100 flex items-center justify-center relative overflow-hidden p-6">
+                      {project.cover_url ? (
+                        <div className="relative w-full h-full rounded-lg shadow-sm overflow-hidden flex items-center justify-center bg-white border border-neutral-200/50">
+                          <img src={project.cover_url} alt="Couverture" className="max-h-full object-contain" />
+                        </div>
+                      ) : (
+                        <div className="w-24 h-32 bg-white rounded shadow-sm border border-neutral-200 flex flex-col items-center justify-center gap-2 group-hover:scale-105 transition-transform">
+                          <BookOpen className="w-6 h-6 text-neutral-300" strokeWidth={1.5} />
+                          <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest text-center px-2">Format Standard</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="p-5 flex flex-col flex-1">
+                      <div className="flex-1">
+                        <h4 className="font-bold text-neutral-900 line-clamp-1">{project.title}</h4>
+                        <p className="text-xs text-neutral-500 line-clamp-1 mt-1">{project.subtitle || "Sans sous-titre"}</p>
+                      </div>
+                      
+                      <Link 
+                        href={`/export/${project.id}`}
+                        className="mt-5 w-full bg-secondary/10 hover:bg-secondary/20 text-secondary font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors"
+                      >
+                        <LayoutTemplate className="w-4 h-4" />
+                        <span>Mise en page & KDP</span>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </main>
       </div>
@@ -354,10 +192,10 @@ function ExportPageContent() {
   );
 }
 
-export default function ExportPage() {
+export default function ExportHubPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">Chargement...</div>}>
-      <ExportPageContent />
+    <Suspense fallback={<div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center"><span className="material-symbols-outlined animate-spin text-secondary text-3xl">progress_activity</span></div>}>
+      <ExportHubContent />
     </Suspense>
   );
 }

@@ -23,6 +23,7 @@ export default function CoverStudioEditorPage({ params }: { params: { id: string
   const [layoutStyle, setLayoutStyle] = useState("Minimalist Centered");
   const [promptText, setPromptText] = useState("Illustration abstraite géométrique dorée et moderne");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
 
   useEffect(() => {
     // Fetch the project data to prepopulate the cover details
@@ -164,7 +165,7 @@ export default function CoverStudioEditorPage({ params }: { params: { id: string
 
           <div className="flex items-center gap-3">
             <button
-              onClick={handleDownloadHD}
+              onClick={() => setDownloadModalOpen(true)}
               className="bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer"
             >
               <span className="material-symbols-outlined text-base">download</span>
@@ -385,6 +386,57 @@ export default function CoverStudioEditorPage({ params }: { params: { id: string
           </div>
         </main>
       </div>
+
+      {/* Download Choice Modal */}
+      {downloadModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-body animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col relative border border-neutral-100">
+            <button onClick={() => setDownloadModalOpen(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-full text-neutral-600 transition-colors z-10">
+              <span className="material-symbols-outlined text-lg">close</span>
+            </button>
+            
+            <div className="p-8 sm:p-10 text-center space-y-6">
+              <div className="w-20 h-20 mx-auto bg-orange-100 rounded-3xl flex items-center justify-center -rotate-3 border border-orange-200 shadow-inner">
+                <span className="material-symbols-outlined text-4xl text-secondary">file_download</span>
+              </div>
+              
+              <div className="space-y-2">
+                <h2 className="font-heading font-extrabold text-2xl text-neutral-900">Que voulez-vous télécharger ?</h2>
+                <p className="text-sm text-neutral-500 max-w-sm mx-auto leading-relaxed">
+                  Souhaitez-vous télécharger uniquement cette image de couverture ou bien exporter le livre complet avec sa mise en page ?
+                </p>
+              </div>
+
+              <div className="pt-4 flex flex-col gap-3">
+                <button 
+                  onClick={() => {
+                    handleDownloadHD();
+                    setDownloadModalOpen(false);
+                  }}
+                  className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-sm py-4 rounded-xl transition-all flex items-center justify-center gap-3"
+                >
+                  <span className="material-symbols-outlined">image</span>
+                  <span>Télécharger l'image seule (PNG)</span>
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    handleApplyToBook().then(() => {
+                      if (projectId) {
+                        router.push(`/export/${projectId}`);
+                      }
+                    });
+                  }}
+                  className="w-full bg-secondary hover:bg-orange-600 text-white font-bold text-sm py-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-3"
+                >
+                  <span className="material-symbols-outlined">book</span>
+                  <span>Télécharger le Livre Complet</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
