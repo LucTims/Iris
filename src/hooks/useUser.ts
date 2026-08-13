@@ -7,7 +7,15 @@ import { User } from "@supabase/supabase-js";
 export function useUser() {
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<{ full_name?: string; avatar_url?: string; role?: string } | null>(null);
+  const [profile, setProfile] = useState<{ 
+    full_name?: string; 
+    avatar_url?: string; 
+    role?: string;
+    bio?: string;
+    website_url?: string;
+    twitter_url?: string;
+    amazon_url?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

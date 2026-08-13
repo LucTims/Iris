@@ -7,6 +7,7 @@ import Sidebar from "@/components/Sidebar";
 import RichManuscriptEditor, { RichManuscriptEditorHandle } from "@/components/RichManuscriptEditor";
 import ImportManuscriptModal from "@/components/ImportManuscriptModal";
 import ExportBookModal from "@/components/ExportBookModal";
+import RewriteModal from "@/components/RewriteModal";
 import { parseManuscriptFile, splitHtmlIntoChapters } from "@/lib/parser";
 
 export interface ChapterModificationPayload {
@@ -103,6 +104,7 @@ function RedactionContent() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isImportLoading, setIsImportLoading] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isRewriteModalOpen, setIsRewriteModalOpen] = useState(false);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -471,6 +473,61 @@ function RedactionContent() {
   const wordCount = liveWordCount || stripHtmlForWordCount(currentChapter.content);
 
   // Handle Sending a User Message & AI Response
+  const handleRewriteChapter = async (instructions: string) => {
+    const chapter = chapters[activeChapterIndex];
+    if (!chapter || !chapter.content) {
+      alert("Le chapitre est vide, rien à réécrire.");
+      return;
+    }
+
+    setIsAiThinking(true);
+    setSaveStatus("saving");
+
+    try {
+      const response = await fetch("/api/rewrite-chapter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: chapter.content,
+          instructions,
+          projectContext: projectData,
+          model: selectedAiModel
+        })
+      });
+
+      if (!response.ok) throw new Error("Erreur de réécriture");
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let newText = "";
+
+      // Vider le chapitre actuel avant d'écrire par dessus
+      setChapters(prev => prev.map(chap =>
+        chap.id === chapter.id ? { ...chap, content: "" } : chap
+      ));
+
+      if (reader) {
+        let done = false;
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          done = doneReading;
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            newText += chunk;
+            setChapters(prev => prev.map(chap =>
+              chap.id === chapter.id ? { ...chap, content: newText } : chap
+            ));
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors de la réécriture du document:", error);
+      alert("Erreur lors de la réécriture. Veuillez réessayer.");
+    } finally {
+      setIsAiThinking(false);
+    }
+  };
+
   const handleSendMessage = (textToSend?: string) => {
     const query = textToSend || chatInput;
     if (!query.trim()) return;
@@ -716,6 +773,7 @@ function RedactionContent() {
     }
   };
 
+
   // Handle File Selection for Manuscript Import
   const handleFileSelectedForImport = (file: File) => {
     setImportFile(file);
@@ -916,6 +974,15 @@ function RedactionContent() {
                   <span className="hidden xl:inline">Scinder par chapitres</span>
                 </button>
               )}
+
+              <button
+                onClick={() => setIsRewriteModalOpen(true)}
+                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-sm"
+                title="Demander à l'IA de réécrire complètement ce document selon vos consignes"
+              >
+                <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                <span className="hidden xl:inline">Réécrire</span>
+              </button>
             </div>
           </div>
 
@@ -1304,6 +1371,12 @@ function RedactionContent() {
           title: bookTitle,
           chapters: chapters
         }}
+      />
+
+      <RewriteModal
+        isOpen={isRewriteModalOpen}
+        onClose={() => setIsRewriteModalOpen(false)}
+        onRewrite={handleRewriteChapter}
       />
     </div>
   );
