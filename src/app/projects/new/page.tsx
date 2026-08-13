@@ -21,9 +21,11 @@ export default function NewBookWizard() {
     characters: "",
     length: "Moyen (Roman standard)",
     instructions: "",
+    includeDetailedPlan: true,
+    includeToc: false,
   });
 
-  const updateForm = (field: string, value: string) => {
+  const updateForm = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -287,6 +289,55 @@ export default function NewBookWizard() {
                         className="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all resize-none"
                       />
                     </div>
+
+                    <div className="space-y-4 pt-4 border-t border-neutral-100 mt-4">
+                      <label className="text-sm font-bold text-neutral-700">Options de génération initiale</label>
+                      
+                      <label className="flex items-start gap-3 cursor-pointer group">
+                        <div className="relative flex items-center justify-center mt-0.5">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only" 
+                            checked={formData.includeDetailedPlan}
+                            onChange={(e) => updateForm("includeDetailedPlan", e.target.checked)}
+                          />
+                          <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${formData.includeDetailedPlan ? 'bg-orange-500 border-orange-500' : 'bg-white border-neutral-300 group-hover:border-orange-500'}`}>
+                            {formData.includeDetailedPlan && <span className="material-symbols-outlined text-white text-[14px] font-bold">check</span>}
+                          </div>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-neutral-800">Générer un Plan Détaillé</span>
+                          <span className="text-xs text-neutral-500">Une esquisse complète de tous les chapitres pour valider la structure.</span>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-3 cursor-pointer group">
+                        <div className="relative flex items-center justify-center mt-0.5">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only" 
+                            checked={formData.includeToc}
+                            onChange={(e) => updateForm("includeToc", e.target.checked)}
+                          />
+                          <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${formData.includeToc ? 'bg-orange-500 border-orange-500' : 'bg-white border-neutral-300 group-hover:border-orange-500'}`}>
+                            {formData.includeToc && <span className="material-symbols-outlined text-white text-[14px] font-bold">check</span>}
+                          </div>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-neutral-800">Générer un Sommaire</span>
+                          <span className="text-xs text-neutral-500">Une simple liste des chapitres.</span>
+                        </div>
+                      </label>
+
+                      {!formData.includeDetailedPlan && !formData.includeToc && (
+                        <div className="mt-2 p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-3">
+                          <span className="material-symbols-outlined text-blue-500 text-lg">info</span>
+                          <p className="text-xs text-blue-800">
+                            <strong>Génération directe du contenu :</strong> L'IA va directement écrire le texte de votre livre. Vu que c'est un texte long, l'étape suivante peut prendre un peu plus de temps.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
               </motion.div>
@@ -313,10 +364,12 @@ export default function NewBookWizard() {
               >
                 {step === totalSteps ? (
                   isSubmitting ? (
-                    <>
-                      <span>Création en cours...</span>
-                      <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
-                    </>
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center gap-2">
+                        <span>Création en cours...</span>
+                        <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                      </div>
+                    </div>
                   ) : (
                     <>
                       <span>Générer mon livre</span>

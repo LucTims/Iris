@@ -39,7 +39,9 @@ export async function POST(req: Request) {
       characters,
       length,
       instructions,
-      model: chosenModel
+      model: chosenModel,
+      includeDetailedPlan,
+      includeToc
     } = await req.json();
 
     // 1. Fetch user profile & plan
@@ -78,6 +80,20 @@ export async function POST(req: Request) {
       console.warn("Usage tracking error:", trackErr);
     }
 
+    let missionText = "";
+    let mainTitle = "";
+    
+    if (includeDetailedPlan) {
+      missionText = `Ta mission est de générer le **PLAN DÉTAILLÉ** de ce livre. Structure le plan de manière logique avec des chapitres et des sous-parties, accompagnés d'une brève description.`;
+      mainTitle = "Plan Détaillé";
+    } else if (includeToc) {
+      missionText = `Ta mission est de générer uniquement le **SOMMAIRE** (Table des matières) de ce livre. Fais une simple liste des chapitres sans sous-parties ni descriptions longues.`;
+      mainTitle = "Sommaire";
+    } else {
+      missionText = `Ta mission est d'écrire **DIRECTEMENT LE CONTENU DU LIVRE** (le texte complet). Puisque c'est un format de type "${length}", écris les chapitres avec le contenu final prêt à être lu. Rédige de façon fluide en utilisant le style demandé.`;
+      mainTitle = title;
+    }
+
     const prompt = `Voici les détails du livre :
 Titre : ${title}
 Sous-titre : ${subtitle || "Non spécifié"}
@@ -93,19 +109,18 @@ ${synopsis}
 Consignes supplémentaires :
 ${instructions || "Aucune consigne spécifique"}
 
-Ta mission est de générer le **PLAN DÉTAILLÉ** de ce livre.
-Structure le plan de manière logique avec des chapitres et des sous-parties, accompagnés d'une brève description.`;
+${missionText}`;
 
     const result = streamText({
       model: google(selectedModelName),
-      system: `Tu es un ghostwriter expert et structurateur de livres professionnels. 
+      system: `Tu es un ghostwriter expert et rédacteur de livres professionnels. 
 IMPORTANT: 
-- Tu dois répondre UNIQUEMENT avec le contenu du plan formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>).
-- Le tout premier élément DOIT être <h1>Plan Détaillé</h1>.
+- Tu dois répondre UNIQUEMENT avec le contenu formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>).
+- Le tout premier élément DOIT être <h1>${mainTitle}</h1>.
 - N'utilise JAMAIS de Markdown (pas de **, pas de #, pas de \`\`\`).
-- NE FAIS AUCUNE SALUTATION (ne dis pas "Bonjour", ni "Voici le plan", ni "Absolument", ni "En tant qu'IA").
+- NE FAIS AUCUNE SALUTATION (ne dis pas "Bonjour", ni "Voici le contenu", ni "Absolument", ni "En tant qu'IA").
 - Commence directement par la balise <h1>.
-- Ne rajoute aucun commentaire personnel, sois purement factuel et professionnel.`,
+- Ne rajoute aucun commentaire personnel à la fin, sois purement factuel et professionnel dans l'exécution de la tâche.`,
       prompt: prompt,
     });
 

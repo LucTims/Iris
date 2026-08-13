@@ -205,6 +205,18 @@ function RedactionContent() {
         setIsAiThinking(true);
 
         try {
+          // Get context from localStorage to see what to generate
+          let includeDetailedPlan = true;
+          let includeToc = false;
+          try {
+            const ctxRaw = localStorage.getItem("iris_current_project");
+            if (ctxRaw) {
+              const ctx = JSON.parse(ctxRaw);
+              if (ctx.includeDetailedPlan !== undefined) includeDetailedPlan = ctx.includeDetailedPlan;
+              if (ctx.includeToc !== undefined) includeToc = ctx.includeToc;
+            }
+          } catch(e) {}
+
           const response = await fetch("/api/generate-plan", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -217,7 +229,9 @@ function RedactionContent() {
               tone: project.tone,
               characters: project.characters,
               length: project.length,
-              instructions: project.instructions
+              instructions: project.instructions,
+              includeDetailedPlan,
+              includeToc
             })
           });
 
@@ -227,11 +241,13 @@ function RedactionContent() {
           setIsAiThinking(false);
 
           const aiMessageId = Date.now();
+          // DO NOT ADD TO CHAT - Background generation
+          // Just ensure the welcome message is present
           setMessages([
             {
-              id: aiMessageId,
+              id: aiMessageId - 10,
               sender: "ai",
-              text: "",
+              text: "Bonjour, je suis Iris, prête à vous aider sur ce livre !",
               time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
             }
           ]);
@@ -248,18 +264,14 @@ function RedactionContent() {
               done = doneReading;
               if (value) {
                 currentText += decoder.decode(value, { stream: true });
-                if (isSubscribed) {
-                  setMessages(prev => prev.map(msg =>
-                    msg.id === aiMessageId ? { ...msg, text: currentText } : msg
-                  ));
-                }
+                // Do not update chat messages
               }
             }
 
             if (isSubscribed) {
               setChapters(prev => prev.map(chap =>
                 chap.id === chapterId
-                  ? { ...chap, content: currentText, title: "Plan Détaillé", status: "En cours" }
+                  ? { ...chap, content: currentText, title: includeDetailedPlan ? "Plan Détaillé" : (includeToc ? "Sommaire" : "Chapitre 1"), status: "En cours" }
                   : chap
               ));
               // Réutilise l'autosave existant pour persister le plan généré en base.
@@ -267,7 +279,7 @@ function RedactionContent() {
             }
           }
         } catch (error) {
-          console.error("Erreur lors de la génération du plan:", error);
+          console.error("Erreur lors de la génération du plan/contenu:", error);
           if (isSubscribed) {
             setIsAiThinking(false);
             setMessages(prev => [
@@ -275,7 +287,7 @@ function RedactionContent() {
               {
                 id: Date.now(),
                 sender: "ai",
-                text: "Désolé, une erreur est survenue lors de la génération du plan. Vous pouvez me redemander un plan directement depuis le chat.",
+                text: "Désolé, une erreur est survenue lors de la génération de votre livre. Veuillez réessayer.",
                 time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
               }
             ]);
