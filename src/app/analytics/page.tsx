@@ -4,25 +4,32 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { useUser } from "@/hooks/useUser";
-import { createClient } from "@/lib/supabase/client";
+import { 
+  BarChart3, 
+  BookOpen, 
+  FileText, 
+  Coins, 
+  TrendingUp,
+  ChevronRight
+} from "lucide-react";
 
-export default function AnalyticsPage() {
-  const { user, displayName, displayEmail, signOut } = useUser();
+export default function AnalyticsHubPage() {
+  const { displayName, displayEmail, signOut } = useUser();
   const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
-  const supabase = createClient();
-
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  
   const [projects, setProjects] = useState<any[]>([]);
-  const [aiUsageCount, setAiUsageCount] = useState(0);
+  const [globalStats, setGlobalStats] = useState<any>(null);
+  const [projectStats, setProjectStats] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    async function loadMetrics() {
-      if (!user) return;
+    async function loadData() {
       try {
-        const [projRes, usageRes] = await Promise.all([
+        const [projRes, statsRes] = await Promise.all([
           fetch("/api/projects"),
-          supabase.from("ai_usage").select("*", { count: "exact", head: true }).eq("user_id", user.id)
+          fetch("/api/analytics")
         ]);
 
         if (projRes.ok) {
@@ -30,34 +37,34 @@ export default function AnalyticsPage() {
           setProjects(projData.projects || []);
         }
 
-        if (usageRes.count !== null) {
-          setAiUsageCount(usageRes.count || 0);
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setGlobalStats(statsData.global);
+          setProjectStats(statsData.projectStats || {});
         }
       } catch (err) {
-        console.error("Erreur d'analytics:", err);
+        console.error("Erreur de chargement analytiques:", err);
       } finally {
         setLoading(false);
       }
     }
-    loadMetrics();
-  }, [user]);
+    loadData();
+  }, []);
+
+  const filteredProjects = projects.filter((project) =>
+    (project.title || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
-      {/* GLOBAL REUSABLE SIDEBAR */}
       <Sidebar />
 
-      {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-10">
-        <header className="bg-[#F9FAFB] sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4 border-b border-neutral-100">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all">
-              <span className="material-symbols-outlined text-base">arrow_back</span>
-              <span>Tableau de bord</span>
-            </Link>
             <h1 className="font-heading font-extrabold text-xl text-neutral-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-secondary">analytics</span>
-              <span>Statistiques &amp; Performance</span>
+              <BarChart3 className="w-6 h-6 text-secondary" strokeWidth={2.5} />
+              <span>Analytiques</span>
             </h1>
           </div>
 
@@ -78,16 +85,6 @@ export default function AnalyticsPage() {
                     <p className="text-xs text-neutral-500 truncate">{displayEmail}</p>
                   </div>
                   <div className="py-1">
-                    <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
-                      <span className="material-symbols-outlined text-base text-neutral-400">dashboard</span>
-                      <span>Tableau de bord</span>
-                    </Link>
-                    <Link href="/settings" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
-                      <span className="material-symbols-outlined text-base text-neutral-400">settings</span>
-                      <span>Paramètres</span>
-                    </Link>
-                  </div>
-                  <div className="pt-1 border-t border-neutral-100">
                     <button onClick={signOut} className="w-full text-left flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50">
                       <span className="material-symbols-outlined text-base text-red-500">logout</span>
                       <span>Se déconnecter</span>
@@ -99,77 +96,144 @@ export default function AnalyticsPage() {
           </div>
         </header>
 
-        <main className="p-4 sm:p-6 md:p-10 max-w-6xl mx-auto w-full space-y-8">
-          {/* Key Metrics Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-2xs space-y-2">
-              <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Projets de Livres</span>
-              <p className="font-heading font-extrabold text-3xl text-neutral-900">{projects.length}</p>
-              <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
-                <span className="material-symbols-outlined text-sm">check_circle</span> Enregistrés dans Supabase
-              </span>
-            </div>
+        <main className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
+          
+          {/* Global Stats Overview */}
+          <div>
+            <h2 className="font-heading font-extrabold text-2xl text-neutral-900 mb-6 flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-neutral-400" />
+              Vue d'Ensemble
+            </h2>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-6 rounded-3xl border border-neutral-200/80 shadow-2xs space-y-3 relative overflow-hidden group">
+                <div className="absolute -right-4 -top-4 w-20 h-20 bg-orange-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
+                <div className="relative z-10">
+                  <div className="w-10 h-10 bg-orange-100 text-secondary rounded-xl flex items-center justify-center mb-4">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Total Projets</span>
+                  <p className="font-heading font-extrabold text-4xl text-neutral-900 mt-1">{loading ? "-" : projects.length}</p>
+                </div>
+              </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-2xs space-y-2">
-              <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Générations IA</span>
-              <p className="font-heading font-extrabold text-3xl text-secondary">{aiUsageCount}</p>
-              <span className="text-xs text-neutral-400 font-medium">Historique en temps réel</span>
-            </div>
+              <div className="bg-white p-6 rounded-3xl border border-neutral-200/80 shadow-2xs space-y-3 relative overflow-hidden group">
+                <div className="absolute -right-4 -top-4 w-20 h-20 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
+                <div className="relative z-10">
+                  <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Mots Rédigés</span>
+                  <p className="font-heading font-extrabold text-4xl text-neutral-900 mt-1">{loading ? "-" : globalStats?.totalWords?.toLocaleString('fr-FR') || 0}</p>
+                </div>
+              </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-2xs space-y-2">
-              <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Note Moyenne Lecteurs</span>
-              <p className="font-heading font-extrabold text-3xl text-amber-500">5.0 / 5</p>
-              <span className="text-xs text-neutral-500 font-medium">Iris Co-création</span>
-            </div>
+              <div className="bg-white p-6 rounded-3xl border border-neutral-200/80 shadow-2xs space-y-3 relative overflow-hidden group">
+                <div className="absolute -right-4 -top-4 w-20 h-20 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
+                <div className="relative z-10">
+                  <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
+                    <span className="material-symbols-outlined">menu_book</span>
+                  </div>
+                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Pages Estimées</span>
+                  <p className="font-heading font-extrabold text-4xl text-neutral-900 mt-1">{loading ? "-" : globalStats?.totalPages?.toLocaleString('fr-FR') || 0}</p>
+                </div>
+              </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-2xs space-y-2">
-              <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Statut du Compte</span>
-              <p className="font-heading font-extrabold text-3xl text-neutral-900">Actif</p>
-              <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
-                <span className="material-symbols-outlined text-sm">verified</span> Authentifié
-              </span>
+              <div className="bg-white p-6 rounded-3xl border border-neutral-200/80 shadow-2xs space-y-3 relative overflow-hidden group">
+                <div className="absolute -right-4 -top-4 w-20 h-20 bg-purple-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
+                <div className="relative z-10">
+                  <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-4">
+                    <Coins className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Investissement IA</span>
+                  <p className="font-heading font-extrabold text-4xl text-neutral-900 mt-1">{loading ? "-" : globalStats?.estimatedCost?.toFixed(2) || "0.00"} €</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Book Performance Table */}
-          <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-2xs overflow-hidden">
-            <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
-              <h2 className="font-heading font-extrabold text-lg text-neutral-900">
-                Performance de vos Livres
+          {/* Project List */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h2 className="font-heading font-extrabold text-2xl text-neutral-900">
+                Statistiques par Projet
               </h2>
-              <span className="text-xs text-neutral-400 font-mono">Supabase Realtime</span>
+              
+              <div className="relative w-full sm:w-72">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-lg">
+                  search
+                </span>
+                <input
+                  type="text"
+                  placeholder="Rechercher un livre..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:border-secondary outline-none transition-colors"
+                />
+              </div>
             </div>
 
-            <div className="divide-y divide-neutral-100">
-              {projects.length === 0 ? (
-                <div className="p-8 text-center text-neutral-500 text-sm font-medium">
-                  Aucun projet de livre trouvé pour l&apos;instant. <Link href="/projects/new" className="text-secondary font-bold underline">Créer votre premier livre</Link>
+            <div className="bg-white rounded-3xl border border-neutral-200/80 shadow-2xs overflow-hidden">
+              {loading ? (
+                <div className="flex flex-col justify-center items-center h-48">
+                  <span className="material-symbols-outlined animate-spin text-secondary text-3xl">progress_activity</span>
+                  <p className="text-sm font-semibold text-neutral-500 mt-3">Calcul de vos statistiques...</p>
+                </div>
+              ) : filteredProjects.length === 0 ? (
+                <div className="p-12 text-center text-neutral-500">
+                  <div className="w-16 h-16 bg-neutral-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <BarChart3 className="w-8 h-8 text-neutral-400" />
+                  </div>
+                  <p className="font-bold text-neutral-800">Aucun projet trouvé</p>
                 </div>
               ) : (
-                projects.map((item, idx) => (
-                  <div key={item.id || idx} className="p-5 flex items-center justify-between gap-4 hover:bg-neutral-50/60 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-orange-50 text-secondary border border-orange-200 flex items-center justify-center font-bold font-heading">
-                        #{idx + 1}
-                      </div>
-                      <div>
-                        <p className="font-heading font-bold text-sm text-neutral-900">{item.title}</p>
-                        <p className="text-xs text-neutral-500">{item.subtitle || item.category || "Projet de livre"}</p>
-                      </div>
-                    </div>
+                <div className="divide-y divide-neutral-100">
+                  {filteredProjects.map((project) => {
+                    const stats = projectStats[project.id] || { words: 0, chaptersCount: 0 };
+                    const pages = Math.ceil(stats.words / 250);
+                    
+                    return (
+                      <div key={project.id} className="p-6 hover:bg-neutral-50/50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-6 group">
+                        
+                        <div className="flex items-center gap-4 flex-1">
+                          {project.cover_url ? (
+                            <div className="w-14 h-20 rounded shadow-sm overflow-hidden shrink-0 bg-neutral-100 border border-neutral-200">
+                              <img src={project.cover_url} alt="Cover" className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-14 h-20 rounded shadow-sm bg-neutral-100 border border-neutral-200 shrink-0 flex items-center justify-center">
+                              <BookOpen className="w-6 h-6 text-neutral-300" />
+                            </div>
+                          )}
+                          
+                          <div>
+                            <h3 className="font-heading font-bold text-base text-neutral-900 group-hover:text-secondary transition-colors line-clamp-1">{project.title}</h3>
+                            <p className="text-xs text-neutral-500 mt-1">{stats.chaptersCount} chapitre(s) • Dernière modif. {new Date(project.updated_at).toLocaleDateString('fr-FR')}</p>
+                          </div>
+                        </div>
 
-                    <div className="flex items-center gap-4">
-                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                        {item.status || "En cours"}
-                      </span>
-                      <Link href={`/redaction?projectId=${item.id}`}>
-                        <button className="bg-neutral-100 hover:bg-secondary hover:text-white text-neutral-800 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors">
-                          Rédiger
-                        </button>
-                      </Link>
-                    </div>
-                  </div>
-                ))
+                        <div className="flex items-center gap-8 px-4 py-3 bg-white border border-neutral-100 rounded-2xl md:bg-transparent md:border-transparent md:p-0">
+                          <div className="text-center">
+                            <span className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Mots</span>
+                            <span className="font-bold text-neutral-800">{stats.words.toLocaleString('fr-FR')}</span>
+                          </div>
+                          <div className="w-px h-8 bg-neutral-200"></div>
+                          <div className="text-center">
+                            <span className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Pages</span>
+                            <span className="font-bold text-neutral-800">{pages}</span>
+                          </div>
+                        </div>
+
+                        <Link href={`/analytics/${project.id}`} className="shrink-0">
+                          <button className="w-full md:w-auto bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2">
+                            <span>Voir détails</span>
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>
@@ -178,4 +242,3 @@ export default function AnalyticsPage() {
     </div>
   );
 }
-
