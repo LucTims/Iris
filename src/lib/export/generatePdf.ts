@@ -49,6 +49,11 @@ export function generatePdf(
       margin: 0;
       padding: 0;
     }
+    .print-container {
+      max-width: 17cm;
+      margin: 0 auto;
+      padding: 0 1cm;
+    }
     .title-page {
       text-align: center;
       padding-top: 200px;
@@ -117,24 +122,26 @@ export function generatePdf(
   </style>
 </head>
 <body>
-  <!-- Title Page -->
-  <div class="title-page">
-    <h1>${title.toUpperCase()}</h1>
-    ${subtitle ? `<div class="subtitle">${subtitle}</div>` : ""}
-    <div class="separator">───────────────</div>
-    <div class="branding">Généré avec Iris</div>
-  </div>
+  <div class="print-container">
+    <!-- Title Page -->
+    <div class="title-page">
+      <h1>${title.toUpperCase()}</h1>
+      ${subtitle ? `<div class="subtitle">${subtitle}</div>` : ""}
+      <div class="separator">───────────────</div>
+      <div class="branding">Généré avec Iris</div>
+    </div>
 
-  <!-- Table of Contents -->
-  <div class="toc">
-    <h2>Table des Matières</h2>
-    <ul>
-      ${chapters.map((ch) => `<li>${ch.title}</li>`).join("\n")}
-    </ul>
-  </div>
+    <!-- Table of Contents -->
+    <div class="toc">
+      <h2>Table des Matières</h2>
+      <ul>
+        ${chapters.map((ch) => `<li>${ch.title}</li>`).join("\n")}
+      </ul>
+    </div>
 
-  <!-- Chapters -->
-  ${chaptersHtml}
+    <!-- Chapters -->
+    ${chaptersHtml}
+  </div>
 </body>
 </html>
   `;
