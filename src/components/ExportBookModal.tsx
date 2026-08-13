@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, LayoutTemplate, Download, ArrowRight, ArrowLeft } from "lucide-react";
+import { saveAs } from "file-saver";
 
 interface ExportBookModalProps {
   isOpen: boolean;
@@ -31,63 +32,55 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
   if (!isOpen) return null;
 
   const bookTitle = project?.title || "Mon Livre Iris";
+  const sanitizedTitle = bookTitle.toLowerCase().replace(/[^a-z0-9àâäéèêëïîôùûüÿçœæ]/gi, "_").replace(/_+/g, "_");
 
-  const handleDownload = () => {
+  // Build chapters data from project
+  const chaptersData = (project?.chapters || []).map((ch: any, idx: number) => ({
+    title: ch.title || `Chapitre ${ch.number || idx + 1}`,
+    content: ch.content || "",
+    number: ch.number || idx + 1,
+  }));
+
+  const handleDownload = async () => {
     setIsExporting(true);
     setExportSuccess(false);
 
-    setTimeout(() => {
-      // Create formatted text content based on selected options
-      let content = "";
-      
-      if (selectedFormat === "markdown") {
-        content = `# ${bookTitle}\n`;
-        if (project?.subtitle) content += `*${project.subtitle}*\n\n`;
-        content += `---\n\n`;
-        content += `## Sommaire\n- Chapitre 1\n- Chapitre 2\n\n---\n\n`;
-        content += `## Chapitre 1\n\nLe soleil de midi écrasait le Mandé d'une chaleur de plomb. Soundiata fixait l'horizon avec une volonté inébranlable...\n\n`;
-      } else {
-        content = `${bookTitle.toUpperCase()}\n${project?.subtitle || ""}\n\n===================================\n`;
-        content += `TABLE DES MATIÈRES\n-----------------------------------\n1. Chapitre 1 .............. Page 1\n2. Chapitre 2 .............. Page 15\n\n===================================\n\n`;
-        content += `CHAPITRE 1\n\nLe soleil de midi écrasait le Mandé d'une chaleur de plomb. Soundiata fixait l'horizon avec une volonté inébranlable...\n`;
+    try {
+      if (chaptersData.length === 0) {
+        alert("Aucun chapitre à exporter. Rédigez d'abord du contenu dans votre livre.");
+        setIsExporting(false);
+        return;
       }
 
-      // MIME Types mapping
-      const mimeTypes: Record<string, string> = {
-        epub: "application/epub+zip",
-        pdf: "application/pdf",
-        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        markdown: "text/markdown"
-      };
+      if (selectedFormat === "docx") {
+        const { generateDocx } = await import("@/lib/export/generateDocx");
+        const blob = await generateDocx(bookTitle, project?.subtitle, chaptersData);
+        saveAs(blob, `${sanitizedTitle}.docx`);
 
-      const extensions: Record<string, string> = {
-        epub: "epub",
-        pdf: "pdf",
-        docx: "docx",
-        markdown: "md"
-      };
+      } else if (selectedFormat === "epub") {
+        const { generateEpub } = await import("@/lib/export/generateEpub");
+        const blob = await generateEpub(bookTitle, project?.subtitle, "Auteur", chaptersData);
+        saveAs(blob, `${sanitizedTitle}.epub`);
 
-      const ext = extensions[selectedFormat];
-      const mime = mimeTypes[selectedFormat] || "text/plain";
-      
-      const blob = new Blob([content], { type: mime });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const sanitizedTitle = bookTitle.toLowerCase().replace(/[^a-z0-9]/g, "_");
-      a.download = `${sanitizedTitle}.${ext}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      } else if (selectedFormat === "pdf") {
+        const { generatePdf } = await import("@/lib/export/generatePdf");
+        generatePdf(bookTitle, project?.subtitle, chaptersData);
 
-      setIsExporting(false);
+      } else if (selectedFormat === "markdown") {
+        const { generateMarkdown } = await import("@/lib/export/generateMarkdown");
+        const blob = generateMarkdown(bookTitle, project?.subtitle, chaptersData);
+        saveAs(blob, `${sanitizedTitle}.md`);
+      }
+
       setExportSuccess(true);
+      setTimeout(() => setExportSuccess(false), 4000);
 
-      setTimeout(() => {
-        setExportSuccess(false);
-      }, 4000);
-    }, 1200);
+    } catch (error) {
+      console.error("Export error:", error);
+      alert("Une erreur est survenue lors de l'export. Veuillez réessayer.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const resetAndClose = () => {
@@ -114,7 +107,7 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
             <div className="space-y-2">
               <h2 className="font-heading font-extrabold text-2xl text-neutral-900">Avez-vous une couverture ?</h2>
               <p className="text-sm text-neutral-500 max-w-sm mx-auto leading-relaxed">
-                Une belle couverture attire l'œil ! Voulez-vous générer une couverture professionnelle par IA avant de télécharger votre livre ?
+                Une belle couverture attire l&apos;œil ! Voulez-vous générer une couverture professionnelle par IA avant de télécharger votre livre ?
               </p>
               <p className="text-xs text-neutral-400 italic mt-1">(Vous pourrez toujours y revenir plus tard)</p>
             </div>
@@ -176,9 +169,9 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
             <div className="space-y-2">
               <h2 className="font-heading font-extrabold text-2xl text-neutral-900">Formatage & Mise en page</h2>
               <p className="text-sm text-neutral-500 max-w-md mx-auto leading-relaxed">
-                Voulez-vous formater votre livre pour l'impression (KDP), ajouter des lettrines, un sommaire et modifier la typographie ?
+                Voulez-vous formater votre livre pour l&apos;impression (KDP), ajouter des lettrines, un sommaire et modifier la typographie ?
               </p>
-              <p className="text-xs text-neutral-400 italic mt-1">(Recommandé pour l'édition papier)</p>
+              <p className="text-xs text-neutral-400 italic mt-1">(Recommandé pour l&apos;édition papier)</p>
             </div>
 
             <div className="pt-4 flex flex-col gap-3 max-w-sm mx-auto">
@@ -237,6 +230,9 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
               </h2>
               <p className="text-xs text-neutral-500 font-medium truncate max-w-xs sm:max-w-sm">
                 Projet : <strong className="text-neutral-800">{bookTitle}</strong>
+                {chaptersData.length > 0 && (
+                  <span className="ml-2 text-neutral-400">({chaptersData.length} chapitre{chaptersData.length > 1 ? "s" : ""})</span>
+                )}
               </p>
             </div>
           </div>
