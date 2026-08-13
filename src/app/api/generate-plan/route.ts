@@ -86,11 +86,11 @@ export async function POST(req: Request) {
     if (includeDetailedPlan) {
       missionText = `Ta mission est de générer le **PLAN DÉTAILLÉ** de ce livre. Structure le plan de manière logique avec des chapitres et des sous-parties, accompagnés d'une brève description.`;
       mainTitle = "Plan Détaillé";
-    } else if (includeToc) {
-      missionText = `Ta mission est de générer uniquement le **SOMMAIRE** (Table des matières) de ce livre. Fais une simple liste des chapitres sans sous-parties ni descriptions longues.`;
-      mainTitle = "Sommaire";
     } else {
-      missionText = `Ta mission est d'écrire **DIRECTEMENT LE CONTENU DU LIVRE** (le texte complet). Puisque c'est un format de type "${length}", écris les chapitres avec le contenu final prêt à être lu. Rédige de façon fluide en utilisant le style demandé.`;
+      let tocInstruction = includeToc ? "Commence obligatoirement par un **SOMMAIRE** (Table des matières) listant les chapitres, puis enchaîne avec la rédaction du contenu." : "Ne fais pas de sommaire.";
+      
+      missionText = `Ta mission est d'écrire **DIRECTEMENT LE CONTENU DU LIVRE** (le texte complet). Puisque c'est un format de type "${length}", écris les chapitres avec le contenu final prêt à être lu. Rédige de façon fluide en utilisant le style demandé.
+${tocInstruction}`;
       mainTitle = title;
     }
 
