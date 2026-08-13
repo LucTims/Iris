@@ -54,6 +54,24 @@ export function generatePdf(
       margin: 0 auto;
       padding: 0 1cm;
     }
+    /* Table trick to force top/bottom margins on every page */
+    table.page-wrapper {
+      width: 100%;
+      border-collapse: collapse;
+      border: none;
+    }
+    table.page-wrapper > thead > tr > th,
+    table.page-wrapper > tfoot > tr > td {
+      height: 2cm;
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
+    table.page-wrapper > tbody > tr > td {
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
     .title-page {
       text-align: center;
       padding-top: 200px;
@@ -123,24 +141,38 @@ export function generatePdf(
 </head>
 <body>
   <div class="print-container">
-    <!-- Title Page -->
-    <div class="title-page">
-      <h1>${title.toUpperCase()}</h1>
-      ${subtitle ? `<div class="subtitle">${subtitle}</div>` : ""}
-      <div class="separator">───────────────</div>
-      <div class="branding">Généré avec Iris</div>
-    </div>
+    <table class="page-wrapper">
+      <thead>
+        <tr><th></th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <!-- Title Page -->
+            <div class="title-page">
+              <h1>${title.toUpperCase()}</h1>
+              ${subtitle ? `<div class="subtitle">${subtitle}</div>` : ""}
+              <div class="separator">───────────────</div>
+              <div class="branding">Généré avec Iris</div>
+            </div>
 
-    <!-- Table of Contents -->
-    <div class="toc">
-      <h2>Table des Matières</h2>
-      <ul>
-        ${chapters.map((ch) => `<li>${ch.title}</li>`).join("\n")}
-      </ul>
-    </div>
+            <!-- Table of Contents -->
+            <div class="toc">
+              <h2>Table des Matières</h2>
+              <ul>
+                ${chapters.map((ch) => `<li>${ch.title}</li>`).join("\n")}
+              </ul>
+            </div>
 
-    <!-- Chapters -->
-    ${chaptersHtml}
+            <!-- Chapters -->
+            ${chaptersHtml}
+          </td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr><td></td></tr>
+      </tfoot>
+    </table>
   </div>
 </body>
 </html>
