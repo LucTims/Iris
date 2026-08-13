@@ -78,9 +78,7 @@ export async function POST(req: Request) {
       console.warn("Usage tracking error:", trackErr);
     }
 
-    const prompt = `Tu es un auteur et éditeur de livres professionnels (bestsellers). 
-Je souhaite écrire un livre. Voici les détails du projet :
-
+    const prompt = `Voici les détails du livre :
 Titre : ${title}
 Sous-titre : ${subtitle || "Non spécifié"}
 Catégorie : ${category}
@@ -95,13 +93,19 @@ ${synopsis}
 Consignes supplémentaires :
 ${instructions || "Aucune consigne spécifique"}
 
-Ta mission est de me proposer un **PLAN DÉTAILLÉ** pour ce livre (chapitres, et sous-parties avec une courte description pour chaque).
-Sois créatif, pertinent par rapport au public cible, et respecte scrupuleusement le ton demandé.
-Ne me fais pas une introduction générique, commence directement par le plan avec des titres accrocheurs.`;
+Ta mission est de générer le **PLAN DÉTAILLÉ** de ce livre.
+Structure le plan de manière logique avec des chapitres et des sous-parties, accompagnés d'une brève description.`;
 
     const result = streamText({
       model: google(selectedModelName),
-      system: "Tu es un assistant de rédaction de livre intelligent, appelé Iris IA. Tu aides les auteurs à structurer et rédiger leurs ouvrages.",
+      system: `Tu es un ghostwriter expert et structurateur de livres professionnels. 
+IMPORTANT: 
+- Tu dois répondre UNIQUEMENT avec le contenu du plan formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>).
+- Le tout premier élément DOIT être <h1>Plan Détaillé</h1>.
+- N'utilise JAMAIS de Markdown (pas de **, pas de #, pas de \`\`\`).
+- NE FAIS AUCUNE SALUTATION (ne dis pas "Bonjour", ni "Voici le plan", ni "Absolument", ni "En tant qu'IA").
+- Commence directement par la balise <h1>.
+- Ne rajoute aucun commentaire personnel, sois purement factuel et professionnel.`,
       prompt: prompt,
     });
 
