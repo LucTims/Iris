@@ -92,8 +92,8 @@ Chapitre ${chapterNumber} : ${chapterTitle}
 
 Instructions impératives :
 1. Rédige le chapitre complet. Il doit être long, détaillé et immersif (vise au moins 800 à 1500 mots).
-2. N'ajoute AUCUN préambule (pas de "Voici le chapitre :" ni de "Bien sûr, je vais rédiger..."). Commence DIRECTEMENT par le contenu du chapitre.
-3. N'inclus PAS le titre du chapitre au début, l'éditeur de texte s'en charge.
+2. N'ajoute AUCUN préambule (pas de "Voici le chapitre :" ni de "Bien sûr, je vais rédiger...").
+3. COMMENCE par le titre du chapitre en balise <h1>. Par exemple : <h1>Chapitre ${chapterNumber} : ${chapterTitle}</h1>. Puis rédige le contenu du chapitre.
 4. Convertis le contenu en HTML valide, avec des balises <p>, <h2>, <h3>, <strong>, <em>, <blockquote>.`;
 
     const result = streamText({

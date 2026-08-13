@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { useUser } from "@/hooks/useUser";
 import { Sparkles, LayoutTemplate, Settings2, Eye, Download, BookOpen } from "lucide-react";
 
-export default function ExportEditorPage({ params }: { params: { id: string } }) {
+export default function ExportEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const { displayName, displayEmail, signOut } = useUser();
   const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const router = useRouter();
-  const projectId = params.id;
+  const unwrappedParams = use(params);
+  const projectId = unwrappedParams.id;
 
   // Project Data
   const [projectTitle, setProjectTitle] = useState("Chargement...");

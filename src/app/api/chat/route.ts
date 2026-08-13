@@ -187,9 +187,10 @@ Demande actuelle de l'auteur :
 
 Consignes de génération :
 1. Rédige le nouveau contenu HTML du chapitre réécrit/enrichi en tenant compte du contenu actuel, des consignes de l'auteur ET de l'historique récent de la discussion.
-2. Utilise des balises HTML sémantiques valides (<p>, <h2>, <h3>, <strong>, <em>, <ul>, <li>, <blockquote>). N'inclus PAS <html>, <body>, <head> ou des blocs Markdown \`\`\`html.
-3. Rédige un court résumé des modifications (1-2 phrases) pour la propriété 'summary'.
-4. Rédige un message chaleureux et explicatif pour la propriété 'chatSummary' (destiné au fil de discussion).`;
+2. Utilise des balises HTML sémantiques valides (<p>, <h1>, <h2>, <h3>, <strong>, <em>, <ul>, <li>, <blockquote>). N'inclus PAS <html>, <body>, <head> ou des blocs Markdown \`\`\`html.
+3. COMMENCE TOUJOURS le contenu par le titre du chapitre en balise <h1> (ex: <h1>${resolved.targetTitle}</h1>). Ne supprime jamais le titre H1 du début.
+4. Rédige un court résumé des modifications (1-2 phrases) pour la propriété 'summary'.
+5. Rédige un message chaleureux et explicatif pour la propriété 'chatSummary' (destiné au fil de discussion).`;
 
       const modificationResult = await generateObject({
         model: google(selectedModelName),

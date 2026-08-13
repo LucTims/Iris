@@ -94,6 +94,7 @@ function RedactionContent() {
 
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [isGeneratingChapter, setIsGeneratingChapter] = useState(false);
+  const [liveWordCount, setLiveWordCount] = useState(0);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<RichManuscriptEditorHandle>(null);
 
@@ -449,9 +450,13 @@ function RedactionContent() {
     };
   }, [isResizing]);
 
-  // Calculate current word count
+  // Calculate current word count (strip HTML tags for accurate counting)
   const currentChapter = chapters[activeChapterIndex] || chapters[0];
-  const wordCount = currentChapter.content.trim() ? currentChapter.content.trim().split(/\s+/).length : 0;
+  const stripHtmlForWordCount = (html: string) => {
+    const text = html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+    return text ? text.split(/\s+/).length : 0;
+  };
+  const wordCount = liveWordCount || stripHtmlForWordCount(currentChapter.content);
 
   // Handle Sending a User Message & AI Response
   const handleSendMessage = (textToSend?: string) => {
@@ -1029,6 +1034,7 @@ function RedactionContent() {
                 setChapters(updated);
                 setSaveStatus("saving");
               }}
+              onWordCountChange={(count) => setLiveWordCount(count)}
               onContinueWithAi={() => {
                 setMobileView("chat");
                 handleSendMessage("Rédiger la suite de ce chapitre avec l'IA");
