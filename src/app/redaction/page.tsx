@@ -210,10 +210,11 @@ function RedactionContent() {
           // Get context from localStorage to see what to generate
           let includeDetailedPlan = true;
           let includeToc = false;
+          let ctx: any = null;
           try {
             const ctxRaw = localStorage.getItem("iris_current_project");
             if (ctxRaw) {
-              const ctx = JSON.parse(ctxRaw);
+              ctx = JSON.parse(ctxRaw);
               if (ctx.includeDetailedPlan !== undefined) includeDetailedPlan = ctx.includeDetailedPlan;
               if (ctx.includeToc !== undefined) includeToc = ctx.includeToc;
             }
@@ -233,7 +234,8 @@ function RedactionContent() {
               length: project.length,
               instructions: project.instructions,
               includeDetailedPlan,
-              includeToc
+              includeToc,
+              model: project.model || ctx?.model || "gemini-1.5-flash"
             })
           });
 
@@ -1162,9 +1164,9 @@ function RedactionContent() {
                     className="bg-white border border-neutral-200 text-neutral-800 text-[11px] font-bold px-2 py-1 rounded-lg outline-none cursor-pointer hover:border-secondary transition-all"
                     title="Choisir le modèle d'IA"
                   >
-                    <option value="gemini-1.5-flash">⚡ Standard (~20 🪙/page)</option>
-                    <option value="gpt-4o">🧠 Avancé (~80 🪙/page)</option>
-                    <option value="claude-3-5-sonnet-20240620">✍️ Plume d'Auteur (~150 🪙/page)</option>
+                    <option value="gemini-1.5-flash">⚡ Iris Starter (~20 🪙/page)</option>
+                    <option value="gpt-4o">🧠 Iris Pro (~80 🪙/page)</option>
+                    <option value="claude-3-5-sonnet-20240620">✍️ Iris Author (~150 🪙/page)</option>
                   </select>
 
                   <button
