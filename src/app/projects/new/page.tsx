@@ -94,7 +94,7 @@ export default function NewBookWizard() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModelModal, setShowModelModal] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("gemini-1.5-flash");
+  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
 
   // Intercept the final submit to show the modal first
   const handlePreSubmit = (e: React.FormEvent) => {
@@ -502,8 +502,8 @@ export default function NewBookWizard() {
                 <div className="space-y-4 mb-8">
                   {/* Standard Model */}
                   <div 
-                    onClick={() => setSelectedModel("gemini-1.5-flash")}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-4 ${selectedModel === "gemini-1.5-flash" ? "border-orange-500 bg-orange-50/50" : "border-neutral-200 hover:border-orange-300"}`}
+                    onClick={() => setSelectedModel("gemini-2.5-flash")}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-4 ${selectedModel === "gemini-2.5-flash" ? "border-orange-500 bg-orange-50/50" : "border-neutral-200 hover:border-orange-300"}`}
                   >
                     <div className="mt-1 text-2xl">⚡</div>
                     <div className="flex-1">

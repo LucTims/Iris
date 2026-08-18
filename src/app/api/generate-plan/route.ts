@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       includeToc
     } = await req.json();
 
-    const selectedModelName = chosenModel || "gemini-1.5-flash";
+    const selectedModelName = chosenModel || "gemini-2.5-flash";
 
     // Check coins
     const hasEnoughCoins = await checkMinimumBalance(user.id, 50);

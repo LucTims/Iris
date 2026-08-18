@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 export async function POST(req: Request) {
   try {
@@ -16,8 +17,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Données manquantes" }, { status: 400 });
     }
 
+    const supabaseAdmin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     // 1. Créer une transaction en base de données (statut "pending")
-    const { data: transaction, error: dbError } = await supabase
+    const { data: transaction, error: dbError } = await supabaseAdmin
       .from("transactions")
       .insert({
         user_id: user.id,

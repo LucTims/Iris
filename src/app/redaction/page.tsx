@@ -58,7 +58,7 @@ function RedactionContent() {
   const [chatWidth, setChatWidth] = useState(420); // Default 420px
   const [isResizing, setIsResizing] = useState(false);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
-  const [selectedAiModel, setSelectedAiModel] = useState("gemini-1.5-flash");
+  const [selectedAiModel, setSelectedAiModel] = useState("gemini-2.5-flash");
 
   // Book Project State
   const [bookTitle, setBookTitle] = useState("Mon Projet de Livre");
@@ -235,7 +235,7 @@ function RedactionContent() {
               instructions: project.instructions,
               includeDetailedPlan,
               includeToc,
-              model: project.model || ctx?.model || "gemini-1.5-flash"
+              model: project.model || ctx?.model || "gemini-2.5-flash"
             })
           });
 
@@ -1164,7 +1164,7 @@ function RedactionContent() {
                     className="bg-white border border-neutral-200 text-neutral-800 text-[11px] font-bold px-2 py-1 rounded-lg outline-none cursor-pointer hover:border-secondary transition-all"
                     title="Choisir le modèle d'IA"
                   >
-                    <option value="gemini-1.5-flash">⚡ Iris Starter (~20 🪙/page)</option>
+                    <option value="gemini-2.5-flash">⚡ Iris Starter (~20 🪙/page)</option>
                     <option value="gpt-4o">🧠 Iris Pro (~80 🪙/page)</option>
                     <option value="claude-3-5-sonnet-20240620">✍️ Iris Author (~150 🪙/page)</option>
                   </select>

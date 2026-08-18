@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     } = await req.json();
 
     // Default model if not specified
-    const selectedModelName = chosenModel || "gemini-1.5-flash";
+    const selectedModelName = chosenModel || "gemini-2.5-flash";
 
     // 1. Quota Enforcement: Check if user has enough coins (estimate 50 minimum to start)
     const hasEnoughCoins = await checkMinimumBalance(user.id, 50);
