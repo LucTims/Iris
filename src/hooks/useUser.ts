@@ -16,6 +16,7 @@ export function useUser() {
     twitter_url?: string;
     amazon_url?: string;
   } | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,14 +25,26 @@ export function useUser() {
       setUser(user);
 
       if (user) {
-        const { data } = await supabase
+        // Fetch profile
+        const { data: profileData } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", user.id)
           .single();
         
-        if (data) {
-          setProfile(data);
+        if (profileData) {
+          setProfile(profileData);
+        }
+
+        // Fetch wallet
+        const { data: walletData } = await supabase
+          .from("wallets")
+          .select("balance")
+          .eq("user_id", user.id)
+          .single();
+
+        if (walletData) {
+          setWalletBalance(walletData.balance);
         }
       }
       setLoading(false);
@@ -43,6 +56,7 @@ export function useUser() {
       setUser(session?.user ?? null);
       if (!session?.user) {
         setProfile(null);
+        setWalletBalance(0);
       }
     });
 
@@ -66,6 +80,7 @@ export function useUser() {
   return {
     user,
     profile: profile ? { ...profile, role: effectiveRole } : { role: effectiveRole },
+    walletBalance,
     isAdmin: effectiveRole === "admin",
     loading,
     signOut,

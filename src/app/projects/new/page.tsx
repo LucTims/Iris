@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,6 +10,9 @@ export default function NewBookWizard() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const totalSteps = 3;
+  
+  const recognitionRef = useRef<any>(null);
+  const [isListening, setIsListening] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -37,15 +40,76 @@ export default function NewBookWizard() {
     if (step > 1) setStep(step - 1);
   };
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const toggleListening = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+    } else {
+      // @ts-ignore
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("Votre navigateur ne supporte pas la reconnaissance vocale.");
+        return;
+      }
+      
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'fr-FR';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+      
+      recognition.onresult = (event: any) => {
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
+        if (finalTranscript) {
+          setFormData(prev => ({ 
+            ...prev, 
+            synopsis: prev.synopsis + (prev.synopsis && !prev.synopsis.endsWith(' ') ? ' ' : '') + finalTranscript 
+          }));
+        }
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.error("Erreur de reconnaissance vocale:", event.error);
+        setIsListening(false);
+      };
+      
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+      
+      recognitionRef.current = recognition;
+      recognition.start();
+    }
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showModelModal, setShowModelModal] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("gemini-1.5-flash");
+
+  // Intercept the final submit to show the modal first
+  const handlePreSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowModelModal(true);
+  };
+
+  const handleSubmit = async () => {
+    setShowModelModal(false);
     setIsSubmitting(true);
 
     try {
       const projectContext = {
         ...formData,
+        model: selectedModel, // Pass selected model
         createdAt: new Date().toISOString()
       };
       localStorage.setItem("iris_current_project", JSON.stringify(projectContext));
@@ -61,13 +125,12 @@ export default function NewBookWizard() {
         return;
       }
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.project?.id) {
-          localStorage.setItem("iris_current_project_id", data.project.id);
-          router.push(`/redaction?projectId=${data.project.id}&new=true`);
-          return;
-        }
+      const data = await res.json();
+      if (data.project?.id) {
+        localStorage.setItem("iris_current_project_id", data.project.id);
+        // We can pass the model in the URL or let it be picked up from localStorage in /redaction
+        router.push(`/redaction?projectId=${data.project.id}&new=true`);
+        return;
       }
     } catch (err) {
       console.error("Erreur lors de la création du projet:", err);
@@ -138,7 +201,7 @@ export default function NewBookWizard() {
             </p>
           </div>
 
-          <form onSubmit={step === totalSteps ? handleSubmit : (e) => { e.preventDefault(); nextStep(); }}>
+          <form onSubmit={step === totalSteps ? handlePreSubmit : (e) => { e.preventDefault(); nextStep(); }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
@@ -218,14 +281,30 @@ export default function NewBookWizard() {
                           Assistant IA
                         </button>
                       </div>
-                      <textarea
-                        required
-                        value={formData.synopsis}
-                        onChange={(e) => updateForm("synopsis", e.target.value)}
-                        placeholder="Décrivez de quoi parle votre livre. Plus vous donnerez de détails à l'IA, plus le résultat sera précis et personnalisé..."
-                        rows={6}
-                        className="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all resize-none"
-                      />
+                      <div className="relative">
+                        <textarea
+                          required
+                          value={formData.synopsis}
+                          onChange={(e) => updateForm("synopsis", e.target.value)}
+                          placeholder="Décrivez de quoi parle votre livre. Plus vous donnerez de détails à l'IA, plus le résultat sera précis et personnalisé..."
+                          rows={6}
+                          className="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 pb-12 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all resize-none"
+                        />
+                        <button 
+                          type="button" 
+                          onClick={toggleListening}
+                          className={`absolute bottom-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm ${
+                            isListening 
+                              ? 'bg-red-500 text-white animate-pulse' 
+                              : 'bg-white border border-neutral-200 text-neutral-500 hover:text-secondary hover:border-orange-200 hover:bg-orange-50'
+                          }`}
+                          title={isListening ? "Arrêter l'enregistrement" : "Dicter (Microphone)"}
+                        >
+                          <span className="material-symbols-outlined text-[20px]">
+                            {isListening ? 'mic' : 'mic_none'}
+                          </span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -387,7 +466,125 @@ export default function NewBookWizard() {
           </form>
 
         </div>
+        
+        {/* Model Selection Modal */}
+        <AnimatePresence>
+          {showModelModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white rounded-3xl shadow-2xl border border-neutral-200 max-w-xl w-full p-6 sm:p-8 relative"
+              >
+                <button
+                  onClick={() => setShowModelModal(false)}
+                  className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-700 bg-neutral-100 hover:bg-neutral-200 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                >
+                  <span className="material-symbols-outlined text-xl">close</span>
+                </button>
+
+                <div className="text-center mb-8">
+                  <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="material-symbols-outlined text-secondary text-3xl">smart_toy</span>
+                  </div>
+                  <h2 className="font-heading font-extrabold text-2xl text-neutral-900 mb-2">Choisissez votre IA</h2>
+                  <p className="text-sm text-neutral-500">
+                    Sélectionnez le modèle d'Intelligence Artificielle qui va rédiger votre projet. Chaque modèle consomme un nombre différent de pièces.
+                  </p>
+                </div>
+
+                <div className="space-y-4 mb-8">
+                  {/* Standard Model */}
+                  <div 
+                    onClick={() => setSelectedModel("gemini-1.5-flash")}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-4 ${selectedModel === "gemini-1.5-flash" ? "border-orange-500 bg-orange-50/50" : "border-neutral-200 hover:border-orange-300"}`}
+                  >
+                    <div className="mt-1 text-2xl">⚡</div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-neutral-900">Modèle Standard</span>
+                        <span className="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          ~20 🪙 / page
+                        </span>
+                      </div>
+                      <p className="text-xs text-neutral-500 leading-relaxed">
+                        Rapide et économique. Idéal pour générer des plans, structurer des idées et rédiger le premier jet.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Advanced Model */}
+                  <div 
+                    onClick={() => setSelectedModel("gpt-4o")}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-4 ${selectedModel === "gpt-4o" ? "border-orange-500 bg-orange-50/50" : "border-neutral-200 hover:border-orange-300"}`}
+                  >
+                    <div className="mt-1 text-2xl">🧠</div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-neutral-900">Modèle Avancé</span>
+                        <span className="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          ~80 🪙 / page
+                        </span>
+                      </div>
+                      <p className="text-xs text-neutral-500 leading-relaxed">
+                        Très intelligent et nuancé. Parfait pour les réécritures complexes et les essais approfondis.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Pro Model */}
+                  <div 
+                    onClick={() => setSelectedModel("claude-3-5-sonnet-20240620")}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-4 ${selectedModel === "claude-3-5-sonnet-20240620" ? "border-orange-500 bg-orange-50/50" : "border-neutral-200 hover:border-orange-300"}`}
+                  >
+                    <div className="mt-1 text-2xl">✍️</div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-neutral-900 flex items-center gap-2">
+                          Plume d'Auteur
+                          <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider">Premium</span>
+                        </span>
+                        <span className="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          ~150 🪙 / page
+                        </span>
+                      </div>
+                      <p className="text-xs text-neutral-500 leading-relaxed">
+                        Le meilleur modèle du marché pour l'écriture créative et littéraire. Un style inégalé.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setShowModelModal(false)}
+                    className="flex-1 px-6 py-3.5 rounded-xl border border-neutral-200 text-neutral-600 font-bold text-sm hover:bg-neutral-50 transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    className="flex-1 bg-secondary hover:bg-orange-600 text-white px-6 py-3.5 rounded-xl font-bold text-sm shadow-md transition-all flex justify-center items-center gap-2"
+                  >
+                    <span>Lancer la rédaction</span>
+                    <span className="material-symbols-outlined text-base">rocket_launch</span>
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
+      </div>
+    </div>
+  );
+}
       </div>
     </div>
   );

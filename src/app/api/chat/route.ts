@@ -187,10 +187,11 @@ Demande actuelle de l'auteur :
 
 Consignes de génération :
 1. Rédige le nouveau contenu HTML du chapitre réécrit/enrichi en tenant compte du contenu actuel, des consignes de l'auteur ET de l'historique récent de la discussion.
-2. Utilise des balises HTML sémantiques valides (<p>, <h1>, <h2>, <h3>, <strong>, <em>, <ul>, <li>, <blockquote>). N'inclus PAS <html>, <body>, <head> ou des blocs Markdown \`\`\`html.
-3. COMMENCE TOUJOURS le contenu par le titre du chapitre en balise <h1> (ex: <h1>${resolved.targetTitle}</h1>). Ne supprime jamais le titre H1 du début.
-4. Rédige un court résumé des modifications (1-2 phrases) pour la propriété 'summary'.
-5. Rédige un message chaleureux et explicatif pour la propriété 'chatSummary' (destiné au fil de discussion).`;
+2. IMPORTANT : TON ENVIRONNEMENT EST CONNECTÉ À L'ÉDITEUR. Le contenu que tu mets dans 'newContent' sera AUTOMATIQUEMENT inséré et remplacera le texte dans l'éditeur de l'auteur. Tu ne dois JAMAIS dire à l'auteur de copier/coller. Fais simplement le travail, renvoie le texte dans 'newContent', et annonce dans 'chatSummary' que tu l'as ajouté à l'éditeur.
+3. Utilise des balises HTML sémantiques valides (<p>, <h1>, <h2>, <h3>, <strong>, <em>, <ul>, <li>, <blockquote>). N'inclus PAS <html>, <body>, <head> ou des blocs Markdown \`\`\`html.
+4. COMMENCE TOUJOURS le contenu par le titre du chapitre en balise <h1> (ex: <h1>${resolved.targetTitle}</h1>). Ne supprime jamais le titre H1 du début.
+5. Rédige un court résumé des modifications (1-2 phrases) pour la propriété 'summary'.
+6. Rédige un message chaleureux et explicatif pour la propriété 'chatSummary' (destiné au fil de discussion).`;
 
       const modificationResult = await generateObject({
         model: google(selectedModelName),

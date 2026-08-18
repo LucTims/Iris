@@ -1,11 +1,25 @@
 import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { checkMonthlyQuota } from "@/lib/ai/quota";
+import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
 
 export const maxDuration = 60; // Autoriser jusqu'à 60 secondes car générer un chapitre prend du temps
+
+// Helper to select the provider
+function getAiModel(modelId: string) {
+  if (modelId.startsWith("gpt-")) {
+    return openai(modelId);
+  } else if (modelId.startsWith("claude-")) {
+    return anthropic(modelId);
+  } else {
+    // Default to google (gemini)
+    return google(modelId);
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -39,38 +53,24 @@ export async function POST(req: Request) {
       projectId
     } = await req.json();
 
-    // 1. Fetch user profile & plan
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, plan")
-      .eq("id", user.id)
-      .single();
+    // Default model if not specified
+    const selectedModelName = chosenModel || "gemini-1.5-flash";
 
-    const userPlan = profile?.plan || "free";
-    const userRole = profile?.role || "user";
-
-    // 2. Server Whitelist: Force gemini-2.5-flash for free users attempting gemini-2.5-pro
-    let selectedModelName = chosenModel || "gemini-2.5-flash";
-    if (selectedModelName === "gemini-2.5-pro" && userPlan === "free" && userRole !== "admin") {
-      selectedModelName = "gemini-2.5-flash";
-    }
-
-    // 3. Quota Enforcement: Check usage since the start of the current month
-    // Note: sera remplacé par un système de quota en mots/tokens réels en Phase 5.
-    const quota = await checkMonthlyQuota(supabase, user.id, userPlan, userRole);
-    if (!quota.allowed) {
+    // 1. Quota Enforcement: Check if user has enough coins (estimate 50 minimum to start)
+    const hasEnoughCoins = await checkMinimumBalance(user.id, 50);
+    if (!hasEnoughCoins) {
       return NextResponse.json(
-        { error: `Quota mensuel d'IA atteint (${quota.limit} générations). Passez à un plan supérieur pour continuer à générer des chapitres.` },
-        { status: 429 }
+        { error: "Fonds insuffisants. Veuillez acheter des pièces pour continuer à générer des chapitres." },
+        { status: 402 } // Payment Required
       );
     }
 
-    // 4. Track usage in Supabase ai_usage table
+    // 2. Track initial usage in Supabase ai_usage table (optional, for analytics)
     try {
       await supabase.from("ai_usage").insert({
         user_id: user.id,
         project_id: projectId || null,
-        action: "generate_chapter",
+        action: "generate_chapter_started",
         model: selectedModelName
       });
     } catch (trackErr) {
@@ -93,13 +93,27 @@ Chapitre ${chapterNumber} : ${chapterTitle}
 Instructions impératives :
 1. Rédige le chapitre complet. Il doit être long, détaillé et immersif (vise au moins 800 à 1500 mots).
 2. N'ajoute AUCUN préambule (pas de "Voici le chapitre :" ni de "Bien sûr, je vais rédiger...").
-3. COMMENCE par le titre du chapitre en balise <h1>. Par exemple : <h1>Chapitre ${chapterNumber} : ${chapterTitle}</h1>. Puis rédige le contenu du chapitre.
-4. Convertis le contenu en HTML valide, avec des balises <p>, <h2>, <h3>, <strong>, <em>, <blockquote>.`;
+3. IMPORTANT: Chaque chapitre doit absolument commencer sur une nouvelle page. Pour ce faire, COMMENCE toujours ton texte par la balise <hr data-page-break>.
+4. Juste après cette balise, ajoute le titre du chapitre en balise <h1>. Par exemple : <hr data-page-break><h1>Chapitre ${chapterNumber} : ${chapterTitle}</h1>.
+5. Ensuite, rédige le contenu du chapitre en HTML valide, avec des balises <p>, <h2>, <h3>, <strong>, <em>, <blockquote>.`;
 
     const result = streamText({
-      model: google(selectedModelName),
+      model: getAiModel(selectedModelName),
       system: systemPrompt,
       prompt: "Rédige ce chapitre maintenant en HTML en respectant scrupuleusement les consignes et le style.",
+      async onFinish({ usage }) {
+        // Déduction des pièces à la fin de la génération
+        const success = await deductCost(
+          user.id,
+          selectedModelName,
+          usage.promptTokens,
+          usage.completionTokens,
+          `Génération Chapitre ${chapterNumber}: ${chapterTitle}`
+        );
+        if (!success) {
+          console.error(`Erreur lors de la déduction des pièces pour l'utilisateur ${user.id}`);
+        }
+      }
     });
 
     return result.toTextStreamResponse();

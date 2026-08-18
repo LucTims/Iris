@@ -93,14 +93,14 @@ function ExportHubContent() {
         <main className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
           
           {/* Hero Section */}
-          <div className="bg-white p-8 md:p-10 rounded-3xl border border-neutral-200/80 shadow-sm relative overflow-hidden">
+          <div className="bg-white p-6 md:p-8 rounded-3xl border border-neutral-200/80 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
             
             <div className="relative z-10 max-w-2xl space-y-4">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-secondary text-xs font-bold uppercase tracking-wider">
                 <Settings2 className="w-3.5 h-3.5" /> Édition Professionnelle
               </div>
-              <h2 className="text-3xl md:text-4xl font-heading font-extrabold text-neutral-900">
+              <h2 className="text-2xl md:text-3xl font-heading font-extrabold text-neutral-900">
                 Préparez votre livre pour l'impression ou les liseuses.
               </h2>
               <p className="text-neutral-600 font-medium text-sm md:text-base leading-relaxed">
@@ -111,7 +111,7 @@ function ExportHubContent() {
 
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h3 className="font-heading font-extrabold text-xl text-neutral-900">
+              <h3 className="font-heading font-extrabold text-lg text-neutral-900">
                 Vos Livres & Projets
               </h3>
               

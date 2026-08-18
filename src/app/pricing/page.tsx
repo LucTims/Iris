@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import TopHeader from "@/components/TopHeader";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -30,176 +31,301 @@ export default function PricingPage() {
     }
   };
 
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const faqs = [
+    {
+      question: "Puis-je acheter plusieurs packs de pièces ?",
+      answer: "Oui, tout à fait. Vos pièces s'accumulent dans votre portefeuille virtuel et n'ont pas de date d'expiration. Vous pouvez recharger quand vous le souhaitez."
+    },
+    {
+      question: "Comment sont décomptées les pièces ?",
+      answer: "Les pièces sont décomptées à chaque utilisation de l'IA (génération de chapitre, réécriture, etc.) en fonction du modèle choisi. Le modèle Standard est le plus économique, tandis que le modèle Plume d'Auteur consomme plus de pièces pour une qualité supérieure."
+    },
+    {
+      question: "Quels sont les moyens de paiement acceptés ?",
+      answer: "Nous acceptons les paiements par Mobile Money (Orange Money, MTN, Moov, etc.) ainsi que les cartes bancaires via notre partenaire sécurisé SebPay."
+    },
+    {
+      question: "Est-ce un abonnement qui se renouvelle automatiquement ?",
+      answer: "Non, il n'y a aucun abonnement caché. Vous achetez un pack de pièces en paiement unique (Pay-as-you-go). Vous ne payez que ce que vous consommez."
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-white font-body text-neutral-900 flex flex-col justify-between">
-      {/* Header / Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-neutral-200/80">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" className="font-heading font-extrabold text-3xl md:text-4xl text-neutral-900 tracking-tight">
-            Iris
-          </Link>
+    <div className="min-h-screen bg-neutral-50 font-body text-neutral-900 flex flex-col justify-between">
+      <TopHeader />
 
-          <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-neutral-700">
-            <Link href="/features" className="hover:text-secondary transition-colors">Fonctionnalités</Link>
-            <Link href="/how-it-works" className="hover:text-secondary transition-colors">Comment ça marche</Link>
-            <Link href="/pricing" className="text-secondary font-bold">Tarifs</Link>
-            <Link href="/blog" className="hover:text-secondary transition-colors">Blog</Link>
-            <Link href="/docs" className="hover:text-secondary transition-colors">Documentation</Link>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-semibold text-neutral-700 hover:text-neutral-900 hidden sm:block">
-              Se connecter
-            </Link>
-            <Link href="/register">
-              <button className="bg-secondary hover:bg-orange-600 text-white px-5 py-2.5 rounded-full text-sm font-bold transition-all shadow-sm">
-                Commencer gratuitement →
-              </button>
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="pt-36 pb-20 max-w-7xl mx-auto px-6 w-full">
+      <main className="pt-20 pb-20 max-w-7xl mx-auto px-6 w-full">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="inline-block py-1.5 px-4 rounded-full bg-orange-50 border border-orange-200 text-secondary font-bold text-xs uppercase tracking-widest mb-4">
-            TARIFS & ABONNEMENTS
-          </span>
-          <h1 className="font-heading text-4xl sm:text-6xl font-extrabold text-neutral-900 tracking-tight mb-4">
-            Des tarifs transparents pour chaque auteur
+          <h1 className="font-heading text-4xl sm:text-5xl font-extrabold text-neutral-900 tracking-tight mb-4">
+            Payez uniquement ce que vous consommez
           </h1>
-          <p className="text-lg text-neutral-600">
-            Que vous rédigiez votre premier guide ou une série complète d&apos;eBooks, choisissez le plan adapté à vos ambitions.
+          <p className="text-lg text-neutral-600 mb-8">
+            Fini les abonnements mensuels. Achetez des pièces et dépensez-les pour générer du texte, des chapitres ou des couvertures avec l'IA.
           </p>
         </div>
 
-        {/* Pricing Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-20">
-          {/* Standard Plan (8000) */}
-          <div className="bg-white rounded-3xl border border-neutral-200 p-8 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">Pour débuter</span>
-              <h3 className="font-heading text-2xl font-bold text-neutral-900 mt-1 mb-2">Auteur Standard</h3>
-              <p className="text-sm text-neutral-500 mb-6">Pour écrire vos premiers livres professionnels.</p>
-              <div className="mb-8">
-                <span className="text-4xl font-extrabold text-neutral-900">8 000 FCFA</span>
-                <span className="text-neutral-500 font-medium"> / 30 jours</span>
+        {/* 3 Tiers Pricing Cards Grid */}
+        <div className="flex flex-col md:flex-row items-stretch justify-center gap-6 max-w-6xl mx-auto mb-24">
+          
+          {/* Starter Plan */}
+          <div className="flex-1 bg-white rounded-2xl border border-neutral-200 p-8 shadow-sm flex flex-col justify-between">
+            <div className="text-center">
+              <div className="mx-auto w-12 h-12 bg-neutral-100 rounded-full flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-neutral-600">book</span>
+              </div>
+              <h3 className="font-heading text-xl font-bold text-neutral-900 mb-1">Starter</h3>
+              <p className="text-sm text-neutral-500 mb-6">Idéal pour tester l'éditeur.</p>
+              
+              <div className="mb-6">
+                <span className="text-4xl font-extrabold text-neutral-900">1000 FCFA</span>
+              </div>
+              
+              <div className="mb-8 flex flex-col items-center">
+                <div className="font-extrabold text-xl text-neutral-800">1 000 pièces</div>
+                <div className="text-xs text-neutral-400 mt-1 uppercase font-bold">Sans bonus</div>
               </div>
 
-              <ul className="space-y-3 text-sm text-neutral-700 mb-8">
-                <li className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
-                  <span>Jusqu'à 3 projets de livres</span>
+              <ul className="space-y-4 text-sm text-neutral-700 text-left mb-8">
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-emerald-500 text-[20px] shrink-0">check_circle</span>
+                  <span>Générer jusqu'à ~50 pages</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
-                  <span>50 000 mots générés par mois</span>
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-emerald-500 text-[20px] shrink-0">check_circle</span>
+                  <span>Modèle Standard</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
-                  <span>Export PDF Standard</span>
+                <li className="flex items-center gap-3 opacity-50">
+                  <span className="material-symbols-outlined text-neutral-300 text-[20px] shrink-0">cancel</span>
+                  <span>Modèles IA Avancés</span>
+                </li>
+                <li className="flex items-center gap-3 opacity-50">
+                  <span className="material-symbols-outlined text-neutral-300 text-[20px] shrink-0">cancel</span>
+                  <span>Couvertures IA Premium</span>
                 </li>
               </ul>
             </div>
-
+            
             <button 
-              onClick={() => handleCheckout("plan_standard", 8000)}
+              onClick={() => handleCheckout("pack_starter", 1000)}
               disabled={loadingPlan !== null}
-              className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-900 font-bold py-3.5 rounded-2xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-white border border-neutral-300 hover:bg-neutral-50 text-neutral-900 font-bold py-3 rounded-xl transition-colors disabled:opacity-50"
             >
-              {loadingPlan === "plan_standard" ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : "Payer via Mobile Money"}
+              {loadingPlan === "pack_starter" ? "Chargement..." : "Choisir ce plan"}
             </button>
           </div>
 
-          {/* Pro Plan (10000) */}
-          <div className="bg-neutral-900 text-white rounded-3xl p-8 shadow-xl relative overflow-hidden flex flex-col justify-between border-2 border-neutral-900">
-            <div className="absolute top-4 right-4 bg-secondary text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-              Populaire
+          {/* Creator Plan */}
+          <div className="flex-1 bg-white rounded-2xl border-2 border-secondary p-8 shadow-md flex flex-col justify-between relative transform md:-translate-y-4">
+            <div className="absolute -top-3.5 left-1/2 transform -translate-x-1/2 bg-secondary text-white text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-wider">
+              LE PLUS CHOISI
             </div>
-
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-orange-400">Pour créateurs réguliers</span>
-              <h3 className="font-heading text-2xl font-bold text-white mt-1 mb-2">Auteur Pro</h3>
-              <p className="text-sm text-neutral-400 mb-6">Pour publier sans limites avec couverture HD.</p>
-              <div className="mb-8">
-                <span className="text-4xl font-extrabold text-white">10 000 FCFA</span>
-                <span className="text-neutral-400 font-medium"> / 30 jours</span>
+            <div className="text-center mt-2">
+              <div className="mx-auto w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-secondary">edit_document</span>
+              </div>
+              <h3 className="font-heading text-xl font-bold text-neutral-900 mb-1">Creator</h3>
+              <p className="text-sm text-neutral-500 mb-6">Le choix parfait pour les passionnés.</p>
+              
+              <div className="mb-6">
+                <span className="text-4xl font-extrabold text-neutral-900">2500 FCFA</span>
+              </div>
+              
+              <div className="mb-8 flex flex-col items-center">
+                <div className="font-extrabold text-xl text-neutral-800">3 000 pièces</div>
+                <div className="text-xs text-emerald-600 mt-1 uppercase font-bold">+500 Bonus</div>
               </div>
 
-              <ul className="space-y-3 text-sm text-neutral-200 mb-8">
-                <li className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-secondary text-lg">check_circle</span>
-                  <span>Projets illimités</span>
+              <ul className="space-y-4 text-sm text-neutral-700 text-left mb-8">
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-emerald-500 text-[20px] shrink-0">check_circle</span>
+                  <span>Générer jusqu'à ~150 pages</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-secondary text-lg">check_circle</span>
-                  <span>Génération de textes illimitée</span>
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-emerald-500 text-[20px] shrink-0">check_circle</span>
+                  <span>Modèle Standard</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-secondary text-lg">check_circle</span>
-                  <span>Génération de couvertures HD (IA)</span>
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-emerald-500 text-[20px] shrink-0">check_circle</span>
+                  <span>Modèles IA Avancés</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-secondary text-lg">check_circle</span>
-                  <span>Export PDF & EPUB KDP Ready</span>
+                <li className="flex items-center gap-3 opacity-50">
+                  <span className="material-symbols-outlined text-neutral-300 text-[20px] shrink-0">cancel</span>
+                  <span>Couvertures IA Premium</span>
                 </li>
               </ul>
             </div>
-
+            
             <button 
-              onClick={() => handleCheckout("plan_pro", 10000)}
+              onClick={() => handleCheckout("pack_creator", 2500)}
               disabled={loadingPlan !== null}
-              className="w-full bg-secondary hover:bg-orange-600 text-white font-bold py-3.5 rounded-2xl transition-colors shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-secondary hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-colors disabled:opacity-50 shadow-sm"
             >
-              {loadingPlan === "plan_pro" ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : "Payer via Mobile Money"}
+              {loadingPlan === "pack_creator" ? "Chargement..." : "Choisir ce plan"}
             </button>
           </div>
 
-          {/* Ultra Plan (25000) */}
-          <div className="bg-white rounded-3xl border border-neutral-200 p-8 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">Pour les agences et gros volumes</span>
-              <h3 className="font-heading text-2xl font-bold text-neutral-900 mt-1 mb-2">Studio & Éditeur</h3>
-              <p className="text-sm text-neutral-500 mb-6">Capacité maximale et toutes les nouvelles fonctionnalités.</p>
-              <div className="mb-8">
-                <span className="text-4xl font-extrabold text-neutral-900">25 000 FCFA</span>
-                <span className="text-neutral-500 font-medium"> / 30 jours</span>
+          {/* Author Plan */}
+          <div className="flex-1 bg-white rounded-2xl border border-neutral-200 p-8 shadow-sm flex flex-col justify-between">
+            <div className="text-center">
+              <div className="mx-auto w-12 h-12 bg-neutral-100 rounded-full flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-neutral-600">military_tech</span>
+              </div>
+              <h3 className="font-heading text-xl font-bold text-neutral-900 mb-1">Author</h3>
+              <p className="text-sm text-neutral-500 mb-6">L'expérience ultime pour les créateurs.</p>
+              
+              <div className="mb-6">
+                <span className="text-4xl font-extrabold text-neutral-900">5000 FCFA</span>
+              </div>
+              
+              <div className="mb-8 flex flex-col items-center">
+                <div className="font-extrabold text-xl text-neutral-800">7 000 pièces</div>
+                <div className="text-xs text-emerald-600 mt-1 uppercase font-bold">+2000 Bonus</div>
               </div>
 
-              <ul className="space-y-3 text-sm text-neutral-700 mb-8">
-                <li className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
-                  <span>Toutes les fonctionnalités Pro</span>
+              <ul className="space-y-4 text-sm text-neutral-700 text-left mb-8">
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-emerald-500 text-[20px] shrink-0">check_circle</span>
+                  <span>Générer jusqu'à ~350 pages</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
-                  <span>Bande passante et modèles IA prioritaires</span>
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-emerald-500 text-[20px] shrink-0">check_circle</span>
+                  <span>Modèle Standard</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
-                  <span>Accès en avant-première aux nouveautés</span>
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-emerald-500 text-[20px] shrink-0">check_circle</span>
+                  <span>Modèles IA Avancés</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
-                  <span>Support VIP</span>
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-emerald-500 text-[20px] shrink-0">check_circle</span>
+                  <span>Couvertures IA Premium</span>
                 </li>
               </ul>
             </div>
-
+            
             <button 
-              onClick={() => handleCheckout("plan_studio", 25000)}
+              onClick={() => handleCheckout("pack_author", 5000)}
               disabled={loadingPlan !== null}
-              className="w-full bg-neutral-900 hover:bg-black text-white font-bold py-3.5 rounded-2xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-white border border-neutral-300 hover:bg-neutral-50 text-neutral-900 font-bold py-3 rounded-xl transition-colors disabled:opacity-50"
             >
-              {loadingPlan === "plan_studio" ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : "Payer via Mobile Money"}
+              {loadingPlan === "pack_author" ? "Chargement..." : "Choisir ce plan"}
             </button>
           </div>
 
         </div>
+
+        {/* Detailed Comparison Table */}
+        <div className="max-w-5xl mx-auto mb-24">
+          <h2 className="font-heading text-3xl font-extrabold text-center text-neutral-900 mb-10">Comparatif détaillé des forfaits</h2>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-neutral-200">
+                  <th className="py-6 px-4 font-bold text-neutral-900 w-1/4">Fonctionnalités</th>
+                  <th className="py-6 px-4 text-center w-1/4">
+                    <div className="font-bold text-neutral-900">Starter</div>
+                    <div className="text-xs text-neutral-500 font-normal">1000 FCFA</div>
+                  </th>
+                  <th className="py-6 px-4 text-center w-1/4 relative">
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 text-[10px] font-bold text-secondary uppercase tracking-wider">Populaire</div>
+                    <div className="font-bold text-neutral-900">Creator</div>
+                    <div className="text-xs text-neutral-500 font-normal">2500 FCFA</div>
+                  </th>
+                  <th className="py-6 px-4 text-center w-1/4">
+                    <div className="font-bold text-neutral-900">Author</div>
+                    <div className="text-xs text-neutral-500 font-normal">5000 FCFA</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-sm text-neutral-700">
+                <tr className="border-b border-neutral-100">
+                  <td className="py-5 px-4 font-semibold text-neutral-900">Pièces obtenues</td>
+                  <td className="py-5 px-4 text-center font-bold">1 000</td>
+                  <td className="py-5 px-4 text-center font-bold">3 000</td>
+                  <td className="py-5 px-4 text-center font-bold">7 000</td>
+                </tr>
+                <tr className="border-b border-neutral-100">
+                  <td className="py-5 px-4 font-semibold text-neutral-900">Pages générées estimées</td>
+                  <td className="py-5 px-4 text-center">~50 pages</td>
+                  <td className="py-5 px-4 text-center">~150 pages</td>
+                  <td className="py-5 px-4 text-center">~350 pages</td>
+                </tr>
+                <tr className="border-b border-neutral-100">
+                  <td className="py-5 px-4 font-semibold text-neutral-900">Accès Modèle IA Standard</td>
+                  <td className="py-5 px-4 text-center"><span className="material-symbols-outlined text-emerald-500">check_circle</span></td>
+                  <td className="py-5 px-4 text-center"><span className="material-symbols-outlined text-emerald-500">check_circle</span></td>
+                  <td className="py-5 px-4 text-center"><span className="material-symbols-outlined text-emerald-500">check_circle</span></td>
+                </tr>
+                <tr className="border-b border-neutral-100">
+                  <td className="py-5 px-4 font-semibold text-neutral-900">Accès Modèles IA Avancés</td>
+                  <td className="py-5 px-4 text-center text-neutral-300">—</td>
+                  <td className="py-5 px-4 text-center"><span className="material-symbols-outlined text-emerald-500">check_circle</span></td>
+                  <td className="py-5 px-4 text-center"><span className="material-symbols-outlined text-emerald-500">check_circle</span></td>
+                </tr>
+                <tr className="border-b border-neutral-100">
+                  <td className="py-5 px-4 font-semibold text-neutral-900">Accès Modèle Plume d'Auteur</td>
+                  <td className="py-5 px-4 text-center text-neutral-300">—</td>
+                  <td className="py-5 px-4 text-center text-neutral-300">—</td>
+                  <td className="py-5 px-4 text-center"><span className="material-symbols-outlined text-emerald-500">check_circle</span></td>
+                </tr>
+                <tr className="border-b border-neutral-100">
+                  <td className="py-5 px-4 font-semibold text-neutral-900">Génération de Couvertures</td>
+                  <td className="py-5 px-4 text-center text-neutral-300">—</td>
+                  <td className="py-5 px-4 text-center text-neutral-300">—</td>
+                  <td className="py-5 px-4 text-center"><span className="material-symbols-outlined text-emerald-500">check_circle</span></td>
+                </tr>
+                <tr className="border-b border-neutral-100">
+                  <td className="py-5 px-4 font-semibold text-neutral-900">Support client</td>
+                  <td className="py-5 px-4 text-center">Standard</td>
+                  <td className="py-5 px-4 text-center">Prioritaire</td>
+                  <td className="py-5 px-4 text-center">VIP 24/7</td>
+                </tr>
+                <tr className="border-b border-neutral-100">
+                  <td className="py-5 px-4 font-semibold text-neutral-900">Paiement Mobile Money</td>
+                  <td className="py-5 px-4 text-center"><span className="material-symbols-outlined text-emerald-500">check_circle</span></td>
+                  <td className="py-5 px-4 text-center"><span className="material-symbols-outlined text-emerald-500">check_circle</span></td>
+                  <td className="py-5 px-4 text-center"><span className="material-symbols-outlined text-emerald-500">check_circle</span></td>
+                </tr>
+                <tr className="border-b border-neutral-100">
+                  <td className="py-5 px-4 font-semibold text-neutral-900">Sans engagement</td>
+                  <td className="py-5 px-4 text-center"><span className="material-symbols-outlined text-emerald-500">check_circle</span></td>
+                  <td className="py-5 px-4 text-center"><span className="material-symbols-outlined text-emerald-500">check_circle</span></td>
+                  <td className="py-5 px-4 text-center"><span className="material-symbols-outlined text-emerald-500">check_circle</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="max-w-3xl mx-auto mb-20">
+          <h2 className="font-heading text-3xl font-extrabold text-center text-neutral-900 mb-10">Questions fréquentes</h2>
+          <div className="border-t border-neutral-200">
+            {faqs.map((faq, index) => (
+              <div key={index} className="border-b border-neutral-200">
+                <button
+                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                  className="w-full py-6 flex items-center justify-between text-left focus:outline-none"
+                >
+                  <span className="font-bold text-neutral-900">{faq.question}</span>
+                  <span className="material-symbols-outlined text-neutral-400">
+                    {openFaq === index ? "remove" : "add"}
+                  </span>
+                </button>
+                {openFaq === index && (
+                  <div className="pb-6 text-neutral-600 text-sm leading-relaxed pr-8">
+                    {faq.answer}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   );

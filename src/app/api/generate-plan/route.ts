@@ -1,12 +1,23 @@
 import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { checkMonthlyQuota } from "@/lib/ai/quota";
+import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
 
-// Autoriser le temps d'exécution maximal pour l'IA (idéal pour Vercel)
 export const maxDuration = 30;
+
+function getAiModel(modelId: string) {
+  if (modelId.startsWith("gpt-")) {
+    return openai(modelId);
+  } else if (modelId.startsWith("claude-")) {
+    return anthropic(modelId);
+  } else {
+    return google(modelId);
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -20,7 +31,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Rate Limiting anti-abus (5 requêtes / minute / utilisateur)
     const rateLimit = await checkRateLimit(`plan_${user.id}`, 5, 60 * 1000);
     if (!rateLimit.success) {
       return NextResponse.json(
@@ -44,32 +54,17 @@ export async function POST(req: Request) {
       includeToc
     } = await req.json();
 
-    // 1. Fetch user profile & plan
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, plan")
-      .eq("id", user.id)
-      .single();
+    const selectedModelName = chosenModel || "gemini-1.5-flash";
 
-    const userPlan = profile?.plan || "free";
-    const userRole = profile?.role || "user";
-
-    // 2. Server Whitelist: Force gemini-2.5-flash for free users attempting gemini-2.5-pro
-    let selectedModelName = chosenModel || "gemini-2.5-flash";
-    if (selectedModelName === "gemini-2.5-pro" && userPlan === "free" && userRole !== "admin") {
-      selectedModelName = "gemini-2.5-flash";
-    }
-
-    // 3. Quota Enforcement: Check usage since the start of the current month
-    const quota = await checkMonthlyQuota(supabase, user.id, userPlan, userRole);
-    if (!quota.allowed) {
+    // Check coins
+    const hasEnoughCoins = await checkMinimumBalance(user.id, 50);
+    if (!hasEnoughCoins) {
       return NextResponse.json(
-        { error: `Quota mensuel d'IA atteint (${quota.limit} générations). Passez à un plan supérieur pour continuer.` },
-        { status: 429 }
+        { error: "Fonds insuffisants. Veuillez acheter des pièces pour générer le plan." },
+        { status: 402 } 
       );
     }
 
-    // 4. Track usage in Supabase ai_usage table
     try {
       await supabase.from("ai_usage").insert({
         user_id: user.id,
@@ -89,8 +84,7 @@ export async function POST(req: Request) {
     } else {
       let tocInstruction = includeToc ? "Commence obligatoirement par un **SOMMAIRE** (Table des matières) listant les chapitres, puis enchaîne avec la rédaction du contenu." : "Ne fais pas de sommaire.";
       
-      missionText = `Ta mission est d'écrire **DIRECTEMENT LE CONTENU DU LIVRE** (le texte complet). Puisque c'est un format de type "${length}", écris les chapitres avec le contenu final prêt à être lu. Rédige de façon fluide en utilisant le style demandé.
-${tocInstruction}`;
+      missionText = `Ta mission est d'écrire **DIRECTEMENT LE CONTENU DU LIVRE** (le texte complet). Puisque c'est un format de type "${length}", écris les chapitres avec le contenu final prêt à être lu. Rédige de façon fluide en utilisant le style demandé.\n${tocInstruction}`;
       mainTitle = title;
     }
 
@@ -112,7 +106,7 @@ ${instructions || "Aucune consigne spécifique"}
 ${missionText}`;
 
     const result = streamText({
-      model: google(selectedModelName),
+      model: getAiModel(selectedModelName),
       system: `Tu es un ghostwriter expert et rédacteur de livres professionnels. 
 IMPORTANT: 
 - Tu dois répondre UNIQUEMENT avec le contenu formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>).
@@ -122,6 +116,15 @@ IMPORTANT:
 - Commence directement par la balise <h1>.
 - Ne rajoute aucun commentaire personnel à la fin, sois purement factuel et professionnel dans l'exécution de la tâche.`,
       prompt: prompt,
+      async onFinish({ usage }) {
+        await deductCost(
+          user.id,
+          selectedModelName,
+          usage.promptTokens,
+          usage.completionTokens,
+          `Génération du Plan: ${title}`
+        );
+      }
     });
 
     return result.toTextStreamResponse();

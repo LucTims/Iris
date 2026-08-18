@@ -58,7 +58,7 @@ function RedactionContent() {
   const [chatWidth, setChatWidth] = useState(420); // Default 420px
   const [isResizing, setIsResizing] = useState(false);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
-  const [selectedAiModel, setSelectedAiModel] = useState("gemini-2.5-flash");
+  const [selectedAiModel, setSelectedAiModel] = useState("gemini-1.5-flash");
 
   // Book Project State
   const [bookTitle, setBookTitle] = useState("Mon Projet de Livre");
@@ -1092,7 +1092,7 @@ function RedactionContent() {
         </div>
 
         {/* 3. SPLIT WORKSPACE (TEXT EDITOR IN MIDDLE, CHAT ON RIGHT) */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative pb-20 md:pb-0">
           {/* ================= 3A. RICH MANUSCRIPT EDITOR (MIDDLE / MAIN AREA) ================= */}
           <div className={`flex-1 flex flex-col h-full overflow-hidden min-w-0 ${
             mobileView === "editor" ? "flex" : "hidden lg:flex"
@@ -1141,10 +1141,10 @@ function RedactionContent() {
           {/* ================= 3C. AI CHAT ASSISTANT PANEL (RIGHT SIDE, RESIZABLE) ================= */}
           {!isChatCollapsed && (
             <aside
-              className={`h-full bg-white border-l border-neutral-200/80 flex-col shrink-0 relative shadow-lg z-10 w-full lg:w-auto ${
+              className={`h-full bg-white border-l border-neutral-200/80 flex-col shrink-0 relative shadow-lg z-10 w-full lg:w-[var(--chat-width)] ${
                 mobileView === "chat" ? "flex" : "hidden lg:flex"
               }`}
-              style={{ width: typeof window !== "undefined" && window.innerWidth >= 1024 ? `${chatWidth}px` : undefined }}
+              style={{ '--chat-width': `${chatWidth}px` } as React.CSSProperties}
             >
               {/* Chat Header */}
               <div className="p-3.5 border-b border-neutral-100 bg-neutral-50/50 flex items-center justify-between shrink-0 gap-2">
@@ -1162,8 +1162,9 @@ function RedactionContent() {
                     className="bg-white border border-neutral-200 text-neutral-800 text-[11px] font-bold px-2 py-1 rounded-lg outline-none cursor-pointer hover:border-secondary transition-all"
                     title="Choisir le modèle d'IA"
                   >
-                    <option value="gemini-2.5-flash">⚡ Gemini 2.5 Flash (Gratuit)</option>
-                    <option value="gemini-2.5-pro">🧠 Gemini 2.5 Pro (Haute Qualité)</option>
+                    <option value="gemini-1.5-flash">⚡ Standard (~20 🪙/page)</option>
+                    <option value="gpt-4o">🧠 Avancé (~80 🪙/page)</option>
+                    <option value="claude-3-5-sonnet-20240620">✍️ Plume d'Auteur (~150 🪙/page)</option>
                   </select>
 
                   <button

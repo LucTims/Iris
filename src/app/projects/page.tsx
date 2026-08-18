@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Sidebar from "@/components/Sidebar";
+import AppLayout from "@/components/AppLayout";
 import ExportBookModal from "@/components/ExportBookModal";
 import { useUser } from "@/hooks/useUser";
 
@@ -120,70 +120,7 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
-      {/* GLOBAL REUSABLE SIDEBAR */}
-      <Sidebar />
-
-      {/* MAIN CONTENT AREA */}
-      <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-10">
-        {/* Top Header */}
-        <header className="bg-[#F9FAFB] sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all">
-              <span className="material-symbols-outlined text-base">arrow_back</span>
-              <span>Tableau de bord</span>
-            </Link>
-            <h1 className="font-heading font-extrabold text-xl text-neutral-900">
-              Mes Livres & Projets
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/projects/new"
-              className="flex items-center gap-2 bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-xs"
-            >
-              <span className="material-symbols-outlined text-base">add</span>
-              <span>Nouveau Livre</span>
-            </Link>
-
-            {/* Profile Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm cursor-pointer hover:ring-2 hover:ring-orange-300 transition-all"
-              >
-                {userInitials}
-              </button>
-
-              {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50">
-                  <div className="px-4 py-3 border-b border-neutral-100">
-                    <p className="font-heading font-bold text-sm text-neutral-900">{displayName || "Utilisateur"}</p>
-                    <p className="text-xs text-neutral-500 truncate">{displayEmail || ""}</p>
-                  </div>
-                  <div className="py-1">
-                    <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
-                      <span className="material-symbols-outlined text-base text-neutral-400">dashboard</span>
-                      <span>Tableau de bord</span>
-                    </Link>
-                    <Link href="/settings" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
-                      <span className="material-symbols-outlined text-base text-neutral-400">settings</span>
-                      <span>Paramètres</span>
-                    </Link>
-                  </div>
-                  <div className="pt-1 border-t border-neutral-100">
-                    <button onClick={signOut} className="w-full text-left flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50">
-                      <span className="material-symbols-outlined text-base text-red-500">logout</span>
-                      <span>Se déconnecter</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
+    <AppLayout>
         {/* Content Container */}
         <main className="p-4 sm:p-6 md:p-10 max-w-6xl mx-auto w-full space-y-6">
           {/* Controls Bar: Search & Filters */}
@@ -268,18 +205,35 @@ export default function ProjectsPage() {
                   key={book.id}
                   className="bg-white rounded-2xl border border-neutral-200/80 hover:border-orange-300 transition-all shadow-2xs hover:shadow-md flex flex-col overflow-hidden group"
                 >
-                  {/* Book Cover Thumbnail Header */}
-                  <div className="h-48 bg-neutral-900 relative overflow-hidden flex items-center justify-center">
-                    <img
-                      src={book.cover_url || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop"}
-                      alt={book.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-95"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-transparent to-transparent"></div>
-                    <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-neutral-800 uppercase tracking-wider">
+                  {/* Book Cover Thumbnail Header (Mockup Style) */}
+                  <div className="h-60 bg-gradient-to-b from-neutral-50 to-neutral-100/50 relative flex items-center justify-center border-b border-neutral-100 overflow-hidden">
+                    <div className="relative w-[110px] h-[160px] sm:w-[130px] sm:h-[190px] group-hover:-translate-y-2 group-hover:scale-105 transition-all duration-500 ease-out mt-4 mb-2">
+                      {/* Book Shadow */}
+                      <div className="absolute -bottom-3 left-4 right-0 h-6 bg-black/30 blur-xl rounded-full group-hover:blur-2xl transition-all duration-500"></div>
+                      
+                      {/* Pages Edge (Right) */}
+                      <div className="absolute top-[1.5%] bottom-[1.5%] right-[-6px] w-[6px] bg-[#f4f4f5] border-y border-r border-neutral-300 rounded-r-sm z-0 shadow-[inset_-1px_0_2px_rgba(0,0,0,0.05)] flex">
+                        <div className="w-[1px] h-full bg-neutral-300 ml-auto mr-[1px] opacity-60"></div>
+                        <div className="w-[1px] h-full bg-neutral-300 mr-[1px] opacity-60"></div>
+                      </div>
+                      
+                      {/* Cover Image Container */}
+                      <div className="relative w-full h-full rounded-r-md rounded-l-[3px] overflow-hidden border border-black/10 shadow-[2px_2px_8px_rgba(0,0,0,0.15)] z-10 bg-white">
+                        <img
+                          src={book.cover_url || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop"}
+                          alt={book.title}
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Hinge / Spine Gradient Overlay */}
+                        <div className="absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-black/30 via-black/5 to-transparent mix-blend-multiply"></div>
+                        <div className="absolute inset-y-0 left-[1px] w-[1px] bg-white/40"></div>
+                      </div>
+                    </div>
+                    
+                    <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-md border border-neutral-200/50 px-2.5 py-1 rounded-full text-[9px] font-extrabold text-neutral-700 uppercase tracking-wider shadow-2xs z-20">
                       {book.category}
                     </span>
-                    <span className="absolute top-3 right-3 bg-secondary text-white px-3 py-1 rounded-full text-[10px] font-bold">
+                    <span className="absolute top-4 right-4 bg-orange-100/90 backdrop-blur-md text-secondary border border-orange-200/50 px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-wider shadow-2xs z-20">
                       {book.status}
                     </span>
                   </div>
@@ -454,7 +408,6 @@ export default function ProjectsPage() {
             </div>
           )}
         </main>
-      </div>
 
       {/* CREATE NEW BOOK MODAL WIZARD */}
       {isCreateModalOpen && (
@@ -551,6 +504,6 @@ export default function ProjectsPage() {
         onClose={() => setIsExportModalOpen(false)}
         project={selectedProjectForExport}
       />
-    </div>
+    </AppLayout>
   );
 }

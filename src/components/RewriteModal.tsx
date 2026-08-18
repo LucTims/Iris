@@ -21,7 +21,7 @@ export default function RewriteModal({ isOpen, onClose, onRewrite }: RewriteModa
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden flex flex-col"
+          className="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-y-auto flex flex-col max-h-[85dvh]"
         >
           <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
             <div className="flex items-center gap-3">

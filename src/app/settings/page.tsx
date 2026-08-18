@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Sidebar from "@/components/Sidebar";
+import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUser";
 import { createClient } from "@/lib/supabase/client";
 import { 
@@ -70,11 +70,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
-      <Sidebar />
-
-      <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-10">
-        <header className="bg-white/80 backdrop-blur-md border-b border-neutral-100 sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
+    <AppLayout>
+        <header className="bg-white/80 backdrop-blur-md border-b border-neutral-100 sticky top-0 z-20 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all">
               <span className="material-symbols-outlined text-base">arrow_back</span>
@@ -263,7 +260,6 @@ export default function SettingsPage() {
             </div>
           </div>
         </main>
-      </div>
-    </div>
+    </AppLayout>
   );
 }

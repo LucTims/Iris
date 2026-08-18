@@ -39,7 +39,7 @@ export default function ImportManuscriptModal({
 
   return (
     <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 select-none">
-      <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 border border-neutral-100">
+      <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 border border-neutral-100 max-h-[85dvh] overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-center border-b border-neutral-100 pb-3">
           <h3 className="font-heading font-extrabold text-lg text-neutral-900 flex items-center gap-2">

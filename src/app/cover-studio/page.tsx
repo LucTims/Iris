@@ -93,14 +93,14 @@ function CoverStudioHubContent() {
         <main className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
           
           {/* Hero Section */}
-          <div className="bg-white p-8 md:p-10 rounded-3xl border border-neutral-200/80 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/5 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+          <div className="bg-white p-6 md:p-8 rounded-3xl border border-neutral-200/80 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
             
             <div className="relative z-10 max-w-2xl space-y-4">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 border border-orange-200 text-secondary text-xs font-bold uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" /> Intelligence Artificielle
               </div>
-              <h2 className="text-3xl md:text-4xl font-heading font-extrabold text-neutral-900">
+              <h2 className="text-2xl md:text-3xl font-heading font-extrabold text-neutral-900">
                 Donnez vie à vos livres avec des couvertures professionnelles.
               </h2>
               <p className="text-neutral-600 font-medium text-sm md:text-base leading-relaxed">
@@ -111,7 +111,7 @@ function CoverStudioHubContent() {
 
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h3 className="font-heading font-extrabold text-xl text-neutral-900">
+              <h3 className="font-heading font-extrabold text-lg text-neutral-900">
                 Vos Livres & Projets
               </h3>
               
@@ -150,19 +150,17 @@ function CoverStudioHubContent() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
                 {filteredProjects.map((project) => (
                   <div key={project.id} className="bg-white border border-neutral-200 hover:border-secondary/50 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all group flex flex-col h-full">
                     {/* Fake Cover Preview Area */}
-                    <div className="aspect-[4/3] bg-neutral-100 flex items-center justify-center relative overflow-hidden p-6">
+                    <div className="aspect-[2/3] bg-neutral-100 relative overflow-hidden">
                       {project.cover_url ? (
-                        <div className="relative w-full h-full rounded-lg shadow-sm overflow-hidden flex items-center justify-center bg-white border border-neutral-200/50">
-                          <img src={project.cover_url} alt="Couverture" className="max-h-full object-contain" />
-                        </div>
+                        <img src={project.cover_url} alt="Couverture" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                       ) : (
-                        <div className="w-24 h-32 bg-white rounded shadow-sm border border-neutral-200 flex flex-col items-center justify-center gap-2 group-hover:scale-105 transition-transform">
-                          <BookOpen className="w-6 h-6 text-neutral-300" strokeWidth={1.5} />
-                          <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest text-center px-2">Sans Couverture</span>
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-3 transition-transform duration-500 group-hover:scale-105">
+                          <BookOpen className="w-10 h-10 text-neutral-300" strokeWidth={1.5} />
+                          <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest text-center px-4">Sans Couverture</span>
                         </div>
                       )}
                     </div>

@@ -80,13 +80,13 @@ export default function ExportEditorPage({ params }: { params: Promise<{ id: str
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
+    <div className="bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row h-screen overflow-hidden">
       {/* GLOBAL REUSABLE SIDEBAR */}
       <Sidebar />
 
       {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-10">
-        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4 border-b border-neutral-100">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4 border-b border-neutral-100 shrink-0">
           <div className="flex items-center gap-3">
             <Link href="/export" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all">
               <span className="material-symbols-outlined text-base">arrow_back</span>
@@ -135,7 +135,7 @@ export default function ExportEditorPage({ params }: { params: Promise<{ id: str
           </div>
         </header>
 
-        <main className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 pb-20 md:pb-10 relative">
           
           {/* Controls Column (Left) */}
           <div className="lg:col-span-4 space-y-6">

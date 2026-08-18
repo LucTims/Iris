@@ -112,7 +112,7 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
   if (step === 1) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-body animate-fadeIn">
-        <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl overflow-hidden flex flex-col relative border border-neutral-100">
+        <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl overflow-y-auto flex flex-col relative border border-neutral-100 max-h-[85dvh]">
           <button onClick={resetAndClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-full text-neutral-600 transition-colors z-10">
             <span className="material-symbols-outlined text-lg">close</span>
           </button>
@@ -170,7 +170,7 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
   if (step === 2) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-body animate-fadeIn">
-        <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl overflow-hidden flex flex-col relative border border-neutral-100">
+        <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl overflow-y-auto flex flex-col relative border border-neutral-100 max-h-[85dvh]">
           <button onClick={resetAndClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-full text-neutral-600 transition-colors z-10">
             <span className="material-symbols-outlined text-lg">close</span>
           </button>
@@ -232,7 +232,7 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
   if (step === 3) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-body animate-fadeIn">
-        <div className="bg-white rounded-3xl max-w-2xl w-full border border-neutral-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] relative">
+        <div className="bg-white rounded-3xl max-w-2xl w-full border border-neutral-200 shadow-2xl overflow-hidden flex flex-col max-h-[85dvh] relative">
           <button onClick={() => setStep(2)} className="absolute top-5 left-5 w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded-full transition-colors z-20">
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -398,7 +398,7 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
   // ----------------------------------------------------
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-body animate-fadeIn">
-      <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col relative border border-neutral-100">
+      <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-y-auto flex flex-col relative border border-neutral-100 max-h-[85dvh]">
         <button onClick={resetAndClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-full text-neutral-600 transition-colors z-10">
           <span className="material-symbols-outlined text-lg">close</span>
         </button>

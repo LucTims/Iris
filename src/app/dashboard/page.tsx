@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Sidebar from "@/components/Sidebar";
+import AppLayout from "@/components/AppLayout";
 import QuillAnimation from "@/components/QuillAnimation";
 import ExportBookModal from "@/components/ExportBookModal";
 import { useUser } from "@/hooks/useUser";
@@ -42,124 +42,7 @@ export default function DashboardPage() {
   const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
-      {/* GLOBAL REUSABLE SIDEBAR */}
-      <Sidebar />
-
-      {/* ================= MAIN CONTENT AREA ================= */}
-      <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-10">
-        
-        {/* Top Header Bar (Seamless without dividing border line) */}
-        <header className="bg-[#F9FAFB] sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
-          
-          {/* Mobile Header Title */}
-          <div className="flex items-center gap-2 md:hidden">
-            <Link href="/" className="font-heading font-extrabold text-2xl text-secondary">
-              Iris
-            </Link>
-          </div>
-
-          {/* Spacer */}
-          <div className="flex-1"></div>
-
-          {/* Right Header Actions */}
-          <div className="flex items-center gap-3 relative">
-            <Link href="/" className="hidden lg:flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200/70 px-3 py-2 rounded-xl transition-all">
-              <span className="material-symbols-outlined text-base">arrow_back</span>
-              <span>Accueil du site</span>
-            </Link>
-
-            <Link href="/projects/new" className="flex items-center gap-2 bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs">
-              <span className="material-symbols-outlined text-base">add</span>
-              <span>Nouveau Livre</span>
-            </Link>
-            
-            <button className="w-9 h-9 rounded-xl border border-neutral-200 flex items-center justify-center text-neutral-600 hover:bg-neutral-50 transition-colors">
-              <span className="material-symbols-outlined text-lg">notifications</span>
-            </button>
-
-            {/* User Profile Dropdown Button */}
-            <div className="relative">
-              <button 
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm shadow-2xs hover:ring-2 hover:ring-orange-300 transition-all cursor-pointer"
-                title="Menu Profil"
-              >
-                {userInitials}
-              </button>
-
-              {/* Dropdown Menu */}
-              {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="px-4 py-3 border-b border-neutral-100">
-                    <p className="font-heading font-bold text-sm text-neutral-900">{displayName}</p>
-                    <p className="text-xs text-neutral-500 truncate">{displayEmail}</p>
-                    <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-[10px] font-bold text-secondary">
-                      Plan Gratuit
-                    </span>
-                  </div>
-
-                  <div className="py-1">
-                    <Link 
-                      href="/dashboard" 
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
-                    >
-                      <span className="material-symbols-outlined text-base text-neutral-400">dashboard</span>
-                      <span>Tableau de bord</span>
-                    </Link>
-                    <Link 
-                      href="/projects" 
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
-                    >
-                      <span className="material-symbols-outlined text-base text-neutral-400">menu_book</span>
-                      <span>Mes Livres & Projets</span>
-                    </Link>
-                    <Link 
-                      href="/settings" 
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
-                    >
-                      <span className="material-symbols-outlined text-base text-neutral-400">settings</span>
-                      <span>Paramètres du compte</span>
-                    </Link>
-                    <Link 
-                      href="/" 
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
-                    >
-                      <span className="material-symbols-outlined text-base text-neutral-400">home</span>
-                      <span>Page d&apos;accueil du site</span>
-                    </Link>
-                    
-                    {isAdmin && (
-                      <Link 
-                        href="/admin" 
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-base text-emerald-600">admin_panel_settings</span>
-                        <span>Espace Administration</span>
-                      </Link>
-                    )}
-                  </div>
-
-                  <div className="pt-1 border-t border-neutral-100">
-                    <button 
-                      onClick={() => { setUserMenuOpen(false); signOut(); }}
-                      className="w-full text-left flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-base text-red-500">logout</span>
-                      <span>Se déconnecter</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
+    <AppLayout>
         {/* Dashboard Main Container */}
         <main className="p-4 sm:p-6 md:p-10 max-w-6xl mx-auto w-full space-y-8">
           
@@ -188,9 +71,9 @@ export default function DashboardPage() {
 
           {/* 2. PERSONALIZED GREETING */}
           <div className="space-y-1">
-            <h1 className="font-heading text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight flex items-center gap-2">
+            <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight flex items-center gap-2">
               <span>Bienvenue {displayName || "Utilisateur"} !</span>
-              <span className="text-2xl">✍️</span>
+              <span className="text-xl sm:text-2xl">✍️</span>
             </h1>
             <p className="text-xs sm:text-sm text-neutral-500 flex items-center gap-1.5 pt-1">
               <span>💡</span>
@@ -214,7 +97,7 @@ export default function DashboardPage() {
                 <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">+1 ce mois</span>
               </div>
               <div>
-                <span className="font-heading font-extrabold text-3xl text-neutral-900 block mb-1">
+                <span className="font-heading font-extrabold text-2xl text-neutral-900 block mb-1">
                   {projects.length} Projet{projects.length !== 1 ? 's' : ''}
                 </span>
                 <span className="text-xs font-semibold text-neutral-500">Livres en cours de rédaction</span>
@@ -228,7 +111,7 @@ export default function DashboardPage() {
                 <span className="text-[11px] font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">+24.5k cette semaine</span>
               </div>
               <div>
-                <span className="font-heading font-extrabold text-3xl text-neutral-900 block mb-1">
+                <span className="font-heading font-extrabold text-2xl text-neutral-900 block mb-1">
                   N/A
                 </span>
                 <span className="text-xs font-semibold text-neutral-500">Mots générés par Iris</span>
@@ -242,7 +125,7 @@ export default function DashboardPage() {
                 <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">+18% engagement</span>
               </div>
               <div>
-                <span className="font-heading font-extrabold text-3xl text-neutral-900 block mb-1">
+                <span className="font-heading font-extrabold text-2xl text-neutral-900 block mb-1">
                   0
                 </span>
                 <span className="text-xs font-semibold text-neutral-500">Lecteurs & Téléchargements</span>
@@ -377,7 +260,6 @@ export default function DashboardPage() {
           </div>
 
         </main>
-      </div>
 
       {/* EXPORT / DOWNLOAD MODAL */}
       <ExportBookModal
@@ -385,6 +267,6 @@ export default function DashboardPage() {
         onClose={() => setIsExportModalOpen(false)}
         project={selectedProjectForExport}
       />
-    </div>
+    </AppLayout>
   );
 }

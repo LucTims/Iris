@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Sidebar from "@/components/Sidebar";
+import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUser";
 import { 
   BarChart3, 
@@ -56,51 +56,12 @@ export default function AnalyticsHubPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
-      <Sidebar />
-
-      <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-10">
-        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4 border-b border-neutral-100">
-          <div className="flex items-center gap-3">
-            <h1 className="font-heading font-extrabold text-xl text-neutral-900 flex items-center gap-2">
-              <BarChart3 className="w-6 h-6 text-secondary" strokeWidth={2.5} />
-              <span>Analytiques</span>
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Profile Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm cursor-pointer hover:ring-2 hover:ring-orange-300 transition-all"
-              >
-                {userInitials}
-              </button>
-
-              {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50">
-                  <div className="px-4 py-3 border-b border-neutral-100">
-                    <p className="font-heading font-bold text-sm text-neutral-900">{displayName}</p>
-                    <p className="text-xs text-neutral-500 truncate">{displayEmail}</p>
-                  </div>
-                  <div className="py-1">
-                    <button onClick={signOut} className="w-full text-left flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50">
-                      <span className="material-symbols-outlined text-base text-red-500">logout</span>
-                      <span>Se déconnecter</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
+    <AppLayout>
         <main className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
           
           {/* Global Stats Overview */}
           <div>
-            <h2 className="font-heading font-extrabold text-2xl text-neutral-900 mb-6 flex items-center gap-2">
+            <h2 className="font-heading font-extrabold text-xl text-neutral-900 mb-6 flex items-center gap-2">
               <TrendingUp className="w-6 h-6 text-neutral-400" />
               Vue d'Ensemble
             </h2>
@@ -113,7 +74,7 @@ export default function AnalyticsHubPage() {
                     <BookOpen className="w-5 h-5" />
                   </div>
                   <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Total Projets</span>
-                  <p className="font-heading font-extrabold text-4xl text-neutral-900 mt-1">{loading ? "-" : projects.length}</p>
+                  <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">{loading ? "-" : projects.length}</p>
                 </div>
               </div>
 
@@ -124,7 +85,7 @@ export default function AnalyticsHubPage() {
                     <FileText className="w-5 h-5" />
                   </div>
                   <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Mots Rédigés</span>
-                  <p className="font-heading font-extrabold text-4xl text-neutral-900 mt-1">{loading ? "-" : globalStats?.totalWords?.toLocaleString('fr-FR') || 0}</p>
+                  <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">{loading ? "-" : globalStats?.totalWords?.toLocaleString('fr-FR') || 0}</p>
                 </div>
               </div>
 
@@ -135,7 +96,7 @@ export default function AnalyticsHubPage() {
                     <span className="material-symbols-outlined">menu_book</span>
                   </div>
                   <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Pages Estimées</span>
-                  <p className="font-heading font-extrabold text-4xl text-neutral-900 mt-1">{loading ? "-" : globalStats?.totalPages?.toLocaleString('fr-FR') || 0}</p>
+                  <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">{loading ? "-" : globalStats?.totalPages?.toLocaleString('fr-FR') || 0}</p>
                 </div>
               </div>
 
@@ -146,7 +107,7 @@ export default function AnalyticsHubPage() {
                     <Coins className="w-5 h-5" />
                   </div>
                   <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Investissement IA</span>
-                  <p className="font-heading font-extrabold text-4xl text-neutral-900 mt-1">{loading ? "-" : globalStats?.estimatedCost?.toFixed(2) || "0.00"} €</p>
+                  <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">{loading ? "-" : globalStats?.estimatedCost?.toFixed(2) || "0.00"} €</p>
                 </div>
               </div>
             </div>
@@ -155,7 +116,7 @@ export default function AnalyticsHubPage() {
           {/* Project List */}
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h2 className="font-heading font-extrabold text-2xl text-neutral-900">
+              <h2 className="font-heading font-extrabold text-xl text-neutral-900">
                 Statistiques par Projet
               </h2>
               
@@ -238,7 +199,6 @@ export default function AnalyticsHubPage() {
             </div>
           </div>
         </main>
-      </div>
-    </div>
+    </AppLayout>
   );
 }
