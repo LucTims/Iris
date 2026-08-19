@@ -27,12 +27,8 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
   const { pathname } = request.nextUrl
-
+  
   // Protected routes that require authentication
   const protectedRoutes = [
     '/dashboard',
@@ -47,19 +43,27 @@ export async function middleware(request: NextRequest) {
   ]
 
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
+  const isAuthRoute = pathname === '/login' || pathname === '/register'
 
-  if (isProtectedRoute && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    url.searchParams.set('redirectTo', pathname)
-    return NextResponse.redirect(url)
-  }
+  // Skip calling the database/network for public pages to massively improve TTFB (Time To First Byte)
+  if (isProtectedRoute || isAuthRoute) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  // Redirect authenticated users away from login/register
-  if ((pathname === '/login' || pathname === '/register') && user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+    if (isProtectedRoute && !user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(url)
+    }
+
+    // Redirect authenticated users away from login/register
+    if (isAuthRoute && user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse
