@@ -66,8 +66,19 @@ export function buildPrintHtml(
       font-size: 12pt;
       line-height: 1.7;
     }
-    /* Force page breaks respecting the editor's markers */
-    hr[data-page-break] { border: none; height: 0; page-break-before: always; margin: 0; }
+    /* Force page breaks respecting the editor's markers.
+       - <hr data-page-break> : marker used by AI-generated chapters
+       - <div data-type="pageBreak"> : manual page break (Ctrl+Enter) from the
+         Tiptap Pages extension */
+    hr[data-page-break],
+    div[data-type="pageBreak"],
+    [data-page-break] {
+      border: none;
+      height: 0;
+      margin: 0;
+      page-break-before: always;
+      break-before: page;
+    }
 
     .title-page {
       text-align: center;
