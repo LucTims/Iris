@@ -97,6 +97,8 @@ function RedactionContent() {
 
   // Chat Conversation State
   const [chatInput, setChatInput] = useState("");
+  // Passage sélectionné dans l'éditeur et envoyé au chat pour édition ciblée
+  const [attachedSelection, setAttachedSelection] = useState<{ text: string; from: number; to: number } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
 
   const [isAiThinking, setIsAiThinking] = useState(false);
@@ -538,9 +540,77 @@ function RedactionContent() {
     }
   };
 
+  // Envoyer la sélection de l'éditeur vers le chat (Option A)
+  const handleSendSelectionToChat = (selection: { text: string; from: number; to: number }) => {
+    setAttachedSelection(selection);
+    setMobileView("chat");
+  };
+
+  // Édition ciblée : ne réécrit QUE le passage sélectionné, à sa position exacte
+  const handleSelectionEdit = async (instruction: string) => {
+    const sel = attachedSelection;
+    if (!sel) return;
+    const chapter = chapters[activeChapterIndex];
+    const previousChapterContent = chapter?.content || "";
+
+    const userMsg: Message = {
+      id: Date.now(),
+      sender: "user",
+      text: `✂️ Sur le passage sélectionné : ${instruction}`,
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    };
+    setMessages(prev => [...prev, userMsg]);
+    setChatInput("");
+    setAttachedSelection(null);
+    setIsAiThinking(true);
+
+    try {
+      const newText = await handleContextualAiAction("custom", sel.text, instruction);
+      if (!newText || !newText.trim()) throw new Error("Réponse vide");
+
+      // Remplace uniquement le passage à sa position, l'éditeur resynchronise le chapitre
+      editorRef.current?.replaceRange(sel.from, sel.to, newText);
+      setSaveStatus("saving");
+      setIsAiThinking(false);
+
+      setTimeout(() => {
+        const updatedHtml = editorRef.current?.getContent() || previousChapterContent;
+        setMessages(prev => [...prev, {
+          id: Date.now() + 1,
+          sender: "ai",
+          text: "J'ai modifié le passage sélectionné directement dans votre chapitre. ✅",
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          chapterModification: {
+            chapterIndex: activeChapterIndex,
+            ...(chapter?.id !== undefined && { chapterId: chapter.id }),
+            chapterTitle: chapter?.title || `Chapitre ${activeChapterIndex + 1}`,
+            summary: `Passage réécrit : « ${sel.text.slice(0, 70)}${sel.text.length > 70 ? "…" : ""} »`,
+            previousContent: previousChapterContent,
+            newContent: updatedHtml
+          }
+        }]);
+      }, 60);
+    } catch (error) {
+      console.error("Erreur édition ciblée:", error);
+      setIsAiThinking(false);
+      setMessages(prev => [...prev, {
+        id: Date.now() + 2,
+        sender: "ai",
+        text: "⚠️ Je n'ai pas pu modifier ce passage. Veuillez réessayer.",
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      }]);
+    }
+  };
+
   const handleSendMessage = (textToSend?: string) => {
     const query = textToSend || chatInput;
     if (!query.trim()) return;
+
+    // Si un passage est attaché, on fait une édition ciblée (pas un chat classique)
+    if (attachedSelection && !textToSend) {
+      handleSelectionEdit(query);
+      return;
+    }
 
     const userMsg: Message = {
       id: Date.now(),
@@ -690,7 +760,7 @@ function RedactionContent() {
   };
 
   // Contextual AI Actions (Reformuler, Enrichir, etc.)
-  const handleContextualAiAction = async (actionType: string, selectedText: string): Promise<string> => {
+  const handleContextualAiAction = async (actionType: string, selectedText: string, customInstruction?: string): Promise<string> => {
     try {
       const response = await fetch("/api/ai-action", {
         method: "POST",
@@ -698,6 +768,7 @@ function RedactionContent() {
         body: JSON.stringify({
           actionType,
           selectedText,
+          customInstruction,
           synopsis: projectData?.synopsis || "",
           tone: projectData?.tone || "professionnel",
           model: selectedAiModel,
@@ -1211,6 +1282,7 @@ function RedactionContent() {
               }}
               onGenerateFullChapter={handleGenerateFullChapter}
               onContextualAiAction={handleContextualAiAction}
+              onSendSelectionToChat={handleSendSelectionToChat}
               isGenerating={isGeneratingChapter}
               onFileSelected={handleFileSelectedForImport}
             />
@@ -1438,18 +1510,38 @@ function RedactionContent() {
 
               {/* Chat Input Bar */}
               <div className="p-3 bg-white border-t border-neutral-200/80 shrink-0">
+                {/* Pastille du passage sélectionné (édition ciblée) */}
+                {attachedSelection && (
+                  <div className="mb-2 flex items-start gap-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2">
+                    <span className="material-symbols-outlined text-secondary text-base mt-0.5">content_cut</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-secondary">Passage sélectionné</p>
+                      <p className="text-[11px] text-neutral-600 line-clamp-2 italic">
+                        « {attachedSelection.text.slice(0, 140)}{attachedSelection.text.length > 140 ? "…" : ""} »
+                      </p>
+                      <p className="text-[10px] text-neutral-400 mt-0.5">Écrivez ce qu'il faut en faire, Iris ne modifiera que ce passage.</p>
+                    </div>
+                    <button
+                      onClick={() => setAttachedSelection(null)}
+                      className="p-1 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-white transition-colors shrink-0"
+                      title="Retirer le passage"
+                    >
+                      <span className="material-symbols-outlined text-base">close</span>
+                    </button>
+                  </div>
+                )}
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     handleSendMessage();
                   }}
-                  className="relative flex items-center bg-neutral-50 border border-neutral-200 rounded-2xl px-3 py-2 focus-within:ring-2 focus-within:ring-secondary/20 focus-within:border-secondary transition-all"
+                  className={`relative flex items-center bg-neutral-50 border rounded-2xl px-3 py-2 focus-within:ring-2 focus-within:ring-secondary/20 focus-within:border-secondary transition-all ${attachedSelection ? "border-secondary/60" : "border-neutral-200"}`}
                 >
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Discutez ou demandez à l'IA..."
+                    placeholder={attachedSelection ? "Ex: rends ce passage plus percutant..." : "Discutez ou demandez à l'IA..."}
                     className="flex-1 bg-transparent border-none outline-none text-xs font-medium text-neutral-900 placeholder:text-neutral-400 py-1"
                   />
                   <button

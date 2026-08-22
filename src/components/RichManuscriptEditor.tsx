@@ -47,6 +47,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       onContinueWithAi,
       onGenerateFullChapter,
       onContextualAiAction,
+      onSendSelectionToChat,
       isGenerating = false,
       onFileSelected,
     },
@@ -67,6 +68,10 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   const [linkUrlInput, setLinkUrlInput] = useState("");
   const [linkTextInput, setLinkTextInput] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
+  // Inline free-form AI instruction on a selection (Option B)
+  const [showInlineAi, setShowInlineAi] = useState(false);
+  const [inlineInstruction, setInlineInstruction] = useState("");
+  const pendingSelRef = useRef<{ from: number; to: number; text: string } | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -143,6 +148,22 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       if (editor) {
         editor.chain().focus().setContent(newContent).run();
       }
+    },
+    replaceRange: (from: number, to: number, newContent: string) => {
+      if (editor) {
+        const size = editor.state.doc.content.size;
+        const safeFrom = Math.max(0, Math.min(from, size));
+        const safeTo = Math.max(safeFrom, Math.min(to, size));
+        editor.chain().focus().insertContentAt({ from: safeFrom, to: safeTo }, newContent).run();
+      }
+    },
+    getSelection: () => {
+      if (!editor) return null;
+      const { from, to } = editor.state.selection;
+      if (from === to) return null;
+      const text = editor.state.doc.textBetween(from, to, " ");
+      if (!text.trim()) return null;
+      return { text, from, to };
     },
     focus: () => {
       if (editor) {
@@ -240,6 +261,51 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
     } finally {
       setIsAiLoading(false);
     }
+  };
+
+  // Option B — open the inline instruction field, capturing the selection now
+  // (so it survives the input focus stealing the visual selection).
+  const openInlineAi = () => {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    const text = editor.state.doc.textBetween(from, to, " ");
+    if (!text.trim()) return;
+    pendingSelRef.current = { from, to, text };
+    setInlineInstruction("");
+    setShowInlineAi(true);
+  };
+
+  const handleCustomInlineAction = async () => {
+    const sel = pendingSelRef.current;
+    if (!editor || !onContextualAiAction || !inlineInstruction.trim() || !sel) return;
+
+    setIsAiLoading(true);
+    try {
+      const newText = await onContextualAiAction("custom", sel.text, inlineInstruction.trim());
+      if (newText) {
+        const size = editor.state.doc.content.size;
+        const from = Math.max(0, Math.min(sel.from, size));
+        const to = Math.max(from, Math.min(sel.to, size));
+        editor.chain().focus().insertContentAt({ from, to }, newText).run();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'action IA.");
+    } finally {
+      setIsAiLoading(false);
+      setInlineInstruction("");
+      setShowInlineAi(false);
+      pendingSelRef.current = null;
+    }
+  };
+
+  // Option A — hand the current selection to the chat panel
+  const handleSendToChat = () => {
+    if (!editor || !onSendSelectionToChat) return;
+    const { from, to } = editor.state.selection;
+    const text = editor.state.doc.textBetween(from, to, " ");
+    if (!text.trim()) return;
+    onSendSelectionToChat({ text, from, to });
   };
 
   const handleInsertTable = () => {
@@ -616,10 +682,11 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
         >
           {/* Contextual AI BubbleMenu */}
           {editor && (
-            <BubbleMenu 
-              editor={editor} 
-              className="flex bg-white/95 backdrop-blur-md border border-neutral-200/90 shadow-2xl rounded-2xl px-2 py-1.5 items-center gap-1 z-50 overflow-hidden"
+            <BubbleMenu
+              editor={editor}
+              className="flex flex-col bg-white/95 backdrop-blur-md border border-neutral-200/90 shadow-2xl rounded-2xl px-2 py-1.5 z-50 overflow-hidden max-w-[92vw]"
             >
+              <div className="flex items-center gap-1 flex-wrap">
               <button
                 onClick={() => handleContextualAction("reformuler")}
                 disabled={isAiLoading}
@@ -655,6 +722,63 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
                 <span className="material-symbols-outlined text-[16px]">spellcheck</span>
                 Corriger
               </button>
+
+              {onContextualAiAction && (
+                <>
+                  <div className="w-[1px] h-4 bg-neutral-200"></div>
+                  <button
+                    onClick={openInlineAi}
+                    disabled={isAiLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-secondary hover:bg-orange-50 rounded-xl transition-colors disabled:opacity-50"
+                    title="Donner une instruction libre à Iris sur ce passage"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">auto_fix_high</span>
+                    Iris
+                  </button>
+                </>
+              )}
+
+              {onSendSelectionToChat && (
+                <>
+                  <div className="w-[1px] h-4 bg-neutral-200"></div>
+                  <button
+                    onClick={handleSendToChat}
+                    disabled={isAiLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-700 hover:text-secondary hover:bg-neutral-100 rounded-xl transition-colors disabled:opacity-50"
+                    title="Envoyer ce passage au chat Iris pour le modifier"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">forum</span>
+                    Envoyer au chat
+                  </button>
+                </>
+              )}
+              </div>
+
+              {showInlineAi && (
+                <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-neutral-200/80">
+                  <input
+                    autoFocus
+                    value={inlineInstruction}
+                    onChange={(e) => setInlineInstruction(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); handleCustomInlineAction(); }
+                      if (e.key === "Escape") { setShowInlineAi(false); pendingSelRef.current = null; }
+                    }}
+                    placeholder="Que faire de ce passage ? (ex: rends-le plus percutant)"
+                    className="flex-1 min-w-[220px] bg-neutral-50 border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-secondary text-neutral-900"
+                  />
+                  <button
+                    onClick={handleCustomInlineAction}
+                    disabled={isAiLoading || !inlineInstruction.trim()}
+                    className="bg-secondary text-white text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50 flex items-center gap-1"
+                    title="Appliquer"
+                  >
+                    {isAiLoading
+                      ? <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                      : <span className="material-symbols-outlined text-[16px]">send</span>}
+                  </button>
+                </div>
+              )}
             </BubbleMenu>
           )}
           
