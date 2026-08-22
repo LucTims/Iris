@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   Receipt,
   DollarSign,
@@ -39,6 +40,16 @@ export default function AdminSubscriptionsPage() {
           <p className="text-neutral-400 text-sm mt-1">
             Supervision du MRR, passerelle SebPay (Wave / Orange Money / MTN) et facturation.
           </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/finances"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 transition-all"
+          >
+            <DollarSign className="w-3.5 h-3.5" />
+            <span>Transactions SebPay</span>
+          </Link>
         </div>
       </div>
 

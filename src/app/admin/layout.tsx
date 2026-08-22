@@ -56,6 +56,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (href === "/admin") {
       return pathname === "/admin";
     }
+    if (href === "/admin/subscriptions" && pathname.startsWith("/admin/finances")) {
+      return true;
+    }
     return pathname.startsWith(href);
   };
 

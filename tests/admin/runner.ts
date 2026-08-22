@@ -23,6 +23,7 @@ import { runF8LogsTelemetryTests } from './tier1_features/f8_logs_telemetry.test
 import { runF9SecurityAccessTests } from './tier1_features/f9_security_access.test';
 import { runF10SettingsFlagsTests } from './tier1_features/f10_settings_flags.test';
 import { runF11HealthDiagnosticsTests } from './tier1_features/f11_health_diagnostics.test';
+import { runF12SebpayWebhookFinancesTests } from './tier1_features/f12_sebpay_webhook_finances.test';
 
 import { runTier2BoundaryTests } from './tier2_boundaries/boundary_edge_cases.test';
 import { runTier3CombinationsTests } from './tier3_combinations/cross_feature_combinations.test';
@@ -48,7 +49,7 @@ export async function runAllAdminTests(): Promise<{
 
   const startTime = Date.now();
   const suiteRunners = [
-    // Tier 1: Category-Partition Feature Coverage (60 tests)
+    // Tier 1: Category-Partition Feature Coverage (65 tests)
     runF1LayoutNavigationTests,
     runF2DashboardKPIsTests,
     runF3UsersManagementTests,
@@ -60,6 +61,8 @@ export async function runAllAdminTests(): Promise<{
     runF9SecurityAccessTests,
     runF10SettingsFlagsTests,
     runF11HealthDiagnosticsTests,
+    runF12SebpayWebhookFinancesTests,
+
 
     // Tier 2: Boundary Value Analysis & Edge Cases (32 tests)
     runTier2BoundaryTests,

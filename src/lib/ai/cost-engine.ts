@@ -20,10 +20,15 @@ export async function checkMinimumBalance(userId: string, requiredCoins: number)
 export async function deductCost(
   userId: string,
   modelId: string,
-  inputTokens: number,
-  outputTokens: number,
+  inputTokens: number | undefined,
+  outputTokens: number | undefined,
   description: string
 ): Promise<boolean> {
+  // Le SDK IA peut renvoyer des compteurs de tokens indéfinis (selon le provider/la
+  // version) ; on ne doit jamais laisser un NaN se propager jusqu'au RPC de débit.
+  const safeInputTokens = inputTokens ?? 0;
+  const safeOutputTokens = outputTokens ?? 0;
+
   const supabase = await createClient();
 
   // 1. Get model costs
@@ -39,8 +44,8 @@ export async function deductCost(
   }
 
   // 2. Calculate cost in USD
-  const inputCostUsd = (inputTokens / 1_000_000) * Number(model.input_cost_per_1m);
-  const outputCostUsd = (outputTokens / 1_000_000) * Number(model.output_cost_per_1m);
+  const inputCostUsd = (safeInputTokens / 1_000_000) * Number(model.input_cost_per_1m);
+  const outputCostUsd = (safeOutputTokens / 1_000_000) * Number(model.output_cost_per_1m);
   const totalCostUsd = inputCostUsd + outputCostUsd;
 
   // 3. Convert to Coins (Ratio x4 margin, 1 coin = $0.00165)
@@ -62,8 +67,8 @@ export async function deductCost(
     p_description: description,
     p_metadata: {
       model_id: modelId,
-      input_tokens: inputTokens,
-      output_tokens: outputTokens,
+      input_tokens: safeInputTokens,
+      output_tokens: safeOutputTokens,
       usd_cost: totalCostUsd
     }
   });

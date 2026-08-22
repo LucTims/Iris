@@ -787,8 +787,55 @@ function RedactionContent() {
     setIsImportModalOpen(true);
   };
 
+  // Remplace intégralement les chapitres d'un projet côté serveur : supprime les
+  // chapitres réellement persistés (id string = UUID Supabase) puis crée les nouveaux
+  // en une seule requête bulk. Retourne les chapitres avec leurs vrais UUID (jamais
+  // des ids client Date.now() qui disparaîtraient au rechargement).
+  const replaceChaptersOnServer = async (
+    pId: string,
+    existingChapters: Chapter[],
+    draftChapters: { number: number; title: string; content: string; status: string }[]
+  ): Promise<Chapter[] | null> => {
+    try {
+      const idsToDelete = existingChapters
+        .map((c) => c.id)
+        .filter((id): id is string => typeof id === "string");
+
+      await Promise.all(
+        idsToDelete.map((chapterId) =>
+          fetch(`/api/projects/${pId}/chapters/${chapterId}`, { method: "DELETE" })
+        )
+      );
+
+      const res = await fetch(`/api/projects/${pId}/chapters`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chapters: draftChapters })
+      });
+
+      if (!res.ok) {
+        console.error("Erreur lors de la création des chapitres:", await res.text());
+        return null;
+      }
+
+      const data = await res.json();
+      return (data.chapters || [])
+        .sort((a: any, b: any) => a.number - b.number)
+        .map((c: any) => ({
+          id: c.id,
+          number: c.number,
+          title: c.title,
+          content: c.content,
+          status: c.status
+        }));
+    } catch (err) {
+      console.error("Erreur lors du remplacement des chapitres:", err);
+      return null;
+    }
+  };
+
   // Split current document by internal headings (Parties / Chapitres)
-  const handleSplitCurrentDocument = () => {
+  const handleSplitCurrentDocument = async () => {
     const currentContent = chapters[activeChapterIndex]?.content || "";
     if (!currentContent || !currentContent.trim()) {
       alert("Le document actuel est vide.");
@@ -802,16 +849,30 @@ function RedactionContent() {
     }
 
     if (confirm(`Nous avons trouvé ${split.length} parties/chapitres dans ce document (ex: ${split.map(s => s.title).slice(0, 3).join(', ')}...). Voulez-vous le diviser en ${split.length} chapitres distincts dans le sommaire ?`)) {
-      const newChapters: Chapter[] = split.map((sp, idx) => ({
-        id: Date.now() + idx,
+      const draftChapters = split.map((sp, idx) => ({
         number: idx + 1,
         title: sp.title || `Chapitre ${idx + 1}`,
         content: sp.content || "",
         status: "Brouillon"
       }));
-      setChapters(newChapters);
-      setActiveChapterIndex(0);
+
+      const pId = currentProjectId || localStorage.getItem("iris_current_project_id");
+      if (!pId) {
+        alert("Impossible de scinder : aucun projet actif détecté.");
+        return;
+      }
+
       setSaveStatus("saving");
+      const persisted = await replaceChaptersOnServer(pId, chapters, draftChapters);
+
+      if (persisted) {
+        setChapters(persisted);
+        setActiveChapterIndex(0);
+        setSaveStatus("saved");
+      } else {
+        setSaveStatus("error");
+        alert("La scission a échoué côté serveur. Vos chapitres n'ont pas été modifiés.");
+      }
     }
   };
 
@@ -900,17 +961,31 @@ function RedactionContent() {
         setSaveStatus("saving");
       } else {
         // Option 1: Split into chapters
-        const newChapters: Chapter[] = parsedChapters.map((pc, idx) => ({
-          id: Date.now() + idx,
+        const draftChapters = parsedChapters.map((pc, idx) => ({
           number: idx + 1,
           title: pc.title || `Chapitre ${idx + 1}`,
           content: pc.content || "",
           status: "Brouillon"
         }));
 
-        setChapters(newChapters);
-        setActiveChapterIndex(0);
+        const pId = currentProjectId || localStorage.getItem("iris_current_project_id");
+        if (!pId) {
+          alert("Impossible d'importer : aucun projet actif détecté.");
+          return;
+        }
+
         setSaveStatus("saving");
+        const persisted = await replaceChaptersOnServer(pId, chapters, draftChapters);
+
+        if (persisted) {
+          setChapters(persisted);
+          setActiveChapterIndex(0);
+          setSaveStatus("saved");
+        } else {
+          setSaveStatus("error");
+          alert("L'import a échoué côté serveur. Vos chapitres n'ont pas été modifiés.");
+          return;
+        }
       }
 
       setIsImportModalOpen(false);

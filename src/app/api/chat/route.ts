@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
+import { getAiModel } from "@/lib/ai/getAiModel";
 import {
   detectIntent,
   resolveTargetChapter,
@@ -103,9 +104,9 @@ export async function POST(req: Request) {
       try {
         const { data: dbChapters } = await supabase
           .from("chapters")
-          .select("id, title, content, number, order_index")
+          .select("id, title, content, number")
           .eq("project_id", projectId)
-          .order("order_index", { ascending: true });
+          .order("number", { ascending: true });
 
         if (dbChapters && dbChapters.length > 0) {
           availableChapters = dbChapters.map((c: any, idx: number) => ({

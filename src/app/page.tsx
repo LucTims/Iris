@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import DoodleFeatherMascot from "@/components/DoodleFeatherMascot";
 import HeroProductShowcase from "@/components/HeroProductShowcase";
+import ToolMarquee from "@/components/ToolMarquee";
 import Footer from "@/components/Footer";
 
 export default function Home() {
@@ -190,6 +191,9 @@ export default function Home() {
 
         </div>
       </section>
+
+      {/* Tools Replacement Marquee Section */}
+      <ToolMarquee />
 
       {/* Features Section */}
       <section id="features" className="py-16 md:py-20 bg-neutral-50/60">

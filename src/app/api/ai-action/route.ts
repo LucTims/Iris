@@ -1,9 +1,9 @@
-import { google } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
+import { getAiModel } from "@/lib/ai/getAiModel";
 
 export const maxDuration = 30; // 30s is enough for contextual actions
 
@@ -112,7 +112,7 @@ Instructions impératives :
 3. Ne réponds qu'avec le résultat final de la transformation.`;
 
     const result = streamText({
-      model: google(selectedModelName),
+      model: getAiModel(selectedModelName),
       system: systemPrompt,
       prompt: `Voici le texte à traiter :\n\n${selectedText}`,
     });

@@ -48,7 +48,7 @@ export default function Sidebar() {
     { id: "couverture", label: "Studio de Couverture", icon: <Palette strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/cover-studio" },
     { id: "export", label: "Mise en page & KDP", icon: <PenTool strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/export" },
     { id: "ventes", label: "Analytiques", icon: <Users strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/analytics" },
-    { id: "facturation", label: "Abonnement & Mots", icon: <CreditCard strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/billing" },
+    { id: "facturation", label: "Portefeuille & Pièces", icon: <CreditCard strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/billing" },
   ];
 
   const bottomNavItems = [

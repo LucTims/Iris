@@ -174,3 +174,20 @@ export interface AdminSecurityMetric {
   failed_login_attempts_24h: number;
   blocked_ips_count: number;
 }
+
+export type TransactionStatus = 'pending' | 'paid' | 'failed';
+
+export interface AdminTransaction {
+  id: string;
+  user_id: string;
+  user_email?: string;
+  user_name?: string;
+  plan_id: string;
+  amount: number;
+  currency: string;
+  status: TransactionStatus;
+  provider_reference?: string;
+  created_at: string;
+  updated_at: string;
+}
+

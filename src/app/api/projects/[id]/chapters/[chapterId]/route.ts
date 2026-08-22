@@ -46,3 +46,38 @@ export async function PUT(
     return NextResponse.json({ error: error.message || "Erreur serveur" }, { status: 500 });
   }
 }
+
+// DELETE /api/projects/[id]/chapters/[chapterId] - Supprime un chapitre
+// (nécessaire quand un split/une régénération remplace des chapitres existants).
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string; chapterId: string }> }
+) {
+  try {
+    const { id, chapterId } = await params;
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Accès non autorisé" }, { status: 401 });
+    }
+
+    const { error } = await supabase
+      .from("chapters")
+      .delete()
+      .eq("id", chapterId)
+      .eq("project_id", id);
+
+    if (error) throw error;
+
+    await supabase
+      .from("projects")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", id);
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("DELETE /api/projects/[id]/chapters/[chapterId] error:", error);
+    return NextResponse.json({ error: error.message || "Erreur serveur" }, { status: 500 });
+  }
+}

@@ -1,116 +1,8 @@
-"use client";
+  return (
+    <div className="min-h-screen bg-neutral-50 font-body text-neutral-900 flex flex-col justify-between">
+      <TopHeader />
 
-import Link from "next/link";
-import Footer from "@/components/Footer";
-import TopHeader from "@/components/TopHeader";
-import AppLayout from "@/components/AppLayout";
-import { useUser } from "@/hooks/useUser";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-
-export default function PricingPage() {
-  const { user, isLoading } = useUser();
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const router = useRouter();
-
-  // Payment Modal State
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [selectedAmount, setSelectedAmount] = useState<number>(0);
-  
-  const [phone, setPhone] = useState("");
-  const [operator, setOperator] = useState("ORANGE");
-  const [country, setCountry] = useState("CI");
-  const [otpCode, setOtpCode] = useState("");
-
-  const initiatePayment = (planId: string, amount: number) => {
-    if (!user) {
-      alert("Veuillez vous connecter ou créer un compte pour acheter des pièces.");
-      router.push("/login?redirect=/pricing");
-      return;
-    }
-    setSelectedPlanId(planId);
-    setSelectedAmount(amount);
-  };
-
-  const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPlanId) return;
-    
-    setLoadingPlan(selectedPlanId);
-    try {
-      const response = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          planId: selectedPlanId, 
-          amount: selectedAmount,
-          phone,
-          operator,
-          country,
-          otpCode: otpCode || undefined
-        }),
-      });
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url; // URL de suivi (attente de validation USSD)
-      } else {
-        alert("Erreur lors de la création du paiement: " + (data.error || "Inconnue"));
-      }
-    } catch (error) {
-      alert("Erreur de connexion.");
-    } finally {
-      setLoadingPlan(null);
-    }
-  };
-
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-  const faqs = [
-    {
-      question: "Puis-je acheter plusieurs packs de pièces ?",
-      answer: "Oui, tout à fait. Vos pièces s'accumulent dans votre portefeuille virtuel et n'ont pas de date d'expiration. Vous pouvez recharger quand vous le souhaitez."
-    },
-    {
-      question: "Comment sont décomptées les pièces ?",
-      answer: "Les pièces sont décomptées à chaque utilisation de l'IA (génération de chapitre, réécriture, etc.) en fonction du modèle choisi. Le modèle Standard est le plus économique, tandis que le modèle Plume d'Auteur consomme plus de pièces pour une qualité supérieure."
-    },
-    {
-      question: "Quels sont les moyens de paiement acceptés ?",
-      answer: "Nous acceptons les paiements par Mobile Money (Orange Money, MTN, Moov, etc.) ainsi que les cartes bancaires via notre partenaire sécurisé SebPay."
-    },
-    {
-      question: "Est-ce un abonnement qui se renouvelle automatiquement ?",
-      answer: "Non, il n'y a aucun abonnement caché. Vous achetez un pack de pièces en paiement unique (Pay-as-you-go). Vous ne payez que ce que vous consommez."
-    }
-  ];
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <span className="material-symbols-outlined animate-spin text-4xl text-secondary">progress_activity</span>
-      </div>
-    );
-  }
-
-  const PageContent = (
-    <div className="w-full flex flex-col justify-between min-h-screen">
-      {!user && (
-        <header className="bg-white border-b border-neutral-100 h-16 px-4 md:px-8 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <span className="font-heading font-extrabold text-2xl text-secondary flex items-center gap-2">
-              <img src="/logo.png" alt="Iris" className="h-8 w-8 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-              <span>Iris</span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-bold text-neutral-600 hover:text-neutral-900">Connexion</Link>
-            <Link href="/register" className="bg-secondary hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm">Créer un compte</Link>
-          </div>
-        </header>
-      )}
-
-      {/* Main Content */}
-      <main className="pt-16 pb-20 max-w-7xl mx-auto px-6 w-full flex-1">
+      <main className="pt-20 pb-20 max-w-7xl mx-auto px-6 w-full">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h1 className="font-heading text-4xl sm:text-5xl font-extrabold text-neutral-900 tracking-tight mb-4">
             Payez uniquement ce que vous consommez
@@ -415,9 +307,7 @@ export default function PricingPage() {
 
       </main>
 
-      {!user && <Footer />}
+      <Footer />
     </div>
   );
-
-  return user ? <AppLayout>{PageContent}</AppLayout> : PageContent;
 }

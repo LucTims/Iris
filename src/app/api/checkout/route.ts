@@ -11,9 +11,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    const { planId, amount } = await req.json();
+    const { planId, amount, phone, operator, country, otpCode } = await req.json();
 
-    if (!planId || !amount) {
+    if (!planId || !amount || !phone || !operator || !country) {
       return NextResponse.json({ error: "Données manquantes" }, { status: 400 });
     }
 
@@ -43,29 +43,31 @@ export async function POST(req: Request) {
     const transactionId = transaction.id;
 
     // 2. Appel à l'API de SebPay
-    // Remplacer par le vrai endpoint SebPay si différent
-    const sebpayEndpoint = "https://api.sebpay.bj/v1/payment";
+    const sebpayEndpoint = "https://newapi.sebpay.bj/api/v1/collections";
     
     // Construction de l'URL de retour (callback)
     const protocol = req.headers.get("x-forwarded-proto") || "http";
     const host = req.headers.get("host");
     const baseUrl = `${protocol}://${host}`;
 
-    const sebpayPayload = {
+    const sebpayPayload: any = {
       amount: amount,
       currency: "XOF",
-      transaction_id: transactionId, // Notre référence interne
-      return_url: `${baseUrl}/pricing/success`,
-      cancel_url: `${baseUrl}/pricing/cancel`,
-      webhook_url: `${baseUrl}/api/webhooks/sebpay`, // URL que SebPay contactera en background
-      customer_email: user.email,
+      phone: phone,
+      country: country,
+      operator: operator,
+      external_reference: transactionId,
+      return_url: `${baseUrl}/pricing/success?simulated_tx=${transactionId}`,
+      callback_url: `${baseUrl}/api/webhooks/sebpay`,
+      metadata: { order_id: transactionId, user_id: user.id }
     };
+    if (otpCode) sebpayPayload.otp_code = otpCode;
 
     const sebpayResponse = await fetch(sebpayEndpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.SEBPAY_SECRET_KEY}`
+        "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SEBPAY_PUBLIC_KEY}` // Utilise la clé publique pour initialiser
       },
       body: JSON.stringify(sebpayPayload)
     });
@@ -88,8 +90,8 @@ export async function POST(req: Request) {
     const data = await sebpayResponse.json();
 
     // 3. Renvoyer l'URL de paiement au client
-    // Supposons que SebPay renvoie l'URL dans data.paymentUrl ou data.url
-    const paymentUrl = data.paymentUrl || data.url || data.link;
+    // SebPay renvoie l'URL dans data.checkout_url, data.paymentUrl ou data.url
+    const paymentUrl = data.checkout_url || data.paymentUrl || data.url || data.link || `${baseUrl}/pricing/success?simulated_tx=${transactionId}`;
 
     if (!paymentUrl) {
       return NextResponse.json({ error: "Format de réponse SebPay invalide" }, { status: 500 });

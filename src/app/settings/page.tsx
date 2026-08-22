@@ -95,7 +95,7 @@ export default function SettingsPage() {
               </button>
               <Link href="/billing" className="w-full flex items-center gap-3 px-4 py-3 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 rounded-xl font-medium text-xs transition-colors">
                 <CreditCard className="w-4 h-4" />
-                <span>Abonnement &amp; Facturation</span>
+                <span>Portefeuille &amp; Pièces</span>
               </Link>
             </aside>
 

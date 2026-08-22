@@ -77,6 +77,19 @@ export function useUser() {
   const isMasterAdmin = displayEmail.toLowerCase().includes("martau@gmail.com");
   const effectiveRole = isMasterAdmin ? "admin" : (profile?.role || "user");
 
+  const refreshWalletBalance = async () => {
+    if (!user) return;
+    const { data: walletData } = await supabase
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", user.id)
+      .single();
+
+    if (walletData) {
+      setWalletBalance(walletData.balance);
+    }
+  };
+
   return {
     user,
     profile: profile ? { ...profile, role: effectiveRole } : { role: effectiveRole },
@@ -87,5 +100,6 @@ export function useUser() {
     displayName,
     displayEmail,
     avatarUrl,
+    refreshWalletBalance,
   };
 }
