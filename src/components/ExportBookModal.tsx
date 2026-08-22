@@ -81,8 +81,29 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
         saveAs(blob, `${sanitizedTitle}.epub`);
 
       } else if (selectedFormat === "pdf") {
-        const { generatePdf } = await import("@/lib/export/generatePdf");
-        generatePdf(bookTitle, project?.subtitle, finalChapters);
+        // Server-side PDF engine (pdfmake) — produces a real downloadable file
+        // instead of relying on the browser's print dialog.
+        const res = await fetch("/api/export/pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: bookTitle,
+            subtitle: project?.subtitle,
+            chapters: finalChapters,
+          }),
+        });
+
+        if (!res.ok) {
+          let message = "La génération du PDF a échoué. Veuillez réessayer.";
+          try {
+            const err = await res.json();
+            if (err?.error) message = err.error;
+          } catch {}
+          throw new Error(message);
+        }
+
+        const blob = await res.blob();
+        saveAs(blob, `${sanitizedTitle}.pdf`);
 
       } else if (selectedFormat === "markdown") {
         const { generateMarkdown } = await import("@/lib/export/generateMarkdown");
@@ -95,7 +116,11 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
 
     } catch (error) {
       console.error("Export error:", error);
-      alert("Une erreur est survenue lors de l'export. Veuillez réessayer.");
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Une erreur est survenue lors de l'export. Veuillez réessayer.";
+      alert(message);
     } finally {
       setIsExporting(false);
     }
