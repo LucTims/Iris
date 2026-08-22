@@ -34,12 +34,13 @@ export async function POST(req: Request) {
       tone,
       synopsis,
       projectId,
-      model: chosenModel
+      model: chosenModel,
+      customInstruction
     } = await req.json();
 
-    if (!selectedText || !actionType) {
+    if (!selectedText || (!actionType && !customInstruction)) {
       return NextResponse.json(
-        { error: "Le texte sélectionné et l'action sont requis." },
+        { error: "Le texte sélectionné et une action (ou une instruction) sont requis." },
         { status: 400 }
       );
     }
@@ -82,21 +83,27 @@ export async function POST(req: Request) {
     }
 
     let instruction = "";
-    switch (actionType) {
-      case "reformuler":
-        instruction = "Reformule le texte suivant de manière plus fluide et élégante, tout en conservant son sens original.";
-        break;
-      case "enrichir":
-        instruction = "Enrichis le texte suivant en ajoutant plus de détails descriptifs, de vocabulaire riche et de profondeur, sans le dénaturer.";
-        break;
-      case "etendre":
-        instruction = "Développe et étends les idées du texte suivant pour créer un paragraphe plus long et plus complet.";
-        break;
-      case "corriger":
-        instruction = "Corrige l'orthographe, la grammaire et la syntaxe du texte suivant, sans modifier son sens ou son style inutilement.";
-        break;
-      default:
-        instruction = "Améliore le texte suivant.";
+    // Une instruction libre (venue du chat ou du mini-champ inline) prime sur
+    // les actions prédéfinies de la bulle.
+    if (customInstruction && String(customInstruction).trim()) {
+      instruction = `Applique la consigne suivante de l'auteur au texte, en ne modifiant QUE ce passage : "${String(customInstruction).trim()}"`;
+    } else {
+      switch (actionType) {
+        case "reformuler":
+          instruction = "Reformule le texte suivant de manière plus fluide et élégante, tout en conservant son sens original.";
+          break;
+        case "enrichir":
+          instruction = "Enrichis le texte suivant en ajoutant plus de détails descriptifs, de vocabulaire riche et de profondeur, sans le dénaturer.";
+          break;
+        case "etendre":
+          instruction = "Développe et étends les idées du texte suivant pour créer un paragraphe plus long et plus complet.";
+          break;
+        case "corriger":
+          instruction = "Corrige l'orthographe, la grammaire et la syntaxe du texte suivant, sans modifier son sens ou son style inutilement.";
+          break;
+        default:
+          instruction = "Améliore le texte suivant.";
+      }
     }
 
     const systemPrompt = `Tu es un assistant littéraire et éditeur professionnel.
@@ -108,8 +115,8 @@ Contexte du livre (pour adapter le style si nécessaire) :
 
 Instructions impératives :
 1. Renvoie UNIQUEMENT le texte modifié. Aucun préambule, aucun commentaire, pas de guillemets autour de la réponse, pas de "Voici le texte :".
-2. Conserve le formatage HTML de base si présent (ex: <strong>, <em>), sinon renvoie du texte simple ou des balises <p>.
-3. Ne réponds qu'avec le résultat final de la transformation.`;
+2. Respecte le format de la sélection : si c'est un fragment de phrase (pas un paragraphe entier), renvoie du texte au fil du texte SANS balise <p> autour, pour qu'il s'insère proprement là où était la sélection. Conserve le formatage inline présent (<strong>, <em>). Utilise des balises de bloc (<p>, <h2>, <ul>...) uniquement si la sélection couvrait déjà plusieurs blocs.
+3. Ne réponds qu'avec le résultat final de la transformation, rien d'autre.`;
 
     const result = streamText({
       model: getAiModel(selectedModelName),
