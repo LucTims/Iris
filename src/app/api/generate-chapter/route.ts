@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
 import {
-  getAiModelWithSearch,
+  getAiModel,
+  getSearchTools,
   fetchSearchContext,
   SEARCH_GROUNDING_INSTRUCTION,
 } from "@/lib/ai/search-context";
@@ -94,7 +95,8 @@ Instructions impératives :
 6. Quand le contenu contient des données comparatives, des listes de critères chiffrés ou des informations tabulaires, présente-les dans un tableau HTML bien structuré.`;
 
     const result = streamText({
-      model: getAiModelWithSearch(selectedModelName, useWebSearch),
+      model: getAiModel(selectedModelName),
+      tools: getSearchTools(selectedModelName, useWebSearch),
       system: systemPrompt,
       prompt: "Rédige ce chapitre maintenant en HTML en respectant scrupuleusement les consignes et le style.",
       async onFinish({ usage }) {

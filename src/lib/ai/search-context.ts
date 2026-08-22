@@ -4,25 +4,22 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { generateText } from "ai";
 
 /**
- * Returns the AI model configured with or without Google Search grounding.
+ * Web search grounding helpers (zero additional cost).
  *
- * Strategy (zero additional cost):
- * - Gemini models: pass `useSearchGrounding: true` directly — the model
- *   searches Google itself and grounds its response with real data.
- * - Non-Gemini models (GPT, Claude): we cannot attach Google grounding to
- *   them, so we do a lightweight pre-flight search via Gemini to collect
- *   factual context, then return it as a string to inject into the prompt.
+ * IMPORTANT — API compatibility:
+ * With @ai-sdk/google v4 + ai v7, the old `useSearchGrounding: true` model
+ * option no longer exists. Google Search grounding is now exposed as a
+ * provider-executed TOOL: `google.tools.googleSearch()`, passed via the
+ * `tools` parameter of streamText/generateText. Google runs the search
+ * server-side and grounds the answer in the same generation (no extra
+ * client round-trip, included in the Gemini API pricing already paid).
+ *
+ * Strategy:
+ * - Gemini models: attach the googleSearch tool directly (getSearchTools).
+ * - Non-Gemini models (GPT, Claude): cannot use Google grounding, so we run
+ *   a lightweight pre-flight Gemini+search call (fetchSearchContext) and
+ *   inject the collected facts into the prompt as plain text.
  */
-
-export function getAiModelWithSearch(modelId: string, useWebSearch: boolean) {
-  if (modelId.startsWith("gpt-")) {
-    return openai(modelId);
-  } else if (modelId.startsWith("claude-")) {
-    return anthropic(modelId);
-  } else {
-    return google(modelId, useWebSearch ? { useSearchGrounding: true } : {});
-  }
-}
 
 export function getAiModel(modelId: string) {
   if (modelId.startsWith("gpt-")) {
@@ -34,15 +31,46 @@ export function getAiModel(modelId: string) {
   }
 }
 
+/**
+ * Backward-compatible alias. The grounding is no longer configured on the
+ * model itself (see getSearchTools), so this simply returns the plain model.
+ */
+export function getAiModelWithSearch(modelId: string, _useWebSearch: boolean) {
+  return getAiModel(modelId);
+}
+
 function isGeminiModel(modelId: string): boolean {
   return !modelId.startsWith("gpt-") && !modelId.startsWith("claude-");
 }
 
 /**
- * For non-Gemini models: runs a quick Gemini search to collect real-world
- * facts, then returns them as a context block to inject into the prompt.
- * Returns empty string if search is disabled or if the model is Gemini
- * (which handles grounding natively via useSearchGrounding).
+ * Returns the `tools` object to pass to streamText/generateText so the model
+ * can search Google in real time. Only Gemini models support native Google
+ * grounding, so we return the tool only for them (and only when web search is
+ * enabled). For every other case we return `undefined` — passing that to the
+ * `tools` param is a safe no-op.
+ *
+ * Defensive: if the running SDK build does not expose google.tools.googleSearch
+ * we return undefined instead of throwing, so a route never 500s over search.
+ */
+export function getSearchTools(modelId: string, useWebSearch: boolean) {
+  if (!useWebSearch || !isGeminiModel(modelId)) return undefined;
+  try {
+    const tools = (google as unknown as { tools?: { googleSearch?: (args: object) => unknown } }).tools;
+    if (tools && typeof tools.googleSearch === "function") {
+      return { google_search: tools.googleSearch({}) } as Record<string, unknown>;
+    }
+  } catch (err) {
+    console.warn("Google Search tool unavailable, continuing without grounding:", err);
+  }
+  return undefined;
+}
+
+/**
+ * For non-Gemini models (GPT, Claude): runs a quick Gemini+Google Search call
+ * to collect real-world facts, then returns them as a context block to inject
+ * into the prompt. Returns an empty string if search is disabled or if the
+ * model is Gemini (which grounds natively via getSearchTools).
  */
 export async function fetchSearchContext(
   modelId: string,
@@ -54,9 +82,9 @@ export async function fetchSearchContext(
 
   try {
     const { text } = await generateText({
-      model: google("gemini-2.5-flash", { useSearchGrounding: true }),
+      model: google("gemini-2.5-flash"),
+      tools: getSearchTools("gemini-2.5-flash", true),
       prompt: `Recherche des données factuelles récentes et vérifiées sur le sujet suivant. Retourne UNIQUEMENT une liste de faits clés avec leurs sources (URLs). Pas de commentaire, pas d'introduction. Maximum 10 faits.\n\nSujet : ${searchQuery}`,
-      maxTokens: 800,
     });
     return text
       ? `\n\n--- DONNÉES FACTUELLES ISSUES DE RECHERCHES WEB (à utiliser en priorité) ---\n${text}\n--- FIN DES DONNÉES FACTUELLES ---\n`
@@ -69,7 +97,7 @@ export async function fetchSearchContext(
 
 export const SEARCH_GROUNDING_INSTRUCTION = `
 IMPORTANT concernant les données factuelles :
-- Si tu as accès à des résultats de recherche web (via le grounding Google Search), utilise ces données en priorité.
+- Si tu as accès à des résultats de recherche web (via Google Search), utilise ces données en priorité.
 - Cite tes sources entre crochets quand tu mentionnes un chiffre, une date ou un fait précis. Exemple : "La capitalisation de la BRVM s'élève à 9 200 milliards FCFA [Source: BRVM.org, 2025]".
 - Si tu n'as pas de données vérifiées sur un point précis, indique-le clairement : "(donnée à vérifier par l'auteur)".
 - Ne jamais inventer de chiffres, de dates ou de noms propres sans source.`;

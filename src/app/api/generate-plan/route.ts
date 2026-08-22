@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
 import {
-  getAiModelWithSearch,
+  getAiModel,
+  getSearchTools,
   fetchSearchContext,
   SEARCH_GROUNDING_INSTRUCTION,
 } from "@/lib/ai/search-context";
@@ -105,7 +106,8 @@ ${instructions || "Aucune consigne spécifique"}
 ${missionText}`;
 
     const result = streamText({
-      model: getAiModelWithSearch(selectedModelName, useWebSearch),
+      model: getAiModel(selectedModelName),
+      tools: getSearchTools(selectedModelName, useWebSearch),
       system: `Tu es un ghostwriter expert et rédacteur de livres professionnels.
 IMPORTANT:
 - Tu dois répondre UNIQUEMENT avec le contenu formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>).

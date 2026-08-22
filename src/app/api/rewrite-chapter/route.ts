@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
 import {
-  getAiModelWithSearch,
+  getAiModel,
+  getSearchTools,
   fetchSearchContext,
   SEARCH_GROUNDING_INSTRUCTION,
 } from "@/lib/ai/search-context";
@@ -102,7 +103,8 @@ Réécris TOUT le contenu ci-dessus en appliquant strictement les instructions d
 Si le texte contient des titres, conserve-les (ou améliore-les).`;
 
     const result = streamText({
-      model: getAiModelWithSearch(selectedModelName, useWebSearch),
+      model: getAiModel(selectedModelName),
+      tools: getSearchTools(selectedModelName, useWebSearch),
       system: `Tu es un ghostwriter expert et éditeur de livres professionnels.
 IMPORTANT:
 - Tu dois répondre UNIQUEMENT avec le contenu réécrit formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>).
