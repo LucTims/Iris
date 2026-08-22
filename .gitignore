@@ -40,3 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .agents/
+
+# temp / scratch files (ne pas committer)
+temp_*.txt
+temp_*.md
+# gros documents sources déposés par erreur dans src/
+src/**/*.pdf

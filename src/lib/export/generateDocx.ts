@@ -23,7 +23,8 @@ interface ChapterData {
 /**
  * Parse inline HTML and extract TextRun objects with bold/italic/color/font formatting.
  */
-function parseTextRuns(html: string, options?: { forceBold?: boolean }): TextRun[] {
+function parseTextRuns(html: string, options?: { forceBold?: boolean; size?: number }): TextRun[] {
+  const baseSize = options?.size ?? 24; // 24 = 12pt par défaut
   const runs: TextRun[] = [];
 
   // Remove block-level opening tags to avoid creating runs for them
@@ -104,7 +105,7 @@ function parseTextRuns(html: string, options?: { forceBold?: boolean }): TextRun
           italics: isItalic,
           font: fontStack[fontStack.length - 1],
           color: colorStack[colorStack.length - 1],
-          size: 24, // 12pt
+          size: baseSize,
         })
       );
     }
@@ -202,7 +203,7 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
         if (h1Match) {
           elements.push(
             new Paragraph({
-              children: runs,
+              children: parseTextRuns(trimmed, { forceBold: true, size: 32 }), // 16pt
               heading: HeadingLevel.HEADING_1,
               spacing: { before: 400, after: 200 },
               alignment: AlignmentType.CENTER,
@@ -211,7 +212,7 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
         } else if (h2Match) {
           elements.push(
             new Paragraph({
-              children: runs,
+              children: parseTextRuns(trimmed, { forceBold: true, size: 28 }), // 14pt
               heading: HeadingLevel.HEADING_2,
               spacing: { before: 300, after: 150 },
             })
@@ -219,7 +220,7 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
         } else if (h3Match) {
           elements.push(
             new Paragraph({
-              children: runs,
+              children: parseTextRuns(trimmed, { forceBold: true, size: 26 }), // 13pt
               heading: HeadingLevel.HEADING_3,
               spacing: { before: 200, after: 100 },
             })
