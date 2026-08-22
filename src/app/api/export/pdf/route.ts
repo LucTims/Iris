@@ -30,8 +30,33 @@ async function launchBrowser(): Promise<any> {
 
   // Local development: full puppeteer ships its own Chromium.
   const puppeteer = (await import("puppeteer")).default;
+  let executablePath: string | undefined;
+  
+  try {
+    const defaultPath = puppeteer.executablePath();
+    const fs = await import("fs");
+    if (!fs.existsSync(defaultPath)) {
+      const paths = [
+        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+        "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/usr/bin/google-chrome"
+      ];
+      for (const p of paths) {
+        if (fs.existsSync(p)) {
+          executablePath = p;
+          break;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to resolve local Chrome path, relying on default", e);
+  }
+
   return puppeteer.launch({
     headless: true,
+    executablePath,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 }
@@ -94,10 +119,10 @@ export async function POST(req: Request) {
         "Cache-Control": "no-store",
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Erreur génération PDF (Puppeteer):", error);
     return NextResponse.json(
-      { error: "Une erreur est survenue lors de la génération du PDF." },
+      { error: "Erreur serveur PDF : " + (error?.message || "Erreur inconnue") },
       { status: 500 }
     );
   } finally {
