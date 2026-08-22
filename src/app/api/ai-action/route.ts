@@ -1,11 +1,11 @@
-import { streamText } from "ai";
+import { generateText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
 import { getAiModel } from "@/lib/ai/search-context";
 
-export const maxDuration = 30; // 30s is enough for contextual actions
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
@@ -118,17 +118,31 @@ Instructions impératives :
 2. Respecte le format de la sélection : si c'est un fragment de phrase (pas un paragraphe entier), renvoie du texte au fil du texte SANS balise <p> autour, pour qu'il s'insère proprement là où était la sélection. Conserve le formatage inline présent (<strong>, <em>). Utilise des balises de bloc (<p>, <h2>, <ul>...) uniquement si la sélection couvrait déjà plusieurs blocs.
 3. Ne réponds qu'avec le résultat final de la transformation, rien d'autre.`;
 
-    const result = streamText({
+    const { text } = await generateText({
       model: getAiModel(selectedModelName),
       system: systemPrompt,
       prompt: `Voici le texte à traiter :\n\n${selectedText}`,
     });
 
-    return result.toTextStreamResponse();
+    let cleaned = (text || "")
+      .replace(/^```html\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/```\s*$/i, "")
+      .trim();
+
+    if (!cleaned) {
+      return NextResponse.json(
+        { error: "L'IA n'a renvoyé aucun contenu. Reformulez votre instruction." },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json({ text: cleaned });
   } catch (error) {
     console.error("Erreur lors de l'action IA contextuelle:", error);
+    const detail = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Une erreur est survenue lors de la communication avec l'IA." },
+      { error: `Erreur IA : ${detail}` },
       { status: 500 }
     );
   }

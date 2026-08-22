@@ -592,11 +592,12 @@ function RedactionContent() {
       }, 60);
     } catch (error) {
       console.error("Erreur édition ciblée:", error);
+      const detail = error instanceof Error && error.message ? error.message : "erreur inconnue";
       setIsAiThinking(false);
       setMessages(prev => [...prev, {
         id: Date.now() + 2,
         sender: "ai",
-        text: "⚠️ Je n'ai pas pu modifier ce passage. Veuillez réessayer.",
+        text: `⚠️ Je n'ai pas pu modifier ce passage (${detail}). Veuillez réessayer.`,
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       }]);
     }
@@ -776,26 +777,15 @@ function RedactionContent() {
         })
       });
 
-      if (!response.ok) throw new Error("Erreur AI contextuelle");
-
-      // For contextual actions, we might just want to wait for the full response to keep it simple,
-      // or we can read the stream and return it. Since onContextualAiAction expects a Promise<string>,
-      // we'll accumulate the stream and return the final string.
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
-
-      if (reader) {
-        let done = false;
-        while (!done) {
-          const { value, done: doneReading } = await reader.read();
-          done = doneReading;
-          if (value) {
-            fullText += decoder.decode(value, { stream: !done });
-          }
-        }
+      if (!response.ok) {
+        const err = await response.json().catch(() => null);
+        throw new Error(err?.error || `Erreur AI contextuelle (${response.status})`);
       }
-      return fullText;
+
+      // La route renvoie désormais du JSON { text } (non-streaming) : plus robuste
+      // et les erreurs réelles remontent au lieu d'un flux vide silencieux.
+      const data = await response.json();
+      return data?.text || "";
     } catch (error) {
       console.error(error);
       throw error;
