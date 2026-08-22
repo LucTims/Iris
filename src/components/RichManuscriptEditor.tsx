@@ -290,7 +290,8 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       }
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'action IA.");
+      const detail = err instanceof Error && err.message ? err.message : "erreur inconnue";
+      alert(`Erreur lors de l'action IA : ${detail}`);
     } finally {
       setIsAiLoading(false);
       setInlineInstruction("");
