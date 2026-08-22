@@ -5,6 +5,7 @@ import {
   TextRun,
   HeadingLevel,
   AlignmentType,
+  PageBreak,
   BorderStyle,
   Table,
   TableRow,
@@ -194,6 +195,15 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
       for (const block of blocks) {
         const trimmed = block.trim();
         if (!trimmed) continue;
+
+        // Manual page break (Ctrl+Enter) from the Tiptap Pages extension.
+        // The AI chapter marker <hr data-page-break> is intentionally NOT
+        // matched here: chapters are already separate sections, so adding a
+        // break for it would produce blank pages.
+        if (/data-type=["']?pageBreak/i.test(trimmed)) {
+          elements.push(new Paragraph({ children: [new PageBreak()] }));
+          continue;
+        }
 
         const h1Match = trimmed.match(/<h1[^>]*>/i);
         const h2Match = trimmed.match(/<h2[^>]*>/i);
