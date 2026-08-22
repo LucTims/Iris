@@ -26,6 +26,7 @@ export interface ExtendedChatApiRequest {
   activeChapterIndex?: number;
   model?: string;
   projectId?: string;
+  useWebSearch?: boolean;
 }
 
 export interface ResolvedTargetChapter {

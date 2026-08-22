@@ -557,6 +557,7 @@ function RedactionContent() {
           body: JSON.stringify({
             messages: [...messages, userMsg],
             model: selectedAiModel,
+            useWebSearch,
             context: {
               title: bookTitle,
               synopsis: projectData?.synopsis || currentChapter.content.substring(0, 500),

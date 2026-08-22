@@ -1,4 +1,3 @@
-import { google } from "@ai-sdk/google";
 import { streamText, generateObject } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -11,6 +10,12 @@ import {
   ChapterItem,
   ExtendedChatApiRequest
 } from "@/lib/ai/intent-detector";
+import {
+  getAiModel,
+  getAiModelWithSearch,
+  fetchSearchContext,
+  SEARCH_GROUNDING_INSTRUCTION,
+} from "@/lib/ai/search-context";
 
 export const maxDuration = 60;
 
@@ -42,7 +47,8 @@ export async function POST(req: Request) {
       chapters: bodyChapters,
       activeChapterIndex,
       model: chosenModel,
-      projectId: bodyProjectId
+      projectId: bodyProjectId,
+      useWebSearch = true,
     } = body;
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -194,7 +200,7 @@ Consignes de génération :
 6. Rédige un message chaleureux et explicatif pour la propriété 'chatSummary' (destiné au fil de discussion).`;
 
       const modificationResult = await generateObject({
-        model: google(selectedModelName),
+        model: getAiModel(selectedModelName),
         schema: z.object({
           chatSummary: z.string().describe("Message conversationnel explicatif pour l'auteur dans le chat"),
           summary: z.string().describe("Résumé synthétique court des modifications effectuées (1 à 2 phrases)"),
@@ -228,7 +234,13 @@ Consignes de génération :
     }
 
     // Branch B: CHAT_ONLY
-    const systemPrompt = `Tu es un assistant de rédaction de livre intelligent appelé Iris IA. 
+    const searchContext = await fetchSearchContext(
+      selectedModelName,
+      useWebSearch,
+      lastUserMessage
+    );
+
+    const systemPrompt = `Tu es Iris IA, un assistant de rédaction de livre intelligent et cultivé.
 Tu es le co-auteur du livre de l'auteur. Tu as un ACCÈS TOTAL à l'ensemble du manuscrit et à TOUS ses chapitres ci-dessous.
 
 Contexte du projet de l'auteur :
@@ -240,12 +252,15 @@ Chapitre actuellement affiché à l'écran : ${activeChapterIndex !== undefined 
 --- SOMMAIRE ET CONTENU DES CHAPITRES DU LIVRE ---
 ${chaptersOverview || "Aucun chapitre rédigé pour le moment."}
 --- FIN DU MANUSCRIT ---
+${searchContext}
+${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}
 
 Consignes importantes :
 1. Tu as un accès total à TOUS les chapitres ci-dessus. Si l'auteur te pose une question du type "As-tu accès au chapitre 3 ?", "Que contient le chapitre 7 ?", etc., confirme TOUJOURS immédiatement que tu y as accès et réponds en utilisant les données des chapitres ci-dessus.
 2. NE RECOPIE JAMAIS les balises techniques comme "--- [Chapitre 1...]" ni les extraits bruts du système dans tes réponses conversationnelles.
 3. Ne prétends JAMAIS avoir déjà modifié le livre si tu es en mode texte simple. Si l'auteur souhaite appliquer la réécriture sur le livre, encourage-le avec bienveillance ou confirme la modification.
-4. Réponds de manière concise, chaleureuse et professionnelle.`;
+4. Réponds de manière concise, chaleureuse et professionnelle.
+5. Tu peux répondre aux questions de culture générale, de recherche factuelle ou de connaissances liées au sujet du livre ou à tout autre sujet. Tu es un assistant complet, pas seulement un éditeur de texte. Si l'auteur te demande des informations factuelles (dates, chiffres, événements, marchés financiers, etc.), réponds avec les données les plus précises possibles en citant tes sources quand disponibles.`;
 
     const aiMessages: any[] = messages.map((msg: any) => ({
       role: (msg.sender === "ai" || msg.role === "assistant") ? "assistant" : "user",
@@ -253,7 +268,7 @@ Consignes importantes :
     }));
 
     const result = streamText({
-      model: google(selectedModelName),
+      model: getAiModelWithSearch(selectedModelName, useWebSearch),
       system: systemPrompt,
       messages: aiMessages,
     });
