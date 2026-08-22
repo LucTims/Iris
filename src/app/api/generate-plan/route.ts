@@ -1,23 +1,15 @@
-import { google } from "@ai-sdk/google";
-import { openai } from "@ai-sdk/openai";
-import { anthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
+import {
+  getAiModelWithSearch,
+  fetchSearchContext,
+  SEARCH_GROUNDING_INSTRUCTION,
+} from "@/lib/ai/search-context";
 
-export const maxDuration = 30;
-
-function getAiModel(modelId: string) {
-  if (modelId.startsWith("gpt-")) {
-    return openai(modelId);
-  } else if (modelId.startsWith("claude-")) {
-    return anthropic(modelId);
-  } else {
-    return google(modelId);
-  }
-}
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
@@ -51,7 +43,8 @@ export async function POST(req: Request) {
       instructions,
       model: chosenModel,
       includeDetailedPlan,
-      includeToc
+      includeToc,
+      useWebSearch = true,
     } = await req.json();
 
     const selectedModelName = chosenModel || "gemini-2.5-flash";
@@ -74,6 +67,12 @@ export async function POST(req: Request) {
     } catch (trackErr) {
       console.warn("Usage tracking error:", trackErr);
     }
+
+    const searchContext = await fetchSearchContext(
+      selectedModelName,
+      useWebSearch,
+      `${title} ${category || ""} ${synopsis || ""}`
+    );
 
     let missionText = "";
     let mainTitle = "";
@@ -106,15 +105,18 @@ ${instructions || "Aucune consigne spécifique"}
 ${missionText}`;
 
     const result = streamText({
-      model: getAiModel(selectedModelName),
-      system: `Tu es un ghostwriter expert et rédacteur de livres professionnels. 
-IMPORTANT: 
-- Tu dois répondre UNIQUEMENT avec le contenu formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>).
+      model: getAiModelWithSearch(selectedModelName, useWebSearch),
+      system: `Tu es un ghostwriter expert et rédacteur de livres professionnels.
+IMPORTANT:
+- Tu dois répondre UNIQUEMENT avec le contenu formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>).
 - Le tout premier élément DOIT être <h1>${mainTitle}</h1>.
 - N'utilise JAMAIS de Markdown (pas de **, pas de #, pas de \`\`\`).
 - NE FAIS AUCUNE SALUTATION (ne dis pas "Bonjour", ni "Voici le contenu", ni "Absolument", ni "En tant qu'IA").
 - Commence directement par la balise <h1>.
-- Ne rajoute aucun commentaire personnel à la fin, sois purement factuel et professionnel dans l'exécution de la tâche.`,
+- Quand le contenu contient des données comparatives, des listes de critères chiffrés ou des informations tabulaires, présente-les dans un tableau HTML bien structuré.
+- Ne rajoute aucun commentaire personnel à la fin, sois purement factuel et professionnel dans l'exécution de la tâche.
+${searchContext}
+${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
       prompt: prompt,
       async onFinish({ usage }) {
         await deductCost(

@@ -59,6 +59,7 @@ function RedactionContent() {
   const [isResizing, setIsResizing] = useState(false);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [selectedAiModel, setSelectedAiModel] = useState("gemini-2.5-flash");
+  const [useWebSearch, setUseWebSearch] = useState(true);
 
   // Book Project State
   const [bookTitle, setBookTitle] = useState("Mon Projet de Livre");
@@ -235,7 +236,8 @@ function RedactionContent() {
               instructions: project.instructions,
               includeDetailedPlan,
               includeToc,
-              model: project.model || ctx?.model || "gemini-2.5-flash"
+              model: project.model || ctx?.model || "gemini-2.5-flash",
+              useWebSearch
             })
           });
 
@@ -493,7 +495,8 @@ function RedactionContent() {
           content: chapter.content,
           instructions,
           projectContext: projectData,
-          model: selectedAiModel
+          model: selectedAiModel,
+          useWebSearch
         })
       });
 
@@ -739,7 +742,8 @@ function RedactionContent() {
           chapterNumber: currentChapter.number,
           previousChaptersSummary,
           model: selectedAiModel,
-          projectId: currentProjectId
+          projectId: currentProjectId,
+          useWebSearch
         })
       });
 
@@ -1168,6 +1172,19 @@ function RedactionContent() {
                     <option value="gpt-4o">🧠 Iris Pro (~80 🪙/page)</option>
                     <option value="claude-3-5-sonnet-20240620">✍️ Iris Author (~150 🪙/page)</option>
                   </select>
+
+                  <button
+                    onClick={() => setUseWebSearch(!useWebSearch)}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                      useWebSearch
+                        ? "bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                        : "bg-neutral-50 border-neutral-200 text-neutral-400 hover:bg-neutral-100"
+                    }`}
+                    title={useWebSearch ? "Recherche web activée : l'IA utilise des données réelles et récentes" : "Recherche web désactivée : l'IA utilise uniquement ses connaissances internes"}
+                  >
+                    <span className="material-symbols-outlined text-sm">{useWebSearch ? "travel_explore" : "explore_off"}</span>
+                    <span className="hidden xl:inline">{useWebSearch ? "Web" : "Web"}</span>
+                  </button>
 
                   <button
                     onClick={() => {

@@ -1,11 +1,15 @@
-import { google } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
+import {
+  getAiModelWithSearch,
+  fetchSearchContext,
+  SEARCH_GROUNDING_INSTRUCTION,
+} from "@/lib/ai/search-context";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
@@ -27,7 +31,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { content, instructions, projectContext, model } = await req.json();
+    const { content, instructions, projectContext, model, useWebSearch = true } = await req.json();
 
     if (!content) {
       return NextResponse.json({ error: "Le contenu est requis pour une réécriture." }, { status: 400 });
@@ -65,6 +69,15 @@ export async function POST(req: Request) {
       console.warn("Usage tracking error:", trackErr);
     }
 
+    const searchQuery = projectContext
+      ? `${projectContext.title} ${instructions || ""}`
+      : instructions || "";
+    const searchContext = await fetchSearchContext(
+      selectedModelName,
+      useWebSearch,
+      searchQuery
+    );
+
     let projectInfo = "";
     if (projectContext) {
       projectInfo = `
@@ -89,13 +102,16 @@ Réécris TOUT le contenu ci-dessus en appliquant strictement les instructions d
 Si le texte contient des titres, conserve-les (ou améliore-les).`;
 
     const result = streamText({
-      model: google(selectedModelName),
+      model: getAiModelWithSearch(selectedModelName, useWebSearch),
       system: `Tu es un ghostwriter expert et éditeur de livres professionnels.
-IMPORTANT: 
-- Tu dois répondre UNIQUEMENT avec le contenu réécrit formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>).
+IMPORTANT:
+- Tu dois répondre UNIQUEMENT avec le contenu réécrit formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>).
 - N'utilise JAMAIS de Markdown (pas de **, pas de #, pas de \`\`\`).
 - NE FAIS AUCUNE SALUTATION (ne dis pas "Bonjour", ni "Voici le contenu", ni "Absolument").
-- Ne rajoute aucun commentaire personnel à la fin, donne-moi juste le code HTML pur de la nouvelle version du texte.`,
+- Quand le contenu contient des données comparatives, des listes de critères chiffrés ou des informations tabulaires, présente-les dans un tableau HTML bien structuré.
+- Ne rajoute aucun commentaire personnel à la fin, donne-moi juste le code HTML pur de la nouvelle version du texte.
+${searchContext}
+${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
       prompt: prompt,
     });
 
