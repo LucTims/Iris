@@ -81,8 +81,8 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
         saveAs(blob, `${sanitizedTitle}.epub`);
 
       } else if (selectedFormat === "pdf") {
-        // Server-side PDF engine (pdfmake) — produces a real downloadable file
-        // instead of relying on the browser's print dialog.
+        // Server-side PDF engine (headless Chrome / Puppeteer) — renders the
+        // real HTML/CSS and returns a downloadable file, faithful to the editor.
         const res = await fetch("/api/export/pdf", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
