@@ -12,7 +12,6 @@ import {
 } from "@/lib/ai/intent-detector";
 import {
   getAiModel,
-  getSearchTools,
   fetchSearchContext,
   SEARCH_GROUNDING_INSTRUCTION,
 } from "@/lib/ai/search-context";
@@ -276,7 +275,6 @@ Consignes de style :
 
     const result = streamText({
       model: getAiModel(selectedModelName),
-      tools: getSearchTools(selectedModelName, useWebSearch),
       system: systemPrompt,
       messages: aiMessages,
     });

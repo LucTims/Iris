@@ -14,11 +14,16 @@ import { generateText } from "ai";
  * server-side and grounds the answer in the same generation (no extra
  * client round-trip, included in the Gemini API pricing already paid).
  *
- * Strategy:
- * - Gemini models: attach the googleSearch tool directly (getSearchTools).
- * - Non-Gemini models (GPT, Claude): cannot use Google grounding, so we run
- *   a lightweight pre-flight Gemini+search call (fetchSearchContext) and
- *   inject the collected facts into the prompt as plain text.
+ * Strategy (robust — never breaks the main answer):
+ * The googleSearch tool is UNRELIABLE inside a streaming call
+ * (streamText + toTextStreamResponse can abort the stream). So we never
+ * attach it to the streaming generation. Instead, for EVERY model, we run
+ * a lightweight NON-streaming pre-flight call (fetchSearchContext) that
+ * uses the googleSearch tool, wrapped in try/catch, to collect real facts.
+ * Those facts are injected into the prompt as plain text, and the final
+ * answer is then streamed without any tool. If grounding fails (key without
+ * grounding access, SDK mismatch, quota…), the pre-flight degrades to an
+ * empty/soft note and the model still answers from its own knowledge.
  */
 
 export function getAiModel(modelId: string) {
@@ -67,31 +72,38 @@ export function getSearchTools(modelId: string, useWebSearch: boolean) {
 }
 
 /**
- * For non-Gemini models (GPT, Claude): runs a quick Gemini+Google Search call
- * to collect real-world facts, then returns them as a context block to inject
- * into the prompt. Returns an empty string if search is disabled or if the
- * model is Gemini (which grounds natively via getSearchTools).
+ * Runs a quick NON-streaming Gemini + Google Search call to collect
+ * real-world facts, then returns them as a context block to inject into the
+ * prompt. Runs for EVERY model (Gemini included) because the search tool is
+ * unreliable inside the streamed answer. Returns an empty string when search
+ * is disabled, and a soft note (never throws) when grounding is unavailable
+ * so the caller can still answer from the model's own knowledge.
  */
 export async function fetchSearchContext(
-  modelId: string,
+  _modelId: string,
   useWebSearch: boolean,
   searchQuery: string
 ): Promise<string> {
   if (!useWebSearch) return "";
-  if (isGeminiModel(modelId)) return "";
+  if (!searchQuery || !searchQuery.trim()) return "";
+
+  const tools = getSearchTools("gemini-2.5-flash", true);
+  // Grounding tool not available in this SDK build: skip silently, the
+  // model will answer from its own knowledge.
+  if (!tools) return "";
 
   try {
     const { text } = await generateText({
       model: google("gemini-2.5-flash"),
-      tools: getSearchTools("gemini-2.5-flash", true),
+      tools,
       prompt: `Recherche des données factuelles récentes et vérifiées sur le sujet suivant. Retourne UNIQUEMENT une liste de faits clés avec leurs sources (URLs). Pas de commentaire, pas d'introduction. Maximum 10 faits.\n\nSujet : ${searchQuery}`,
     });
-    return text
+    return text && text.trim()
       ? `\n\n--- DONNÉES FACTUELLES ISSUES DE RECHERCHES WEB (à utiliser en priorité) ---\n${text}\n--- FIN DES DONNÉES FACTUELLES ---\n`
       : "";
   } catch (err) {
     console.warn("Web search pre-flight failed (non-blocking):", err);
-    return "\n\n[Note: La recherche web n'a pas pu aboutir. Si tu cites des chiffres ou des données, précise qu'ils doivent être vérifiés par l'auteur.]\n";
+    return "";
   }
 }
 

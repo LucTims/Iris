@@ -5,7 +5,6 @@ import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
 import {
   getAiModel,
-  getSearchTools,
   fetchSearchContext,
   SEARCH_GROUNDING_INSTRUCTION,
 } from "@/lib/ai/search-context";
@@ -96,7 +95,6 @@ Instructions impératives :
 
     const result = streamText({
       model: getAiModel(selectedModelName),
-      tools: getSearchTools(selectedModelName, useWebSearch),
       system: systemPrompt,
       prompt: "Rédige ce chapitre maintenant en HTML en respectant scrupuleusement les consignes et le style.",
       async onFinish({ usage }) {
