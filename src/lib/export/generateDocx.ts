@@ -5,7 +5,6 @@ import {
   TextRun,
   HeadingLevel,
   AlignmentType,
-  PageBreak,
   BorderStyle,
   Table,
   TableRow,
@@ -136,12 +135,17 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
         const rowContent = trMatch[1];
         const cells: TableCell[] = [];
         
-        const tdRegex = /<(td|th)[^>]*>([\s\S]*?)<\/\1>/gi;
+        const tdRegex = /<(td|th)([^>]*)>([\s\S]*?)<\/\1>/gi;
         let tdMatch;
         while ((tdMatch = tdRegex.exec(rowContent)) !== null) {
           const isHeader = tdMatch[1].toLowerCase() === "th";
-          const cellContent = tdMatch[2];
-          
+          const cellAttrs = tdMatch[2] || "";
+          const cellContent = tdMatch[3];
+
+          // Support des cellules fusionnées (colspan / rowspan)
+          const colSpan = parseInt((cellAttrs.match(/colspan\s*=\s*["']?(\d+)/i) || [])[1] || "1", 10);
+          const rowSpan = parseInt((cellAttrs.match(/rowspan\s*=\s*["']?(\d+)/i) || [])[1] || "1", 10);
+
           const runs = parseTextRuns(cellContent, { forceBold: isHeader });
 
           const paragraph = new Paragraph({
@@ -153,6 +157,8 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
             children: [paragraph],
             shading: isHeader ? { fill: "EEEEEE", type: ShadingType.CLEAR, color: "auto" } : undefined,
             margins: { top: 100, bottom: 100, left: 100, right: 100 },
+            ...(colSpan > 1 ? { columnSpan: colSpan } : {}),
+            ...(rowSpan > 1 ? { rowSpan } : {}),
           }));
         }
 
@@ -162,9 +168,18 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
       }
 
       if (rows.length > 0) {
+        const cellBorder = { style: BorderStyle.SINGLE, size: 4, color: "BFBFBF" };
         elements.push(new Table({
           rows,
           width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: {
+            top: cellBorder,
+            bottom: cellBorder,
+            left: cellBorder,
+            right: cellBorder,
+            insideHorizontal: cellBorder,
+            insideVertical: cellBorder,
+          },
         }));
         // Add a spacer after the table
         elements.push(new Paragraph({ spacing: { after: 200 } }));
