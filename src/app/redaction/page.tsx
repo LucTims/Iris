@@ -9,6 +9,7 @@ import ImportManuscriptModal from "@/components/ImportManuscriptModal";
 import ExportBookModal from "@/components/ExportBookModal";
 import RewriteModal from "@/components/RewriteModal";
 import { parseManuscriptFile, splitHtmlIntoChapters } from "@/lib/parser";
+import ReactMarkdown from "react-markdown";
 
 export interface ChapterModificationPayload {
   chapterIndex: number;
@@ -59,7 +60,11 @@ function RedactionContent() {
   const [isResizing, setIsResizing] = useState(false);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [selectedAiModel, setSelectedAiModel] = useState("gemini-2.5-flash");
-  const [useWebSearch, setUseWebSearch] = useState(true);
+  const [useWebSearch, setUseWebSearch] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const saved = localStorage.getItem(`iris_web_search_${urlProjectId}`);
+    return saved !== null ? saved === "true" : true;
+  });
 
   // Book Project State
   const [bookTitle, setBookTitle] = useState("Mon Projet de Livre");
@@ -569,7 +574,11 @@ function RedactionContent() {
           })
         });
 
-        if (!response.ok) throw new Error("API Chat Error");
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          const serverMessage = errorData?.error || `Erreur serveur (${response.status})`;
+          throw new Error(serverMessage);
+        }
 
         setIsAiThinking(false);
 
@@ -653,13 +662,13 @@ function RedactionContent() {
             }
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error(error);
         setIsAiThinking(false);
         setMessages(prev => [...prev, {
           id: Date.now() + 2,
           sender: "ai",
-          text: "⚠️ Désolé, je rencontre une erreur de communication. Veuillez réessayer.",
+          text: `⚠️ ${error?.message || "Désolé, je rencontre une erreur de communication. Veuillez réessayer."}`,
           time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
         }]);
       }
@@ -1244,13 +1253,19 @@ function RedactionContent() {
                     className="bg-white border border-neutral-200 text-neutral-800 text-[11px] font-bold px-2 py-1 rounded-lg outline-none cursor-pointer hover:border-secondary transition-all"
                     title="Choisir le modèle d'IA"
                   >
-                    <option value="gemini-2.5-flash">⚡ Iris Starter (~20 🪙/page)</option>
-                    <option value="gpt-4o">🧠 Iris Pro (~80 🪙/page)</option>
-                    <option value="claude-3-5-sonnet-20240620">✍️ Iris Author (~150 🪙/page)</option>
+                    <option value="gemini-2.5-flash">✨ Gemini 2.5 Flash (~20 ✨/page)</option>
+                    <option value="gpt-4o">🚀 ChatGPT (GPT-4o) (~80 ✨/page)</option>
+                    <option value="claude-3-5-sonnet-20240620">🖋️ Claude 3.5 Sonnet (~150 ✨/page)</option>
                   </select>
 
                   <button
-                    onClick={() => setUseWebSearch(!useWebSearch)}
+                    onClick={() => {
+                      const newVal = !useWebSearch;
+                      setUseWebSearch(newVal);
+                      if (currentProjectId) {
+                        localStorage.setItem(`iris_web_search_${currentProjectId}`, String(newVal));
+                      }
+                    }}
                     className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
                       useWebSearch
                         ? "bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
@@ -1309,7 +1324,13 @@ function RedactionContent() {
                           : "bg-neutral-100 text-neutral-900 rounded-tl-xs chat-bubble-text border border-neutral-200/60"
                       }`}
                     >
-                      {msg.text}
+                      {msg.sender === "ai" ? (
+                        <div className="prose prose-sm prose-neutral max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>li]:my-0.5">
+                          <ReactMarkdown>{msg.text}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        msg.text
+                      )}
 
                       {/* Insertion Button if AI proposed manuscript text */}
                       {msg.suggestedTextToInsert && (

@@ -508,7 +508,7 @@ export default function NewBookWizard() {
                     <div className="mt-1 text-2xl">⚡</div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-neutral-900">Iris Starter</span>
+                        <span className="font-bold text-neutral-900">Gemini 2.5 Flash</span>
                         <span className="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center gap-1">
                           ~20 🪙 / page
                         </span>
@@ -526,9 +526,9 @@ export default function NewBookWizard() {
                   >
                     <div className="mt-1 text-2xl">🧠</div>
                     <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-neutral-900">Iris Pro</span>
-                        <span className="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-bold text-neutral-900">ChatGPT (GPT-4o)</span>
+                          <span className="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center gap-1">
                           ~80 🪙 / page
                         </span>
                       </div>
@@ -546,9 +546,9 @@ export default function NewBookWizard() {
                     <div className="mt-1 text-2xl">✍️</div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-neutral-900 flex items-center gap-2">
-                          Iris Author
-                          <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider">Premium</span>
+                          <span className="font-bold text-neutral-900 flex items-center gap-2">
+                            Claude 3.5 Sonnet
+                            <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider">Premium</span>
                         </span>
                         <span className="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center gap-1">
                           ~150 🪙 / page

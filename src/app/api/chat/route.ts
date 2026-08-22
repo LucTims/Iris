@@ -4,7 +4,6 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
-import { getAiModel } from "@/lib/ai/getAiModel";
 import {
   detectIntent,
   resolveTargetChapter,
@@ -267,7 +266,9 @@ Consignes de style :
 2. Tu as un accès total à TOUS les chapitres ci-dessus. Si l'auteur demande "Que contient le chapitre 7 ?", confirme immédiatement et réponds avec les données des chapitres.
 3. NE RECOPIE JAMAIS les balises techniques comme "--- [Chapitre 1...]" ni les extraits bruts du système dans tes réponses.
 4. Ne prétends JAMAIS avoir déjà modifié le livre si tu es en mode texte simple. Si l'auteur veut appliquer une réécriture, confirme la modification avec bienveillance.
-5. Réponds de manière concise, chaleureuse et professionnelle.`;
+5. Réponds de manière concise, chaleureuse et professionnelle.
+6. FORMATAGE : Tu es dans un chat conversationnel. Écris des réponses LISIBLES et naturelles. N'utilise PAS de formatage Markdown excessif : pas de ** autour de chaque mot, pas de listes à puces pour chaque phrase. Utilise le gras (**mot**) UNIQUEMENT pour les termes vraiment importants (max 2-3 par réponse). Privilégie des paragraphes courts et naturels, comme si tu parlais à quelqu'un.
+7. SOURCES : Ne cite JAMAIS "[Source: Données factuelles]" ou des sources inventées. Si tu ne disposes PAS de données de recherche web réelles injectées dans le contexte, réponds avec tes connaissances sans inventer de fausses références. Ne cite une source que si elle provient réellement du bloc "DONNÉES FACTUELLES ISSUES DE RECHERCHES WEB" ci-dessus.`;
 
     const aiMessages: any[] = messages.map((msg: any) => ({
       role: (msg.sender === "ai" || msg.role === "assistant") ? "assistant" : "user",

@@ -7,6 +7,11 @@ import {
   AlignmentType,
   PageBreak,
   BorderStyle,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  ShadingType,
 } from "docx";
 
 interface ChapterData {
@@ -16,130 +21,35 @@ interface ChapterData {
 }
 
 /**
- * Strips HTML tags and returns plain text segments from HTML content.
- * Handles <p>, <h1>-<h3>, <strong>, <em>, <br>, <li>, <blockquote>.
+ * Parse inline HTML and extract TextRun objects with bold/italic/color/font formatting.
  */
-function htmlToDocxParagraphs(html: string): Paragraph[] {
-  const paragraphs: Paragraph[] = [];
-
-  // Split by block-level elements
-  const blocks = html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/?(ul|ol)>/gi, "")
-    .split(/<\/(?:p|h[1-6]|li|blockquote|div)>/gi);
-
-  for (const block of blocks) {
-    const trimmed = block.trim();
-    if (!trimmed) continue;
-
-    // Detect heading level
-    const h1Match = trimmed.match(/<h1[^>]*>/i);
-    const h2Match = trimmed.match(/<h2[^>]*>/i);
-    const h3Match = trimmed.match(/<h3[^>]*>/i);
-    const liMatch = trimmed.match(/<li[^>]*>/i);
-    const bqMatch = trimmed.match(/<blockquote[^>]*>/i);
-
-    // Strip all remaining HTML tags for the text content
-    const plainText = trimmed
-      .replace(/<[^>]*>/g, "")
-      .replace(/&nbsp;/g, " ")
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .trim();
-
-    if (!plainText) continue;
-
-    // Detect bold/italic segments within the text
-    const runs = parseTextRuns(trimmed);
-
-    if (h1Match) {
-      paragraphs.push(
-        new Paragraph({
-          children: runs,
-          heading: HeadingLevel.HEADING_1,
-          spacing: { before: 400, after: 200 },
-          alignment: AlignmentType.CENTER,
-        })
-      );
-    } else if (h2Match) {
-      paragraphs.push(
-        new Paragraph({
-          children: runs,
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 300, after: 150 },
-        })
-      );
-    } else if (h3Match) {
-      paragraphs.push(
-        new Paragraph({
-          children: runs,
-          heading: HeadingLevel.HEADING_3,
-          spacing: { before: 200, after: 100 },
-        })
-      );
-    } else if (bqMatch) {
-      paragraphs.push(
-        new Paragraph({
-          children: runs,
-          indent: { left: 720 },
-          border: {
-            left: { style: BorderStyle.SINGLE, size: 6, color: "999999" },
-          },
-          spacing: { before: 100, after: 100 },
-        })
-      );
-    } else if (liMatch) {
-      paragraphs.push(
-        new Paragraph({
-          children: [new TextRun({ text: "• " }), ...runs],
-          indent: { left: 360 },
-          spacing: { before: 60, after: 60 },
-        })
-      );
-    } else {
-      paragraphs.push(
-        new Paragraph({
-          children: runs,
-          spacing: { before: 60, after: 120 },
-          alignment: AlignmentType.JUSTIFIED,
-        })
-      );
-    }
-  }
-
-  return paragraphs;
-}
-
-/**
- * Parse inline HTML and extract TextRun objects with bold/italic formatting.
- */
-function parseTextRuns(html: string): TextRun[] {
+function parseTextRuns(html: string, options?: { forceBold?: boolean }): TextRun[] {
   const runs: TextRun[] = [];
 
-  // Remove block-level opening tags
-  let cleaned = html.replace(/<(?:p|h[1-6]|li|blockquote|div)[^>]*>/gi, "");
+  // Remove block-level opening tags to avoid creating runs for them
+  let cleaned = html.replace(/<(?:p|h[1-6]|li|blockquote|div|table|thead|tbody|tr|td|th)[^>]*>/gi, "");
 
-  // Simple approach: split by strong/em tags
-  const segments = cleaned.split(/(<\/?(?:strong|b|em|i)>)/gi);
+  // Split by styling tags
+  const segments = cleaned.split(/(<\/?(?:strong|b|em|i|span)[^>]*>)/gi);
 
-  let isBold = false;
+  let isBold = options?.forceBold || false;
   let isItalic = false;
+  const fontStack: string[] = ["Outfit"];
+  const colorStack: string[] = ["222222"];
 
   for (const segment of segments) {
+    if (!segment) continue;
     const lower = segment.toLowerCase();
 
-    if (lower === "<strong>" || lower === "<b>") {
+    if (lower.startsWith("<strong") || lower.startsWith("<b")) {
       isBold = true;
       continue;
     }
     if (lower === "</strong>" || lower === "</b>") {
-      isBold = false;
+      isBold = options?.forceBold || false; // Revert to base state
       continue;
     }
-    if (lower === "<em>" || lower === "<i>") {
+    if (lower.startsWith("<em") || lower.startsWith("<i")) {
       isItalic = true;
       continue;
     }
@@ -147,8 +57,36 @@ function parseTextRuns(html: string): TextRun[] {
       isItalic = false;
       continue;
     }
+    if (lower.startsWith("<span")) {
+      let font = fontStack[fontStack.length - 1];
+      let color = colorStack[colorStack.length - 1];
 
-    // Strip any remaining HTML tags
+      // Extract font-family
+      const fontMatch = segment.match(/font-family:\s*([^;"'>]+)/i);
+      if (fontMatch) {
+        font = fontMatch[1].replace(/['"]/g, "").trim();
+      }
+
+      // Extract color
+      const colorMatch = segment.match(/color:\s*([^;"'>]+)/i);
+      if (colorMatch) {
+        color = colorMatch[1].trim();
+        if (color.startsWith("#")) {
+          color = color.substring(1);
+        }
+      }
+
+      fontStack.push(font);
+      colorStack.push(color);
+      continue;
+    }
+    if (lower === "</span>") {
+      if (fontStack.length > 1) fontStack.pop();
+      if (colorStack.length > 1) colorStack.pop();
+      continue;
+    }
+
+    // Strip any remaining HTML tags and decode entities
     const text = segment
       .replace(/<[^>]*>/g, "")
       .replace(/&nbsp;/g, " ")
@@ -164,7 +102,8 @@ function parseTextRuns(html: string): TextRun[] {
           text,
           bold: isBold,
           italics: isItalic,
-          font: "Outfit",
+          font: fontStack[fontStack.length - 1],
+          color: colorStack[colorStack.length - 1],
           size: 24, // 12pt
         })
       );
@@ -172,6 +111,152 @@ function parseTextRuns(html: string): TextRun[] {
   }
 
   return runs;
+}
+
+/**
+ * Strips HTML tags and returns plain text segments from HTML content.
+ * Handles <p>, <h1>-<h3>, <strong>, <em>, <br>, <li>, <blockquote>, <table>.
+ */
+function htmlToDocxElements(html: string): (Paragraph | Table)[] {
+  const elements: (Paragraph | Table)[] = [];
+
+  // Split out tables first so they are not broken by paragraph splits
+  const tableParts = html.split(/(<table[^>]*>[\s\S]*?<\/table>)/gi);
+
+  for (const part of tableParts) {
+    if (!part.trim()) continue;
+
+    if (part.toLowerCase().startsWith("<table")) {
+      const rows: TableRow[] = [];
+      const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+      let trMatch;
+
+      while ((trMatch = trRegex.exec(part)) !== null) {
+        const rowContent = trMatch[1];
+        const cells: TableCell[] = [];
+        
+        const tdRegex = /<(td|th)[^>]*>([\s\S]*?)<\/\1>/gi;
+        let tdMatch;
+        while ((tdMatch = tdRegex.exec(rowContent)) !== null) {
+          const isHeader = tdMatch[1].toLowerCase() === "th";
+          const cellContent = tdMatch[2];
+          
+          const runs = parseTextRuns(cellContent, { forceBold: isHeader });
+
+          const paragraph = new Paragraph({
+            children: runs,
+            alignment: isHeader ? AlignmentType.CENTER : AlignmentType.LEFT,
+          });
+
+          cells.push(new TableCell({
+            children: [paragraph],
+            shading: isHeader ? { fill: "EEEEEE", type: ShadingType.CLEAR, color: "auto" } : undefined,
+            margins: { top: 100, bottom: 100, left: 100, right: 100 },
+          }));
+        }
+
+        if (cells.length > 0) {
+          rows.push(new TableRow({ children: cells }));
+        }
+      }
+
+      if (rows.length > 0) {
+        elements.push(new Table({
+          rows,
+          width: { size: 100, type: WidthType.PERCENTAGE },
+        }));
+        // Add a spacer after the table
+        elements.push(new Paragraph({ spacing: { after: 200 } }));
+      }
+    } else {
+      // Normal HTML blocks processing
+      const blocks = part
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/?(ul|ol)>/gi, "")
+        .split(/<\/(?:p|h[1-6]|li|blockquote|div)>/gi);
+
+      for (const block of blocks) {
+        const trimmed = block.trim();
+        if (!trimmed) continue;
+
+        const h1Match = trimmed.match(/<h1[^>]*>/i);
+        const h2Match = trimmed.match(/<h2[^>]*>/i);
+        const h3Match = trimmed.match(/<h3[^>]*>/i);
+        const liMatch = trimmed.match(/<li[^>]*>/i);
+        const bqMatch = trimmed.match(/<blockquote[^>]*>/i);
+
+        const plainText = trimmed
+          .replace(/<[^>]*>/g, "")
+          .replace(/&nbsp;/g, " ")
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .trim();
+
+        if (!plainText) continue;
+
+        const runs = parseTextRuns(trimmed);
+
+        if (h1Match) {
+          elements.push(
+            new Paragraph({
+              children: runs,
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400, after: 200 },
+              alignment: AlignmentType.CENTER,
+            })
+          );
+        } else if (h2Match) {
+          elements.push(
+            new Paragraph({
+              children: runs,
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 150 },
+            })
+          );
+        } else if (h3Match) {
+          elements.push(
+            new Paragraph({
+              children: runs,
+              heading: HeadingLevel.HEADING_3,
+              spacing: { before: 200, after: 100 },
+            })
+          );
+        } else if (bqMatch) {
+          elements.push(
+            new Paragraph({
+              children: runs,
+              indent: { left: 720 },
+              border: {
+                left: { style: BorderStyle.SINGLE, size: 6, color: "999999" },
+              },
+              spacing: { before: 100, after: 100 },
+            })
+          );
+        } else if (liMatch) {
+          elements.push(
+            new Paragraph({
+              children: [new TextRun({ text: "• " }), ...runs],
+              indent: { left: 360 },
+              spacing: { before: 60, after: 60 },
+            })
+          );
+        } else {
+          elements.push(
+            new Paragraph({
+              children: runs,
+              spacing: { before: 60, after: 120 },
+              alignment: AlignmentType.JUSTIFIED,
+            })
+          );
+        }
+      }
+    }
+  }
+
+  return elements;
 }
 
 export async function generateDocx(
@@ -251,7 +336,7 @@ export async function generateDocx(
 
   // Chapter Sections (each starts on a new page)
   for (const chapter of chapters) {
-    const chapterParagraphs: Paragraph[] = [
+    const chapterElements: (Paragraph | Table)[] = [
       // Chapter title
       new Paragraph({
         children: [
@@ -280,7 +365,7 @@ export async function generateDocx(
         spacing: { after: 400 },
       }),
       // Chapter content
-      ...htmlToDocxParagraphs(chapter.content),
+      ...htmlToDocxElements(chapter.content),
     ];
 
     sections.push({
@@ -294,7 +379,7 @@ export async function generateDocx(
           },
         },
       },
-      children: chapterParagraphs,
+      children: chapterElements,
     });
   }
 

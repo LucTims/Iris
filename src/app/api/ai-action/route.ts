@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
-import { getAiModel } from "@/lib/ai/getAiModel";
+import { getAiModel } from "@/lib/ai/search-context";
 
 export const maxDuration = 30; // 30s is enough for contextual actions
 
