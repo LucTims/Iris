@@ -193,7 +193,7 @@ function parseTable(tableHtml: string): PdfNode | null {
   for (const r of rows) while (r.length < maxCols) r.push({ text: "" });
 
   return {
-    table: { headerRows: headerRows || 0, widths: Array(maxCols).fill("*"), body: rows },
+    table: { headerRows: headerRows || 0, dontBreakRows: true, keepWithHeaderRows: 1, widths: Array(maxCols).fill("*"), body: rows },
     layout: {
       hLineWidth: () => 0.5,
       vLineWidth: () => 0.5,

@@ -73,6 +73,9 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   const [showInlineAi, setShowInlineAi] = useState(false);
   const [inlineInstruction, setInlineInstruction] = useState("");
   const pendingSelRef = useRef<{ from: number; to: number; text: string } | null>(null);
+  // Grid picker for table insertion (hover to choose rows × cols)
+  const [showTablePicker, setShowTablePicker] = useState(false);
+  const [tableHover, setTableHover] = useState<{ rows: number; cols: number }>({ rows: 0, cols: 0 });
 
   const menuRef = useRef<HTMLDivElement>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -317,30 +320,25 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
     setActiveMenu(null);
   };
 
-  const handleInsertTable = () => {
+  const handleInsertTable = (rows = 3, cols = 3) => {
     if (!editor) return;
+    const r = Math.max(1, rows);
+    const c = Math.max(1, cols);
     if ((editor.commands as any).insertTable) {
-      (editor.commands as any).insertTable({ rows: 3, cols: 3, withHeaderRow: true });
+      (editor.commands as any).insertTable({ rows: r, cols: c, withHeaderRow: true });
     } else {
-      const tableHTML = `
-        <table style="width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #d1d5db;">
-          <thead>
-            <tr style="background-color: #f3f4f6;">
-              <th style="border: 1px solid #d1d5db; padding: 10px 14px; text-align: left; font-weight: bold;">En-tête 1</th>
-              <th style="border: 1px solid #d1d5db; padding: 10px 14px; text-align: left; font-weight: bold;">En-tête 2</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="border: 1px solid #d1d5db; padding: 10px 14px;">Donnée 1</td>
-              <td style="border: 1px solid #d1d5db; padding: 10px 14px;">Donnée 2</td>
-            </tr>
-          </tbody>
-        </table>
-        <p><br></p>
-      `;
+      const th = Array.from({ length: c }, (_, i) =>
+        `<th style="border: 1px solid #d1d5db; padding: 10px 14px; text-align: left; font-weight: bold;">En-tête ${i + 1}</th>`
+      ).join("");
+      const bodyRows = Array.from({ length: Math.max(0, r - 1) }, () =>
+        `<tr>${Array.from({ length: c }, () => `<td style="border: 1px solid #d1d5db; padding: 10px 14px;"></td>`).join("")}</tr>`
+      ).join("");
+      const tableHTML = `<table style="width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #d1d5db;"><thead><tr style="background-color: #f3f4f6;">${th}</tr></thead><tbody>${bodyRows}</tbody></table><p><br></p>`;
       editor.chain().focus().insertContent(tableHTML).run();
     }
+    setShowTablePicker(false);
+    setTableHover({ rows: 0, cols: 0 });
+    setActiveMenu(null);
   };
 
   const handleInsertLinkSubmit = () => {
@@ -422,7 +420,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               { label: "📥 Importer un manuscrit (.docx, .epub)", action: handleImportButtonClick },
               { label: "📄 Saut de page (Ctrl+Enter)", action: handleAddNewPage },
               { label: "🖼️ Image...", action: () => setIsImageModalOpen(true) },
-              { label: "📊 Tableau", action: handleInsertTable },
+              { label: "📊 Tableau (3 × 3)", action: () => handleInsertTable(3, 3) },
               { label: "🔵 Encadré Info", action: () => handleInsertCallout("info") },
               { label: "🟠 Encadré Attention", action: () => handleInsertCallout("warning") },
               { label: "🟢 Encadré Conseil", action: () => handleInsertCallout("tip") },
@@ -644,7 +642,34 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           <button onClick={handleImportButtonClick} title="Importer un manuscrit (.docx, .epub)" className="w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors"><span className="material-symbols-outlined text-lg">file_upload</span></button>
           <button onClick={() => setIsImageModalOpen(true)} className="w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer une image"><span className="material-symbols-outlined text-lg">image</span></button>
           <button onClick={() => setIsLinkModalOpen(true)} className="w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer un lien"><span className="material-symbols-outlined text-lg">link</span></button>
-          <button onClick={handleInsertTable} className="w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer un tableau"><span className="material-symbols-outlined text-lg">table_chart</span></button>
+          <div className="relative">
+            <button onClick={() => setShowTablePicker(v => !v)} className={`w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors ${showTablePicker ? "bg-orange-100/70 text-secondary" : ""}`} title="Insérer un tableau"><span className="material-symbols-outlined text-lg">table_chart</span></button>
+            {showTablePicker && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => { setShowTablePicker(false); setTableHover({ rows: 0, cols: 0 }); }} />
+                <div className="absolute left-0 top-10 z-50 bg-white rounded-2xl shadow-xl border border-neutral-200 p-3">
+                  <div className="grid gap-[3px]" style={{ gridTemplateColumns: "repeat(10, 18px)" }} onMouseLeave={() => setTableHover({ rows: 0, cols: 0 })}>
+                    {Array.from({ length: 8 }).map((_, r) =>
+                      Array.from({ length: 10 }).map((_, c) => {
+                        const active = r < tableHover.rows && c < tableHover.cols;
+                        return (
+                          <button
+                            key={`${r}-${c}`}
+                            onMouseEnter={() => setTableHover({ rows: r + 1, cols: c + 1 })}
+                            onClick={() => handleInsertTable(r + 1, c + 1)}
+                            className={`w-[18px] h-[18px] rounded-[3px] border transition-colors ${active ? "bg-secondary border-secondary" : "bg-neutral-50 border-neutral-200 hover:border-secondary/50"}`}
+                          />
+                        );
+                      })
+                    )}
+                  </div>
+                  <div className="mt-2 text-center text-xs font-bold text-neutral-600">
+                    {tableHover.rows > 0 ? `${tableHover.cols} × ${tableHover.rows}` : "Glissez pour choisir"}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           <button onClick={handleAddNewPage} className="w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Saut de page"><span className="material-symbols-outlined text-lg">post_add</span></button>
         </div>
       </div>

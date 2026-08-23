@@ -197,11 +197,13 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
       while ((trMatch = trRegex.exec(part)) !== null) {
         const rowContent = trMatch[1];
         const cells: TableCell[] = [];
-        
+        let rowHasHeader = false;
+
         const tdRegex = /<(td|th)([^>]*)>([\s\S]*?)<\/\1>/gi;
         let tdMatch;
         while ((tdMatch = tdRegex.exec(rowContent)) !== null) {
           const isHeader = tdMatch[1].toLowerCase() === "th";
+          if (isHeader) rowHasHeader = true;
           const cellAttrs = tdMatch[2] || "";
           const cellContent = tdMatch[3];
 
@@ -226,7 +228,11 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
         }
 
         if (cells.length > 0) {
-          rows.push(new TableRow({ children: cells }));
+          rows.push(new TableRow({
+            children: cells,
+            cantSplit: true, // ne pas couper une ligne entre deux pages
+            ...(rowHasHeader ? { tableHeader: true } : {}), // répéter l'en-tête sur chaque page
+          }));
         }
       }
 
