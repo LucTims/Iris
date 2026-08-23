@@ -80,6 +80,14 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   const menuRef = useRef<HTMLDivElement>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const tablePickerBtnRef = useRef<HTMLDivElement>(null);
+
+  // Compute fixed position for the table grid picker so it escapes overflow:hidden parents
+  const tablePickerPos = React.useMemo(() => {
+    if (!showTablePicker || !tablePickerBtnRef.current) return { top: 0, left: 0 };
+    const rect = tablePickerBtnRef.current.getBoundingClientRect();
+    return { top: rect.bottom + 4, left: rect.left };
+  }, [showTablePicker]);
 
   // Initialize Tiptap Pro Pages Editor
   const editor = useEditor({
@@ -642,12 +650,12 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           <button onClick={handleImportButtonClick} title="Importer un manuscrit (.docx, .epub)" className="w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors"><span className="material-symbols-outlined text-lg">file_upload</span></button>
           <button onClick={() => setIsImageModalOpen(true)} className="w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer une image"><span className="material-symbols-outlined text-lg">image</span></button>
           <button onClick={() => setIsLinkModalOpen(true)} className="w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer un lien"><span className="material-symbols-outlined text-lg">link</span></button>
-          <div className="relative">
+          <div className="relative" ref={tablePickerBtnRef}>
             <button onClick={() => setShowTablePicker(v => !v)} className={`w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors ${showTablePicker ? "bg-orange-100/70 text-secondary" : ""}`} title="Insérer un tableau"><span className="material-symbols-outlined text-lg">table_chart</span></button>
             {showTablePicker && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => { setShowTablePicker(false); setTableHover({ rows: 0, cols: 0 }); }} />
-                <div className="absolute left-0 top-10 z-50 bg-white rounded-2xl shadow-xl border border-neutral-200 p-3">
+                <div className="fixed z-50 bg-white rounded-2xl shadow-xl border border-neutral-200 p-3" style={tablePickerPos}>
                   <div className="grid gap-[3px]" style={{ gridTemplateColumns: "repeat(10, 18px)" }} onMouseLeave={() => setTableHover({ rows: 0, cols: 0 })}>
                     {Array.from({ length: 8 }).map((_, r) =>
                       Array.from({ length: 10 }).map((_, c) => {
