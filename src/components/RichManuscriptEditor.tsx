@@ -83,10 +83,12 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   const tablePickerBtnRef = useRef<HTMLDivElement>(null);
 
   // Compute fixed position for the table grid picker so it escapes overflow:hidden parents
+  // Align the picker's RIGHT edge with the button's right edge so it doesn't slide under the chat panel
   const tablePickerPos = React.useMemo(() => {
     if (!showTablePicker || !tablePickerBtnRef.current) return { top: 0, left: 0 };
     const rect = tablePickerBtnRef.current.getBoundingClientRect();
-    return { top: rect.bottom + 4, left: rect.left };
+    const pickerWidth = 222; // 10 cols × 18px + 9 gaps × 3px + 24px padding
+    return { top: rect.bottom + 4, left: Math.max(8, rect.right - pickerWidth) };
   }, [showTablePicker]);
 
   // Initialize Tiptap Pro Pages Editor
