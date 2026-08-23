@@ -126,6 +126,34 @@ export function buildPrintHtml(
     }
     .chapter-content img { max-width: 100%; height: auto; display: block; margin: 16px auto; }
 
+    /* Encadrés / Callouts */
+    .chapter-content .callout {
+      border-left: 4px solid #94a3b8;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin: 16px 0;
+      background: #f1f5f9;
+      page-break-inside: avoid;
+    }
+    .chapter-content .callout > *:first-child { margin-top: 0; }
+    .chapter-content .callout > *:last-child { margin-bottom: 0; }
+    .chapter-content .callout::before {
+      display: block;
+      font-size: 9pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
+    .chapter-content .callout-info { background: #eff6ff; border-left-color: #3b82f6; }
+    .chapter-content .callout-info::before { content: "Info"; color: #1d4ed8; }
+    .chapter-content .callout-warning { background: #fff7ed; border-left-color: #f97316; }
+    .chapter-content .callout-warning::before { content: "Attention"; color: #c2410c; }
+    .chapter-content .callout-tip { background: #f0fdf4; border-left-color: #22c55e; }
+    .chapter-content .callout-tip::before { content: "Conseil"; color: #15803d; }
+    .chapter-content .callout-example { background: #faf5ff; border-left-color: #a855f7; }
+    .chapter-content .callout-example::before { content: "Exemple"; color: #7e22ce; }
+
     /* Tables keep their look and avoid being split mid-row where possible */
     .chapter-content table {
       width: 100%;

@@ -31,6 +31,7 @@ import { Pages } from '@tiptap-pro/extension-pages';
 import { FontSize } from './editor/FontSizeExtension';
 import { LineHeight } from './editor/LineHeightExtension';
 import { ResizableImage } from './editor/ResizableImageExtension';
+import { Callout, CalloutType } from './editor/CalloutExtension';
 import { RichManuscriptEditorHandle, RichManuscriptEditorProps, PageFormatType } from './editor/types';
 
 export type { RichManuscriptEditorHandle, RichManuscriptEditorProps };
@@ -93,6 +94,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       OrderedList,
       ListItem,
       Blockquote,
+      Callout,
       Link.configure({ openOnClick: true, HTMLAttributes: { class: 'text-secondary underline cursor-pointer' } }),
       ResizableImage,
       TextStyle,
@@ -309,6 +311,12 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
     onSendSelectionToChat({ text, from, to });
   };
 
+  const handleInsertCallout = (type: CalloutType) => {
+    if (!editor) return;
+    (editor.chain().focus() as any).insertCallout(type).run();
+    setActiveMenu(null);
+  };
+
   const handleInsertTable = () => {
     if (!editor) return;
     if ((editor.commands as any).insertTable) {
@@ -415,6 +423,10 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               { label: "📄 Saut de page (Ctrl+Enter)", action: handleAddNewPage },
               { label: "🖼️ Image...", action: () => setIsImageModalOpen(true) },
               { label: "📊 Tableau", action: handleInsertTable },
+              { label: "🔵 Encadré Info", action: () => handleInsertCallout("info") },
+              { label: "🟠 Encadré Attention", action: () => handleInsertCallout("warning") },
+              { label: "🟢 Encadré Conseil", action: () => handleInsertCallout("tip") },
+              { label: "🟣 Encadré Exemple", action: () => handleInsertCallout("example") },
               { label: "🔗 Lien hypertexte...", action: () => setIsLinkModalOpen(true) },
               { label: "➖ Ligne horizontale", action: () => editor.chain().focus().setHorizontalRule().run() }
             ]
@@ -846,6 +858,33 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               font-style: italic;
               color: #475569;
             }
+
+            /* Encadrés / Callouts */
+            .tiptap .callout {
+              border-left: 4px solid #94a3b8;
+              border-radius: 8px;
+              padding: 12px 16px;
+              margin: 1.25rem 0;
+              background: #f1f5f9;
+            }
+            .tiptap .callout > *:first-child { margin-top: 0; }
+            .tiptap .callout > *:last-child { margin-bottom: 0; }
+            .tiptap .callout::before {
+              display: block;
+              font-size: 0.7rem;
+              font-weight: 800;
+              text-transform: uppercase;
+              letter-spacing: 0.04em;
+              margin-bottom: 6px;
+            }
+            .tiptap .callout-info { background: #eff6ff; border-left-color: #3b82f6; }
+            .tiptap .callout-info::before { content: "ℹ️ Info"; color: #1d4ed8; }
+            .tiptap .callout-warning { background: #fff7ed; border-left-color: #f97316; }
+            .tiptap .callout-warning::before { content: "⚠️ Attention"; color: #c2410c; }
+            .tiptap .callout-tip { background: #f0fdf4; border-left-color: #22c55e; }
+            .tiptap .callout-tip::before { content: "💡 Conseil"; color: #15803d; }
+            .tiptap .callout-example { background: #faf5ff; border-left-color: #a855f7; }
+            .tiptap .callout-example::before { content: "📌 Exemple"; color: #7e22ce; }
 
             .tiptap ul {
               list-style-type: disc;

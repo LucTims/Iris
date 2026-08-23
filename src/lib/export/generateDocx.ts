@@ -114,15 +114,77 @@ function parseTextRuns(html: string, options?: { forceBold?: boolean; size?: num
   return runs;
 }
 
+const CALLOUT_STYLES: Record<string, { bg: string; border: string; label: string; labelColor: string }> = {
+  info: { bg: "EFF6FF", border: "3B82F6", label: "INFO", labelColor: "1D4ED8" },
+  warning: { bg: "FFF7ED", border: "F97316", label: "ATTENTION", labelColor: "C2410C" },
+  tip: { bg: "F0FDF4", border: "22C55E", label: "CONSEIL", labelColor: "15803D" },
+  example: { bg: "FAF5FF", border: "A855F7", label: "EXEMPLE", labelColor: "7E22CE" },
+};
+
+/**
+ * Render a callout <div class="callout callout-TYPE"> as a single-cell table
+ * with a colored left border, light background and an uppercase label.
+ */
+function renderCallout(html: string): Table {
+  const typeMatch =
+    html.match(/callout-(info|warning|tip|example)/i) ||
+    html.match(/data-callout-type=["'](info|warning|tip|example)/i);
+  const type = (typeMatch?.[1] || "info").toLowerCase();
+  const s = CALLOUT_STYLES[type] || CALLOUT_STYLES.info;
+
+  const inner = html
+    .replace(/^<div[^>]*>/i, "")
+    .replace(/<\/div>\s*$/i, "");
+
+  const labelPara = new Paragraph({
+    children: [new TextRun({ text: s.label, bold: true, color: s.labelColor, font: "Outfit", size: 18 })],
+    spacing: { after: 80 },
+  });
+
+  const innerElements = htmlToDocxElements(inner);
+  const children = innerElements.length > 0 ? innerElements : [new Paragraph({})];
+
+  const softBorder = { style: BorderStyle.SINGLE, size: 2, color: s.bg };
+  const cell = new TableCell({
+    children: [labelPara, ...children],
+    shading: { fill: s.bg, type: ShadingType.CLEAR, color: "auto" },
+    margins: { top: 120, bottom: 120, left: 180, right: 160 },
+    borders: {
+      left: { style: BorderStyle.SINGLE, size: 20, color: s.border },
+      top: softBorder,
+      bottom: softBorder,
+      right: softBorder,
+    },
+  });
+
+  return new Table({
+    rows: [new TableRow({ children: [cell] })],
+    width: { size: 100, type: WidthType.PERCENTAGE },
+  });
+}
+
 /**
  * Strips HTML tags and returns plain text segments from HTML content.
- * Handles <p>, <h1>-<h3>, <strong>, <em>, <br>, <li>, <blockquote>, <table>.
+ * Handles <p>, <h1>-<h3>, <strong>, <em>, <br>, <li>, <blockquote>, <table>,
+ * and <div class="callout"> boxes.
  */
 function htmlToDocxElements(html: string): (Paragraph | Table)[] {
   const elements: (Paragraph | Table)[] = [];
 
-  // Split out tables first so they are not broken by paragraph splits
-  const tableParts = html.split(/(<table[^>]*>[\s\S]*?<\/table>)/gi);
+  // Isolate callout boxes first — rendered as bordered/shaded single-cell tables
+  const calloutParts = html.split(/(<div[^>]*class="[^"]*\bcallout\b[^"]*"[^>]*>[\s\S]*?<\/div>)/gi);
+
+  for (const cpart of calloutParts) {
+    if (!cpart.trim()) continue;
+
+    if (/^<div[^>]*class="[^"]*\bcallout\b/i.test(cpart.trim())) {
+      elements.push(renderCallout(cpart));
+      elements.push(new Paragraph({ spacing: { after: 160 } }));
+      continue;
+    }
+
+  // Split out tables so they are not broken by paragraph splits
+  const tableParts = cpart.split(/(<table[^>]*>[\s\S]*?<\/table>)/gi);
 
   for (const part of tableParts) {
     if (!part.trim()) continue;
@@ -280,6 +342,7 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
         }
       }
     }
+  }
   }
 
   return elements;
