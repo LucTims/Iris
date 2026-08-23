@@ -32,7 +32,7 @@ export default function RootLayout({
       </head>
       <body className="bg-white text-neutral-900 font-body antialiased selection:bg-neutral-200">
         {children}
-        {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />}
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || "G-5WW5K8J3D5"} />
       </body>
     </html>
   );
