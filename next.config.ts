@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
   // pdfmake (+ pdfkit/fontkit) must stay external so its internal font/asset
   // resolution keeps working inside the serverless PDF route.
   serverExternalPackages: ["pdfmake"],
+  // Ensure the bundled TTF fonts are traced into the PDF export function.
+  outputFileTracingIncludes: {
+    "/api/export/pdf": ["./src/lib/export/fonts/**/*"],
+  },
 };
 
 export default nextConfig;

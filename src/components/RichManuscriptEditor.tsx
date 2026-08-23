@@ -528,40 +528,16 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
             className="bg-white border border-neutral-300 text-xs font-bold px-2.5 py-1.5 rounded-xl outline-none cursor-pointer max-w-[145px] shadow-2xs"
             title="Police d'écriture"
           >
+            {/* Uniquement les polices réellement supportées à l'export PDF/DOCX */}
             <option value="">Police par défaut</option>
             <optgroup label="─── Sans-Serif ───">
-              <option value="Inter" style={{fontFamily:'Inter'}}>Inter</option>
-              <option value="Outfit" style={{fontFamily:'Outfit'}}>Outfit</option>
               <option value="Roboto" style={{fontFamily:'Roboto'}}>Roboto</option>
-              <option value="Open Sans" style={{fontFamily:'Open Sans'}}>Open Sans</option>
-              <option value="Lato" style={{fontFamily:'Lato'}}>Lato</option>
               <option value="Montserrat" style={{fontFamily:'Montserrat'}}>Montserrat</option>
-              <option value="Poppins" style={{fontFamily:'Poppins'}}>Poppins</option>
-              <option value="Raleway" style={{fontFamily:'Raleway'}}>Raleway</option>
-              <option value="Nunito" style={{fontFamily:'Nunito'}}>Nunito</option>
             </optgroup>
             <optgroup label="─── Serif (Livres) ───">
-              <option value="Georgia, serif" style={{fontFamily:'Georgia'}}>Georgia</option>
-              <option value="Lora" style={{fontFamily:'Lora'}}>Lora</option>
               <option value="Merriweather" style={{fontFamily:'Merriweather'}}>Merriweather</option>
+              <option value="Lora" style={{fontFamily:'Lora'}}>Lora</option>
               <option value="Playfair Display" style={{fontFamily:'Playfair Display'}}>Playfair Display</option>
-              <option value="PT Serif" style={{fontFamily:'PT Serif'}}>PT Serif</option>
-              <option value="Source Serif 4" style={{fontFamily:'Source Serif 4'}}>Source Serif</option>
-              <option value="Crimson Text" style={{fontFamily:'Crimson Text'}}>Crimson Text</option>
-              <option value="EB Garamond" style={{fontFamily:'EB Garamond'}}>EB Garamond</option>
-              <option value="Libre Baskerville" style={{fontFamily:'Libre Baskerville'}}>Libre Baskerville</option>
-              <option value="Cormorant Garamond" style={{fontFamily:'Cormorant Garamond'}}>Cormorant Garamond</option>
-              <option value="Times New Roman, serif">Times New Roman</option>
-            </optgroup>
-            <optgroup label="─── Manuscrites ───">
-              <option value="Dancing Script" style={{fontFamily:'Dancing Script'}}>Dancing Script</option>
-              <option value="Pacifico" style={{fontFamily:'Pacifico'}}>Pacifico</option>
-              <option value="Caveat" style={{fontFamily:'Caveat'}}>Caveat</option>
-            </optgroup>
-            <optgroup label="─── Monospace ───">
-              <option value="Fira Code" style={{fontFamily:'Fira Code'}}>Fira Code</option>
-              <option value="JetBrains Mono" style={{fontFamily:'JetBrains Mono'}}>JetBrains Mono</option>
-              <option value="monospace">Monospace</option>
             </optgroup>
           </select>
 

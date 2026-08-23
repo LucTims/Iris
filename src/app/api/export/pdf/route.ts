@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 import { createClient } from "@/lib/supabase/server";
 import { htmlToPdfmakeContent } from "@/lib/export/htmlToPdfmake";
 
@@ -25,7 +27,7 @@ async function getPrinter(): Promise<any> {
   const vfs =
     vfsMod?.pdfMake?.vfs || vfsMod?.default?.pdfMake?.vfs || vfsMod?.vfs || vfsMod?.default || vfsMod;
 
-  const fonts = {
+  const fonts: any = {
     Roboto: {
       normal: Buffer.from(vfs["Roboto-Regular.ttf"], "base64"),
       bold: Buffer.from(vfs["Roboto-Medium.ttf"], "base64"),
@@ -33,6 +35,23 @@ async function getPrinter(): Promise<any> {
       bolditalics: Buffer.from(vfs["Roboto-MediumItalic.ttf"], "base64"),
     },
   };
+
+  // Curated fonts bundled as TTF files (see src/lib/export/fonts). Loaded from
+  // disk; if a family is missing we simply skip it (pdfmake falls back to Roboto).
+  const fontsDir = path.join(process.cwd(), "src", "lib", "export", "fonts");
+  const families = ["Merriweather", "Lora", "Montserrat", "PlayfairDisplay"];
+  for (const fam of families) {
+    try {
+      fonts[fam] = {
+        normal: fs.readFileSync(path.join(fontsDir, `${fam}-normal.ttf`)),
+        bold: fs.readFileSync(path.join(fontsDir, `${fam}-bold.ttf`)),
+        italics: fs.readFileSync(path.join(fontsDir, `${fam}-italics.ttf`)),
+        bolditalics: fs.readFileSync(path.join(fontsDir, `${fam}-bolditalics.ttf`)),
+      };
+    } catch (e) {
+      console.warn(`Police PDF ${fam} introuvable, fallback Roboto.`, e);
+    }
+  }
 
   return new PdfPrinter(fonts);
 }
