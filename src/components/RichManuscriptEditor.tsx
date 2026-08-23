@@ -81,15 +81,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const tablePickerBtnRef = useRef<HTMLDivElement>(null);
-
-  // Compute fixed position for the table grid picker so it escapes overflow:hidden parents
-  // Align the picker's RIGHT edge with the button's right edge so it doesn't slide under the chat panel
-  const tablePickerPos = React.useMemo(() => {
-    if (!showTablePicker || !tablePickerBtnRef.current) return { top: 0, left: 0 };
-    const rect = tablePickerBtnRef.current.getBoundingClientRect();
-    const pickerWidth = 222; // 10 cols × 18px + 9 gaps × 3px + 24px padding
-    return { top: rect.bottom + 4, left: Math.max(8, rect.right - pickerWidth) };
-  }, [showTablePicker]);
+  const [tablePickerPos, setTablePickerPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
   // Initialize Tiptap Pro Pages Editor
   const editor = useEditor({
@@ -653,7 +645,15 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           <button onClick={() => setIsImageModalOpen(true)} className="w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer une image"><span className="material-symbols-outlined text-lg">image</span></button>
           <button onClick={() => setIsLinkModalOpen(true)} className="w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer un lien"><span className="material-symbols-outlined text-lg">link</span></button>
           <div className="relative" ref={tablePickerBtnRef}>
-            <button onClick={() => setShowTablePicker(v => !v)} className={`w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors ${showTablePicker ? "bg-orange-100/70 text-secondary" : ""}`} title="Insérer un tableau"><span className="material-symbols-outlined text-lg">table_chart</span></button>
+            <button onClick={() => {
+              const next = !showTablePicker;
+              if (next && tablePickerBtnRef.current) {
+                const rect = tablePickerBtnRef.current.getBoundingClientRect();
+                const pickerWidth = 222;
+                setTablePickerPos({ top: rect.bottom + 4, left: Math.max(8, rect.right - pickerWidth) });
+              }
+              setShowTablePicker(next);
+            }} className={`w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors ${showTablePicker ? "bg-orange-100/70 text-secondary" : ""}`} title="Insérer un tableau"><span className="material-symbols-outlined text-lg">table_chart</span></button>
             {showTablePicker && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => { setShowTablePicker(false); setTableHover({ rows: 0, cols: 0 }); }} />
