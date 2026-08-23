@@ -7,9 +7,9 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Keep the headless-browser packages external so their native binaries and
-  // asset resolution keep working inside the serverless PDF route.
-  serverExternalPackages: ["puppeteer-core", "puppeteer", "@sparticuz/chromium"],
+  // pdfmake (+ pdfkit/fontkit) must stay external so its internal font/asset
+  // resolution keeps working inside the serverless PDF route.
+  serverExternalPackages: ["pdfmake"],
 };
 
 export default nextConfig;

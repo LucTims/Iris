@@ -22,7 +22,7 @@ declare module "@tiptap/core" {
  * (info, warning, tip, example). Serialized as
  *   <div class="callout callout-<type>" data-callout-type="<type>">…</div>
  * so it round-trips through save/load and is styleable in the editor, the
- * PDF export (buildPrintHtml) and the DOCX export (generateDocx).
+ * PDF export (htmlToPdfmake) and the DOCX export (generateDocx).
  *
  * Implemented as a plain content node (no React NodeView) for robustness:
  * its inner blocks stay natively editable.
