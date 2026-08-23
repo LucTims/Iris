@@ -91,7 +91,8 @@ Instructions impératives :
 3. IMPORTANT: Chaque chapitre doit absolument commencer sur une nouvelle page. Pour ce faire, COMMENCE toujours ton texte par la balise <hr data-page-break>.
 4. Juste après cette balise, ajoute le titre du chapitre en balise <h1>. Par exemple : <hr data-page-break><h1>Chapitre ${chapterNumber} : ${chapterTitle}</h1>.
 5. Ensuite, rédige le contenu du chapitre en HTML valide, avec des balises <p>, <h2>, <h3>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>.
-6. Quand le contenu contient des données comparatives, des listes de critères chiffrés ou des informations tabulaires, présente-les dans un tableau HTML bien structuré.`;
+6. Quand le contenu contient des données comparatives, des listes de critères chiffrés ou des informations tabulaires, présente-les dans un tableau HTML bien structuré.
+7. Pour mettre en valeur un point clé, utilise des encadrés : <div class="callout callout-info">…</div> (information importante), <div class="callout callout-warning">…</div> (mise en garde / risque), <div class="callout callout-tip">…</div> (conseil pratique), <div class="callout callout-example">…</div> (exemple concret). Le contenu d'un encadré doit être en HTML (<p>, <strong>…). N'en abuse pas : 1 à 3 encadrés par chapitre, uniquement quand ça apporte vraiment de la valeur.`;
 
     const result = streamText({
       model: getAiModel(selectedModelName),
