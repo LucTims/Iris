@@ -10,6 +10,30 @@ import Footer from "@/components/Footer";
 export default function Home() {
   return (
     <div className="min-h-screen bg-white text-neutral-900 font-landing selection:bg-orange-100 flex flex-col justify-between">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "Iris",
+            "operatingSystem": "Web",
+            "applicationCategory": "BusinessApplication",
+            "url": "https://www.irisboom.online",
+            "description": "Iris est la première plateforme de co-création littéraire assistée par IA. Transformez votre expertise en un livre numérique prêt à être publié.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "EUR"
+            },
+            "creator": {
+              "@type": "Organization",
+              "name": "IrisBoom",
+              "url": "https://www.irisboom.online"
+            }
+          })
+        }}
+      />
       
       {/* Navigation Bar */}
       <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-neutral-200/80">

@@ -7,6 +7,7 @@ import Sidebar from "@/components/Sidebar";
 import RichManuscriptEditor, { RichManuscriptEditorHandle } from "@/components/RichManuscriptEditor";
 import ImportManuscriptModal from "@/components/ImportManuscriptModal";
 import ExportBookModal from "@/components/ExportBookModal";
+import GeoScoreModal from "@/components/GeoScoreModal";
 import RewriteModal from "@/components/RewriteModal";
 import { parseManuscriptFile, splitHtmlIntoChapters } from "@/lib/parser";
 import ReactMarkdown from "react-markdown";
@@ -112,6 +113,7 @@ function RedactionContent() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isImportLoading, setIsImportLoading] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isGeoScoreModalOpen, setIsGeoScoreModalOpen] = useState(false);
   const [isRewriteModalOpen, setIsRewriteModalOpen] = useState(false);
 
   // Auto-scroll chat to bottom
@@ -1170,13 +1172,24 @@ function RedactionContent() {
               <span className="hidden sm:inline">Nouveau Projet</span>
             </Link>
 
-            <button
-              onClick={() => setIsExportModalOpen(true)}
-              className="bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-base">download</span>
-              <span>Exporter / Télécharger</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsGeoScoreModalOpen(true)}
+                className="bg-purple-100 hover:bg-purple-200 text-purple-700 text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+                title="Évaluer le Score GEO de ce document"
+              >
+                <span className="material-symbols-outlined text-base">target</span>
+                <span>Score GEO</span>
+              </button>
+              
+              <button
+                onClick={() => setIsExportModalOpen(true)}
+                className="bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-base">download</span>
+                <span>Exporter / Télécharger</span>
+              </button>
+            </div>
 
             {/* Profile Menu Toggle */}
             <div className="relative">
@@ -1570,6 +1583,14 @@ function RedactionContent() {
           title: bookTitle,
           chapters: chapters
         }}
+      />
+
+      {/* GEO SCORE MODAL */}
+      <GeoScoreModal
+        isOpen={isGeoScoreModalOpen}
+        onClose={() => setIsGeoScoreModalOpen(false)}
+        bookTitle={bookTitle}
+        bookContent={chapters.map(c => c.content).join("\n\n")}
       />
 
       <RewriteModal

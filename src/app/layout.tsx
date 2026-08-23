@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
+import { GoogleAnalytics } from '@next/third-parties/google';
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.irisboom.online"),
   title: "Iris | La 1ère plateforme de co-création littéraire assistée par IA",
   description: "Iris accompagne les experts et créateurs dans la rédaction, le design et la publication de leurs livres numériques.",
+  verification: {
+    // google: "AJOUTEZ_VOTRE_CODE_DE_VERIFICATION_ICI_SI_NECESSAIRE",
+  },
 };
 
 export default function RootLayout({
@@ -27,6 +32,7 @@ export default function RootLayout({
       </head>
       <body className="bg-white text-neutral-900 font-body antialiased selection:bg-neutral-200">
         {children}
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || "G-5WW5K8J3D5"} />
       </body>
     </html>
   );
