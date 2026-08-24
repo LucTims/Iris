@@ -32,6 +32,10 @@ import { FontSize } from './editor/FontSizeExtension';
 import { LineHeight } from './editor/LineHeightExtension';
 import { ResizableImage } from './editor/ResizableImageExtension';
 import { Callout, CalloutType } from './editor/CalloutExtension';
+import { KeyFigure } from './editor/KeyFigureExtension';
+import { PullQuote } from './editor/PullQuoteExtension';
+import { DropCap } from './editor/DropCapExtension';
+import { SectionDivider, DividerStyle } from './editor/SectionDividerExtension';
 import { RichManuscriptEditorHandle, RichManuscriptEditorProps, PageFormatType } from './editor/types';
 
 export type { RichManuscriptEditorHandle, RichManuscriptEditorProps };
@@ -100,6 +104,10 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       ListItem,
       Blockquote,
       Callout,
+      KeyFigure,
+      PullQuote,
+      DropCap,
+      SectionDivider,
       Link.configure({ openOnClick: true, HTMLAttributes: { class: 'text-secondary underline cursor-pointer' } }),
       ResizableImage,
       TextStyle,
@@ -322,6 +330,30 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
     setActiveMenu(null);
   };
 
+  const handleInsertKeyFigure = () => {
+    if (!editor) return;
+    (editor.chain().focus() as any).insertKeyFigure().run();
+    setActiveMenu(null);
+  };
+
+  const handleInsertPullQuote = () => {
+    if (!editor) return;
+    (editor.chain().focus() as any).insertPullQuote().run();
+    setActiveMenu(null);
+  };
+
+  const handleInsertDropCap = () => {
+    if (!editor) return;
+    (editor.chain().focus() as any).insertDropCap().run();
+    setActiveMenu(null);
+  };
+
+  const handleInsertSectionDivider = (style: DividerStyle = "ornament") => {
+    if (!editor) return;
+    (editor.chain().focus() as any).insertSectionDivider(style).run();
+    setActiveMenu(null);
+  };
+
   const handleInsertTable = (rows = 3, cols = 3) => {
     if (!editor) return;
     const r = Math.max(1, rows);
@@ -427,6 +459,13 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               { label: "🟠 Encadré Attention", action: () => handleInsertCallout("warning") },
               { label: "🟢 Encadré Conseil", action: () => handleInsertCallout("tip") },
               { label: "🟣 Encadré Exemple", action: () => handleInsertCallout("example") },
+              { label: "🔢 Chiffre clé", action: handleInsertKeyFigure },
+              { label: "💬 Citation en avant", action: handleInsertPullQuote },
+              { label: "🅰️ Lettrine (drop cap)", action: handleInsertDropCap },
+              { label: "✦ Séparateur étoiles", action: () => handleInsertSectionDivider("stars") },
+              { label: "❖ Séparateur ornement", action: () => handleInsertSectionDivider("ornament") },
+              { label: "── Séparateur ligne", action: () => handleInsertSectionDivider("line") },
+              { label: "••• Séparateur points", action: () => handleInsertSectionDivider("dots") },
               { label: "🔗 Lien hypertexte...", action: () => setIsLinkModalOpen(true) },
               { label: "➖ Ligne horizontale", action: () => editor.chain().focus().setHorizontalRule().run() }
             ]
@@ -896,6 +935,79 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
             .tiptap .callout-tip::before { content: "💡 Conseil"; color: #15803d; }
             .tiptap .callout-example { background: #faf5ff; border-left-color: #a855f7; }
             .tiptap .callout-example::before { content: "📌 Exemple"; color: #7e22ce; }
+
+            /* Chiffre clé / Key Figure */
+            .tiptap .key-figure {
+              text-align: center;
+              padding: 24px 20px;
+              margin: 1.5rem auto;
+              max-width: 320px;
+              background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+              border-radius: 12px;
+              font-size: 1.5rem;
+              font-weight: 800;
+              color: #92400e;
+              border: 2px solid #f59e0b;
+              line-height: 1.3;
+            }
+
+            /* Citation en avant / Pull Quote */
+            .tiptap .pull-quote {
+              text-align: center;
+              font-size: 1.25rem;
+              font-style: italic;
+              color: #334155;
+              padding: 20px 32px;
+              margin: 1.5rem 2rem;
+              border-top: 2px solid #cbd5e1;
+              border-bottom: 2px solid #cbd5e1;
+              position: relative;
+              line-height: 1.6;
+            }
+            .tiptap .pull-quote::before {
+              content: "\\201C";
+              position: absolute;
+              top: -18px;
+              left: 50%;
+              transform: translateX(-50%);
+              font-size: 3rem;
+              color: #94a3b8;
+              background: white;
+              padding: 0 8px;
+              line-height: 1;
+              font-style: normal;
+            }
+
+            /* Lettrine / Drop Cap */
+            .tiptap .drop-cap::first-letter {
+              float: left;
+              font-size: 3.8em;
+              line-height: 0.8;
+              padding-right: 8px;
+              padding-top: 4px;
+              font-weight: 700;
+              color: #1e293b;
+            }
+            .tiptap .drop-cap {
+              margin: 1rem 0;
+              line-height: 1.6;
+            }
+
+            /* Séparateur décoratif / Section Divider */
+            .tiptap .section-divider {
+              text-align: center;
+              padding: 12px 0;
+              margin: 1.5rem 0;
+              user-select: none;
+              font-size: 1.2rem;
+              color: #94a3b8;
+              letter-spacing: 0.5em;
+              cursor: default;
+            }
+            .tiptap .section-divider-stars::before { content: "* * *"; }
+            .tiptap .section-divider-ornament::before { content: "❖ ❖ ❖"; }
+            .tiptap .section-divider-line::before { content: "─────────────"; letter-spacing: 0; }
+            .tiptap .section-divider-dots::before { content: "• • • • •"; }
 
             .tiptap ul {
               list-style-type: disc;

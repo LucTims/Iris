@@ -1,3 +1,5 @@
+import { extractLeadingHeading, isSummaryChapter } from "./htmlToPdfmake";
+
 interface ChapterData {
   title: string;
   content: string;
@@ -53,17 +55,23 @@ export function generateMarkdown(
   if (subtitle) content += `*${subtitle}*\n`;
   content += "\n---\n\n";
 
-  // Table of Contents
-  content += "## Table des Matières\n\n";
-  for (const ch of chapters) {
-    content += `- ${ch.title}\n`;
+  // Table of Contents — only when the book has no authored summary chapter
+  // ("Sommaire" / "Table des matières"), which already serves as the TOC.
+  const hasSummary = chapters.some((ch) => isSummaryChapter(ch.title, ch.content));
+  if (!hasSummary) {
+    content += "## Table des Matières\n\n";
+    for (const ch of chapters) {
+      content += `- ${ch.title}\n`;
+    }
+    content += "\n---\n\n";
   }
-  content += "\n---\n\n";
 
-  // Chapters
+  // Chapters. Use the body's own leading heading as the title when present so
+  // it is not duplicated.
   for (const ch of chapters) {
-    content += `# ${ch.title}\n\n`;
-    content += htmlToMarkdown(ch.content);
+    const { title: leadTitle, rest } = extractLeadingHeading(ch.content);
+    content += `# ${leadTitle || ch.title}\n\n`;
+    content += htmlToMarkdown(rest);
     content += "\n\n---\n\n";
   }
 

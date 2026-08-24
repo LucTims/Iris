@@ -105,7 +105,7 @@ Si le texte contient des titres, conserve-les (ou améliore-les).`;
       model: getAiModel(selectedModelName),
       system: `Tu es un ghostwriter expert et éditeur de livres professionnels.
 IMPORTANT:
-- Tu dois répondre UNIQUEMENT avec le contenu réécrit formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>).
+- Tu dois répondre UNIQUEMENT avec le contenu réécrit formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>, <div class="callout callout-TYPE">, <div class="key-figure">, <div class="pull-quote">, <p class="drop-cap">, <div class="section-divider section-divider-STYLE">).
 - N'utilise JAMAIS de Markdown (pas de **, pas de #, pas de \`\`\`).
 - NE FAIS AUCUNE SALUTATION (ne dis pas "Bonjour", ni "Voici le contenu", ni "Absolument").
 - Quand le contenu contient des données comparatives, des listes de critères chiffrés ou des informations tabulaires, présente-les dans un tableau HTML bien structuré.
