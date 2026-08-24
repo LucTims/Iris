@@ -76,22 +76,8 @@ function RedactionContent() {
     {
       id: 1,
       number: 1,
-      title: "Chapitre 1 : L'Ombre du Baobab",
-      content: `Le soleil de midi écrasait le Mandé d'une chaleur de plomb, transformant l'horizon en un miroir frémissant où se confondaient la terre rouge et le ciel de nacre. Sous le grand baobab qui veillait sur Niani depuis des générations, le silence n'était troublé que par le bourdonnement lancinant des insectes et le souffle court d'un enfant qui refusait de s'avouer vaincu.\n\nSoundiata, les jambes inertes mais le regard embrasé d'une volonté farouche, fixait la branche basse de l'arbre séculaire. Pour beaucoup, il n'était qu'un fils infirme, un prince sans royaume intérieur. Mais dans le secret de son âme, une force commençait à gronder, plus puissante que les armées de son demi-frère Dankaran Touman.`,
-      status: "En cours"
-    },
-    {
-      id: 2,
-      number: 2,
-      title: "Chapitre 2 : Le Serment de Sogolon",
-      content: `Sogolon Kèdjou regardait son fils avec des yeux emplis de larmes et de fierté. Le pilon de baobab reposait sur le sol dusty, témoin des moqueries et des humiliations subies. Mais ce jour-là, l'air lui-même semblait retenir son souffle.`,
-      status: "Brouillon"
-    },
-    {
-      id: 3,
-      number: 3,
-      title: "Chapitre 3 : L'Éveil du Lion",
-      content: `C'est en saisissant la barre de fer forgee par Farakourou que l'impossible se produisit. Le fer se courba, la terre trembla, et sous les yeux stupéfaits du Mandé, Soundiata se mit debout.`,
+      title: "Sommaire",
+      content: "",
       status: "Brouillon"
     }
   ]);
@@ -345,9 +331,32 @@ function RedactionContent() {
 
           if (fetchedChapters.length > 0) {
             setChapters(fetchedChapters);
+          } else {
+            // Créer un chapitre par défaut si aucun n'existe
+            try {
+              const res = await fetch(`/api/projects/${pId}/chapters`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chapters: [{ number: 1, title: "Sommaire", content: "", status: "Brouillon" }] })
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.chapters && data.chapters.length > 0) {
+                  setChapters(data.chapters.map((ch: any) => ({
+                    id: ch.id,
+                    number: ch.number,
+                    title: ch.title || "Sommaire",
+                    content: ch.content || "",
+                    status: ch.status || "Brouillon"
+                  })));
+                }
+              }
+            } catch (err) {
+              console.error("Erreur création chapitre par défaut:", err);
+            }
           }
 
-          const firstChapter = fetchedChapters[0];
+          const firstChapter = fetchedChapters.length > 0 ? fetchedChapters[0] : chapters[0];
           const isFreshEmptyProject = isNewProject && firstChapter && !firstChapter.content;
 
           if (isFreshEmptyProject) {
