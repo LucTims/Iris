@@ -60,6 +60,17 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   ) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(100);
+  
+  // Set default zoom on small screens to prevent overflow
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (window.innerWidth < 640) {
+        setZoomLevel(50);
+      } else if (window.innerWidth < 1024) {
+        setZoomLevel(75);
+      }
+    }
+  }, []);
   const [pageFormat, setPageFormat] = useState<PageFormatType>("A4");
   const [showRuler, setShowRuler] = useState(true);
   const [pageCount, setPageCount] = useState(1);
@@ -428,7 +439,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   return (
     <div className="relative flex-1 flex flex-col h-full bg-[#F9FAFB] overflow-hidden min-w-0 font-body">
       {/* ================= 1. GOOGLE DOCS STYLE TOP MENU BAR ================= */}
-      <div ref={menuRef} className="bg-white border-b border-neutral-200/80 px-6 py-2 flex items-center gap-2 text-sm font-semibold shrink-0 z-20 select-none">
+      <div ref={menuRef} className="bg-white border-b border-neutral-200/80 px-4 sm:px-6 py-2 flex items-center gap-2 text-sm font-semibold shrink-0 z-20 select-none overflow-x-auto no-scrollbar">
         {[
           {
             id: "edition", label: "Édition", items: [

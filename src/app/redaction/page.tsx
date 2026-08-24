@@ -1249,27 +1249,27 @@ function RedactionContent() {
         <div className="lg:hidden flex items-center justify-center p-2 bg-white border-b border-neutral-200 gap-2 shrink-0 z-30">
           <button
             onClick={() => setMobileView("editor")}
-            className={`flex-1 py-2 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2 px-2 sm:px-4 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-2 ${
               mobileView === "editor"
                 ? "bg-neutral-900 text-white shadow-2xs"
                 : "bg-neutral-100 text-neutral-600 hover:text-neutral-900"
             }`}
           >
-            <span className="material-symbols-outlined text-base">description</span>
+            <span className="material-symbols-outlined text-sm sm:text-base">description</span>
             <span>Éditeur Manuscrit</span>
           </button>
 
           <button
             onClick={() => setMobileView("chat")}
-            className={`flex-1 py-2 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 relative ${
+            className={`flex-1 py-2 px-2 sm:px-4 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-2 relative ${
               mobileView === "chat"
                 ? "bg-secondary text-white shadow-2xs"
                 : "bg-orange-50 text-secondary hover:bg-orange-100"
             }`}
           >
-            <span className="material-symbols-outlined text-base">auto_awesome</span>
+            <span className="material-symbols-outlined text-sm sm:text-base">auto_awesome</span>
             <span>Assistant Iris IA</span>
-            {isAiThinking && <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>}
+            {isAiThinking && <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping absolute -top-1 -right-1"></span>}
           </button>
         </div>
 
