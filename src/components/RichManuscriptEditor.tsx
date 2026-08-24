@@ -733,7 +733,38 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       )}
 
       {/* ================= 4. EDITOR CANVAS WITH TIPTAP PRO PAGES ================= */}
-      <div className="editor-scroll-container flex-1 overflow-y-auto flex flex-col items-center bg-[#F3F4F6] p-4 sm:p-8">
+      <div className="editor-scroll-container relative flex-1 overflow-y-auto flex flex-col items-center bg-[#F3F4F6] p-4 sm:p-8">
+        
+        {/* ================= GENERATION ANIMATION OVERLAY ================= */}
+        {isGenerating && (
+          <div className="sticky top-1/2 -translate-y-1/2 z-50 flex items-center justify-center w-full h-0 pointer-events-none">
+            <div className="bg-white/95 backdrop-blur-xl px-12 py-10 rounded-[2.5rem] shadow-[0_30px_80px_-15px_rgba(0,0,0,0.15)] border border-white/60 flex flex-col items-center pointer-events-auto transform scale-100 animate-in fade-in zoom-in-95 duration-500">
+               <div className="relative mb-8">
+                 <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-orange-400 to-amber-300 flex items-center justify-center shadow-[0_0_40px_rgba(251,146,60,0.4)] relative z-10">
+                     <span className="material-symbols-outlined text-white text-5xl animate-bounce" style={{ animationDuration: '2s' }}>history_edu</span>
+                 </div>
+                 {/* Glow and Sparkles */}
+                 <div className="absolute inset-0 rounded-full bg-orange-400 animate-ping opacity-30"></div>
+                 <span className="material-symbols-outlined text-amber-500 text-3xl absolute -top-3 -right-6 animate-pulse">magic_button</span>
+                 <span className="material-symbols-outlined text-orange-500 text-2xl absolute bottom-2 -left-6 animate-pulse" style={{ animationDelay: '500ms' }}>auto_awesome</span>
+               </div>
+               
+               <h3 className="text-2xl font-heading font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-amber-500 mb-3 text-center">
+                  Iris rédige votre livre...
+               </h3>
+               <p className="text-neutral-500 font-medium text-sm text-center max-w-[320px] leading-relaxed">
+                  L'intelligence artificielle structure vos idées et rédige le contenu. Veuillez patienter un instant.
+               </p>
+
+               <div className="mt-8 flex gap-2.5">
+                 <div className="w-3 h-3 rounded-full bg-orange-400 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                 <div className="w-3 h-3 rounded-full bg-orange-400 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                 <div className="w-3 h-3 rounded-full bg-orange-400 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+               </div>
+            </div>
+          </div>
+        )}
+
         <div 
           className="relative z-10 w-full transition-transform duration-150 flex flex-col items-center"
           ref={editorContainerRef}
