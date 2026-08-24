@@ -104,6 +104,10 @@ function RedactionContent() {
 
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [isGeneratingChapter, setIsGeneratingChapter] = useState(false);
+  // Rédaction initiale du livre (sommaire + contenu) et réécriture complète :
+  // pilotent l'animation "Iris écrit votre livre" au niveau de l'éditeur.
+  const [isInitialGenerating, setIsInitialGenerating] = useState(false);
+  const [isRewriting, setIsRewriting] = useState(false);
   const [liveWordCount, setLiveWordCount] = useState(0);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<RichManuscriptEditorHandle>(null);
@@ -215,6 +219,7 @@ function RedactionContent() {
         chapterId: number | string
       ) => {
         setIsAiThinking(true);
+        setIsInitialGenerating(true);
 
         try {
           // Get context from localStorage to see what to generate
@@ -314,6 +319,8 @@ function RedactionContent() {
               }
             ]);
           }
+        } finally {
+          if (isSubscribed) setIsInitialGenerating(false);
         }
       };
 
@@ -501,6 +508,7 @@ function RedactionContent() {
     }
 
     setIsAiThinking(true);
+    setIsRewriting(true);
     setSaveStatus("saving");
 
     try {
@@ -546,6 +554,7 @@ function RedactionContent() {
       alert("Erreur lors de la réécriture. Veuillez réessayer.");
     } finally {
       setIsAiThinking(false);
+      setIsRewriting(false);
     }
   };
 
@@ -1303,7 +1312,14 @@ function RedactionContent() {
               onGenerateFullChapter={handleGenerateFullChapter}
               onContextualAiAction={handleContextualAiAction}
               onSendSelectionToChat={handleSendSelectionToChat}
-              isGenerating={isGeneratingChapter}
+              isGenerating={isGeneratingChapter || isRewriting || isInitialGenerating}
+              generationLabel={
+                isRewriting
+                  ? "Iris réécrit votre livre"
+                  : isInitialGenerating
+                  ? "Iris rédige votre livre"
+                  : "Iris écrit ce chapitre"
+              }
               onFileSelected={handleFileSelectedForImport}
             />
           </div>

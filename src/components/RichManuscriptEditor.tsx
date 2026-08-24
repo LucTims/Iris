@@ -37,6 +37,8 @@ import { PullQuote } from './editor/PullQuoteExtension';
 import { DropCap } from './editor/DropCapExtension';
 import { SectionDivider, DividerStyle } from './editor/SectionDividerExtension';
 import { RichManuscriptEditorHandle, RichManuscriptEditorProps, PageFormatType } from './editor/types';
+import { AnimatePresence } from 'framer-motion';
+import EditorGenerationOverlay from './EditorGenerationOverlay';
 
 export type { RichManuscriptEditorHandle, RichManuscriptEditorProps };
 
@@ -54,6 +56,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       onContextualAiAction,
       onSendSelectionToChat,
       isGenerating = false,
+      generationLabel,
       onFileSelected,
     },
     ref
@@ -437,6 +440,15 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
 
   return (
     <div className="relative flex-1 flex flex-col h-full bg-[#F9FAFB] overflow-hidden min-w-0 font-body">
+      {/* ================= 0. GENERATION / REWRITE ANIMATION OVERLAY ================= */}
+      <AnimatePresence>
+        {isGenerating && (
+          <EditorGenerationOverlay
+            label={generationLabel || "Iris écrit votre livre"}
+          />
+        )}
+      </AnimatePresence>
+
       {/* ================= 1. GOOGLE DOCS STYLE TOP MENU BAR ================= */}
       <div ref={menuRef} className="bg-white border-b border-neutral-200/80 px-2 sm:px-6 py-1 sm:py-2 flex items-center gap-0.5 sm:gap-2 text-xs sm:text-sm font-semibold shrink-0 z-20 select-none overflow-x-auto">
         {[
