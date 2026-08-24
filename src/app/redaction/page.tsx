@@ -218,14 +218,12 @@ function RedactionContent() {
 
         try {
           // Get context from localStorage to see what to generate
-          let includeDetailedPlan = true;
-          let includeToc = false;
+          let includeToc = true;
           let ctx: any = null;
           try {
             const ctxRaw = localStorage.getItem("iris_current_project");
             if (ctxRaw) {
               ctx = JSON.parse(ctxRaw);
-              if (ctx.includeDetailedPlan !== undefined) includeDetailedPlan = ctx.includeDetailedPlan;
               if (ctx.includeToc !== undefined) includeToc = ctx.includeToc;
             }
           } catch(e) {}
@@ -243,7 +241,6 @@ function RedactionContent() {
               characters: project.characters,
               length: project.length,
               instructions: project.instructions,
-              includeDetailedPlan,
               includeToc,
               model: project.model || ctx?.model || "gemini-2.5-flash",
               useWebSearch
@@ -284,9 +281,19 @@ function RedactionContent() {
             }
 
             if (isSubscribed) {
+              // Le libellé du sommaire est choisi par l'IA ("Sommaire" ou
+              // "Table des matières") : on le récupère depuis le premier <h1>
+              // du contenu généré pour rester cohérent dans la barre latérale.
+              const firstHeading = currentText.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+              const derivedTitle = firstHeading
+                ? firstHeading[1].replace(/<[^>]*>/g, "").trim()
+                : "";
+              const chapterTitle = includeToc
+                ? (derivedTitle || "Sommaire")
+                : (derivedTitle || "Chapitre 1");
               setChapters(prev => prev.map(chap =>
                 chap.id === chapterId
-                  ? { ...chap, content: currentText, title: includeDetailedPlan ? "Plan Détaillé" : (includeToc ? "Sommaire" : "Chapitre 1"), status: "En cours" }
+                  ? { ...chap, content: currentText, title: chapterTitle, status: "En cours" }
                   : chap
               ));
               // Réutilise l'autosave existant pour persister le plan généré en base.
@@ -804,6 +811,15 @@ function RedactionContent() {
         .map(c => `Chapitre ${c.number} (${c.title}): ${c.content.substring(0, 150)}...`)
         .join('\n');
 
+      // Retrouve le sommaire (premier chapitre dont le titre correspond) pour que
+      // l'IA rédige chaque chapitre en cohérence avec les points annoncés.
+      const outlineChapter = chapters.find(c =>
+        /sommaire|table des mati/i.test(c.title || "")
+      );
+      const bookOutline = outlineChapter && outlineChapter.id !== currentChapter.id
+        ? outlineChapter.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 2000)
+        : "";
+
       const response = await fetch("/api/generate-chapter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -814,6 +830,7 @@ function RedactionContent() {
           chapterTitle: currentChapter.title,
           chapterNumber: currentChapter.number,
           previousChaptersSummary,
+          bookOutline,
           model: selectedAiModel,
           projectId: currentProjectId,
           useWebSearch

@@ -70,7 +70,7 @@ export async function POST(req: Request) {
       .insert({
         project_id: project.id,
         number: 1,
-        title: "Plan Détaillé (En cours...)",
+        title: "Sommaire (En cours...)",
         content: "",
         status: "Brouillon"
       })

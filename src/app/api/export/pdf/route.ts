@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { createClient } from "@/lib/supabase/server";
-import { htmlToPdfmakeContent } from "@/lib/export/htmlToPdfmake";
+import {
+  htmlToPdfmakeContent,
+  extractLeadingHeading,
+  isSummaryChapter,
+} from "@/lib/export/htmlToPdfmake";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -99,22 +103,38 @@ function buildDocDefinition(
   content.push({ text: "───────────────", alignment: "center", color: "#cccccc", margin: [0, 20, 0, 60] });
   content.push({ text: "Généré avec Iris", style: "branding", pageBreak: "after" });
 
-  // Table of contents
-  content.push({ text: "Table des Matières", style: "tocTitle", margin: [0, 40, 0, 20] });
-  chapters.forEach((ch, idx) => {
-    content.push({ text: ch.title || `Chapitre ${ch.number || idx + 1}`, style: "tocItem" });
-  });
+  // Table of contents — the author's own summary chapter ("Sommaire" /
+  // "Table des matières") is the single source of truth, so we only fall back
+  // to an auto-generated list when no such chapter exists (e.g. an imported
+  // manuscript). This avoids the duplicated / near-blank TOC page.
+  const hasSummary = chapters.some((ch) => isSummaryChapter(ch.title, ch.content));
+  if (!hasSummary) {
+    // The title page already ends with pageBreak:"after", so the TOC title must
+    // NOT force another break here (that would leave a blank page).
+    content.push({ text: "Table des Matières", style: "tocTitle", margin: [0, 40, 0, 20] });
+    chapters.forEach((ch, idx) => {
+      content.push({ text: ch.title || `Chapitre ${ch.number || idx + 1}`, style: "tocItem" });
+    });
+  }
 
-  // Chapters
+  // Chapters. Each chapter starts on a new page. When the body already begins
+  // with its own <h1> title we use that text (and drop the duplicate heading +
+  // its redundant page break) so there is exactly one title and one page break.
   chapters.forEach((ch, idx) => {
+    const { title: leadTitle, rest } = extractLeadingHeading(ch.content);
+    const effectiveTitle = leadTitle || ch.title || `Chapitre ${ch.number || idx + 1}`;
+    // Force a page break before every chapter EXCEPT the first element that
+    // directly follows the title page's own pageBreak:"after" (no TOC in
+    // between) — a double break there would insert a blank page.
+    const needsBreak = !(idx === 0 && hasSummary);
     content.push({
-      text: ch.title || `Chapitre ${ch.number || idx + 1}`,
+      text: effectiveTitle,
       style: "chapterTitle",
-      pageBreak: "before",
+      ...(needsBreak ? { pageBreak: "before" } : {}),
       margin: [0, 30, 0, 10],
     });
     content.push({ text: "───────────────", alignment: "center", color: "#dddddd", margin: [0, 0, 0, 20] });
-    content.push(...htmlToPdfmakeContent(ch.content));
+    content.push(...htmlToPdfmakeContent(rest));
   });
 
   return {

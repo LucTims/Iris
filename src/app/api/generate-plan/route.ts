@@ -42,8 +42,7 @@ export async function POST(req: Request) {
       length,
       instructions,
       model: chosenModel,
-      includeDetailedPlan,
-      includeToc,
+      includeToc = true,
       useWebSearch = true,
     } = await req.json();
 
@@ -75,16 +74,17 @@ export async function POST(req: Request) {
     );
 
     let missionText = "";
-    let mainTitle = "";
-    
-    if (includeDetailedPlan) {
-      missionText = `Ta mission est de générer le **PLAN DÉTAILLÉ** de ce livre. Structure le plan de manière logique avec des chapitres et des sous-parties, accompagnés d'une brève description.`;
-      mainTitle = "Plan Détaillé";
+
+    if (includeToc) {
+      missionText = `Ta mission est d'écrire **DIRECTEMENT LE CONTENU DU LIVRE** (le texte complet), précédé d'un sommaire. Procède ainsi :
+
+1. **SOMMAIRE** — Commence OBLIGATOIREMENT par le sommaire. Choisis toi-même le libellé le plus adapté au livre : écris **Table des matières** pour un ouvrage formel, académique, technique ou professionnel, sinon **Sommaire**. Le sommaire doit rester CONCIS : liste uniquement les grands points (les chapitres) et, seulement lorsque c'est vraiment nécessaire, quelques sous-titres importants. N'entre pas dans un plan surdétaillé (pas de description sous chaque point, pas de sous-sous-parties). Présente-le comme une simple liste (<ul><li>…</li></ul>).
+
+2. **CONTENU** — Ensuite, rédige RÉELLEMENT chaque point annoncé dans le sommaire, dans l'ordre. Puisque c'est un format de type "${length}", écris le contenu final prêt à être lu, de façon fluide et dans le style demandé.
+
+3. **NOUVELLE PAGE PAR GRAND POINT** — TRÈS IMPORTANT : chaque grand point (chaque chapitre du sommaire) DOIT commencer sur une nouvelle page. Pour cela, place la balise <hr data-page-break> juste avant le titre <h1> de chaque grand point. Le sommaire lui-même reste sur sa propre page (ne mets pas de saut de page avant lui). Les simples sous-titres (<h2>, <h3>) à l'intérieur d'un grand point n'ont PAS besoin de saut de page.`;
     } else {
-      let tocInstruction = includeToc ? "Commence obligatoirement par un **SOMMAIRE** (Table des matières) listant les chapitres, puis enchaîne avec la rédaction du contenu." : "Ne fais pas de sommaire.";
-      
-      missionText = `Ta mission est d'écrire **DIRECTEMENT LE CONTENU DU LIVRE** (le texte complet). Puisque c'est un format de type "${length}", écris les chapitres avec le contenu final prêt à être lu. Rédige de façon fluide en utilisant le style demandé.\n${tocInstruction}`;
-      mainTitle = title;
+      missionText = `Ta mission est d'écrire **DIRECTEMENT LE CONTENU DU LIVRE** (le texte complet), sans sommaire. Puisque c'est un format de type "${length}", écris les chapitres avec le contenu final prêt à être lu. Rédige de façon fluide en utilisant le style demandé. Chaque grand point (chapitre) DOIT commencer sur une nouvelle page : place la balise <hr data-page-break> juste avant chaque titre <h1> de chapitre.`;
     }
 
     const prompt = `Voici les détails du livre :
@@ -108,8 +108,9 @@ ${missionText}`;
       model: getAiModel(selectedModelName),
       system: `Tu es un ghostwriter expert et rédacteur de livres professionnels.
 IMPORTANT:
-- Tu dois répondre UNIQUEMENT avec le contenu formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>).
-- Le tout premier élément DOIT être <h1>${mainTitle}</h1>.
+- Tu dois répondre UNIQUEMENT avec le contenu formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>, <hr data-page-break>).
+- ${includeToc ? "Le tout premier élément DOIT être le titre du sommaire en <h1> : soit <h1>Sommaire</h1>, soit <h1>Table des matières</h1> (à toi de choisir selon le livre)." : `Le tout premier élément DOIT être <h1>${title}</h1>.`}
+- Pour commencer un grand point (chapitre) sur une nouvelle page, utilise la balise <hr data-page-break> juste avant son titre <h1>. Ne mets jamais deux <hr data-page-break> à la suite et n'en mets pas au tout début du document.
 - N'utilise JAMAIS de Markdown (pas de **, pas de #, pas de \`\`\`).
 - NE FAIS AUCUNE SALUTATION (ne dis pas "Bonjour", ni "Voici le contenu", ni "Absolument", ni "En tant qu'IA").
 - Commence directement par la balise <h1>.

@@ -13,6 +13,7 @@ import {
   WidthType,
   ShadingType,
 } from "docx";
+import { extractLeadingHeading } from "./htmlToPdfmake";
 
 interface ChapterData {
   title: string;
@@ -245,6 +246,15 @@ function renderSectionDivider(html: string): Paragraph {
 function htmlToDocxElements(html: string): (Paragraph | Table)[] {
   const elements: (Paragraph | Table)[] = [];
 
+  // Normalize the AI writers' page-break marker (<hr data-page-break>) into the
+  // manual-page-break form handled below, so a new "grand point" inside a single
+  // chapter body starts on a fresh page. A LEADING marker is stripped by the
+  // caller (extractLeadingHeading) so this never adds a blank page at the top of
+  // a section, which already begins on a new page. Any other <hr> is dropped.
+  html = html
+    .replace(/<hr[^>]*data-page-break[^>]*>/gi, '<div data-type="pageBreak"></div>')
+    .replace(/<hr[^>]*>/gi, "");
+
   // Isolate special block-level divs (callouts, key-figure, pull-quote, section-divider)
   const specialDivRe = /(<div[^>]*class="[^"]*\b(?:callout|key-figure|pull-quote|section-divider)\b[^"]*"[^>]*>[\s\S]*?<\/div>)/gi;
   const calloutParts = html.split(specialDivRe);
@@ -357,10 +367,10 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
         const trimmed = block.trim();
         if (!trimmed) continue;
 
-        // Manual page break (Ctrl+Enter) from the Tiptap Pages extension.
-        // The AI chapter marker <hr data-page-break> is intentionally NOT
-        // matched here: chapters are already separate sections, so adding a
-        // break for it would produce blank pages.
+        // Page break: either a manual break (Ctrl+Enter) from the Tiptap Pages
+        // extension, or an AI "new grand point" marker normalized above. A
+        // leading marker was already stripped by the caller, so this only fires
+        // for breaks *between* points inside a chapter body.
         if (/data-type=["']?pageBreak/i.test(trimmed)) {
           elements.push(new Paragraph({ children: [new PageBreak()] }));
           continue;
@@ -539,14 +549,19 @@ export async function generateDocx(
     children: titlePageChildren,
   });
 
-  // Chapter Sections (each starts on a new page)
+  // Chapter Sections (each starts on a new page). When the body already begins
+  // with its own <h1> title we use that text and drop the duplicate heading, so
+  // there is exactly one chapter title (no doubled title, no near-blank page).
   for (const chapter of chapters) {
+    const { title: leadTitle, rest } = extractLeadingHeading(chapter.content);
+    const effectiveTitle = leadTitle || chapter.title;
+
     const chapterElements: (Paragraph | Table)[] = [
       // Chapter title
       new Paragraph({
         children: [
           new TextRun({
-            text: chapter.title,
+            text: effectiveTitle,
             bold: true,
             font: "Outfit",
             size: 40, // 20pt
@@ -570,7 +585,7 @@ export async function generateDocx(
         spacing: { after: 400 },
       }),
       // Chapter content
-      ...htmlToDocxElements(chapter.content),
+      ...htmlToDocxElements(rest),
     ];
 
     sections.push({

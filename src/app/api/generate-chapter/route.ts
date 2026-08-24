@@ -38,6 +38,7 @@ export async function POST(req: Request) {
       chapterTitle,
       chapterNumber,
       previousChaptersSummary,
+      bookOutline,
       model: chosenModel,
       projectId,
       useWebSearch = true,
@@ -78,6 +79,7 @@ Titre : ${title}
 Synopsis global : ${synopsis || "Non défini"}
 Ton / Style demandé : ${tone || "Professionnel et engageant"}
 
+${bookOutline ? `Sommaire / Table des matières du livre (rédige ce chapitre en cohérence avec ce plan, sans déborder sur les points prévus dans les autres chapitres) :\n${bookOutline}\n` : ""}
 ${previousChaptersSummary ? `Résumé des chapitres précédents pour garder la cohérence :\n${previousChaptersSummary}\n` : ""}
 
 Tu dois rédiger le texte du :

@@ -1,3 +1,5 @@
+import { extractLeadingHeading } from "./htmlToPdfmake";
+
 interface ChapterData {
   title: string;
   content: string;
@@ -189,7 +191,11 @@ blockquote {
   // 7. Chapter XHTML files
   for (let i = 0; i < chapters.length; i++) {
     const ch = chapters[i];
-    const cleanContent = sanitizeHtmlForXhtml(ch.content);
+    // Use the body's own leading <h1> as the title when present, so the chapter
+    // heading is not duplicated (each chapter is already its own XHTML file).
+    const { title: leadTitle, rest } = extractLeadingHeading(ch.content);
+    const effectiveTitle = leadTitle || ch.title;
+    const cleanContent = sanitizeHtmlForXhtml(rest);
 
     zip.file(
       `OEBPS/chapter${i + 1}.xhtml`,
@@ -198,11 +204,11 @@ blockquote {
 <html xmlns="http://www.w3.org/1999/xhtml" lang="fr">
 <head>
   <meta charset="UTF-8"/>
-  <title>${escapeXml(ch.title)}</title>
+  <title>${escapeXml(effectiveTitle)}</title>
   <link rel="stylesheet" type="text/css" href="style.css"/>
 </head>
 <body>
-  <h1>${escapeXml(ch.title)}</h1>
+  <h1>${escapeXml(effectiveTitle)}</h1>
   ${cleanContent}
 </body>
 </html>`
@@ -230,12 +236,11 @@ function escapeXml(str: string): string {
  */
 function sanitizeHtmlForXhtml(html: string): string {
   return html
-    // Close self-closing tags properly for XHTML
-    .replace(/<br\s*>/gi, "<br/>")
-    .replace(/<br\s*\/>/gi, "<br/>")
-    .replace(/<hr\s*>/gi, "<hr/>")
-    .replace(/<hr\s*\/>/gi, "<hr/>")
-    .replace(/<img([^>]*?)>/gi, "<img$1/>")
+    // Close self-closing tags properly for XHTML (including <hr> variants that
+    // carry attributes such as the internal page-break marker <hr data-page-break>)
+    .replace(/<br\s*\/?>/gi, "<br/>")
+    .replace(/<hr\b[^>]*\/?>/gi, "<hr/>")
+    .replace(/<img([^>]*?)\/?>/gi, "<img$1/>")
     // Remove data attributes that might confuse EPUB readers
     .replace(/\s+data-[a-z-]+="[^"]*"/gi, "")
     // Remove style attributes (use CSS instead)

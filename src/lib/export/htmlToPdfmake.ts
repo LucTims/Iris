@@ -29,6 +29,37 @@ function mapFont(rawFamily: string): string | undefined {
   return SUPPORTED_PDF_FONTS[first];
 }
 
+/**
+ * Chapter bodies produced by the AI writers begin with their own title — an
+ * <h1>, optionally preceded by a page-break marker (`<hr data-page-break><h1>…`).
+ * The exporters also render the chapter title separately, which duplicated the
+ * heading AND doubled the page break (producing near-blank pages). This pulls
+ * that leading heading out so the exporter can (a) use its text as the chapter's
+ * displayed title and (b) render the rest of the body cleanly with a single
+ * page break. Returns the original HTML untouched when no leading <h1> exists.
+ */
+export function extractLeadingHeading(html: string): { title: string | null; rest: string } {
+  if (!html) return { title: null, rest: html || "" };
+  // Drop a single leading page-break marker / empty spacer: the chapter already
+  // starts on a fresh page, so this break is redundant.
+  const stripped = html.replace(
+    /^\s*(?:<hr[^>]*data-page-break[^>]*>|<p>\s*(?:&nbsp;)?\s*<\/p>|&nbsp;)\s*/i,
+    ""
+  );
+  const m = stripped.match(/^\s*<h1[^>]*>([\s\S]*?)<\/h1>/i);
+  if (!m) return { title: null, rest: html };
+  const title = decodeEntities(m[1].replace(/<[^>]*>/g, "")).trim();
+  return { title: title || null, rest: stripped.slice(m[0].length) };
+}
+
+/** True when a chapter is the book's summary / table of contents. */
+export function isSummaryChapter(title: string, content: string): boolean {
+  const re = /sommaire|table des mati/i;
+  if (re.test(title || "")) return true;
+  const lead = extractLeadingHeading(content || "").title || "";
+  return re.test(lead);
+}
+
 function decodeEntities(s: string): string {
   return s
     .replace(/&nbsp;/g, " ")
