@@ -204,6 +204,78 @@ function parseTable(tableHtml: string): PdfNode | null {
   };
 }
 
+function parseKeyFigure(html: string): PdfNode {
+  const inner = html.replace(/^<div[^>]*>/i, "").replace(/<\/div>\s*$/i, "");
+  const text = decodeEntities(inner.replace(/<[^>]*>/g, "")).trim();
+
+  return {
+    table: {
+      widths: ["*"],
+      body: [[{
+        text,
+        bold: true,
+        fontSize: 18,
+        color: "#92400e",
+        alignment: "center",
+        fillColor: "#fef3c7",
+        margin: [16, 14, 16, 14],
+      }]],
+    },
+    layout: {
+      hLineWidth: () => 1.5,
+      vLineWidth: () => 1.5,
+      hLineColor: () => "#f59e0b",
+      vLineColor: () => "#f59e0b",
+    },
+    margin: [80, 10, 80, 14],
+  };
+}
+
+function parsePullQuote(html: string): PdfNode {
+  const inner = html.replace(/^<div[^>]*>/i, "").replace(/<\/div>\s*$/i, "");
+  const text = decodeEntities(inner.replace(/<[^>]*>/g, "")).trim();
+
+  return {
+    stack: [
+      { canvas: [{ type: "line", x1: 60, y1: 0, x2: 380, y2: 0, lineWidth: 0.8, lineColor: "#cbd5e1" }] },
+      {
+        text: [
+          { text: "“ ", fontSize: 18, color: "#94a3b8" },
+          { text, italics: true, fontSize: 12.5, color: "#334155" },
+          { text: " ”", fontSize: 18, color: "#94a3b8" },
+        ],
+        alignment: "center",
+        margin: [32, 8, 32, 8],
+        lineHeight: 1.5,
+      },
+      { canvas: [{ type: "line", x1: 60, y1: 0, x2: 380, y2: 0, lineWidth: 0.8, lineColor: "#cbd5e1" }] },
+    ],
+    margin: [0, 10, 0, 14],
+  };
+}
+
+const PDF_DIVIDER_TEXT: Record<string, string> = {
+  stars: "* * *",
+  ornament: "❖  ❖  ❖",
+  line: "─────────────",
+  dots: "•  •  •  •  •",
+};
+
+function parseSectionDivider(html: string): PdfNode {
+  const m = html.match(/section-divider-(stars|ornament|line|dots)/i);
+  const style = m ? m[1].toLowerCase() : "ornament";
+  const text = PDF_DIVIDER_TEXT[style] || PDF_DIVIDER_TEXT.ornament;
+
+  return {
+    text,
+    alignment: "center",
+    color: "#94a3b8",
+    fontSize: 12,
+    margin: [0, 16, 0, 16],
+    characterSpacing: style === "line" ? 0 : 3,
+  };
+}
+
 /** Convert one chapter's HTML into a pdfmake content array. */
 export function htmlToPdfmakeContent(html: string): PdfNode[] {
   const out: PdfNode[] = [];
@@ -221,12 +293,25 @@ export function htmlToPdfmakeContent(html: string): PdfNode[] {
     out.push(node);
   };
 
-  const calloutParts = source.split(/(<div[^>]*class="[^"]*\bcallout\b[^"]*"[^>]*>[\s\S]*?<\/div>)/gi);
+  const specialDivRe = /(<div[^>]*class="[^"]*\b(?:callout|key-figure|pull-quote|section-divider)\b[^"]*"[^>]*>[\s\S]*?<\/div>)/gi;
+  const calloutParts = source.split(specialDivRe);
 
   for (const cpart of calloutParts) {
     if (!cpart.trim()) continue;
     if (/^<div[^>]*class="[^"]*\bcallout\b/i.test(cpart.trim())) {
       push(parseCallout(cpart));
+      continue;
+    }
+    if (/^<div[^>]*class="[^"]*\bkey-figure\b/i.test(cpart.trim())) {
+      push(parseKeyFigure(cpart));
+      continue;
+    }
+    if (/^<div[^>]*class="[^"]*\bpull-quote\b/i.test(cpart.trim())) {
+      push(parsePullQuote(cpart));
+      continue;
+    }
+    if (/^<div[^>]*class="[^"]*\bsection-divider\b/i.test(cpart.trim())) {
+      push(parseSectionDivider(cpart));
       continue;
     }
 
@@ -267,13 +352,22 @@ export function htmlToPdfmakeContent(html: string): PdfNode[] {
         const plainText = decodeEntities(withoutImg.replace(/<[^>]*>/g, "")).trim();
         if (!plainText) continue;
 
+        const dropCap = /<p[^>]*class="[^"]*\bdrop-cap\b/i.test(withoutImg);
         const h1 = /<h1[^>]*>/i.test(withoutImg);
         const h2 = /<h2[^>]*>/i.test(withoutImg);
         const h3 = /<h3[^>]*>/i.test(withoutImg);
         const li = /<li[^>]*>/i.test(withoutImg);
         const bq = /<blockquote[^>]*>/i.test(withoutImg);
 
-        if (h1) push({ text: parseInlineRuns(withoutImg, { bold: true }), style: "h1" });
+        if (dropCap && plainText.length > 0) {
+          push({
+            text: [
+              { text: plainText.charAt(0), fontSize: 28, bold: true, color: "#1e293b" },
+              { text: plainText.substring(1) },
+            ],
+            style: "paragraph",
+          });
+        } else if (h1) push({ text: parseInlineRuns(withoutImg, { bold: true }), style: "h1" });
         else if (h2) push({ text: parseInlineRuns(withoutImg, { bold: true }), style: "h2" });
         else if (h3) push({ text: parseInlineRuns(withoutImg, { bold: true }), style: "h3" });
         else if (bq) push({ text: parseInlineRuns(withoutImg, { italics: true }), style: "blockquote", margin: [24, 6, 0, 6] });

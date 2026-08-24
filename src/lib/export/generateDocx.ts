@@ -164,6 +164,80 @@ function renderCallout(html: string): Table {
 }
 
 /**
+ * Render a key-figure <div class="key-figure"> as a centered bordered box.
+ */
+function renderKeyFigure(html: string): Table {
+  const inner = html.replace(/^<div[^>]*>/i, "").replace(/<\/div>\s*$/i, "");
+  const text = inner.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").trim();
+
+  const para = new Paragraph({
+    children: [new TextRun({ text, bold: true, font: "Outfit", size: 36, color: "92400E" })],
+    alignment: AlignmentType.CENTER,
+  });
+
+  const border = { style: BorderStyle.SINGLE, size: 6, color: "F59E0B" };
+  const cell = new TableCell({
+    children: [para],
+    shading: { fill: "FEF3C7", type: ShadingType.CLEAR, color: "auto" },
+    margins: { top: 200, bottom: 200, left: 200, right: 200 },
+    borders: { top: border, bottom: border, left: border, right: border },
+  });
+
+  return new Table({
+    rows: [new TableRow({ children: [cell] })],
+    width: { size: 60, type: WidthType.PERCENTAGE },
+    alignment: AlignmentType.CENTER,
+  });
+}
+
+/**
+ * Render a pull-quote <div class="pull-quote"> as a centered italic paragraph
+ * with top/bottom borders.
+ */
+function renderPullQuote(html: string): Paragraph {
+  const inner = html.replace(/^<div[^>]*>/i, "").replace(/<\/div>\s*$/i, "");
+  const text = inner.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").trim();
+
+  return new Paragraph({
+    children: [
+      new TextRun({ text: "“ ", font: "Outfit", size: 32, color: "94A3B8" }),
+      new TextRun({ text, italics: true, font: "Outfit", size: 26, color: "334155" }),
+      new TextRun({ text: " ”", font: "Outfit", size: 32, color: "94A3B8" }),
+    ],
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 300, after: 300 },
+    border: {
+      top: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" },
+      bottom: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" },
+    },
+    indent: { left: 720, right: 720 },
+  });
+}
+
+const DIVIDER_TEXT: Record<string, string> = {
+  stars: "* * *",
+  ornament: "❖  ❖  ❖",
+  line: "─────────────",
+  dots: "•  •  •  •  •",
+};
+
+/**
+ * Render a section-divider <div class="section-divider section-divider-<style>">
+ * as a centered text paragraph.
+ */
+function renderSectionDivider(html: string): Paragraph {
+  const m = html.match(/section-divider-(stars|ornament|line|dots)/i);
+  const style = m ? m[1].toLowerCase() : "ornament";
+  const text = DIVIDER_TEXT[style] || DIVIDER_TEXT.ornament;
+
+  return new Paragraph({
+    children: [new TextRun({ text, font: "Outfit", size: 22, color: "94A3B8" })],
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 300, after: 300 },
+  });
+}
+
+/**
  * Strips HTML tags and returns plain text segments from HTML content.
  * Handles <p>, <h1>-<h3>, <strong>, <em>, <br>, <li>, <blockquote>, <table>,
  * and <div class="callout"> boxes.
@@ -171,14 +245,33 @@ function renderCallout(html: string): Table {
 function htmlToDocxElements(html: string): (Paragraph | Table)[] {
   const elements: (Paragraph | Table)[] = [];
 
-  // Isolate callout boxes first — rendered as bordered/shaded single-cell tables
-  const calloutParts = html.split(/(<div[^>]*class="[^"]*\bcallout\b[^"]*"[^>]*>[\s\S]*?<\/div>)/gi);
+  // Isolate special block-level divs (callouts, key-figure, pull-quote, section-divider)
+  const specialDivRe = /(<div[^>]*class="[^"]*\b(?:callout|key-figure|pull-quote|section-divider)\b[^"]*"[^>]*>[\s\S]*?<\/div>)/gi;
+  const calloutParts = html.split(specialDivRe);
 
   for (const cpart of calloutParts) {
     if (!cpart.trim()) continue;
 
     if (/^<div[^>]*class="[^"]*\bcallout\b/i.test(cpart.trim())) {
       elements.push(renderCallout(cpart));
+      elements.push(new Paragraph({ spacing: { after: 160 } }));
+      continue;
+    }
+
+    if (/^<div[^>]*class="[^"]*\bkey-figure\b/i.test(cpart.trim())) {
+      elements.push(renderKeyFigure(cpart));
+      elements.push(new Paragraph({ spacing: { after: 160 } }));
+      continue;
+    }
+
+    if (/^<div[^>]*class="[^"]*\bpull-quote\b/i.test(cpart.trim())) {
+      elements.push(renderPullQuote(cpart));
+      elements.push(new Paragraph({ spacing: { after: 160 } }));
+      continue;
+    }
+
+    if (/^<div[^>]*class="[^"]*\bsection-divider\b/i.test(cpart.trim())) {
+      elements.push(renderSectionDivider(cpart));
       elements.push(new Paragraph({ spacing: { after: 160 } }));
       continue;
     }
@@ -273,6 +366,7 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
           continue;
         }
 
+        const dropCapMatch = /<p[^>]*class="[^"]*\bdrop-cap\b/i.test(trimmed);
         const h1Match = trimmed.match(/<h1[^>]*>/i);
         const h2Match = trimmed.match(/<h2[^>]*>/i);
         const h3Match = trimmed.match(/<h3[^>]*>/i);
@@ -293,7 +387,23 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
 
         const runs = parseTextRuns(trimmed);
 
-        if (h1Match) {
+        if (dropCapMatch) {
+          const dcRuns = parseTextRuns(trimmed);
+          if (dcRuns.length > 0 && plainText.length > 0) {
+            const firstLetter = plainText.charAt(0);
+            const rest = plainText.substring(1);
+            elements.push(
+              new Paragraph({
+                children: [
+                  new TextRun({ text: firstLetter, bold: true, font: "Outfit", size: 56, color: "1E293B" }),
+                  new TextRun({ text: rest, font: "Outfit", size: 24, color: "222222" }),
+                ],
+                spacing: { before: 120, after: 120 },
+                alignment: AlignmentType.JUSTIFIED,
+              })
+            );
+          }
+        } else if (h1Match) {
           elements.push(
             new Paragraph({
               children: parseTextRuns(trimmed, { forceBold: true, size: 32 }), // 16pt

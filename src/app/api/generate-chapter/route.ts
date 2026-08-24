@@ -92,7 +92,11 @@ Instructions impératives :
 4. Juste après cette balise, ajoute le titre du chapitre en balise <h1>. Par exemple : <hr data-page-break><h1>Chapitre ${chapterNumber} : ${chapterTitle}</h1>.
 5. Ensuite, rédige le contenu du chapitre en HTML valide, avec des balises <p>, <h2>, <h3>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>.
 6. Quand le contenu contient des données comparatives, des listes de critères chiffrés ou des informations tabulaires, présente-les dans un tableau HTML bien structuré.
-7. Pour mettre en valeur un point clé, utilise des encadrés : <div class="callout callout-info">…</div> (information importante), <div class="callout callout-warning">…</div> (mise en garde / risque), <div class="callout callout-tip">…</div> (conseil pratique), <div class="callout callout-example">…</div> (exemple concret). Le contenu d'un encadré doit être en HTML (<p>, <strong>…). N'en abuse pas : 1 à 3 encadrés par chapitre, uniquement quand ça apporte vraiment de la valeur.`;
+7. Pour mettre en valeur un point clé, utilise des encadrés : <div class="callout callout-info">…</div> (information importante), <div class="callout callout-warning">…</div> (mise en garde / risque), <div class="callout callout-tip">…</div> (conseil pratique), <div class="callout callout-example">…</div> (exemple concret). Le contenu d'un encadré doit être en HTML (<p>, <strong>…). N'en abuse pas : 1 à 3 encadrés par chapitre, uniquement quand ça apporte vraiment de la valeur.
+8. Pour un chiffre ou statistique marquant, utilise : <div class="key-figure">85% des entreprises…</div>. Maximum 1-2 par chapitre.
+9. Pour une citation marquante, utilise : <div class="pull-quote">La citation ici</div>. Maximum 1-2 par chapitre.
+10. Pour marquer une transition entre sections, tu peux utiliser un séparateur décoratif : <div class="section-divider section-divider-stars"></div> (ou ornament, line, dots). Utilise-les avec parcimonie.
+11. Pour un début de chapitre ou de section important, utilise une lettrine : <p class="drop-cap">Le texte du paragraphe…</p>. Maximum 1 par chapitre (typiquement le premier paragraphe).`;
 
     const result = streamText({
       model: getAiModel(selectedModelName),
