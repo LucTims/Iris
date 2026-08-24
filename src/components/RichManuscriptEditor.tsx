@@ -451,11 +451,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   return (
     <div className="relative flex-1 flex flex-col h-full bg-[#F9FAFB] overflow-hidden min-w-0 font-body">
       {/* ================= 1. GOOGLE DOCS STYLE TOP MENU BAR ================= */}
-<<<<<<< HEAD
-      <div ref={menuRef} className="bg-white border-b border-neutral-200/80 px-4 sm:px-6 py-2 flex items-center gap-2 text-sm font-semibold shrink-0 z-20 select-none overflow-x-auto no-scrollbar">
-=======
-      <div ref={menuRef} className="bg-white border-b border-neutral-200/80 px-2 sm:px-6 py-1 sm:py-2 flex items-center gap-0.5 sm:gap-2 text-xs sm:text-sm font-semibold shrink-0 z-20 select-none overflow-x-auto">
->>>>>>> origin/claude/iris-editor-document-analysis-6c97ui
+      <div ref={menuRef} className="bg-white border-b border-neutral-200/80 px-2 sm:px-6 py-1 sm:py-2 flex items-center gap-0.5 sm:gap-2 text-xs sm:text-sm font-semibold shrink-0 z-20 select-none overflow-x-auto no-scrollbar">
         {[
           {
             id: "edition", label: "Édition", items: [
@@ -519,13 +515,8 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       </div>
 
       {/* ================= 2. RICH ICON TOOLBAR ================= */}
-<<<<<<< HEAD
-      <div className="h-14 bg-[#EDF2F9]/80 border-b border-neutral-200/90 px-6 flex items-center justify-between gap-2 overflow-x-auto shrink-0 z-40 select-none">
-        <div className="flex items-center gap-1.5">
-=======
-      <div className="h-11 sm:h-14 bg-[#EDF2F9]/80 border-b border-neutral-200/90 px-2 sm:px-6 flex items-center justify-between gap-2 overflow-x-auto shrink-0 z-10 select-none">
+      <div className="h-11 sm:h-14 bg-[#EDF2F9]/80 border-b border-neutral-200/90 px-2 sm:px-6 flex items-center justify-between gap-2 overflow-x-auto shrink-0 z-40 select-none">
         <div className="flex items-center gap-1 sm:gap-1.5">
->>>>>>> origin/claude/iris-editor-document-analysis-6c97ui
           {/* Undo / Redo */}
           <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-neutral-200/70 text-neutral-700 disabled:opacity-40 flex items-center justify-center transition-colors" title="Annuler (Ctrl+Z)">
             <span className="material-symbols-outlined text-lg">undo</span>
