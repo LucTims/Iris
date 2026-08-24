@@ -453,7 +453,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       </div>
 
       {/* ================= 2. RICH ICON TOOLBAR ================= */}
-      <div className="h-14 bg-[#EDF2F9]/80 border-b border-neutral-200/90 px-6 flex items-center justify-between gap-2 overflow-x-auto shrink-0 z-10 select-none">
+      <div className="h-14 bg-[#EDF2F9]/80 border-b border-neutral-200/90 px-6 flex items-center justify-between gap-2 overflow-x-auto shrink-0 z-40 select-none">
         <div className="flex items-center gap-1.5">
           {/* Undo / Redo */}
           <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className="w-8 h-8 rounded-xl hover:bg-neutral-200/70 text-neutral-700 disabled:opacity-40 flex items-center justify-center transition-colors" title="Annuler (Ctrl+Z)">
