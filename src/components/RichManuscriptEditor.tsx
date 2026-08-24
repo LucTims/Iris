@@ -207,6 +207,18 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
     }
   }, [initialContent, editor]);
 
+  // Zoom initial adapté à l'écran : la page A4 (~794px) déborde d'un mobile, on
+  // réduit donc le zoom au tout premier rendu pour qu'elle tienne à l'écran.
+  // On ne le fait qu'une fois — l'utilisateur reste libre d'ajuster ensuite.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const w = window.innerWidth;
+    // Valeurs alignées sur les options du sélecteur de zoom (50 / 75 / 100…).
+    if (w < 640) setZoomLevel(50);
+    else if (w < 1024) setZoomLevel(75);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Update dynamic word count and page count
   useEffect(() => {
     if (!editor) return;
@@ -439,7 +451,11 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   return (
     <div className="relative flex-1 flex flex-col h-full bg-[#F9FAFB] overflow-hidden min-w-0 font-body">
       {/* ================= 1. GOOGLE DOCS STYLE TOP MENU BAR ================= */}
+<<<<<<< HEAD
       <div ref={menuRef} className="bg-white border-b border-neutral-200/80 px-4 sm:px-6 py-2 flex items-center gap-2 text-sm font-semibold shrink-0 z-20 select-none overflow-x-auto no-scrollbar">
+=======
+      <div ref={menuRef} className="bg-white border-b border-neutral-200/80 px-2 sm:px-6 py-1 sm:py-2 flex items-center gap-0.5 sm:gap-2 text-xs sm:text-sm font-semibold shrink-0 z-20 select-none overflow-x-auto">
+>>>>>>> origin/claude/iris-editor-document-analysis-6c97ui
         {[
           {
             id: "edition", label: "Édition", items: [
@@ -485,7 +501,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           <div key={menu.id} className="relative">
             <button
               onClick={() => setActiveMenu(activeMenu === menu.id ? null : menu.id)}
-              className={`px-3 py-1.5 rounded-lg text-sm text-neutral-800 font-semibold hover:bg-neutral-100 transition-colors ${activeMenu === menu.id ? "bg-neutral-100 font-bold text-neutral-900" : ""}`}
+              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm text-neutral-800 font-semibold hover:bg-neutral-100 transition-colors whitespace-nowrap ${activeMenu === menu.id ? "bg-neutral-100 font-bold text-neutral-900" : ""}`}
             >
               {menu.label}
             </button>
@@ -503,17 +519,22 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       </div>
 
       {/* ================= 2. RICH ICON TOOLBAR ================= */}
+<<<<<<< HEAD
       <div className="h-14 bg-[#EDF2F9]/80 border-b border-neutral-200/90 px-6 flex items-center justify-between gap-2 overflow-x-auto shrink-0 z-40 select-none">
         <div className="flex items-center gap-1.5">
+=======
+      <div className="h-11 sm:h-14 bg-[#EDF2F9]/80 border-b border-neutral-200/90 px-2 sm:px-6 flex items-center justify-between gap-2 overflow-x-auto shrink-0 z-10 select-none">
+        <div className="flex items-center gap-1 sm:gap-1.5">
+>>>>>>> origin/claude/iris-editor-document-analysis-6c97ui
           {/* Undo / Redo */}
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className="w-8 h-8 rounded-xl hover:bg-neutral-200/70 text-neutral-700 disabled:opacity-40 flex items-center justify-center transition-colors" title="Annuler (Ctrl+Z)">
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-neutral-200/70 text-neutral-700 disabled:opacity-40 flex items-center justify-center transition-colors" title="Annuler (Ctrl+Z)">
             <span className="material-symbols-outlined text-lg">undo</span>
           </button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className="w-8 h-8 rounded-xl hover:bg-neutral-200/70 text-neutral-700 disabled:opacity-40 flex items-center justify-center transition-colors" title="Rétablir (Ctrl+Y)">
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-neutral-200/70 text-neutral-700 disabled:opacity-40 flex items-center justify-center transition-colors" title="Rétablir (Ctrl+Y)">
             <span className="material-symbols-outlined text-lg">redo</span>
           </button>
 
-          <div className="w-[1px] h-6 bg-neutral-300 mx-1"></div>
+          <div className="w-[1px] h-5 sm:h-6 bg-neutral-300 mx-0.5 sm:mx-1"></div>
 
           {/* Page Format & Zoom */}
           <select 
@@ -631,33 +652,33 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
             </button>
           </div>
 
-          <div className="w-[1px] h-6 bg-neutral-300 mx-1"></div>
+          <div className="w-[1px] h-5 sm:h-6 bg-neutral-300 mx-0.5 sm:mx-1"></div>
 
           {/* Formatting */}
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleBold().run()} className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm ${editor.isActive('bold') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900'}`} title="Gras (Ctrl+B)">B</button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleItalic().run()} className={`w-8 h-8 rounded-xl flex items-center justify-center italic font-serif text-sm ${editor.isActive('italic') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900'}`} title="Italique (Ctrl+I)">I</button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleUnderline().run()} className={`w-8 h-8 rounded-xl flex items-center justify-center underline text-sm ${editor.isActive('underline') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900'}`} title="Souligné (Ctrl+U)">U</button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleStrike().run()} className={`w-8 h-8 rounded-xl flex items-center justify-center line-through text-sm ${editor.isActive('strike') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900'}`} title="Barré">S</button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleBold().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center font-black text-sm ${editor.isActive('bold') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900'}`} title="Gras (Ctrl+B)">B</button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleItalic().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center italic font-serif text-sm ${editor.isActive('italic') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900'}`} title="Italique (Ctrl+I)">I</button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleUnderline().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center underline text-sm ${editor.isActive('underline') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900'}`} title="Souligné (Ctrl+U)">U</button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleStrike().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center line-through text-sm ${editor.isActive('strike') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900'}`} title="Barré">S</button>
 
           {/* Colors */}
-          <label className="w-8 h-8 rounded-xl hover:bg-neutral-200/70 cursor-pointer flex items-center justify-center relative" title="Couleur du texte">
+          <label className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-neutral-200/70 cursor-pointer flex items-center justify-center relative" title="Couleur du texte">
             <span className="material-symbols-outlined text-lg text-secondary">format_color_text</span>
             <input type="color" onChange={(e) => editor.chain().focus().setColor(e.target.value).run()} className="opacity-0 absolute w-0 h-0" />
           </label>
-          <label className="w-8 h-8 rounded-xl hover:bg-neutral-200/70 cursor-pointer flex items-center justify-center relative" title="Surlignage">
+          <label className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-neutral-200/70 cursor-pointer flex items-center justify-center relative" title="Surlignage">
             <span className="material-symbols-outlined text-lg text-amber-500">ink_highlighter</span>
             <input type="color" onChange={(e) => editor.chain().focus().toggleHighlight({ color: e.target.value }).run()} className="opacity-0 absolute w-0 h-0" />
           </label>
 
-          <div className="w-[1px] h-6 bg-neutral-300 mx-1"></div>
+          <div className="w-[1px] h-5 sm:h-6 bg-neutral-300 mx-0.5 sm:mx-1"></div>
 
           {/* Alignments */}
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`w-8 h-8 rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'left' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Aligner à gauche"><span className="material-symbols-outlined text-lg">format_align_left</span></button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('center').run()} className={`w-8 h-8 rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'center' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Centrer"><span className="material-symbols-outlined text-lg">format_align_center</span></button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`w-8 h-8 rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'right' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Aligner à droite"><span className="material-symbols-outlined text-lg">format_align_right</span></button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('justify').run()} className={`w-8 h-8 rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'justify' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Justifier"><span className="material-symbols-outlined text-lg">format_align_justify</span></button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'left' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Aligner à gauche"><span className="material-symbols-outlined text-lg">format_align_left</span></button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('center').run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'center' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Centrer"><span className="material-symbols-outlined text-lg">format_align_center</span></button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'right' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Aligner à droite"><span className="material-symbols-outlined text-lg">format_align_right</span></button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('justify').run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'justify' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Justifier"><span className="material-symbols-outlined text-lg">format_align_justify</span></button>
 
-          <div className="w-[1px] h-6 bg-neutral-300 mx-1"></div>
+          <div className="w-[1px] h-5 sm:h-6 bg-neutral-300 mx-0.5 sm:mx-1"></div>
 
           {/* Line Height Selector */}
           <select
@@ -685,15 +706,15 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           </select>
 
           {/* Lists */}
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleBulletList().run()} className={`w-8 h-8 rounded-xl flex items-center justify-center ${editor.isActive('bulletList') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Liste à puces"><span className="material-symbols-outlined text-lg">format_list_bulleted</span></button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`w-8 h-8 rounded-xl flex items-center justify-center ${editor.isActive('orderedList') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Liste numérotée"><span className="material-symbols-outlined text-lg">format_list_numbered</span></button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleBulletList().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive('bulletList') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Liste à puces"><span className="material-symbols-outlined text-lg">format_list_bulleted</span></button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive('orderedList') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Liste numérotée"><span className="material-symbols-outlined text-lg">format_list_numbered</span></button>
 
-          <div className="w-[1px] h-6 bg-neutral-300 mx-1"></div>
+          <div className="w-[1px] h-5 sm:h-6 bg-neutral-300 mx-0.5 sm:mx-1"></div>
 
           {/* Inserts */}
-          <button onClick={handleImportButtonClick} title="Importer un manuscrit (.docx, .epub)" className="w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors"><span className="material-symbols-outlined text-lg">file_upload</span></button>
-          <button onClick={() => setIsImageModalOpen(true)} className="w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer une image"><span className="material-symbols-outlined text-lg">image</span></button>
-          <button onClick={() => setIsLinkModalOpen(true)} className="w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer un lien"><span className="material-symbols-outlined text-lg">link</span></button>
+          <button onClick={handleImportButtonClick} title="Importer un manuscrit (.docx, .epub)" className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors"><span className="material-symbols-outlined text-lg">file_upload</span></button>
+          <button onClick={() => setIsImageModalOpen(true)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer une image"><span className="material-symbols-outlined text-lg">image</span></button>
+          <button onClick={() => setIsLinkModalOpen(true)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer un lien"><span className="material-symbols-outlined text-lg">link</span></button>
           <div className="relative" ref={tablePickerBtnRef}>
             <button onClick={() => {
               const next = !showTablePicker;
@@ -703,7 +724,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
                 setTablePickerPos({ top: rect.bottom + 4, left: Math.max(8, rect.right - pickerWidth) });
               }
               setShowTablePicker(next);
-            }} className={`w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors ${showTablePicker ? "bg-orange-100/70 text-secondary" : ""}`} title="Insérer un tableau"><span className="material-symbols-outlined text-lg">table_chart</span></button>
+            }} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors ${showTablePicker ? "bg-orange-100/70 text-secondary" : ""}`} title="Insérer un tableau"><span className="material-symbols-outlined text-lg">table_chart</span></button>
             {showTablePicker && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => { setShowTablePicker(false); setTableHover({ rows: 0, cols: 0 }); }} />
@@ -730,13 +751,13 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               </>
             )}
           </div>
-          <button onClick={handleAddNewPage} className="w-8 h-8 rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Saut de page"><span className="material-symbols-outlined text-lg">post_add</span></button>
+          <button onClick={handleAddNewPage} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Saut de page"><span className="material-symbols-outlined text-lg">post_add</span></button>
         </div>
       </div>
 
       {/* ================= 3. RULER BAR ================= */}
       {showRuler && (
-        <div className="h-6 bg-neutral-100 border-b border-neutral-200 flex items-center justify-center shrink-0 select-none overflow-hidden">
+        <div className="h-6 bg-neutral-100 border-b border-neutral-200 hidden sm:flex items-center justify-center shrink-0 select-none overflow-hidden">
           <div className="max-w-[794px] w-full flex items-center justify-between text-[9px] font-mono text-neutral-400 px-4">
             <span>| 1</span><span>| 2</span><span>| 3</span><span>| 4</span><span>| 5</span><span>| 6</span><span>| 7</span><span>| 8</span><span>| 9</span><span>| 10</span><span>| 11</span><span>| 12</span><span>| 13</span><span>| 14</span><span>| 15</span><span>| 16</span>
           </div>
@@ -744,7 +765,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       )}
 
       {/* ================= 4. EDITOR CANVAS WITH TIPTAP PRO PAGES ================= */}
-      <div className="editor-scroll-container relative flex-1 overflow-y-auto flex flex-col items-center bg-[#F3F4F6] p-4 sm:p-8">
+      <div className="editor-scroll-container relative flex-1 overflow-y-auto overflow-x-auto flex flex-col items-center bg-[#F3F4F6] p-2 sm:p-8">
         
         {/* ================= GENERATION ANIMATION OVERLAY ================= */}
         {isGenerating && (
@@ -775,7 +796,6 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
             </div>
           </div>
         )}
-
         <div 
           className="relative z-10 w-full transition-transform duration-150 flex flex-col items-center"
           ref={editorContainerRef}
@@ -1083,15 +1103,15 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       </div>
 
       {/* ================= FLOATING AI BUTTONS ================= */}
-      <div className="absolute bottom-6 right-8 flex flex-col gap-3 z-30">
+      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-8 flex flex-col gap-3 z-30">
         {/* Si le chapitre est vide ou très court, on propose de tout générer */}
         {wordCount < 20 && onGenerateFullChapter && (
-          <button 
-            onClick={onGenerateFullChapter} 
+          <button
+            onClick={onGenerateFullChapter}
             disabled={isGenerating}
-            className={`bg-secondary hover:bg-orange-600 text-white font-bold text-sm px-6 py-4 rounded-2xl transition-all shadow-xl flex items-center gap-2 group cursor-pointer ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`bg-secondary hover:bg-orange-600 text-white font-bold text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-4 rounded-2xl transition-all shadow-xl flex items-center gap-2 group cursor-pointer ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            <span className={`material-symbols-outlined text-xl ${isGenerating ? 'animate-spin' : 'group-hover:scale-110 transition-transform'}`}>
+            <span className={`material-symbols-outlined text-lg sm:text-xl ${isGenerating ? 'animate-spin' : 'group-hover:scale-110 transition-transform'}`}>
               {isGenerating ? 'sync' : 'magic_button'}
             </span>
             <span>{isGenerating ? "Génération..." : "Rédiger avec l'IA"}</span>
@@ -1100,12 +1120,12 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
 
         {/* Continuer la rédaction avec l'IA (si déjà du contenu) */}
         {wordCount >= 20 && onContinueWithAi && (
-          <button 
-            onClick={onContinueWithAi} 
+          <button
+            onClick={onContinueWithAi}
             disabled={isGenerating}
-            className="bg-white border-2 border-secondary/20 hover:border-secondary text-secondary hover:bg-orange-50 font-bold text-sm px-6 py-4 rounded-2xl transition-all shadow-xl flex items-center gap-2 group cursor-pointer"
+            className="bg-white border-2 border-secondary/20 hover:border-secondary text-secondary hover:bg-orange-50 font-bold text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-4 rounded-2xl transition-all shadow-xl flex items-center gap-2 group cursor-pointer"
           >
-            <span className="material-symbols-outlined text-xl group-hover:rotate-12 transition-transform">auto_awesome</span>
+            <span className="material-symbols-outlined text-lg sm:text-xl group-hover:rotate-12 transition-transform">auto_awesome</span>
             <span>Continuer avec l&apos;IA</span>
           </button>
         )}

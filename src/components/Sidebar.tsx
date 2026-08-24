@@ -205,7 +205,7 @@ export default function Sidebar() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              {navItems.map((item) => (
+              {[...navItems, ...bottomNavItems].map((item) => (
                 <Link
                   key={item.id}
                   href={item.href}
