@@ -10,8 +10,10 @@ export async function checkMinimumBalance(userId: string, requiredCoins: number)
     .single();
 
   if (error || !wallet) {
-    console.error("Error fetching wallet:", error);
-    return false;
+    // Table doesn't exist yet or user has no wallet row — allow generation
+    // so AI features work before the billing system is fully set up.
+    console.warn("Wallet check skipped (table missing or no row):", error?.message);
+    return true;
   }
 
   return wallet.balance >= requiredCoins;
