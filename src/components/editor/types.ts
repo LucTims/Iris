@@ -31,6 +31,8 @@ export interface RichManuscriptEditorProps {
   /** Send the current selection (text + range) up to the chat panel for a free-form edit. */
   onSendSelectionToChat?: (selection: EditorSelection) => void;
   isGenerating?: boolean;
+  /** Optional label shown on the generation animation (e.g. "Iris réécrit votre livre"). */
+  generationLabel?: string;
   onFileSelected?: (file: File) => void;
 }
 
