@@ -501,6 +501,7 @@ function RedactionContent() {
     }
 
     setIsAiThinking(true);
+    setIsGeneratingChapter(true);
     setSaveStatus("saving");
 
     try {
@@ -546,6 +547,7 @@ function RedactionContent() {
       alert("Erreur lors de la réécriture. Veuillez réessayer.");
     } finally {
       setIsAiThinking(false);
+      setIsGeneratingChapter(false);
     }
   };
 
