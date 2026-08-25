@@ -148,7 +148,7 @@ export default function NewBookWizard() {
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, referenceDocument: referenceDoc || undefined })
       });
 
       if (!res.ok) {
@@ -370,12 +370,12 @@ export default function NewBookWizard() {
                     <div className="space-y-3 pt-4 border-t border-neutral-100 mt-2">
                       <div className="flex items-center justify-between gap-2">
                         <label className="text-sm font-bold text-neutral-700">Document de référence (Optionnel)</label>
-                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">🪙 Utilise des pièces</span>
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">🪙 20 pièces / analyse</span>
                       </div>
                       <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-2">
                         <span className="material-symbols-outlined text-blue-500 text-lg">auto_stories</span>
                         <p className="text-xs text-blue-800 leading-snug">
-                          Importez un document (.docx, .epub, .txt, .md) : <strong>Iris l'analyse et le comprend</strong> pour écrire votre livre. Choisissez ce que l'IA doit en faire — s'en inspirer, en apprendre le contenu, ou en reproduire le style. L'analyse consomme des pièces selon le modèle.
+                          Importez un document (.docx, .epub, .txt, .md) : <strong>Iris l'analyse et le comprend</strong> pour écrire votre livre. Choisissez ce que l'IA doit en faire — s'en inspirer, en apprendre le contenu, ou en reproduire le style. L'analyse coûte 20 pièces (PDF, .docx, .epub, .txt, .md).
                         </p>
                       </div>
 
@@ -406,7 +406,7 @@ export default function NewBookWizard() {
                       <input
                         ref={referenceInputRef}
                         type="file"
-                        accept=".docx,.epub,.txt,.md,.markdown"
+                        accept=".pdf,.docx,.epub,.txt,.md,.markdown"
                         className="hidden"
                         onChange={(e) => { handleReferenceFile(e.target.files?.[0] || null); e.target.value = ""; }}
                       />

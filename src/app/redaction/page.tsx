@@ -281,10 +281,11 @@ function RedactionContent() {
               includeToc,
               model: project.model || ctx?.model || "gemini-2.5-flash",
               useWebSearch,
-              // Document de référence analysé lors de la création du projet
-              referenceAnalysis: ctx?.referenceDocument?.analysis || undefined,
-              referencePurpose: ctx?.referenceDocument?.purpose || undefined,
-              referenceName: ctx?.referenceDocument?.name || undefined,
+              // Document de référence analysé : priorité à la version persistée
+              // en base (project.reference_*), sinon repli sur le localStorage.
+              referenceAnalysis: (project as any)?.reference_analysis || ctx?.referenceDocument?.analysis || undefined,
+              referencePurpose: (project as any)?.reference_meta?.purpose || ctx?.referenceDocument?.purpose || undefined,
+              referenceName: (project as any)?.reference_meta?.name || ctx?.referenceDocument?.name || undefined,
             })
           });
 
@@ -1634,7 +1635,7 @@ function RedactionContent() {
                 <input
                   ref={chatFileInputRef}
                   type="file"
-                  accept=".docx,.epub,.txt,.md,.markdown"
+                  accept=".pdf,.docx,.epub,.txt,.md,.markdown"
                   className="hidden"
                   onChange={(e) => { handleChatFile(e.target.files?.[0] || null); e.target.value = ""; }}
                 />
@@ -1651,7 +1652,7 @@ function RedactionContent() {
                     type="button"
                     onClick={() => chatFileInputRef.current?.click()}
                     disabled={isAnalyzingChatFile}
-                    title="Joindre un document à analyser (utilise des pièces)"
+                    title="Joindre un document à analyser (20 pièces)"
                     className="w-8 h-8 rounded-xl flex items-center justify-center text-neutral-500 hover:text-secondary hover:bg-white transition-colors shrink-0 disabled:opacity-50"
                   >
                     <span className="material-symbols-outlined text-xl">add</span>

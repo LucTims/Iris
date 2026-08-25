@@ -2,10 +2,13 @@ import { generateText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
+import { checkMinimumBalance, deductFixedCoins } from "@/lib/ai/cost-engine";
 import { getAiModel } from "@/lib/ai/search-context";
 
 export const maxDuration = 60;
+
+/** Tarif forfaitaire de l'analyse d'un document, en pièces. */
+const ANALYSIS_COST_COINS = 20;
 
 /** Consignes d'analyse selon l'usage voulu du document par l'auteur. */
 const PURPOSE_INSTRUCTIONS: Record<string, string> = {
@@ -58,10 +61,10 @@ export async function POST(req: Request) {
 
     const selectedModelName = chosenModel || "gemini-2.5-flash";
 
-    const hasEnoughCoins = await checkMinimumBalance(user.id, 20);
+    const hasEnoughCoins = await checkMinimumBalance(user.id, ANALYSIS_COST_COINS);
     if (!hasEnoughCoins) {
       return NextResponse.json(
-        { error: "Fonds insuffisants. L'analyse de documents utilise des pièces selon le modèle." },
+        { error: `Fonds insuffisants. L'analyse d'un document coûte ${ANALYSIS_COST_COINS} pièces.` },
         { status: 402 }
       );
     }
@@ -101,12 +104,11 @@ Sois factuel et concis. N'invente rien qui ne soit pas dans le document. Répond
       prompt,
     });
 
-    await deductCost(
+    await deductFixedCoins(
       user.id,
-      selectedModelName,
-      result.usage?.promptTokens,
-      result.usage?.completionTokens,
-      `Analyse de document${fileName ? ` : ${fileName}` : ""}`
+      ANALYSIS_COST_COINS,
+      `Analyse de document${fileName ? ` : ${fileName}` : ""}`,
+      { model_id: selectedModelName }
     );
 
     return NextResponse.json({

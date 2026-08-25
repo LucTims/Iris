@@ -9,6 +9,47 @@ export interface ExtractedDocument {
   chars: number;
 }
 
+/**
+ * Extrait le texte d'un PDF côté navigateur via pdf.js (pdfjs-dist).
+ * Chargé dynamiquement pour ne pas alourdir le bundle principal : la lib n'est
+ * téléchargée que lorsqu'un PDF est réellement importé.
+ */
+async function extractPdfText(file: File): Promise<string> {
+  let pdfjs: any;
+  try {
+    pdfjs = await import("pdfjs-dist");
+  } catch {
+    throw new Error(
+      "Le support PDF n'est pas installé. Exécutez : npm install pdfjs-dist"
+    );
+  }
+
+  // Worker : émis comme asset par le bundler (webpack/Turbopack). En cas d'échec,
+  // pdf.js bascule sur un « fake worker » (thread principal) — plus lent mais OK.
+  try {
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+      "pdfjs-dist/build/pdf.worker.min.mjs",
+      import.meta.url
+    ).toString();
+  } catch {
+    /* fake worker fallback */
+  }
+
+  const data = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data }).promise;
+  const maxPages = Math.min(pdf.numPages, 300);
+  let out = "";
+  for (let i = 1; i <= maxPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const strings = content.items.map((it: any) => (typeof it?.str === "string" ? it.str : ""));
+    out += strings.join(" ") + "\n\n";
+    // On s'arrête tôt si on a déjà largement de quoi analyser (limite le coût).
+    if (out.length > MAX_ANALYSIS_CHARS * 1.5) break;
+  }
+  return out;
+}
+
 /** Retire les balises HTML et normalise les espaces d'un fragment HTML. */
 function htmlToPlainText(html: string): string {
   return html
@@ -43,12 +84,10 @@ export async function extractDocumentText(file: File): Promise<ExtractedDocument
   } else if (name.endsWith(".txt") || name.endsWith(".md") || name.endsWith(".markdown")) {
     raw = await file.text();
   } else if (name.endsWith(".pdf")) {
-    throw new Error(
-      "Les PDF ne sont pas encore pris en charge pour l'analyse. Convertissez-le en .docx ou .txt, puis réimportez-le."
-    );
+    raw = await extractPdfText(file);
   } else {
     throw new Error(
-      "Format non supporté. Formats acceptés : .docx, .epub, .txt, .md."
+      "Format non supporté. Formats acceptés : .pdf, .docx, .epub, .txt, .md."
     );
   }
 
@@ -64,4 +103,4 @@ export async function extractDocumentText(file: File): Promise<ExtractedDocument
   return { text, truncated, chars: text.length };
 }
 
-export const ANALYSIS_ACCEPT = ".docx,.epub,.txt,.md,.markdown";
+export const ANALYSIS_ACCEPT = ".pdf,.docx,.epub,.txt,.md,.markdown";

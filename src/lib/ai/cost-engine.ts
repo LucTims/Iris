@@ -17,6 +17,34 @@ export async function checkMinimumBalance(userId: string, requiredCoins: number)
   return wallet.balance >= requiredCoins;
 }
 
+/**
+ * Débite un montant FIXE de pièces (indépendant des tokens). Utilisé pour des
+ * actions au tarif forfaitaire, comme l'analyse d'un document (20 pièces).
+ * Réutilise le même RPC `process_ai_cost` que la facturation au token.
+ */
+export async function deductFixedCoins(
+  userId: string,
+  amount: number,
+  description: string,
+  metadata: Record<string, unknown> = {}
+): Promise<boolean> {
+  const supabase = await createClient();
+  const p_amount = Math.max(1, Math.ceil(amount));
+
+  const { error: rpcError } = await supabase.rpc("process_ai_cost", {
+    p_user_id: userId,
+    p_amount,
+    p_description: description,
+    p_metadata: { flat_rate: true, ...metadata },
+  });
+
+  if (rpcError) {
+    console.error("Error deducting fixed coins:", rpcError);
+    return false;
+  }
+  return true;
+}
+
 export async function deductCost(
   userId: string,
   modelId: string,
