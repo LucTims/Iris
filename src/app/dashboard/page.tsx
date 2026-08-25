@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import AppLayout from "@/components/AppLayout";
-import QuillAnimation from "@/components/QuillAnimation";
-import ExportBookModal from "@/components/ExportBookModal";
 import { useUser } from "@/hooks/useUser";
+
+const QuillAnimation = dynamic(() => import("@/components/QuillAnimation"), { ssr: false });
+const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
 
 export default function DashboardPage() {
   const { displayName, displayEmail, signOut, isAdmin } = useUser();

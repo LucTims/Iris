@@ -1,15 +1,25 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
-import RichManuscriptEditor, { RichManuscriptEditorHandle } from "@/components/RichManuscriptEditor";
-import ImportManuscriptModal from "@/components/ImportManuscriptModal";
-import ExportBookModal from "@/components/ExportBookModal";
-import GeoScoreModal from "@/components/GeoScoreModal";
-import RewriteModal from "@/components/RewriteModal";
-import { parseManuscriptFile, splitHtmlIntoChapters } from "@/lib/parser";
+import type { RichManuscriptEditorHandle } from "@/components/RichManuscriptEditor";
+
+// Lazy-load heavy components to reduce initial bundle size by ~1.5MB
+const RichManuscriptEditor = dynamic(
+  () => import("@/components/RichManuscriptEditor"),
+  { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center bg-white"><div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div></div> }
+);
+const ImportManuscriptModal = dynamic(() => import("@/components/ImportManuscriptModal"), { ssr: false });
+const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
+const GeoScoreModal = dynamic(() => import("@/components/GeoScoreModal"), { ssr: false });
+const RewriteModal = dynamic(() => import("@/components/RewriteModal"), { ssr: false });
+
+// Lazy-load parsers only when needed (mammoth ~600KB, jszip ~140KB)
+const loadParser = () => import("@/lib/parser");
+import { splitHtmlIntoChapters } from "@/lib/parser/splitChapters";
 import ReactMarkdown from "react-markdown";
 
 export interface ChapterModificationPayload {
@@ -1048,6 +1058,7 @@ function RedactionContent() {
 
     setIsImportLoading(true);
     try {
+      const { parseManuscriptFile } = await loadParser();
       const parsedChapters = await parseManuscriptFile(importFile, { splitByChapter });
 
       if (!parsedChapters || parsedChapters.length === 0) {

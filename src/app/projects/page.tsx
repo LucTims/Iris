@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import AppLayout from "@/components/AppLayout";
-import ExportBookModal from "@/components/ExportBookModal";
 import { useUser } from "@/hooks/useUser";
+
+const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
 
 export default function ProjectsPage() {
   const { displayName, displayEmail, signOut } = useUser();
