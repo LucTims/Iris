@@ -44,6 +44,9 @@ export async function POST(req: Request) {
       model: chosenModel,
       includeToc = true,
       useWebSearch = true,
+      referenceAnalysis,
+      referencePurpose,
+      referenceName,
     } = await req.json();
 
     const selectedModelName = chosenModel || "gemini-2.5-flash";
@@ -87,6 +90,19 @@ export async function POST(req: Request) {
       missionText = `Ta mission est d'écrire **DIRECTEMENT LE CONTENU DU LIVRE** (le texte complet), sans sommaire. Puisque c'est un format de type "${length}", écris les chapitres avec le contenu final prêt à être lu. Rédige de façon fluide en utilisant le style demandé. Chaque grand point (chapitre) DOIT commencer sur une nouvelle page : place la balise <hr data-page-break> juste avant chaque titre <h1> de chapitre.`;
     }
 
+    const purposeLabel: Record<string, string> = {
+      inspiration: "s'en INSPIRER (idées et angles, sans copier)",
+      learn: "en APPRENDRE le contenu (réutiliser faits, chiffres et connaissances)",
+      style: "en REPRODUIRE le style et le ton",
+      reference: "s'en servir comme RÉFÉRENCE",
+    };
+    const referenceBlock = referenceAnalysis
+      ? `\n\n--- DOCUMENT DE RÉFÉRENCE FOURNI PAR L'AUTEUR${referenceName ? ` (${referenceName})` : ""} ---
+L'auteur a importé un document et souhaite ${purposeLabel[referencePurpose as string] || purposeLabel.reference}. Voici l'analyse de ce document ; appuie-toi dessus pour écrire un livre plus riche et pertinent (sans jamais recopier de longs extraits mot pour mot) :
+${referenceAnalysis}
+--- FIN DU DOCUMENT DE RÉFÉRENCE ---`
+      : "";
+
     const prompt = `Voici les détails du livre :
 Titre : ${title}
 Sous-titre : ${subtitle || "Non spécifié"}
@@ -101,6 +117,7 @@ ${synopsis}
 
 Consignes supplémentaires :
 ${instructions || "Aucune consigne spécifique"}
+${referenceBlock}
 
 ${missionText}`;
 

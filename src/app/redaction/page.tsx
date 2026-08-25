@@ -10,6 +10,7 @@ import ExportBookModal from "@/components/ExportBookModal";
 import GeoScoreModal from "@/components/GeoScoreModal";
 import RewriteModal from "@/components/RewriteModal";
 import { parseManuscriptFile, splitHtmlIntoChapters } from "@/lib/parser";
+import { useSpeechToText } from "@/hooks/useSpeechToText";
 import ReactMarkdown from "react-markdown";
 
 export interface ChapterModificationPayload {
@@ -101,6 +102,37 @@ function RedactionContent() {
   // Passage sélectionné dans l'éditeur et envoyé au chat pour édition ciblée
   const [attachedSelection, setAttachedSelection] = useState<{ text: string; from: number; to: number } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+
+  // Documents analysés joints au chat + micro (transcription)
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
+  const [chatAttachments, setChatAttachments] = useState<{ name: string; purpose: string; analysis: string }[]>([]);
+  const [isAnalyzingChatFile, setIsAnalyzingChatFile] = useState(false);
+  const [chatAnalyzeError, setChatAnalyzeError] = useState("");
+  const { isListening, isSupported: micSupported, toggle: toggleMic } = useSpeechToText((t) =>
+    setChatInput((prev) => (prev ? prev + (prev.endsWith(" ") ? "" : " ") : "") + t)
+  );
+
+  const handleChatFile = async (file: File | null) => {
+    if (!file) return;
+    setIsAnalyzingChatFile(true);
+    setChatAnalyzeError("");
+    try {
+      const { extractDocumentText } = await import("@/lib/parser/extractText");
+      const { text } = await extractDocumentText(file);
+      const res = await fetch("/api/analyze-document", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, fileName: file.name, purpose: "reference", model: selectedAiModel, projectId: currentProjectId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Échec de l'analyse du document.");
+      setChatAttachments((prev) => [...prev, { name: file.name, purpose: "reference", analysis: data.analysis || "" }]);
+    } catch (err: any) {
+      setChatAnalyzeError(err?.message || "Erreur lors de l'analyse.");
+    } finally {
+      setIsAnalyzingChatFile(false);
+    }
+  };
 
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [isGeneratingChapter, setIsGeneratingChapter] = useState(false);
@@ -248,7 +280,11 @@ function RedactionContent() {
               instructions: project.instructions,
               includeToc,
               model: project.model || ctx?.model || "gemini-2.5-flash",
-              useWebSearch
+              useWebSearch,
+              // Document de référence analysé lors de la création du projet
+              referenceAnalysis: ctx?.referenceDocument?.analysis || undefined,
+              referencePurpose: ctx?.referenceDocument?.purpose || undefined,
+              referenceName: ctx?.referenceDocument?.name || undefined,
             })
           });
 
@@ -655,7 +691,8 @@ function RedactionContent() {
             context: {
               title: bookTitle,
               synopsis: projectData?.synopsis || currentChapter.content.substring(0, 500),
-              tone: projectData?.tone || "professionnel"
+              tone: projectData?.tone || "professionnel",
+              referenceDocuments: chatAttachments,
             },
             chapters,
             activeChapterIndex,
@@ -1566,23 +1603,93 @@ function RedactionContent() {
                     </button>
                   </div>
                 )}
+                {/* Documents analysés joints au chat */}
+                {(chatAttachments.length > 0 || isAnalyzingChatFile) && (
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {chatAttachments.map((att, idx) => (
+                      <span key={idx} className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-full pl-2.5 pr-1.5 py-1 text-[11px] font-bold text-blue-800 max-w-[200px]">
+                        <span className="material-symbols-outlined text-sm">description</span>
+                        <span className="truncate">{att.name}</span>
+                        <button
+                          onClick={() => setChatAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                          className="p-0.5 rounded-full hover:bg-white text-blue-500 hover:text-red-500 transition-colors shrink-0"
+                          title="Retirer ce document"
+                        >
+                          <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                      </span>
+                    ))}
+                    {isAnalyzingChatFile && (
+                      <span className="inline-flex items-center gap-1.5 bg-neutral-100 border border-neutral-200 rounded-full px-2.5 py-1 text-[11px] font-bold text-neutral-600">
+                        <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                        Analyse du document…
+                      </span>
+                    )}
+                  </div>
+                )}
+                {chatAnalyzeError && (
+                  <p className="mb-2 text-[11px] text-red-600 font-medium">{chatAnalyzeError}</p>
+                )}
+
+                <input
+                  ref={chatFileInputRef}
+                  type="file"
+                  accept=".docx,.epub,.txt,.md,.markdown"
+                  className="hidden"
+                  onChange={(e) => { handleChatFile(e.target.files?.[0] || null); e.target.value = ""; }}
+                />
+
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     handleSendMessage();
                   }}
-                  className={`relative flex items-center bg-neutral-50 border rounded-2xl px-3 py-2 focus-within:ring-2 focus-within:ring-secondary/20 focus-within:border-secondary transition-all ${attachedSelection ? "border-secondary/60" : "border-neutral-200"}`}
+                  className={`relative flex items-center bg-neutral-50 border rounded-2xl px-2 py-2 focus-within:ring-2 focus-within:ring-secondary/20 focus-within:border-secondary transition-all ${attachedSelection ? "border-secondary/60" : "border-neutral-200"}`}
                 >
+                  {/* Bouton + : joindre un document à analyser */}
+                  <button
+                    type="button"
+                    onClick={() => chatFileInputRef.current?.click()}
+                    disabled={isAnalyzingChatFile}
+                    title="Joindre un document à analyser (utilise des pièces)"
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-neutral-500 hover:text-secondary hover:bg-white transition-colors shrink-0 disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-xl">add</span>
+                  </button>
+
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    placeholder={attachedSelection ? "Ex: rends ce passage plus percutant..." : "Discutez ou demandez à l'IA..."}
-                    className="flex-1 bg-transparent border-none outline-none text-xs font-medium text-neutral-900 placeholder:text-neutral-400 py-1"
+                    placeholder={
+                      isListening
+                        ? "🎤 Parlez, Iris vous écoute…"
+                        : attachedSelection
+                        ? "Ex: rends ce passage plus percutant..."
+                        : "Discutez, dictez ou demandez à l'IA..."
+                    }
+                    className="flex-1 min-w-0 bg-transparent border-none outline-none text-xs font-medium text-neutral-900 placeholder:text-neutral-400 py-1 px-1"
                   />
+
+                  {/* Micro : dicter ce qu'on veut modifier */}
+                  {micSupported && (
+                    <button
+                      type="button"
+                      onClick={toggleMic}
+                      title={isListening ? "Arrêter la dictée" : "Dicter à la voix"}
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                        isListening
+                          ? "bg-red-500 text-white animate-pulse"
+                          : "text-neutral-500 hover:text-secondary hover:bg-white"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-lg">{isListening ? "stop" : "mic"}</span>
+                    </button>
+                  )}
+
                   <button
                     type="submit"
-                    className="bg-secondary text-white p-2 rounded-xl flex items-center justify-center hover:opacity-90 active:scale-95 transition-all ml-1 shadow-2xs"
+                    className="bg-secondary text-white p-2 rounded-xl flex items-center justify-center hover:opacity-90 active:scale-95 transition-all ml-1 shadow-2xs shrink-0"
                   >
                     <span className="material-symbols-outlined text-base">send</span>
                   </button>

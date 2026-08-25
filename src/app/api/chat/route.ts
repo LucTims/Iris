@@ -57,6 +57,23 @@ export async function POST(req: Request) {
       );
     }
 
+    // Documents de référence analysés par l'IA (importés au chat) : on injecte
+    // leur analyse dans le prompt pour que l'IA écrive un meilleur livre.
+    const referenceDocuments = Array.isArray((context as any)?.referenceDocuments)
+      ? (context as any).referenceDocuments
+      : [];
+    const referenceBlock =
+      referenceDocuments.length > 0
+        ? `\n--- DOCUMENTS DE RÉFÉRENCE FOURNIS PAR L'AUTEUR (analysés) ---\n${referenceDocuments
+            .map(
+              (d: any, i: number) =>
+                `Document ${i + 1}${d?.name ? ` (${d.name})` : ""}${
+                  d?.purpose ? ` — objectif : ${d.purpose}` : ""
+                } :\n${(d?.analysis || "").toString().slice(0, 6000)}`
+            )
+            .join("\n\n")}\n--- FIN DES DOCUMENTS DE RÉFÉRENCE ---\nAppuie-toi sur ces documents pour répondre et écrire, sans recopier de longs extraits mot pour mot.\n`
+        : "";
+
     // 1. Fetch user profile & plan
     const { data: profile } = await supabase
       .from("profiles")
@@ -186,7 +203,7 @@ Contenu actuel du chapitre :
 """
 ${resolved.targetContent || "Chapitre vide."}
 """
-${historyFormatted}
+${referenceBlock}${historyFormatted}
 Demande actuelle de l'auteur :
 "${lastUserMessage}"
 
@@ -259,7 +276,7 @@ Chapitre actuellement affiché à l'écran : ${activeChapterIndex !== undefined 
 --- SOMMAIRE ET CONTENU DES CHAPITRES DU LIVRE ---
 ${chaptersOverview || "Aucun chapitre rédigé pour le moment."}
 --- FIN DU MANUSCRIT ---
-${searchContext}
+${referenceBlock}${searchContext}
 ${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}
 
 Consignes de style :
