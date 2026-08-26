@@ -12,8 +12,77 @@ import {
   TableCell,
   WidthType,
   ShadingType,
+  ImageRun,
 } from "docx";
 import { extractLeadingHeading } from "./htmlToPdfmake";
+
+/** Décode une data URI base64 (image) en octets — côté navigateur (atob). */
+function dataUriToBytes(dataUri: string): Uint8Array {
+  const b64 = dataUri.split(",")[1] || "";
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+/** Lit les dimensions natives d'un PNG ou JPEG à partir de ses octets. */
+function readImageSize(bytes: Uint8Array): { w: number; h: number } | null {
+  // PNG : signature 8 octets, puis IHDR (largeur/hauteur en big-endian).
+  if (bytes.length > 24 && bytes[0] === 0x89 && bytes[1] === 0x50) {
+    const w = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+    const h = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+    if (w > 0 && h > 0) return { w, h };
+  }
+  // JPEG : parcours des marqueurs jusqu'à un SOF (Start Of Frame).
+  if (bytes.length > 4 && bytes[0] === 0xff && bytes[1] === 0xd8) {
+    let o = 2;
+    while (o + 9 < bytes.length) {
+      if (bytes[o] !== 0xff) { o++; continue; }
+      const marker = bytes[o + 1];
+      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+        const h = (bytes[o + 5] << 8) | bytes[o + 6];
+        const w = (bytes[o + 7] << 8) | bytes[o + 8];
+        if (w > 0 && h > 0) return { w, h };
+      }
+      const len = (bytes[o + 2] << 8) | bytes[o + 3];
+      if (len <= 0) break;
+      o += 2 + len;
+    }
+  }
+  return null;
+}
+
+/** Construit un paragraphe centré contenant une image base64 (PNG/JPEG). */
+function renderImage(dataUri: string): Paragraph | null {
+  const m = dataUri.match(/^data:image\/(png|jpe?g);base64,/i);
+  if (!m) return null;
+  try {
+    const bytes = dataUriToBytes(dataUri);
+    const size = readImageSize(bytes);
+    const maxW = 460; // largeur max en points (marges A4)
+    let w = maxW;
+    let h = Math.round(maxW * 0.62);
+    if (size) {
+      const ratio = size.h / size.w;
+      w = Math.min(maxW, size.w);
+      h = Math.round(w * ratio);
+    }
+    const type = /png/i.test(m[1]) ? "png" : "jpg";
+    return new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 120, after: 160 },
+      children: [
+        new ImageRun({
+          data: bytes,
+          transformation: { width: w, height: h },
+          type: type as "png" | "jpg",
+        } as any),
+      ],
+    });
+  } catch {
+    return null;
+  }
+}
 
 interface ChapterData {
   title: string;
@@ -376,14 +445,29 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
           continue;
         }
 
-        const dropCapMatch = /<p[^>]*class="[^"]*\bdrop-cap\b/i.test(trimmed);
-        const h1Match = trimmed.match(/<h1[^>]*>/i);
-        const h2Match = trimmed.match(/<h2[^>]*>/i);
-        const h3Match = trimmed.match(/<h3[^>]*>/i);
-        const liMatch = trimmed.match(/<li[^>]*>/i);
-        const bqMatch = trimmed.match(/<blockquote[^>]*>/i);
+        // Images base64 (upload local dans l'éditeur) : rendues comme images
+        // Word. Les URLs externes ne sont pas récupérables côté navigateur ici.
+        const imgRegex = /<img[^>]*src=["'](data:image\/[^"']+)["'][^>]*>/gi;
+        let imgMatch: RegExpExecArray | null;
+        let hadImage = false;
+        while ((imgMatch = imgRegex.exec(trimmed)) !== null) {
+          const imgPara = renderImage(imgMatch[1]);
+          if (imgPara) { elements.push(imgPara); hadImage = true; }
+        }
+        // Retire les balises image du texte restant (évite un « pseudo-texte »).
+        const trimmedNoImg = trimmed.replace(/<img[^>]*>/gi, "").trim();
+        if (!trimmedNoImg) {
+          if (hadImage) continue;
+        }
 
-        const plainText = trimmed
+        const dropCapMatch = /<p[^>]*class="[^"]*\bdrop-cap\b/i.test(trimmedNoImg);
+        const h1Match = trimmedNoImg.match(/<h1[^>]*>/i);
+        const h2Match = trimmedNoImg.match(/<h2[^>]*>/i);
+        const h3Match = trimmedNoImg.match(/<h3[^>]*>/i);
+        const liMatch = trimmedNoImg.match(/<li[^>]*>/i);
+        const bqMatch = trimmedNoImg.match(/<blockquote[^>]*>/i);
+
+        const plainText = trimmedNoImg
           .replace(/<[^>]*>/g, "")
           .replace(/&nbsp;/g, " ")
           .replace(/&amp;/g, "&")
@@ -395,10 +479,10 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
 
         if (!plainText) continue;
 
-        const runs = parseTextRuns(trimmed);
+        const runs = parseTextRuns(trimmedNoImg);
 
         if (dropCapMatch) {
-          const dcRuns = parseTextRuns(trimmed);
+          const dcRuns = parseTextRuns(trimmedNoImg);
           if (dcRuns.length > 0 && plainText.length > 0) {
             const firstLetter = plainText.charAt(0);
             const rest = plainText.substring(1);
@@ -416,7 +500,7 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
         } else if (h1Match) {
           elements.push(
             new Paragraph({
-              children: parseTextRuns(trimmed, { forceBold: true, size: 32 }), // 16pt
+              children: parseTextRuns(trimmedNoImg, { forceBold: true, size: 32 }), // 16pt
               heading: HeadingLevel.HEADING_1,
               spacing: { before: 400, after: 200 },
               alignment: AlignmentType.CENTER,
@@ -425,7 +509,7 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
         } else if (h2Match) {
           elements.push(
             new Paragraph({
-              children: parseTextRuns(trimmed, { forceBold: true, size: 28 }), // 14pt
+              children: parseTextRuns(trimmedNoImg, { forceBold: true, size: 28 }), // 14pt
               heading: HeadingLevel.HEADING_2,
               spacing: { before: 300, after: 150 },
             })
@@ -433,7 +517,7 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
         } else if (h3Match) {
           elements.push(
             new Paragraph({
-              children: parseTextRuns(trimmed, { forceBold: true, size: 26 }), // 13pt
+              children: parseTextRuns(trimmedNoImg, { forceBold: true, size: 26 }), // 13pt
               heading: HeadingLevel.HEADING_3,
               spacing: { before: 200, after: 100 },
             })
