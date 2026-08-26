@@ -12,6 +12,23 @@ function getSupabaseAdmin() {
 
 export async function GET(req: Request) {
   try {
+    // Garde admin : cette route expose TOUTES les transactions.
+    const supabaseUser = await createClient();
+    const {
+      data: { user },
+    } = await supabaseUser.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+    const { data: callerProfile } = await supabaseUser
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    if (callerProfile?.role !== "admin" && user.email !== "www.martau@gmail.com") {
+      return NextResponse.json({ error: "Accès réservé aux administrateurs." }, { status: 403 });
+    }
+
     let transactions: AdminTransaction[] = [];
     const supabaseAdmin = getSupabaseAdmin();
 
