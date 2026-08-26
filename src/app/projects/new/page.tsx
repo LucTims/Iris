@@ -95,6 +95,36 @@ export default function NewBookWizard() {
   const [showModelModal, setShowModelModal] = useState(false);
   const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
 
+  // Document de référence que l'IA analyse pour mieux écrire le livre
+  const referenceInputRef = useRef<HTMLInputElement>(null);
+  const [refPurpose, setRefPurpose] = useState<"inspiration" | "learn" | "style" | "reference">("inspiration");
+  const [referenceDoc, setReferenceDoc] = useState<{ name: string; purpose: string; analysis: string } | null>(null);
+  const [refStatus, setRefStatus] = useState<"idle" | "working" | "done" | "error">("idle");
+  const [refError, setRefError] = useState<string>("");
+
+  const handleReferenceFile = async (file: File | null) => {
+    if (!file) return;
+    setRefStatus("working");
+    setRefError("");
+    setReferenceDoc(null);
+    try {
+      const { extractDocumentText } = await import("@/lib/parser/extractText");
+      const { text } = await extractDocumentText(file);
+      const res = await fetch("/api/analyze-document", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, fileName: file.name, purpose: refPurpose, model: selectedModel }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Échec de l'analyse du document.");
+      setReferenceDoc({ name: file.name, purpose: refPurpose, analysis: data.analysis || "" });
+      setRefStatus("done");
+    } catch (err: any) {
+      setRefError(err?.message || "Erreur lors de l'analyse du document.");
+      setRefStatus("error");
+    }
+  };
+
   // Intercept the final submit to show the modal first
   const handlePreSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,6 +139,8 @@ export default function NewBookWizard() {
       const projectContext = {
         ...formData,
         model: selectedModel, // Pass selected model
+        // Document de référence analysé : consommé par /redaction → generate-plan
+        referenceDocument: referenceDoc || undefined,
         createdAt: new Date().toISOString()
       };
       localStorage.setItem("iris_current_project", JSON.stringify(projectContext));
@@ -116,7 +148,7 @@ export default function NewBookWizard() {
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, referenceDocument: referenceDoc || undefined })
       });
 
       if (!res.ok) {
@@ -332,6 +364,87 @@ export default function NewBookWizard() {
                         placeholder="Ex: Héros principal : Lucas, Concept clé : ROI marketing"
                         className="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
                       />
+                    </div>
+
+                    {/* Document de référence (analyse IA) */}
+                    <div className="space-y-3 pt-4 border-t border-neutral-100 mt-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="text-sm font-bold text-neutral-700">Document de référence (Optionnel)</label>
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">🪙 20 pièces / analyse</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-2">
+                        <span className="material-symbols-outlined text-blue-500 text-lg">auto_stories</span>
+                        <p className="text-xs text-blue-800 leading-snug">
+                          Importez un document (.docx, .epub, .txt, .md) : <strong>Iris l'analyse et le comprend</strong> pour écrire votre livre. Choisissez ce que l'IA doit en faire — s'en inspirer, en apprendre le contenu, ou en reproduire le style. L'analyse coûte 20 pièces (PDF, .docx, .epub, .txt, .md).
+                        </p>
+                      </div>
+
+                      {/* Objectif de l'analyse */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {[
+                          { id: "inspiration", label: "S'inspirer", icon: "lightbulb" },
+                          { id: "learn", label: "Apprendre", icon: "school" },
+                          { id: "style", label: "Style/ton", icon: "brush" },
+                          { id: "reference", label: "Référence", icon: "menu_book" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setRefPurpose(opt.id as typeof refPurpose)}
+                            className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border text-xs font-bold transition-all ${
+                              refPurpose === opt.id
+                                ? "border-orange-500 bg-orange-50 text-secondary"
+                                : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-lg">{opt.icon}</span>
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <input
+                        ref={referenceInputRef}
+                        type="file"
+                        accept=".pdf,.docx,.epub,.txt,.md,.markdown"
+                        className="hidden"
+                        onChange={(e) => { handleReferenceFile(e.target.files?.[0] || null); e.target.value = ""; }}
+                      />
+
+                      {referenceDoc && refStatus === "done" ? (
+                        <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-xl p-3">
+                          <span className="material-symbols-outlined text-green-600 text-lg mt-0.5">task_alt</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-green-800 truncate">{referenceDoc.name}</p>
+                            <p className="text-[11px] text-green-700">Analysé — Iris l'utilisera pour écrire votre livre.</p>
+                          </div>
+                          <button type="button" onClick={() => { setReferenceDoc(null); setRefStatus("idle"); }} className="p-1 rounded-lg text-neutral-400 hover:text-red-500 transition-colors shrink-0" title="Retirer">
+                            <span className="material-symbols-outlined text-base">close</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => referenceInputRef.current?.click()}
+                          disabled={refStatus === "working"}
+                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-neutral-300 text-neutral-600 hover:border-orange-400 hover:text-secondary text-sm font-bold transition-all disabled:opacity-60"
+                        >
+                          {refStatus === "working" ? (
+                            <>
+                              <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+                              <span>Analyse du document en cours…</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="material-symbols-outlined text-lg">upload_file</span>
+                              <span>Importer un document à analyser</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                      {refStatus === "error" && refError && (
+                        <p className="text-xs text-red-600 font-medium">{refError}</p>
+                      )}
                     </div>
                   </>
                 )}

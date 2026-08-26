@@ -37,11 +37,21 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { title, subtitle, category, audience, synopsis, tone, characters, length, instructions } = body;
+    const { title, subtitle, category, audience, synopsis, tone, characters, length, instructions, referenceDocument } = body;
 
     if (!title) {
       return NextResponse.json({ error: "Le titre du projet est requis" }, { status: 400 });
     }
+
+    // Document de référence analysé (facultatif) : persisté pour que la
+    // génération reste possible depuis n'importe quel appareil/session.
+    const refAnalysis =
+      referenceDocument && typeof referenceDocument.analysis === "string" && referenceDocument.analysis.trim()
+        ? referenceDocument.analysis
+        : null;
+    const refMeta = refAnalysis
+      ? { name: referenceDocument.name || null, purpose: referenceDocument.purpose || "reference" }
+      : null;
 
     // Insert project
     const { data: project, error: projectError } = await supabase
@@ -57,6 +67,8 @@ export async function POST(req: Request) {
         characters,
         length,
         instructions,
+        reference_analysis: refAnalysis,
+        reference_meta: refMeta,
         status: "En cours"
       })
       .select()
