@@ -97,8 +97,8 @@ export default function PricingPage() {
           {/* Starter Plan */}
           <div className="bg-white rounded-3xl p-8 border border-neutral-200 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full relative">
             <div className="mb-6">
-              <h3 className="text-xl font-bold text-neutral-900 mb-2">Pack Découverte</h3>
-              <p className="text-neutral-500 text-sm h-10">Parfait pour tester la plateforme et écrire un petit chapitre.</p>
+              <h3 className="text-xl font-bold text-neutral-900 mb-2">Pack Starter</h3>
+              <p className="text-neutral-500 text-sm h-10">Parfait pour découvrir la plateforme et écrire un premier livre court.</p>
             </div>
             
             <div className="mb-8 flex items-baseline gap-2">
@@ -123,7 +123,7 @@ export default function PricingPage() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-green-500 text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Idéal pour ~10 000 mots</span>
+                <span className="text-neutral-700 text-sm">Idéal pour ~30 000 mots (un petit livre complet)</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-green-500 text-xl shrink-0">check_circle</span>
@@ -177,7 +177,7 @@ export default function PricingPage() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Idéal pour un livre de 50 000 mots</span>
+                <span className="text-neutral-700 text-sm">1 à 2 livres complets (~100 000 mots avec le modèle Standard)</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
@@ -231,7 +231,7 @@ export default function PricingPage() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-secondary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Génération de livres multiples</span>
+                <span className="text-neutral-700 text-sm">3 à 5 livres complets avec le modèle Standard</span>
               </li>
             </ul>
             
@@ -248,6 +248,13 @@ export default function PricingPage() {
             </button>
           </div>
         </div>
+
+        {/* Note d'estimation */}
+        <p className="max-w-2xl w-full mx-auto mt-8 text-center text-xs text-neutral-400 leading-relaxed">
+          Estimations avec le modèle Standard (Gemini) et sans date d'expiration.
+          Les modèles premium (GPT-4o, Claude) offrent une plume plus soignée et
+          consomment les pièces plus vite.
+        </p>
 
         {/* FAQ Section */}
         <div className="max-w-3xl w-full mx-auto mt-32 mb-16">
