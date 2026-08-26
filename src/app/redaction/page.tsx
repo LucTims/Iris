@@ -1164,18 +1164,18 @@ function RedactionContent() {
       {/* MAIN STUDIO CONTAINER */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* 2. SLEEK ESSENTIAL HEADER BAR */}
-        <header className="bg-white border-b border-neutral-200/80 h-16 px-6 flex items-center justify-between gap-4 shrink-0 z-30">
+        <header className="bg-white border-b border-neutral-200/80 h-16 px-2 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 shrink-0 z-30 overflow-x-auto no-scrollbar">
           {/* Left: Book Title & Active Chapter Picker */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link
               href="/projects"
-              className="flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all"
+              className="flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all shrink-0"
             >
               <span className="material-symbols-outlined text-base">arrow_back</span>
               <span className="hidden sm:inline">Mes Livres</span>
             </Link>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {/* Editable Book Title Input */}
               <div className="flex items-center gap-1.5 bg-neutral-100/80 hover:bg-white border border-neutral-200 focus-within:border-secondary focus-within:bg-white rounded-xl px-3 py-1 transition-all">
                 <span className="material-symbols-outlined text-sm text-neutral-400">edit</span>
@@ -1225,7 +1225,7 @@ function RedactionContent() {
           </div>
 
           {/* Right Essential Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Live Stats */}
             <div className="hidden lg:flex items-center gap-3 bg-neutral-50 px-3.5 py-1.5 rounded-xl border border-neutral-200/70 text-xs">
               <span className="font-mono font-bold text-neutral-700">{wordCount} MOTS</span>
