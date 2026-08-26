@@ -76,7 +76,7 @@ export default function LoginPage() {
     <div className="min-h-screen w-full flex flex-col lg:flex-row font-body bg-white text-neutral-900">
       
       {/* ================= LEFT PANEL (DARK BRAND BRANDING) ================= */}
-      <div className="lg:w-[45%] bg-[#0D0D0E] text-white p-8 md:p-16 flex flex-col justify-between relative overflow-hidden shrink-0">
+      <div className="hidden lg:flex lg:w-[45%] bg-[#0D0D0E] text-white p-8 md:p-16 flex-col justify-between relative overflow-hidden shrink-0">
         
         {/* Background Vector Graphic & Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-secondary/15 rounded-full blur-[140px] pointer-events-none"></div>
