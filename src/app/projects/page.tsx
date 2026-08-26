@@ -1,10 +1,42 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import AppLayout from "@/components/AppLayout";
 import { useProjects } from "@/hooks/useProjects";
+
+function getProjectProgress(book: any) {
+  let logicalStatus = book.status || "En rédaction";
+  if (logicalStatus === "En cours" || logicalStatus === "Brouillon") logicalStatus = "En rédaction";
+  
+  const count = book.chapters?.[0]?.count || 0;
+  let expected = 15;
+  if (book.length?.includes("Court")) expected = 5;
+  if (book.length?.includes("Long")) expected = 30;
+
+  let percent = 0;
+  let colorClass = "bg-secondary";
+  let textClass = "text-secondary";
+  let bgClass = "bg-orange-100/90 border-orange-200/50";
+
+  if (logicalStatus === "En rédaction") {
+    const rawPercent = count === 0 ? 5 : Math.round((count / expected) * 100);
+    percent = Math.min(85, Math.max(5, rawPercent));
+  } else if (logicalStatus === "Mise en page") {
+    percent = 90;
+    colorClass = "bg-amber-500";
+    textClass = "text-amber-600";
+    bgClass = "bg-amber-100/90 border-amber-200/50";
+  } else if (logicalStatus === "Terminé") {
+    percent = 100;
+    colorClass = "bg-emerald-500";
+    textClass = "text-emerald-600";
+    bgClass = "bg-emerald-100/90 border-emerald-200/50";
+  }
+
+  return { logicalStatus, percent, colorClass, textClass, bgClass };
+}
 import { useUser } from "@/hooks/useUser";
 
 const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
@@ -33,8 +65,9 @@ export default function ProjectsPage() {
       (project.subtitle || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (project.category || "").toLowerCase().includes(searchQuery.toLowerCase());
 
+    const p = getProjectProgress(project);
     if (activeFilter === "Tous") return matchesSearch;
-    return matchesSearch && project.status === activeFilter;
+    return matchesSearch && p.logicalStatus === activeFilter;
   });
 
   const handleCreateBook = async (e: React.FormEvent) => {
@@ -183,9 +216,11 @@ export default function ProjectsPage() {
             </div>
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProjects.map((book) => (
-                <div
-                  key={book.id}
+              {filteredProjects.map((book) => {
+                  const progress = getProjectProgress(book);
+                  return (
+                  <div
+                    key={book.id}
                   className="bg-white rounded-2xl border border-neutral-200/80 hover:border-orange-300 transition-all shadow-2xs hover:shadow-md flex flex-col overflow-hidden group"
                 >
                   {/* Book Cover Thumbnail Header (Mockup Style) */}
@@ -295,7 +330,7 @@ export default function ProjectsPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+              ); })}
             </div>
           ) : (
             /* List View (Table Format matching BoomBooks typography) */
