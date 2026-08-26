@@ -39,10 +39,16 @@ export async function POST(req: Request) {
       chapterNumber,
       previousChaptersSummary,
       bookOutline,
+      chapterBrief,
+      targetWords,
       model: chosenModel,
       projectId,
       useWebSearch = true,
     } = await req.json();
+
+    // Cible de longueur (déduite du nombre de pages voulu). Bornée pour éviter
+    // des chapitres démesurés qui dépasseraient la limite de temps de 60 s.
+    const wordsTarget = Math.max(400, Math.min(4000, Number(targetWords) || 0));
 
     const selectedModelName = chosenModel || "gemini-2.5-flash";
 
@@ -81,6 +87,7 @@ Ton / Style demandé : ${tone || "Professionnel et engageant"}
 
 ${bookOutline ? `Sommaire / Table des matières du livre (rédige ce chapitre en cohérence avec ce plan, sans déborder sur les points prévus dans les autres chapitres) :\n${bookOutline}\n` : ""}
 ${previousChaptersSummary ? `Résumé des chapitres précédents pour garder la cohérence :\n${previousChaptersSummary}\n` : ""}
+${chapterBrief ? `Ce chapitre doit couvrir précisément : ${chapterBrief}\n` : ""}
 
 Tu dois rédiger le texte du :
 Chapitre ${chapterNumber} : ${chapterTitle}
@@ -88,7 +95,7 @@ ${searchContext}
 ${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}
 
 Instructions impératives :
-1. Rédige le chapitre complet. Il doit être long, détaillé et immersif (vise au moins 800 à 1500 mots).
+1. Rédige le chapitre complet, détaillé et immersif. ${wordsTarget ? `Vise environ ${wordsTarget} mots (±20 %).` : "Vise au moins 800 à 1500 mots."}
 2. N'ajoute AUCUN préambule (pas de "Voici le chapitre :" ni de "Bien sûr, je vais rédiger...").
 3. IMPORTANT: Chaque chapitre doit absolument commencer sur une nouvelle page. Pour ce faire, COMMENCE toujours ton texte par la balise <hr data-page-break>.
 4. Juste après cette balise, ajoute le titre du chapitre en balise <h1>. Par exemple : <hr data-page-break><h1>Chapitre ${chapterNumber} : ${chapterTitle}</h1>.
