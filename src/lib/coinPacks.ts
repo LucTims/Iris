@@ -17,6 +17,11 @@ export interface CoinPack {
   showOnPricing: boolean;
 }
 
+// `approxPages` : estimation avec le modèle par DÉFAUT (Standard = Gemini 2.5
+// Flash, ~6 pièces/page réelles). Cadre "jusqu'à" car les modèles premium
+// (GPT-4o, Claude) consomment ~6x plus de pièces pour la même longueur. Ces
+// valeurs restent rentables (marge ≥4,6x sur tous les modèles) : le facteur
+// COINS_PER_USD (voir @/lib/ai/pricing) garantit la marge quel que soit le pack.
 export const COIN_PACKS: CoinPack[] = [
   {
     id: "pack_starter",
@@ -25,7 +30,7 @@ export const COIN_PACKS: CoinPack[] = [
     coins: 1000,
     bonus: 0,
     tagline: "Idéal pour tester l'éditeur.",
-    approxPages: "~50 pages",
+    approxPages: "jusqu'à ~150 pages",
     showOnPricing: true,
   },
   {
@@ -36,7 +41,7 @@ export const COIN_PACKS: CoinPack[] = [
     bonus: 500,
     popular: true,
     tagline: "Le choix parfait pour les passionnés.",
-    approxPages: "~150 pages",
+    approxPages: "jusqu'à ~450 pages",
     showOnPricing: true,
   },
   {
@@ -46,7 +51,7 @@ export const COIN_PACKS: CoinPack[] = [
     coins: 7000,
     bonus: 2000,
     tagline: "L'expérience ultime pour les créateurs.",
-    approxPages: "~350 pages",
+    approxPages: "jusqu'à ~1 100 pages",
     showOnPricing: true,
   },
   {
@@ -56,7 +61,7 @@ export const COIN_PACKS: CoinPack[] = [
     coins: 16000,
     bonus: 1000,
     tagline: "Pour les auteurs qui publient en série.",
-    approxPages: "~800 pages",
+    approxPages: "jusqu'à ~2 500 pages",
     showOnPricing: false,
   },
   {
@@ -66,7 +71,7 @@ export const COIN_PACKS: CoinPack[] = [
     coins: 45000,
     bonus: 0,
     tagline: "Volume maximal pour les studios d'édition.",
-    approxPages: "~2 300 pages",
+    approxPages: "jusqu'à ~7 000 pages",
     showOnPricing: false,
   },
 ];
