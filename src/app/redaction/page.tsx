@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import dynamic from "next/dynamic";
@@ -15,7 +15,7 @@ const RichManuscriptEditor = dynamic(
 const ImportManuscriptModal = dynamic(() => import("@/components/ImportManuscriptModal"), { ssr: false });
 const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
 const GeoScoreModal = dynamic(() => import("@/components/GeoScoreModal"), { ssr: false });
-const RewriteModal = dynamic(() => import("@/components/RewriteModal"), { ssr: false });
+
 const GenerateBookModal = dynamic(() => import("@/components/GenerateBookModal"), { ssr: false });
 
 // Lazy-load parsers only when needed (mammoth ~600KB, jszip ~140KB)
@@ -156,7 +156,6 @@ function RedactionContent() {
   const [isImportLoading, setIsImportLoading] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isGeoScoreModalOpen, setIsGeoScoreModalOpen] = useState(false);
-  const [isRewriteModalOpen, setIsRewriteModalOpen] = useState(false);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -566,64 +565,6 @@ function RedactionContent() {
   };
   const wordCount = liveWordCount || stripHtmlForWordCount(currentChapter.content);
 
-  // Handle Sending a User Message & AI Response
-  const handleRewriteChapter = async (instructions: string) => {
-    const chapter = chapters[activeChapterIndex];
-    if (!chapter || !chapter.content) {
-      alert("Le chapitre est vide, rien à réécrire.");
-      return;
-    }
-
-    setIsAiThinking(true);
-    setIsRewriting(true);
-    setSaveStatus("saving");
-
-    try {
-      const response = await fetch("/api/rewrite-chapter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: chapter.content,
-          instructions,
-          projectContext: projectData,
-          model: selectedAiModel,
-          useWebSearch
-        })
-      });
-
-      if (!response.ok) throw new Error("Erreur de réécriture");
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let newText = "";
-
-      // Vider le chapitre actuel avant d'écrire par dessus
-      setChapters(prev => prev.map(chap =>
-        chap.id === chapter.id ? { ...chap, content: "" } : chap
-      ));
-
-      if (reader) {
-        let done = false;
-        while (!done) {
-          const { value, done: doneReading } = await reader.read();
-          done = doneReading;
-          if (value) {
-            const chunk = decoder.decode(value, { stream: true });
-            newText += chunk;
-            setChapters(prev => prev.map(chap =>
-              chap.id === chapter.id ? { ...chap, content: newText } : chap
-            ));
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Erreur lors de la réécriture du document:", error);
-      alert("Erreur lors de la réécriture. Veuillez réessayer.");
-    } finally {
-      setIsAiThinking(false);
-      setIsRewriting(false);
-    }
-  };
 
   // Envoyer la sélection de l'éditeur vers le chat (Option A)
   const handleSendSelectionToChat = (selection: { text: string; from: number; to: number }) => {
@@ -1531,15 +1472,54 @@ function RedactionContent() {
 
               <select
                 value={activeChapterIndex}
-                onChange={(e) => setActiveChapterIndex(Number(e.target.value))}
+                onChange={async (e) => {
+                  const val = Number(e.target.value);
+                  if (val === -1) {
+                    if (confirm("Voulez-vous vraiment fusionner tous les chapitres en un seul document ? (Cette action supprimera le découpage actuel)")) {
+                      const mergedContent = chapters.map(c => `<h1>${c.title}</h1>\n${c.content}`).join('\n<br/>\n');
+                      const mergedChapter = {
+                        number: 1,
+                        title: "Livre complet",
+                        content: mergedContent,
+                        status: "En cours"
+                      };
+                      const pId = currentProjectId || localStorage.getItem("iris_current_project_id");
+                      if (pId) {
+                        setSaveStatus("saving");
+                        const persisted = await replaceChaptersOnServer(pId, chapters, [mergedChapter]);
+                        if (persisted) {
+                          setChapters(persisted);
+                          setActiveChapterIndex(0);
+                          setSaveStatus("saved");
+                        } else {
+                          setSaveStatus("error");
+                          alert("La fusion a échoué côté serveur.");
+                        }
+                      }
+                    }
+                  } else {
+                    setActiveChapterIndex(val);
+                  }
+                }}
                 className="bg-orange-50 border border-orange-200 text-secondary text-xs font-bold px-3 py-1.5 rounded-xl outline-none cursor-pointer max-w-[200px] truncate"
               >
+                <option value="-1">Tout le livre (Fusionner)</option>
                 {chapters.map((chap, idx) => (
                   <option key={chap.id} value={idx}>
                     {chap.title}
                   </option>
                 ))}
               </select>
+
+              {/* Séparer en chapitres (si le livre a été fusionné ou importé d'un bloc) */}
+              <button
+                onClick={handleSplitCurrentDocument}
+                className="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+                title="Diviser ce document en plusieurs chapitres basés sur les grands titres"
+              >
+                <span className="material-symbols-outlined text-sm">splitscreen</span>
+                <span className="hidden xl:inline">Découper en chapitres</span>
+              </button>
 
               {/* Régénérer le chapitre actuellement sélectionné */}
               {!/sommaire|table des mati/i.test(currentChapter?.title || "") && (
@@ -1562,15 +1542,6 @@ function RedactionContent() {
               >
                 <span className="material-symbols-outlined text-sm">auto_stories</span>
                 <span className="hidden xl:inline">Générer tout le livre</span>
-              </button>
-
-              <button
-                onClick={() => setIsRewriteModalOpen(true)}
-                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-sm"
-                title="Demander à l'IA de réécrire complètement ce document selon vos consignes"
-              >
-                <span className="material-symbols-outlined text-sm">auto_awesome</span>
-                <span className="hidden xl:inline">Réécrire</span>
               </button>
             </div>
           </div>
@@ -2115,12 +2086,6 @@ function RedactionContent() {
         onClose={() => setIsGeoScoreModalOpen(false)}
         bookTitle={bookTitle}
         bookContent={chapters.map(c => c.content).join("\n\n")}
-      />
-
-      <RewriteModal
-        isOpen={isRewriteModalOpen}
-        onClose={() => setIsRewriteModalOpen(false)}
-        onRewrite={handleRewriteChapter}
       />
 
       <GenerateBookModal
