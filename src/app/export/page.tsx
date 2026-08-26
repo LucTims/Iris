@@ -2,14 +2,12 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import Sidebar from "@/components/Sidebar";
+import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUser";
 import { Plus, LayoutTemplate, BookOpen, Settings2 } from "lucide-react";
 
 function ExportHubContent() {
-  const { displayName, displayEmail, signOut } = useUser();
-  const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { } = useUser();
   
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,79 +36,24 @@ function ExportHubContent() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
-      {/* GLOBAL REUSABLE SIDEBAR */}
-      <Sidebar />
-
-      {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-10">
-        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4 border-b border-neutral-100">
-          <div className="flex items-center gap-3">
-            <h1 className="font-heading font-extrabold text-xl text-neutral-900 flex items-center gap-2">
-              <LayoutTemplate className="w-6 h-6 text-secondary" strokeWidth={2} />
-              <span>Studio Mise en page & KDP</span>
+    <AppLayout>
+      <main className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
+        
+        {/* Header Section Compact */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-heading font-extrabold text-neutral-900 flex items-center gap-2">
+              <Settings2 className="w-7 h-7 text-secondary" strokeWidth={2.5} />
+              Studio Mise en page & KDP
             </h1>
+            <p className="text-sm text-neutral-500 mt-2 max-w-xl">
+              Préparez votre livre pour l'impression ou les liseuses. Ajustez les marges, choisissez vos polices et ajoutez des lettrines.
+            </p>
           </div>
+        </div>
 
-          <div className="flex items-center gap-3">
-            {/* Profile Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm cursor-pointer hover:ring-2 hover:ring-orange-300 transition-all"
-              >
-                {userInitials}
-              </button>
-
-              {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50">
-                  <div className="px-4 py-3 border-b border-neutral-100">
-                    <p className="font-heading font-bold text-sm text-neutral-900">{displayName}</p>
-                    <p className="text-xs text-neutral-500 truncate">{displayEmail}</p>
-                  </div>
-                  <div className="py-1">
-                    <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
-                      <span className="material-symbols-outlined text-base text-neutral-400">dashboard</span>
-                      <span>Tableau de bord</span>
-                    </Link>
-                    <Link href="/settings" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
-                      <span className="material-symbols-outlined text-base text-neutral-400">settings</span>
-                      <span>Paramètres</span>
-                    </Link>
-                  </div>
-                  <div className="pt-1 border-t border-neutral-100">
-                    <button onClick={signOut} className="w-full text-left flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50">
-                      <span className="material-symbols-outlined text-base text-red-500">logout</span>
-                      <span>Se déconnecter</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        <main className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
-          
-          {/* Hero Section */}
-          <div className="bg-white p-6 md:p-8 rounded-3xl border border-neutral-200/80 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
-            
-            <div className="relative z-10 max-w-2xl space-y-4">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-secondary text-xs font-bold uppercase tracking-wider">
-                <Settings2 className="w-3.5 h-3.5" /> Édition Professionnelle
-              </div>
-              <h2 className="text-2xl md:text-3xl font-heading font-extrabold text-neutral-900">
-                Préparez votre livre pour l'impression ou les liseuses.
-              </h2>
-              <p className="text-neutral-600 font-medium text-sm md:text-base leading-relaxed">
-                Le Studio de Mise en page vous permet d'ajuster les marges pour Amazon KDP, de choisir de superbes polices et d'ajouter des lettrines à vos chapitres. Sélectionnez un projet pour commencer.
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h3 className="font-heading font-extrabold text-lg text-neutral-900">
                 Vos Livres & Projets
               </h3>
@@ -186,9 +129,8 @@ function ExportHubContent() {
               </div>
             )}
           </div>
-        </main>
-      </div>
-    </div>
+      </main>
+    </AppLayout>
   );
 }
 
