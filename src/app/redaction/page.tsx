@@ -1201,17 +1201,7 @@ function RedactionContent() {
                 ))}
               </select>
 
-              {/* Action pour scinder un document long contenant plusieurs sous-parties en chapitres distincts */}
-              {chapters.length === 1 && (
-                <button
-                  onClick={handleSplitCurrentDocument}
-                  className="bg-orange-100 hover:bg-orange-200 text-secondary text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 cursor-pointer border border-orange-300/60 shadow-2xs"
-                  title="Scinder ce document en plusieurs chapitres selon les grands titres (ex: Première Partie, Deuxième Partie, Troisième Partie...)"
-                >
-                  <span className="material-symbols-outlined text-sm">content_cut</span>
-                  <span className="hidden xl:inline">Scinder par chapitres</span>
-                </button>
-              )}
+
 
               <button
                 onClick={() => setIsRewriteModalOpen(true)}
