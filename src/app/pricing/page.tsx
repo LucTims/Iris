@@ -32,8 +32,9 @@ export default function PricingPage() {
     const checkoutUrl = CHARIOW_LINKS[planId];
     if (checkoutUrl) {
       setLoadingPlan(planId);
-      // We append email and a custom client reference id so Chariow can link the payment to the user
-      window.location.href = `${checkoutUrl}?email=${encodeURIComponent(user.email || '')}&client_reference_id=${user.id}`;
+      // We append email, client_reference_id, and redirect URLs so Chariow can redirect the user back automatically
+      const redirectUrl = encodeURIComponent(window.location.origin);
+      window.location.href = `${checkoutUrl}?email=${encodeURIComponent(user.email || '')}&client_reference_id=${user.id}&redirect_url=${redirectUrl}&success_url=${redirectUrl}`;
     }
   };
 
