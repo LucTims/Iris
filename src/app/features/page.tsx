@@ -48,8 +48,6 @@ export default function FeaturesPage() {
             <Link href="/features" className="text-secondary font-bold">Fonctionnalités</Link>
             <Link href="/how-it-works" className="hover:text-secondary transition-colors">Comment ça marche</Link>
             <Link href="/pricing" className="hover:text-secondary transition-colors">Tarifs</Link>
-            <Link href="/blog" className="hover:text-secondary transition-colors">Blog</Link>
-            <Link href="/docs" className="hover:text-secondary transition-colors">Documentation</Link>
           </div>
 
           <div className="flex items-center gap-4">

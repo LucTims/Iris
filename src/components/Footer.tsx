@@ -21,14 +21,12 @@ export default function Footer() {
               <span className="font-medium text-neutral-400 mb-1">Produit</span>
               <Link href="/dashboard" className="text-neutral-800 hover:text-secondary font-medium transition-colors">Plateforme</Link>
               <Link href="/features" className="text-neutral-800 hover:text-secondary font-medium transition-colors">Fonctionnalités</Link>
-              <Link href="/docs" className="text-neutral-800 hover:text-secondary font-medium transition-colors">Documentation</Link>
               <Link href="/how-it-works" className="text-neutral-800 hover:text-secondary font-medium transition-colors">Comment ça marche</Link>
             </div>
 
             {/* Column 2: Ressources */}
             <div className="flex flex-col gap-3">
               <span className="font-medium text-neutral-400 mb-1">Ressources</span>
-              <Link href="/blog" className="text-neutral-800 hover:text-secondary font-medium transition-colors">Blog</Link>
               <Link href="/pricing" className="text-neutral-800 hover:text-secondary font-medium transition-colors">Tarifs</Link>
               <Link href="/faq" className="text-neutral-800 hover:text-secondary font-medium transition-colors">Aide & FAQ</Link>
             </div>

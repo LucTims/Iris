@@ -14,7 +14,7 @@ export default function TopHeader() {
       
       {/* Mobile Header Title */}
       <div className="flex items-center gap-2 md:hidden">
-        <Link href="/" className="font-heading font-extrabold text-2xl text-secondary">
+        <Link href="/dashboard" className="font-heading font-extrabold text-2xl text-secondary">
           Iris
         </Link>
       </div>

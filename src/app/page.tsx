@@ -6,8 +6,10 @@ import DoodleFeatherMascot from "@/components/DoodleFeatherMascot";
 import HeroProductShowcase from "@/components/HeroProductShowcase";
 import ToolMarquee from "@/components/ToolMarquee";
 import Footer from "@/components/Footer";
+import { useUser } from "@/hooks/useUser";
 
 export default function Home() {
+  const { user } = useUser();
   return (
     <div className="min-h-screen bg-white text-neutral-900 font-landing selection:bg-orange-100 flex flex-col justify-between">
       <script
@@ -38,7 +40,7 @@ export default function Home() {
       {/* Navigation Bar */}
       <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-neutral-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
+          <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2 sm:gap-3 group shrink-0">
             <img src="/iris-logo.png" alt="Iris" className="w-8 h-8 sm:w-10 sm:h-10 object-contain group-hover:scale-105 transition-transform" />
             <span className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-neutral-900">
               Iris

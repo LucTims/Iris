@@ -38,7 +38,6 @@ export default function FAQPage() {
             <Link href="/features" className="hover:text-secondary transition-colors">Fonctionnalités</Link>
             <Link href="/how-it-works" className="hover:text-secondary transition-colors">Comment ça marche</Link>
             <Link href="/pricing" className="hover:text-secondary transition-colors">Tarifs</Link>
-            <Link href="/blog" className="hover:text-secondary transition-colors">Blog</Link>
             <Link href="/faq" className="text-secondary font-bold">Aide & FAQ</Link>
           </div>
 

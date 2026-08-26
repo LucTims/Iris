@@ -192,10 +192,10 @@ export default function Sidebar() {
         <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-fadeIn">
           <div className="bg-white rounded-t-3xl p-6 space-y-6 max-h-[85vh] overflow-y-auto border-t border-neutral-200 shadow-2xl">
             <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
-              <div className="flex items-center gap-2">
+              <Link href="/dashboard" onClick={() => setIsMobileDrawerOpen(false)} className="flex items-center gap-2">
                 <img src="/iris-logo.png" alt="Iris" className="w-8 h-8 object-contain" />
                 <span className="font-heading font-extrabold text-xl text-neutral-900">Navigation Iris</span>
-              </div>
+              </Link>
               <button 
                 onClick={() => setIsMobileDrawerOpen(false)}
                 className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600 hover:bg-neutral-200 transition-colors"
