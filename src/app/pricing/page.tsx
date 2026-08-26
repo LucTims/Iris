@@ -144,50 +144,50 @@ export default function PricingPage() {
           </div>
 
           {/* Creator Plan - Highlighted */}
-          <div className="bg-neutral-900 rounded-3xl p-8 border border-neutral-800 shadow-xl hover:shadow-2xl transition-shadow flex flex-col h-full relative transform md:-translate-y-4">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider">
-              Le plus populaire
+          <div className="bg-white rounded-3xl p-8 border-2 border-primary shadow-[0_0_30px_-10px_rgba(255,165,0,0.3)] hover:shadow-[0_0_40px_-10px_rgba(255,165,0,0.5)] transition-shadow flex flex-col h-full relative transform md:-translate-y-4">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider whitespace-nowrap shadow-md">
+              ✨ Le plus prisé
             </div>
             
             <div className="mb-6 mt-2">
-              <h3 className="text-xl font-bold text-white mb-2">Pack Créateur</h3>
-              <p className="text-neutral-400 text-sm h-10">L'équilibre parfait pour écrire votre premier livre entier.</p>
+              <h3 className="text-xl font-bold text-neutral-900 mb-2">Pack Créateur</h3>
+              <p className="text-neutral-500 text-sm h-10">L'équilibre parfait pour écrire votre premier livre entier.</p>
             </div>
             
             <div className="mb-8 flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-white">2 500</span>
-              <span className="text-lg text-neutral-400 font-medium">FCFA</span>
+              <span className="text-4xl font-extrabold text-neutral-900">2 500</span>
+              <span className="text-lg text-neutral-500 font-medium">FCFA</span>
             </div>
             
-            <div className="flex items-center gap-3 mb-8 bg-white/5 p-4 rounded-2xl border border-white/10">
+            <div className="flex items-center gap-3 mb-8 bg-primary/10 p-4 rounded-2xl border border-primary/20">
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-primary">monetization_on</span>
               </div>
               <div>
-                <div className="font-bold text-white">3 000 Pièces</div>
-                <div className="text-xs text-primary">+500 pièces bonus</div>
+                <div className="font-bold text-neutral-900">3 000 Pièces</div>
+                <div className="text-xs font-semibold text-primary">+500 pièces bonus offertes</div>
               </div>
             </div>
             
             <ul className="space-y-4 mb-8 flex-1">
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-300 text-sm">Accès à Iris Pro (GPT-4o)</span>
+                <span className="text-neutral-700 text-sm font-medium">Accès à Iris Pro (GPT-4o)</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-300 text-sm">Idéal pour un livre de 50 000 mots</span>
+                <span className="text-neutral-700 text-sm">Idéal pour un livre de 50 000 mots</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-300 text-sm">Outils de réécriture avancés</span>
+                <span className="text-neutral-700 text-sm">Outils de réécriture avancés</span>
               </li>
             </ul>
             
             <button 
               onClick={() => initiatePayment('creator')}
               disabled={loadingPlan === 'creator'}
-              className="w-full py-4 rounded-xl font-bold transition-all bg-primary text-primary-foreground hover:brightness-110 flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-xl font-bold transition-all bg-primary text-white hover:brightness-105 shadow-md flex items-center justify-center gap-2"
             >
               {loadingPlan === 'creator' ? (
                 <span className="material-symbols-outlined animate-spin">progress_activity</span>
