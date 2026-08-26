@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
-import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
+import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
 import { getAiModel } from "@/lib/ai/search-context";
 
 export const maxDuration = 60;
@@ -133,13 +133,12 @@ Instructions impératives :
       prompt: `Voici le texte à traiter :\n\n${selectedText}`,
     });
 
-    await deductCost(
+    await deductGenerationCost(
       user.id,
       selectedModelName,
-      genResult.usage?.promptTokens,
-      genResult.usage?.completionTokens,
+      genResult.usage,
       `Action IA : ${customInstruction ? "instruction libre" : actionType}`,
-      projectId
+      { projectId, outputText: genResult.text }
     );
 
     let cleaned = (genResult.text || "")

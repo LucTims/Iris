@@ -3,7 +3,7 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
+import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
 import { getAiModel } from "@/lib/ai/search-context";
 
 export const maxDuration = 60;
@@ -98,13 +98,12 @@ Génère EXACTEMENT ${nbChapters} chapitres (ni plus, ni moins), dans un ordre l
       prompt,
     });
 
-    await deductCost(
+    await deductGenerationCost(
       user.id,
       selectedModelName,
-      result.usage?.promptTokens,
-      result.usage?.completionTokens,
+      result.usage,
       `Structure du livre : ${title || ""}`,
-      projectId
+      { projectId, outputText: JSON.stringify(result.object ?? {}) }
     );
 
     const chapters = (result.object.chapters || [])

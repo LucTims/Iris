@@ -3,7 +3,7 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
+import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
 import { getAiModel } from "@/lib/ai/search-context";
 
 export const maxDuration = 60;
@@ -54,13 +54,12 @@ Ton rôle est d'analyser un texte et de donner un score sur 100 de sa "compréhe
       }),
     });
 
-    await deductCost(
+    await deductGenerationCost(
       user.id,
       modelId,
-      result.usage?.promptTokens,
-      result.usage?.completionTokens,
+      result.usage,
       "Analyse GEO",
-      projectId
+      { projectId, outputText: JSON.stringify(result.object ?? {}) }
     );
 
     return NextResponse.json(result.object);

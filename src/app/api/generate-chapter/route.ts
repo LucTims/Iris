@@ -2,7 +2,7 @@ import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
+import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
 import {
   getAiModel,
   fetchSearchContext,
@@ -111,14 +111,13 @@ Instructions impératives :
       model: getAiModel(selectedModelName),
       system: systemPrompt,
       prompt: "Rédige ce chapitre maintenant en HTML en respectant scrupuleusement les consignes et le style.",
-      async onFinish({ usage }) {
-        const success = await deductCost(
+      async onFinish({ usage, text }) {
+        const success = await deductGenerationCost(
           user.id,
           selectedModelName,
-          usage.promptTokens,
-          usage.completionTokens,
+          usage,
           `Génération Chapitre ${chapterNumber}: ${chapterTitle}`,
-          projectId
+          { projectId, outputText: text }
         );
         if (!success) {
           console.error(`Erreur lors de la déduction des pièces pour l'utilisateur ${user.id}`);

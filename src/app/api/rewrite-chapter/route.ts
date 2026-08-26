@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
-import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
+import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
 import {
   getAiModel,
   fetchSearchContext,
@@ -121,14 +121,13 @@ IMPORTANT:
 ${searchContext}
 ${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
       prompt: prompt,
-      async onFinish({ usage }) {
-        await deductCost(
+      async onFinish({ usage, text }) {
+        await deductGenerationCost(
           user.id,
           selectedModelName,
-          usage.promptTokens,
-          usage.completionTokens,
+          usage,
           "Réécriture d'un document",
-          projectContext?.id || null
+          { projectId: projectContext?.id || null, outputText: text }
         );
       },
     });

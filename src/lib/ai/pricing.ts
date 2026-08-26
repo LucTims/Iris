@@ -39,6 +39,36 @@ export function usdToCoins(usd: number): number {
 }
 
 /**
+ * Extrait les tokens (entrée/sortie) d'un objet `usage` renvoyé par le SDK IA,
+ * de façon TOLÉRANTE au nommage. Le SDK `ai` a renommé ces champs en v5 :
+ *   - v4 : `promptTokens` / `completionTokens`
+ *   - v5+ : `inputTokens` / `outputTokens`
+ * Lire le mauvais nom renvoie `undefined` → 0 token → sous-facturation massive
+ * (un livre entier facturé au plancher de 1 pièce/chapitre). Cette fonction
+ * accepte les deux conventions pour rester correcte quelle que soit la version.
+ */
+export function readUsageTokens(usage: unknown): { input: number; output: number } {
+  const u = (usage ?? {}) as Record<string, unknown>;
+  const num = (v: unknown): number =>
+    typeof v === "number" && Number.isFinite(v) && v > 0 ? v : 0;
+  return {
+    input: num(u.inputTokens) || num(u.promptTokens),
+    output: num(u.outputTokens) || num(u.completionTokens),
+  };
+}
+
+/**
+ * Estimation grossière du nombre de tokens à partir d'un texte (~4 caractères
+ * par token). Sert UNIQUEMENT de filet de sécurité quand le provider ne renvoie
+ * pas de compteur d'usage fiable, afin de ne jamais facturer 0/1 pièce pour une
+ * génération réelle. Volontairement conservateur (n'over-facture pas).
+ */
+export function estimateTokensFromText(text: string | undefined | null): number {
+  if (!text) return 0;
+  return Math.ceil(text.length / 4);
+}
+
+/**
  * Tarifs APPROXIMATIFS (USD / 1M tokens) par modèle, pour l'ESTIMATION seulement.
  * Le débit réel lit les tarifs exacts dans la table `ai_models`.
  */

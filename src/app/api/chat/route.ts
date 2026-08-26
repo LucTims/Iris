@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
-import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
+import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
 import {
   detectIntent,
   resolveTargetChapter,
@@ -234,13 +234,15 @@ Consignes de génération :
         prompt: editPrompt
       });
 
-      await deductCost(
+      await deductGenerationCost(
         user.id,
         selectedModelName,
-        modificationResult.usage?.promptTokens,
-        modificationResult.usage?.completionTokens,
+        modificationResult.usage,
         "Assistant IA — modification de chapitre",
-        bodyProjectId || (context as any)?.projectId || null
+        {
+          projectId: bodyProjectId || (context as any)?.projectId || null,
+          outputText: modificationResult.object?.newContent || "",
+        }
       );
 
       let cleanedHtml = modificationResult.object.newContent || "";
@@ -315,14 +317,16 @@ Consignes de style :
       model: getAiModel(selectedModelName),
       system: systemPrompt,
       messages: aiMessages,
-      async onFinish({ usage }) {
-        await deductCost(
+      async onFinish({ usage, text }) {
+        await deductGenerationCost(
           user.id,
           selectedModelName,
-          usage.promptTokens,
-          usage.completionTokens,
+          usage,
           "Assistant IA — conversation",
-          bodyProjectId || (context as any)?.projectId || null
+          {
+            projectId: bodyProjectId || (context as any)?.projectId || null,
+            outputText: text,
+          }
         );
       },
     });

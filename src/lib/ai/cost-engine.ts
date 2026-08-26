@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { COINS_PER_USD } from "@/lib/ai/pricing";
+import {
+  COINS_PER_USD,
+  readUsageTokens,
+  estimateTokensFromText,
+} from "@/lib/ai/pricing";
 
 export async function checkMinimumBalance(userId: string, requiredCoins: number): Promise<boolean> {
   const supabase = await createClient();
@@ -46,6 +50,55 @@ export async function deductFixedCoins(
     return false;
   }
   return true;
+}
+
+/**
+ * Débite le coût d'une génération à partir de l'objet `usage` du SDK IA.
+ *
+ * C'est le point d'entrée à privilégier depuis les routes : il est tolérant au
+ * nommage des champs (input/output vs prompt/completion — voir `readUsageTokens`)
+ * et, en DERNIER RECOURS, estime les tokens de SORTIE depuis le texte réellement
+ * produit (`outputText`). Ainsi, si un provider ne renvoie pas d'usage fiable,
+ * on facture quand même un montant réaliste au lieu du plancher de 1 pièce —
+ * ce qui évite la sous-facturation qui a laissé passer un livre entier pour ~10
+ * pièces.
+ */
+export async function deductGenerationCost(
+  userId: string,
+  modelId: string,
+  usage: unknown,
+  description: string,
+  opts: { projectId?: string | null; outputText?: string; inputText?: string } = {}
+): Promise<boolean> {
+  const { input, output } = readUsageTokens(usage);
+
+  let effInput = input;
+  let effOutput = output;
+
+  if (effOutput <= 0 && opts.outputText) {
+    effOutput = estimateTokensFromText(opts.outputText);
+  }
+  if (effInput <= 0 && opts.inputText) {
+    effInput = estimateTokensFromText(opts.inputText);
+  }
+
+  // Trace visible quand on a dû retomber sur l'estimation : signale un provider
+  // dont l'usage n'est pas exploitable (à surveiller côté facturation).
+  if ((input <= 0 || output <= 0) && (effInput > 0 || effOutput > 0)) {
+    console.warn(
+      `[cost-engine] usage tokens manquants pour ${modelId} — repli sur estimation ` +
+        `(in ${input}→${effInput}, out ${output}→${effOutput}) : ${description}`
+    );
+  }
+
+  return deductCost(
+    userId,
+    modelId,
+    effInput,
+    effOutput,
+    description,
+    opts.projectId ?? null
+  );
 }
 
 export async function deductCost(

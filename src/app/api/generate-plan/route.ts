@@ -2,7 +2,7 @@ import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
+import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
 import {
   getAiModel,
   fetchSearchContext,
@@ -151,14 +151,13 @@ IMPORTANT:
 ${searchContext}
 ${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
       prompt: prompt,
-      async onFinish({ usage }) {
-        await deductCost(
+      async onFinish({ usage, text }) {
+        await deductGenerationCost(
           user.id,
           selectedModelName,
-          usage.promptTokens,
-          usage.completionTokens,
+          usage,
           `Génération du Plan: ${title}`,
-          projectId
+          { projectId, outputText: text }
         );
       }
     });
