@@ -24,11 +24,6 @@ export default function TopHeader() {
 
       {/* Right Header Actions */}
       <div className="flex items-center gap-3 relative">
-        <Link href="/" className="hidden lg:flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200/70 px-3 py-2 rounded-xl transition-all">
-          <span className="material-symbols-outlined text-base">arrow_back</span>
-          <span>Accueil du site</span>
-        </Link>
-
         <Link href="/projects/new" className="flex items-center gap-2 bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs">
           <span className="material-symbols-outlined text-base">add</span>
           <span className="hidden sm:inline">Nouveau Livre</span>
