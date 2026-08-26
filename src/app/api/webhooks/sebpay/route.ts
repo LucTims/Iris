@@ -1,30 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
-
-// Map des packs de pièces vers les montants de crédits
-const COIN_PACKS: Record<string, number> = {
-  pack_starter: 1000,
-  "pack-starter": 1000,
-  starter_pack: 1000,
-  starter: 1000,
-  pack_creator: 3000,
-  "pack-creator": 3000,
-  creator_pack: 3000,
-  creator: 3000,
-  pack_author: 7000,
-  "pack-author": 7000,
-  author_pack: 7000,
-  author: 7000,
-  pack_pro: 16000,
-  "pack-pro": 16000,
-  pro_pack: 16000,
-  pro: 16000,
-  pack_studio: 45000,
-  "pack-studio": 45000,
-  studio_pack: 45000,
-  studio: 45000,
-};
+import { coinsForPurchase } from "@/lib/coinPacks";
+import { creditWalletCoins } from "@/lib/payments/creditWallet";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -220,26 +198,15 @@ export async function POST(req: Request) {
         })
         .eq("id", transaction.id);
 
-      // B. Créditer le wallet de l'utilisateur
-      const planKey = (
+      // B. Créditer le wallet de l'utilisateur (par id de pack, repli par montant)
+      const planKey =
         transaction.plan_id ||
         data.metadata?.plan_id ||
         body.metadata?.plan_id ||
         data.plan_id ||
-        ""
-      ).toLowerCase();
+        "";
 
-      let coinsToAdd = COIN_PACKS[planKey] || 0;
-
-      // Fallback si pack non trouvé par nom mais par montant
-      if (coinsToAdd === 0 && (transaction.amount || data.amount)) {
-        const amt = Number(transaction.amount || data.amount);
-        if (amt >= 45000) coinsToAdd = 45000;
-        else if (amt >= 15000) coinsToAdd = 16000;
-        else if (amt >= 5000) coinsToAdd = 7000;
-        else if (amt >= 2500) coinsToAdd = 3000;
-        else if (amt >= 1000) coinsToAdd = 1000;
-      }
+      const coinsToAdd = coinsForPurchase(planKey, transaction.amount || data.amount);
 
       const targetUserId =
         transaction.user_id ||
@@ -249,61 +216,18 @@ export async function POST(req: Request) {
         body.user_id;
 
       if (coinsToAdd > 0 && targetUserId) {
-        const { data: wallet } = await supabaseAdmin
-          .from("wallets")
-          .select("id, balance")
-          .eq("user_id", targetUserId)
-          .maybeSingle();
-
-        let walletId = wallet?.id;
-
-        if (wallet) {
-          const newBalance = (wallet.balance || 0) + coinsToAdd;
-          await supabaseAdmin
-            .from("wallets")
-            .update({
-              balance: newBalance,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", wallet.id);
-        } else {
-          // Création du wallet s'il n'existait pas
-          const { data: newWallet } = await supabaseAdmin
-            .from("wallets")
-            .insert({
-              user_id: targetUserId,
-              balance: coinsToAdd,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .select("id")
-            .single();
-
-          if (newWallet) {
-            walletId = newWallet.id;
+        await creditWalletCoins(
+          supabaseAdmin,
+          targetUserId,
+          coinsToAdd,
+          `Achat de pièces (SEBPay) : ${transaction.plan_id || planKey || "Recharge"}`,
+          {
+            transaction_id: transaction.id,
+            amount_fcfa: transaction.amount,
+            provider: "sebpay",
+            provider_reference: providerRef,
           }
-        }
-
-        // Journaliser la transaction de pièces dans coin_transactions de façon résiliente
-        if (walletId) {
-          try {
-            await supabaseAdmin.from("coin_transactions").insert({
-              wallet_id: walletId,
-              type: "credit",
-              amount: coinsToAdd,
-              description: `Achat Pack Sebpay: ${transaction.plan_id || planKey || "Recharge de pièces"}`,
-              metadata: {
-                transaction_id: transaction.id,
-                amount_fcfa: transaction.amount,
-                provider: "sebpay",
-                provider_reference: providerRef,
-              },
-              created_at: new Date().toISOString(),
-            });
-          } catch (logErr) {
-            console.warn("[Webhook Sebpay] Note: log coin_transactions non critique:", logErr);
-          }
-        }
+        );
 
         console.log(
           `[Webhook Sebpay] Transaction ${transaction.id} validée (paid). Wallet crédité de ${coinsToAdd} pièces pour l'utilisateur ${targetUserId}.`

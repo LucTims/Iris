@@ -19,11 +19,18 @@ export const COIN_UNIT_USD = 0.00165;
 export const COIN_MARGIN = 4;
 
 /**
- * Facteur de conversion coût USD → pièces, marge incluse.
- * 1 pièce ≈ COIN_UNIT_USD ; coût_pièces = coût_usd × MARGE / COIN_UNIT_USD.
- * Pour MARGE=4 → ≈2424 ; on retient 2500 (≈ x4,1) comme valeur historique.
+ * Facteur de conversion coût USD → pièces, marge incluse. C'EST LE LEVIER
+ * DE RENTABILITÉ : plus il est haut, plus l'utilisateur consomme de pièces
+ * pour un même coût API réel, donc plus la marge est élevée.
+ *
+ * Repères (marge nette selon le pack acheté, bonus inclus) :
+ *   2500 → ~x2,9 (Author) … x4,1 (Starter)   [ancien]
+ *   3500 → x4 strict même sur le gros pack
+ *   4000 → ~x4,5 moyen (couvre serveur + BDD + frais SEBPay)  ← RETENU
+ *   4200 → x5 strict
+ * Ajuster ici et partout (cost-engine + estimations) suit automatiquement.
  */
-export const COINS_PER_USD = 2500;
+export const COINS_PER_USD = 4000;
 
 /** Convertit un coût en USD en pièces (arrondi au supérieur, minimum 1). */
 export function usdToCoins(usd: number): number {

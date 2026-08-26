@@ -7,6 +7,7 @@ import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUser";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { getPackById } from "@/lib/coinPacks";
 
 export default function PricingPage() {
   const { user, isLoading } = useUser();
@@ -21,6 +22,8 @@ export default function PricingPage() {
   const [operator, setOperator] = useState("ORANGE");
   const [country, setCountry] = useState("CI");
   const [otpCode, setOtpCode] = useState("");
+
+  const coinsForPack = (id: string) => getPackById(id)?.coins || 0;
 
   const initiatePayment = (planId: string, amount: number) => {
     if (!user) {
@@ -268,35 +271,84 @@ export default function PricingPage() {
 
         </div>
 
-        {/* Payment Modal */}
+        {/* Payment Modal — Mobile Money */}
         {selectedPlanId && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
-              <h2 className="text-2xl font-bold mb-4">Paiement</h2>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 sm:p-7 shadow-2xl max-h-[92dvh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="text-xl font-extrabold font-heading text-neutral-900">Paiement Mobile Money</h2>
+                <button type="button" onClick={() => setSelectedPlanId(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:bg-neutral-100">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+
+              {/* Récapitulatif */}
+              <div className="flex items-center justify-between bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-5">
+                <div>
+                  <div className="text-xs font-bold text-neutral-500 uppercase">{selectedPlanId.replace("pack_", "Pack ")}</div>
+                  <div className="text-sm font-bold text-neutral-900">
+                    {selectedAmount.toLocaleString("fr-FR")} FCFA
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-extrabold text-secondary">
+                    {(coinsForPack(selectedPlanId)).toLocaleString("fr-FR")} 🪙
+                  </div>
+                  <div className="text-[10px] text-neutral-500">crédités après validation</div>
+                </div>
+              </div>
+
               <form onSubmit={handleCheckout} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Numéro de téléphone</label>
-                  <input type="text" className="w-full border rounded-lg p-2" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-700 mb-1">Pays</label>
+                    <select className="w-full border border-neutral-300 rounded-xl p-2.5 text-sm bg-white" value={country} onChange={(e) => setCountry(e.target.value)}>
+                      <option value="CI">Côte d'Ivoire</option>
+                      <option value="BJ">Bénin</option>
+                      <option value="SN">Sénégal</option>
+                      <option value="TG">Togo</option>
+                      <option value="BF">Burkina Faso</option>
+                      <option value="ML">Mali</option>
+                      <option value="NE">Niger</option>
+                      <option value="GW">Guinée-Bissau</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-700 mb-1">Opérateur</label>
+                    <select className="w-full border border-neutral-300 rounded-xl p-2.5 text-sm bg-white" value={operator} onChange={(e) => setOperator(e.target.value)}>
+                      <option value="ORANGE">Orange Money</option>
+                      <option value="MTN">MTN MoMo</option>
+                      <option value="MOOV">Moov Money</option>
+                      <option value="WAVE">Wave</option>
+                    </select>
+                  </div>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium mb-1">Opérateur</label>
-                  <select className="w-full border rounded-lg p-2" value={operator} onChange={(e) => setOperator(e.target.value)}>
-                    <option value="ORANGE">Orange Money</option>
-                    <option value="MTN">MTN Mobile Money</option>
-                    <option value="MOOV">Moov Money</option>
-                  </select>
+                  <label className="block text-xs font-bold text-neutral-700 mb-1">Numéro de téléphone</label>
+                  <input type="tel" inputMode="tel" placeholder="Ex: 07 00 00 00 00" className="w-full border border-neutral-300 rounded-xl p-2.5 text-sm" value={phone} onChange={(e) => setPhone(e.target.value)} required />
                 </div>
+
                 {operator === "ORANGE" && (
                   <div>
-                    <label className="block text-sm font-medium mb-1">Code OTP (Si requis par l'opérateur)</label>
-                    <input type="text" placeholder="Ex: 1234" className="w-full border rounded-lg p-2" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} />
-                    <p className="text-xs text-neutral-500 mt-1">Composez le #144*82# pour générer votre code OTP Orange.</p>
+                    <label className="block text-xs font-bold text-neutral-700 mb-1">Code OTP Orange (si requis)</label>
+                    <input type="text" inputMode="numeric" placeholder="Ex: 1234" className="w-full border border-neutral-300 rounded-xl p-2.5 text-sm" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} />
+                    <p className="text-[11px] text-neutral-500 mt-1">Composez <strong>#144*82#</strong> pour générer votre code OTP Orange.</p>
                   </div>
                 )}
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setSelectedPlanId(null)} className="flex-1 border rounded-lg py-2">Annuler</button>
-                  <button type="submit" disabled={loadingPlan !== null} className="flex-1 bg-secondary text-white rounded-lg py-2 font-bold">
-                    {loadingPlan ? "..." : "Payer"}
+
+                <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5">
+                  <span className="material-symbols-outlined text-blue-500 text-lg">smartphone</span>
+                  <p className="text-[11px] text-blue-800 leading-snug">
+                    Après avoir cliqué sur <strong>Payer</strong>, une demande de validation sera envoyée sur votre téléphone. <strong>Validez-la</strong> (code PIN mobile money) : vos pièces seront ajoutées automatiquement dès confirmation. Vous pouvez recharger autant de fois que vous voulez, les pièces s'accumulent.
+                  </p>
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <button type="button" onClick={() => setSelectedPlanId(null)} className="flex-1 border border-neutral-300 rounded-xl py-2.5 text-sm font-bold text-neutral-600 hover:bg-neutral-50">Annuler</button>
+                  <button type="submit" disabled={loadingPlan !== null} className="flex-1 bg-secondary hover:bg-orange-600 text-white rounded-xl py-2.5 text-sm font-bold shadow-sm disabled:opacity-60 flex items-center justify-center gap-2">
+                    {loadingPlan ? <span className="material-symbols-outlined text-base animate-spin">progress_activity</span> : <span className="material-symbols-outlined text-base">lock</span>}
+                    {loadingPlan ? "Traitement…" : "Payer"}
                   </button>
                 </div>
               </form>
