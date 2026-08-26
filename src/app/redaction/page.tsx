@@ -1710,6 +1710,7 @@ function RedactionContent() {
                 handleSendMessage("Rédiger la suite de ce chapitre avec l'IA");
               }}
               onGenerateFullChapter={handleGenerateFullChapter}
+              onGenerateWholeBook={handleGenerateWholeBook}
               onContextualAiAction={handleContextualAiAction}
               onSendSelectionToChat={handleSendSelectionToChat}
               isGenerating={isGeneratingChapter || isRewriting || isInitialGenerating || isBatchGenerating}

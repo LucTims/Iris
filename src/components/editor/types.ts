@@ -27,6 +27,8 @@ export interface RichManuscriptEditorProps {
   onWordCountChange?: (count: number) => void;
   onContinueWithAi?: () => void;
   onGenerateFullChapter?: () => void;
+  /** Ouvre le flux « Générer tout le livre » (bouton flottant, visible sur mobile). */
+  onGenerateWholeBook?: () => void;
   onContextualAiAction?: (actionType: string, selectedText: string, customInstruction?: string) => Promise<string>;
   /** Send the current selection (text + range) up to the chat panel for a free-form edit. */
   onSendSelectionToChat?: (selection: EditorSelection) => void;

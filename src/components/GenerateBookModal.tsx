@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { SIZE_PRESETS, BOOK_MODELS } from "@/lib/book/generationPresets";
+import { SIZE_PRESETS, BOOK_MODELS, estimateBookCoins } from "@/lib/book/generationPresets";
 import type { BookSizeKey } from "@/lib/book/generationPresets";
+
+const LS_SIZE = "iris_book_gen_size";
+const LS_MODEL = "iris_book_gen_model";
 
 interface GenerateBookModalProps {
   isOpen: boolean;
@@ -24,10 +27,37 @@ export default function GenerateBookModal({
   defaultModel = "gemini-2.5-flash",
   sommaireChapters,
 }: GenerateBookModalProps) {
-  const [sizeKey, setSizeKey] = useState<BookSizeKey>("moyen");
-  const [model, setModel] = useState(defaultModel);
+  // Mémorise le dernier choix (longueur + modèle) entre deux ouvertures.
+  const [sizeKey, setSizeKey] = useState<BookSizeKey>(() => {
+    if (typeof window === "undefined") return "moyen";
+    try {
+      const s = localStorage.getItem(LS_SIZE);
+      if (s && s in SIZE_PRESETS) return s as BookSizeKey;
+    } catch {
+      /* ignore */
+    }
+    return "moyen";
+  });
+  const [model, setModel] = useState(() => {
+    if (typeof window === "undefined") return defaultModel;
+    try {
+      return localStorage.getItem(LS_MODEL) || defaultModel;
+    } catch {
+      return defaultModel;
+    }
+  });
 
   if (!isOpen) return null;
+
+  const confirm = () => {
+    try {
+      localStorage.setItem(LS_SIZE, sizeKey);
+      localStorage.setItem(LS_MODEL, model);
+    } catch {
+      /* ignore */
+    }
+    onConfirm({ sizeKey, model });
+  };
 
   const preset = SIZE_PRESETS[sizeKey];
   const hasSommaire = sommaireChapters != null && sommaireChapters > 0;
@@ -113,11 +143,14 @@ export default function GenerateBookModal({
           </div>
 
           {/* Estimation */}
-          <div className="flex items-center justify-between gap-2 text-xs bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5">
             <span className="font-bold text-neutral-700">
               ~ {estimatedChapters} chapitres • {preset.wordsPerChapter} mots / chapitre
             </span>
-            <span className="text-amber-700 font-bold">🪙 selon le modèle</span>
+            <span className="text-amber-700 font-bold">
+              🪙 ≈ {estimateBookCoins(preset.wordsPerChapter, model, estimatedChapters).toLocaleString("fr-FR")} pièces
+              <span className="text-neutral-400 font-medium"> (estimation)</span>
+            </span>
           </div>
         </div>
 
@@ -127,7 +160,7 @@ export default function GenerateBookModal({
             Annuler
           </button>
           <button
-            onClick={() => onConfirm({ sizeKey, model })}
+            onClick={confirm}
             className="bg-secondary hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-xs flex items-center gap-2 transition-colors"
           >
             <span className="material-symbols-outlined text-base">auto_awesome</span>
