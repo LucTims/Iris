@@ -76,7 +76,8 @@ export async function POST(req: Request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SEBPAY_PUBLIC_KEY}` // Utilise la clé publique pour initialiser
+        "X-Public-Key": process.env.NEXT_PUBLIC_SEBPAY_PUBLIC_KEY || "",
+        "X-Secret-Key": process.env.SEBPAY_SECRET_KEY || ""
       },
       body: JSON.stringify(sebpayPayload)
     });
