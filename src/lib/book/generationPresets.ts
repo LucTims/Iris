@@ -44,3 +44,32 @@ export const BOOK_MODELS = [
   { id: "gpt-4o", label: "GPT-4o", hint: "Polyvalent et fiable" },
   { id: "claude-3-5-sonnet-20240620", label: "Claude 3.5 Sonnet", hint: "Excellent en rédaction" },
 ];
+
+/**
+ * Tarifs APPROXIMATIFS (USD par million de tokens) pour estimer le coût en
+ * pièces AVANT génération. Le débit réel se fait côté serveur ; ces valeurs ne
+ * servent qu'à donner un ordre de grandeur à l'utilisateur.
+ */
+const MODEL_RATES: Record<string, { in: number; out: number }> = {
+  "gemini-2.5-flash": { in: 0.3, out: 2.5 },
+  "gemini-2.5-pro": { in: 1.25, out: 10 },
+  "gpt-4o": { in: 2.5, out: 10 },
+  "claude-3-5-sonnet-20240620": { in: 3, out: 15 },
+};
+
+// Même facteur de conversion USD → pièces que le moteur de coût serveur.
+const USD_TO_COINS = 2500;
+
+/** Estimation (approximative) du coût en pièces d'un chapitre. */
+export function estimateChapterCoins(words: number, model: string): number {
+  const rate = MODEL_RATES[model] || MODEL_RATES["gemini-2.5-flash"];
+  const inTokens = 1500; // système + contexte + sommaire
+  const outTokens = Math.round(words * 1.6); // ~1,6 token par mot
+  const usd = (inTokens * rate.in + outTokens * rate.out) / 1_000_000;
+  return Math.max(1, Math.ceil(usd * USD_TO_COINS));
+}
+
+/** Estimation du coût total pour N chapitres. */
+export function estimateBookCoins(words: number, model: string, chapters: number): number {
+  return estimateChapterCoins(words, model) * Math.max(1, chapters);
+}
