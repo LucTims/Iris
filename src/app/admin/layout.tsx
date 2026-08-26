@@ -37,13 +37,8 @@ const adminNavItems: NavItem[] = [
   { id: "overview", label: "Vue d'ensemble", shortLabel: "Dashboard", icon: LayoutDashboard, href: "/admin" },
   { id: "users", label: "Utilisateurs", icon: Users, href: "/admin/users" },
   { id: "projects", label: "Projets & Livres", shortLabel: "Projets", icon: BookOpen, href: "/admin/projects" },
+  { id: "finances", label: "Finances & SEBPay", shortLabel: "Finances", icon: Receipt, href: "/admin/finances" },
   { id: "ai", label: "Surveillance IA", shortLabel: "IA", icon: Cpu, href: "/admin/ai" },
-  { id: "credits", label: "Crédits & Quotas", shortLabel: "Crédits", icon: Coins, href: "/admin/credits" },
-  { id: "subscriptions", label: "Abonnements", icon: Receipt, href: "/admin/subscriptions" },
-  { id: "logs", label: "Logs & Événements", shortLabel: "Logs", icon: Terminal, href: "/admin/logs" },
-  { id: "security", label: "Sécurité & Accès", shortLabel: "Sécurité", icon: ShieldCheck, href: "/admin/security" },
-  { id: "settings", label: "Paramètres Globaux", shortLabel: "Paramètres", icon: Settings, href: "/admin/settings" },
-  { id: "health", label: "Santé Système", shortLabel: "Santé", icon: HeartPulse, href: "/admin/health" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -197,9 +192,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <span className="font-heading font-bold text-neutral-900 text-base sm:text-lg hidden sm:inline">
                 Iris Operational Cockpit
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Mode Démo / Mock
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200 uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                Données Réelles (Live)
               </span>
             </div>
           </div>

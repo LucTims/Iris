@@ -25,7 +25,16 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ stats: data });
+    // Série d'activité 14 jours (best-effort : n'échoue pas la vue si absente).
+    let activity: any = [];
+    try {
+      const { data: act } = await supabase.rpc("get_admin_activity");
+      activity = act || [];
+    } catch {
+      /* ignore */
+    }
+
+    return NextResponse.json({ stats: { ...(data || {}), activity_14d: activity } });
   } catch (e) {
     console.error("admin/overview error:", e);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
