@@ -1250,7 +1250,9 @@ function RedactionContent() {
       });
 
       if (!res.ok) {
-        console.error("Erreur lors de la création des chapitres:", await res.text());
+        const errorText = await res.text();
+        console.error("Erreur lors de la création des chapitres:", errorText);
+        alert(`Erreur serveur: ${errorText}`);
         return null;
       }
 
@@ -1475,6 +1477,7 @@ function RedactionContent() {
                 onChange={async (e) => {
                   const val = Number(e.target.value);
                   if (val === -1) {
+                    // Fusionner le livre
                     if (confirm("Voulez-vous vraiment fusionner tous les chapitres en un seul document ? (Cette action supprimera le découpage actuel)")) {
                       const mergedContent = chapters.map(c => `<h1>${c.title}</h1>\n${c.content}`).join('\n<br/>\n');
                       const mergedChapter = {
@@ -1497,29 +1500,23 @@ function RedactionContent() {
                         }
                       }
                     }
+                  } else if (val === -2) {
+                    // Découper en chapitres
+                    handleSplitCurrentDocument();
                   } else {
                     setActiveChapterIndex(val);
                   }
                 }}
                 className="bg-orange-50 border border-orange-200 text-secondary text-xs font-bold px-3 py-1.5 rounded-xl outline-none cursor-pointer max-w-[200px] truncate"
               >
-                <option value="-1">Tout le livre (Fusionner)</option>
+                {chapters.length > 1 && <option value="-1">Tout le livre (Fusionner)</option>}
+                {chapters.length === 1 && <option value="-2">Découper en chapitres</option>}
                 {chapters.map((chap, idx) => (
                   <option key={chap.id} value={idx}>
                     {chap.title}
                   </option>
                 ))}
               </select>
-
-              {/* Séparer en chapitres (si le livre a été fusionné ou importé d'un bloc) */}
-              <button
-                onClick={handleSplitCurrentDocument}
-                className="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
-                title="Diviser ce document en plusieurs chapitres basés sur les grands titres"
-              >
-                <span className="material-symbols-outlined text-sm">splitscreen</span>
-                <span className="hidden xl:inline">Découper en chapitres</span>
-              </button>
 
               {/* Régénérer le chapitre actuellement sélectionné */}
               {!/sommaire|table des mati/i.test(currentChapter?.title || "") && (
