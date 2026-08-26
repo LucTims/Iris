@@ -594,9 +594,9 @@ export default function NewBookWizard() {
                   {/* Standard Model */}
                   <div 
                     onClick={() => setSelectedModel("gemini-2.5-flash")}
-                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${selectedModel === "gemini-2.5-flash" ? "border-orange-500 bg-orange-50/50" : "border-neutral-100 hover:border-orange-300"}`}
+                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${selectedModel === "gemini-2.5-flash" ? "border-orange-500 bg-orange-50/50" : "border-neutral-100 hover:border-orange-300"}`}
                   >
-                    <div className="text-xl">⚡</div>
+                    <div className="text-xl mt-0.5">⚡</div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-sm text-neutral-900">Gemini 2.5 Flash</span>
@@ -604,7 +604,7 @@ export default function NewBookWizard() {
                           ~20 🪙/page
                         </span>
                       </div>
-                      <p className="text-[11px] text-neutral-500 leading-tight mt-0.5 hidden sm:block">
+                      <p className="text-[11px] text-neutral-500 leading-tight mt-1">
                         Rapide et économique. Idéal pour le premier jet.
                       </p>
                     </div>
@@ -613,9 +613,9 @@ export default function NewBookWizard() {
                   {/* Advanced Model */}
                   <div 
                     onClick={() => setSelectedModel("gpt-4o")}
-                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${selectedModel === "gpt-4o" ? "border-orange-500 bg-orange-50/50" : "border-neutral-100 hover:border-orange-300"}`}
+                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${selectedModel === "gpt-4o" ? "border-orange-500 bg-orange-50/50" : "border-neutral-100 hover:border-orange-300"}`}
                   >
-                    <div className="text-xl">🧠</div>
+                    <div className="text-xl mt-0.5">🧠</div>
                     <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-sm text-neutral-900">ChatGPT (GPT-4o)</span>
@@ -623,8 +623,8 @@ export default function NewBookWizard() {
                           ~80 🪙/page
                         </span>
                       </div>
-                      <p className="text-[11px] text-neutral-500 leading-tight mt-0.5 hidden sm:block">
-                        Très intelligent. Parfait pour les réécritures complexes.
+                      <p className="text-[11px] text-neutral-500 leading-tight mt-1">
+                        Très intelligent et nuancé.
                       </p>
                     </div>
                   </div>
@@ -632,9 +632,9 @@ export default function NewBookWizard() {
                   {/* Pro Model */}
                   <div 
                     onClick={() => setSelectedModel("claude-3-5-sonnet-20240620")}
-                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${selectedModel === "claude-3-5-sonnet-20240620" ? "border-orange-500 bg-orange-50/50" : "border-neutral-100 hover:border-orange-300"}`}
+                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${selectedModel === "claude-3-5-sonnet-20240620" ? "border-orange-500 bg-orange-50/50" : "border-neutral-100 hover:border-orange-300"}`}
                   >
-                    <div className="text-xl">✍️</div>
+                    <div className="text-xl mt-0.5">✍️</div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                           <span className="font-bold text-sm text-neutral-900 flex items-center gap-1.5">
@@ -645,8 +645,8 @@ export default function NewBookWizard() {
                           ~150 🪙/page
                         </span>
                       </div>
-                      <p className="text-[11px] text-neutral-500 leading-tight mt-0.5 hidden sm:block">
-                        Le meilleur modèle du marché pour un style inégalé.
+                      <p className="text-[11px] text-neutral-500 leading-tight mt-1">
+                        Excellent style littéraire et créatif.
                       </p>
                     </div>
                   </div>
