@@ -303,7 +303,7 @@ export default function ExportEditorPage({ params }: { params: Promise<{ id: str
       {/* Export Choice Modal */}
       {downloadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-body animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col relative border border-neutral-100">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl max-h-[90dvh] overflow-y-auto flex flex-col relative border border-neutral-100">
             <button onClick={() => setDownloadModalOpen(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-full text-neutral-600 transition-colors z-10">
               <span className="material-symbols-outlined text-lg">close</span>
             </button>

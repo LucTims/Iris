@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { GoogleAnalytics } from '@next/third-parties/google';
 import "./globals.css";
 
@@ -9,6 +9,16 @@ export const metadata: Metadata = {
   verification: {
     // google: "AJOUTEZ_VOTRE_CODE_DE_VERIFICATION_ICI_SI_NECESSAIRE",
   },
+};
+
+// Viewport mobile explicite. Sans lui (le <head> manuel ci-dessous peut
+// empêcher l'injection auto de Next), les navigateurs mobiles rendent la page
+// à ~980px de large puis dézooment : tout paraît géant et coupé par l'écran.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
