@@ -60,7 +60,7 @@ export async function POST(
 
     const { data: insertedChapters, error: insertError } = await supabase
       .from("chapters")
-      .upsert(rows, { onConflict: 'project_id,number' })
+      .upsert(rows, { onConflict: 'unique_project_chapter_number' })
       .select();
 
     if (insertError) {
