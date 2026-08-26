@@ -574,7 +574,7 @@ export default function NewBookWizard() {
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white rounded-3xl shadow-2xl border border-neutral-200 max-w-xl w-full p-6 sm:p-8 relative"
+                className="bg-white rounded-3xl shadow-2xl border border-neutral-200 max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 sm:p-8 relative"
               >
                 <button
                   onClick={() => setShowModelModal(false)}
@@ -583,31 +583,31 @@ export default function NewBookWizard() {
                   <span className="material-symbols-outlined text-xl">close</span>
                 </button>
 
-                <div className="text-center mb-8">
-                  <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="material-symbols-outlined text-secondary text-3xl">smart_toy</span>
+                <div className="text-center mb-5">
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span className="material-symbols-outlined text-secondary text-2xl">smart_toy</span>
                   </div>
-                  <h2 className="font-heading font-extrabold text-2xl text-neutral-900 mb-2">Choisissez votre IA</h2>
-                  <p className="text-sm text-neutral-500">
+                  <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 mb-1.5">Choisissez votre IA</h2>
+                  <p className="text-xs sm:text-sm text-neutral-500">
                     Sélectionnez le modèle d'Intelligence Artificielle qui va rédiger votre projet. Chaque modèle consomme un nombre différent de pièces.
                   </p>
                 </div>
 
-                <div className="space-y-4 mb-8">
+                <div className="space-y-3 mb-6">
                   {/* Standard Model */}
                   <div 
                     onClick={() => setSelectedModel("gemini-2.5-flash")}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-4 ${selectedModel === "gemini-2.5-flash" ? "border-orange-500 bg-orange-50/50" : "border-neutral-200 hover:border-orange-300"}`}
+                    className={`p-3 sm:p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 sm:gap-4 ${selectedModel === "gemini-2.5-flash" ? "border-orange-500 bg-orange-50/50" : "border-neutral-200 hover:border-orange-300"}`}
                   >
-                    <div className="mt-1 text-2xl">⚡</div>
+                    <div className="mt-0.5 text-2xl">⚡</div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-neutral-900">Gemini 2.5 Flash</span>
-                        <span className="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="font-bold text-sm sm:text-base text-neutral-900">Gemini 2.5 Flash</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center gap-1 whitespace-nowrap">
                           ~20 🪙 / page
                         </span>
                       </div>
-                      <p className="text-xs text-neutral-500 leading-relaxed">
+                      <p className="text-[11px] sm:text-xs text-neutral-500 leading-relaxed">
                         Rapide et économique. Idéal pour générer des plans, structurer des idées et rédiger le premier jet.
                       </p>
                     </div>
@@ -616,17 +616,17 @@ export default function NewBookWizard() {
                   {/* Advanced Model */}
                   <div 
                     onClick={() => setSelectedModel("gpt-4o")}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-4 ${selectedModel === "gpt-4o" ? "border-orange-500 bg-orange-50/50" : "border-neutral-200 hover:border-orange-300"}`}
+                    className={`p-3 sm:p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 sm:gap-4 ${selectedModel === "gpt-4o" ? "border-orange-500 bg-orange-50/50" : "border-neutral-200 hover:border-orange-300"}`}
                   >
-                    <div className="mt-1 text-2xl">🧠</div>
+                    <div className="mt-0.5 text-2xl">🧠</div>
                     <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-bold text-neutral-900">ChatGPT (GPT-4o)</span>
-                          <span className="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <span className="font-bold text-sm sm:text-base text-neutral-900">ChatGPT (GPT-4o)</span>
+                          <span className="text-[10px] sm:text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center gap-1 whitespace-nowrap">
                           ~80 🪙 / page
                         </span>
                       </div>
-                      <p className="text-xs text-neutral-500 leading-relaxed">
+                      <p className="text-[11px] sm:text-xs text-neutral-500 leading-relaxed">
                         Très intelligent et nuancé. Parfait pour les réécritures complexes et les essais approfondis.
                       </p>
                     </div>
@@ -635,39 +635,39 @@ export default function NewBookWizard() {
                   {/* Pro Model */}
                   <div 
                     onClick={() => setSelectedModel("claude-3-5-sonnet-20240620")}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-4 ${selectedModel === "claude-3-5-sonnet-20240620" ? "border-orange-500 bg-orange-50/50" : "border-neutral-200 hover:border-orange-300"}`}
+                    className={`p-3 sm:p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 sm:gap-4 ${selectedModel === "claude-3-5-sonnet-20240620" ? "border-orange-500 bg-orange-50/50" : "border-neutral-200 hover:border-orange-300"}`}
                   >
-                    <div className="mt-1 text-2xl">✍️</div>
+                    <div className="mt-0.5 text-2xl">✍️</div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                          <span className="font-bold text-neutral-900 flex items-center gap-2">
+                          <span className="font-bold text-sm sm:text-base text-neutral-900 flex flex-wrap items-center gap-2">
                             Claude 3.5 Sonnet
                             <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider">Premium</span>
                         </span>
-                        <span className="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="text-[10px] sm:text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center gap-1 whitespace-nowrap">
                           ~150 🪙 / page
                         </span>
                       </div>
-                      <p className="text-xs text-neutral-500 leading-relaxed">
+                      <p className="text-[11px] sm:text-xs text-neutral-500 leading-relaxed">
                         Le meilleur modèle du marché pour l'écriture créative et littéraire. Un style inégalé.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowModelModal(false)}
-                    className="flex-1 px-6 py-3.5 rounded-xl border border-neutral-200 text-neutral-600 font-bold text-sm hover:bg-neutral-50 transition-colors"
+                    className="flex-1 px-4 sm:px-6 py-3 rounded-xl border border-neutral-200 text-neutral-600 font-bold text-sm hover:bg-neutral-50 transition-colors"
                   >
                     Annuler
                   </button>
                   <button
                     onClick={handleSubmit}
-                    className="flex-1 bg-secondary hover:bg-orange-600 text-white px-6 py-3.5 rounded-xl font-bold text-sm shadow-md transition-all flex justify-center items-center gap-2"
+                    className="flex-1 bg-secondary hover:bg-orange-600 text-white px-4 sm:px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all flex justify-center items-center gap-2"
                   >
-                    <span>Lancer la rédaction</span>
-                    <span className="material-symbols-outlined text-base">rocket_launch</span>
+                    <span className="truncate">Lancer la rédaction</span>
+                    <span className="material-symbols-outlined text-base shrink-0">rocket_launch</span>
                   </button>
                 </div>
               </motion.div>
