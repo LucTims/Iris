@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { COINS_PER_USD } from "@/lib/ai/pricing";
 import { getPackById } from "@/lib/coinPacks";
+import { useAdminStats } from "@/hooks/useAdmin";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -69,28 +70,7 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 export default function AdminOverviewPage() {
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const load = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/admin/overview");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Erreur de chargement.");
-      setStats(data.stats);
-    } catch (e: any) {
-      setError(e?.message || "Erreur de chargement.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
+  const { stats, isLoading: loading, error, mutate: load } = useAdminStats();
 
   if (loading) {
     return (

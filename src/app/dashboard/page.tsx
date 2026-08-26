@@ -6,6 +6,8 @@ import Link from "next/link";
 import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUser";
 
+import { useProjects } from "@/hooks/useProjects";
+
 const QuillAnimation = dynamic(() => import("@/components/QuillAnimation"), { ssr: false });
 const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
 
@@ -13,32 +15,15 @@ export default function DashboardPage() {
   const { displayName, displayEmail, signOut, isAdmin } = useUser();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedProjectForExport, setSelectedProjectForExport] = useState<any | null>(null);
+
+  const { projects, isLoading: loading } = useProjects();
 
   const handleOpenExportModal = (project: any) => {
     setSelectedProjectForExport(project);
     setIsExportModalOpen(true);
   };
-
-  useEffect(() => {
-    async function loadProjects() {
-      try {
-        const res = await fetch("/api/projects");
-        if (res.ok) {
-          const data = await res.json();
-          setProjects(data.projects || []);
-        }
-      } catch (err) {
-        console.error("Erreur de chargement des projets:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadProjects();
-  }, []);
 
   const hasProjects = projects.length > 0;
   const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";

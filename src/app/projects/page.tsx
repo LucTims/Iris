@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import AppLayout from "@/components/AppLayout";
+import { useProjects } from "@/hooks/useProjects";
 import { useUser } from "@/hooks/useUser";
 
 const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
@@ -16,7 +17,6 @@ export default function ProjectsPage() {
   const [activeFilter, setActiveFilter] = useState("Tous");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedProjectForExport, setSelectedProjectForExport] = useState<any | null>(null);
 
@@ -25,26 +25,7 @@ export default function ProjectsPage() {
   const [newSubtitle, setNewSubtitle] = useState("");
   const [newCategory, setNewCategory] = useState("Business & Entrepreneuriat");
 
-  const [projects, setProjects] = useState<any[]>([]);
-
-  const fetchProjects = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/projects");
-      if (res.ok) {
-        const data = await res.json();
-        setProjects(data.projects || []);
-      }
-    } catch (err) {
-      console.error("Erreur de chargement des projets:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProjects();
-  }, []);
+  const { projects, isLoading: loading, mutate: fetchProjects } = useProjects();
 
   const filteredProjects = projects.filter((project) => {
     const matchesSearch =

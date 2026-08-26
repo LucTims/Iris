@@ -1,35 +1,14 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useAdminUsers } from "@/hooks/useAdmin";
 
 const fmt = (n: number) => (Number(n) || 0).toLocaleString("fr-FR");
 
 export default function UsersListClient({ initialUsers = [] }: { initialUsers?: any[] }) {
-  const [users, setUsers] = useState<any[]>(initialUsers);
-  const [loading, setLoading] = useState(true);
+  const { users, isLoading: loading, error, mutate: load } = useAdminUsers(initialUsers);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [error, setError] = useState("");
-
-  const load = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/admin/users");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Erreur de chargement.");
-      setUsers(data.users || []);
-    } catch (e: any) {
-      setError(e?.message || "Erreur de chargement.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
   const changePlan = async (userId: string, newPlan: string) => {
     setLoadingId(userId);
     try {
@@ -40,7 +19,7 @@ export default function UsersListClient({ initialUsers = [] }: { initialUsers?: 
       });
       const data = await res.json();
       if (data.success) {
-        setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, plan: newPlan } : u)));
+        load();
       } else {
         alert("Erreur : " + data.error);
       }
