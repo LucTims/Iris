@@ -1115,17 +1115,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           </button>
         )}
 
-        {/* Continuer la rédaction du chapitre courant avec l'IA (via le chat) */}
-        {wordCount >= 20 && onContinueWithAi && (
-          <button
-            onClick={onContinueWithAi}
-            disabled={isGenerating}
-            className="bg-white border-2 border-secondary/20 hover:border-secondary text-secondary hover:bg-orange-50 font-bold text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-4 rounded-2xl transition-all shadow-xl flex items-center gap-2 group cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg sm:text-xl group-hover:rotate-12 transition-transform">auto_awesome</span>
-            <span>Continuer avec l&apos;IA</span>
-          </button>
-        )}
+
       </div>
 
       {/* Hidden Manuscript Input */}
