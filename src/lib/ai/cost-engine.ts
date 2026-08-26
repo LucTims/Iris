@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { COINS_PER_USD } from "@/lib/ai/pricing";
 
 export async function checkMinimumBalance(userId: string, requiredCoins: number): Promise<boolean> {
   const supabase = await createClient();
@@ -76,14 +77,9 @@ export async function deductCost(
   const outputCostUsd = (safeOutputTokens / 1_000_000) * Number(model.output_cost_per_1m);
   const totalCostUsd = inputCostUsd + outputCostUsd;
 
-  // 3. Convert to Coins (Ratio x4 margin, 1 coin = $0.00165)
-  // Therefore: Virtual Cost = totalCostUsd * 4
-  // Cost in Coins = Virtual Cost / 0.00165
-  // Cost in Coins = totalCostUsd * 4 / (1.65 / 1000) = totalCostUsd * 2424.24
-  // We round to 2500 for simplicity and safer margin.
-  const USD_TO_COINS_WITH_MARGIN = 2500;
-  
-  let costInCoins = Math.ceil(totalCostUsd * USD_TO_COINS_WITH_MARGIN);
+  // 3. Convert to Coins — marge incluse. La constante vit dans @/lib/ai/pricing
+  // (source unique de l'économie des pièces, ajustable x4 → x5).
+  let costInCoins = Math.ceil(totalCostUsd * COINS_PER_USD);
   
   // Enforce a minimum of 1 coin if it was a very small request
   if (costInCoins < 1) costInCoins = 1;

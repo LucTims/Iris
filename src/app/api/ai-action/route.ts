@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
+import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
 import { getAiModel } from "@/lib/ai/search-context";
 
 export const maxDuration = 60;
@@ -70,6 +71,14 @@ export async function POST(req: Request) {
       );
     }
 
+    // 3b. Vérifie le solde de pièces
+    if (!(await checkMinimumBalance(user.id, 5))) {
+      return NextResponse.json(
+        { error: "Fonds insuffisants (pièces) pour cette action IA." },
+        { status: 402 }
+      );
+    }
+
     // 4. Track usage in Supabase ai_usage table
     try {
       await supabase.from("ai_usage").insert({
@@ -118,13 +127,21 @@ Instructions impératives :
 2. Respecte le format de la sélection : si c'est un fragment de phrase (pas un paragraphe entier), renvoie du texte au fil du texte SANS balise <p> autour, pour qu'il s'insère proprement là où était la sélection. Conserve le formatage inline présent (<strong>, <em>). Utilise des balises de bloc (<p>, <h2>, <ul>...) uniquement si la sélection couvrait déjà plusieurs blocs.
 3. Ne réponds qu'avec le résultat final de la transformation, rien d'autre.`;
 
-    const { text } = await generateText({
+    const genResult = await generateText({
       model: getAiModel(selectedModelName),
       system: systemPrompt,
       prompt: `Voici le texte à traiter :\n\n${selectedText}`,
     });
 
-    let cleaned = (text || "")
+    await deductCost(
+      user.id,
+      selectedModelName,
+      genResult.usage?.promptTokens,
+      genResult.usage?.completionTokens,
+      `Action IA : ${customInstruction ? "instruction libre" : actionType}`
+    );
+
+    let cleaned = (genResult.text || "")
       .replace(/^```html\s*/i, "")
       .replace(/^```\s*/i, "")
       .replace(/```\s*$/i, "")
