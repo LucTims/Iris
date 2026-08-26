@@ -168,7 +168,7 @@ export default function Sidebar() {
     </aside>
 
       {/* ================= MOBILE BOTTOM NAVIGATION BAR ================= */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-50 px-4 py-2 flex items-center justify-around shadow-lg">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-50 px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] flex items-center justify-around shadow-lg">
         <Link href="/dashboard" className={`flex flex-col items-center gap-1 ${pathname === "/dashboard" ? "text-secondary font-bold" : "text-neutral-500 hover:text-neutral-900"}`}>
           <LayoutDashboard strokeWidth={1.5} className="w-5 h-5" />
           <span className="text-[10px]">Accueil</span>
