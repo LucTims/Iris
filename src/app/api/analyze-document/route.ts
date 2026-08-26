@@ -108,7 +108,7 @@ Sois factuel et concis. N'invente rien qui ne soit pas dans le document. Répond
       user.id,
       ANALYSIS_COST_COINS,
       `Analyse de document${fileName ? ` : ${fileName}` : ""}`,
-      { model_id: selectedModelName }
+      { model_id: selectedModelName, ...(projectId ? { project_id: projectId } : {}) }
     );
 
     return NextResponse.json({

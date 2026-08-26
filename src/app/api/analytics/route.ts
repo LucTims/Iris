@@ -44,13 +44,41 @@ export async function GET() {
       }
     }
 
+    // Pièces réellement dépensées, attribuées par projet via le champ
+    // metadata.project_id des débits (RLS : uniquement les transactions de
+    // l'utilisateur courant). Certaines actions sans projet ne sont pas
+    // rattachées (comptées seulement dans le total).
+    let totalCoins = 0;
+    try {
+      const { data: wallets } = await supabase.from("wallets").select("id");
+      const walletIds = (wallets || []).map((w) => w.id);
+      if (walletIds.length > 0) {
+        const { data: debits } = await supabase
+          .from("coin_transactions")
+          .select("amount, metadata")
+          .eq("type", "debit")
+          .in("wallet_id", walletIds);
+        for (const d of debits || []) {
+          const amt = Number(d.amount) || 0;
+          totalCoins += amt;
+          const pid = (d.metadata as any)?.project_id;
+          if (pid) {
+            if (!projectStats[pid]) projectStats[pid] = { words: 0, chaptersCount: 0 };
+            (projectStats[pid] as any).coins = ((projectStats[pid] as any).coins || 0) + amt;
+          }
+        }
+      }
+    } catch (coinErr) {
+      console.warn("Analytics coins non disponibles:", coinErr);
+    }
+
     return NextResponse.json({
       global: {
         totalWords,
         totalPages: Math.ceil(totalWords / 250),
-        estimatedCost: (totalWords / 1000) * 0.05 // 0.05€ per 1000 words generated
+        totalCoins,
       },
-      projectStats
+      projectStats,
     });
 
   } catch (error: any) {

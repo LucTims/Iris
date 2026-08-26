@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { getPackById } from "@/lib/coinPacks";
 
 export async function POST(req: Request) {
   try {
@@ -11,11 +12,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    const { planId, amount, phone, operator, country, otpCode } = await req.json();
+    const { planId, phone, operator, country, otpCode } = await req.json();
 
-    if (!planId || !amount || !phone || !operator || !country) {
+    if (!planId || !phone || !operator || !country) {
       return NextResponse.json({ error: "Données manquantes" }, { status: 400 });
     }
+
+    // Le montant est TOUJOURS déterminé côté serveur d'après le pack (anti-fraude) :
+    // on n'accorde jamais confiance à un montant envoyé par le client.
+    const pack = getPackById(planId);
+    if (!pack) {
+      return NextResponse.json({ error: "Pack inconnu" }, { status: 400 });
+    }
+    const amount = pack.priceFcfa;
 
     const supabaseAdmin = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

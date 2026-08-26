@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
+import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
 import {
   getAiModel,
   fetchSearchContext,
@@ -35,6 +36,13 @@ export async function POST(req: Request) {
 
     if (!content) {
       return NextResponse.json({ error: "Le contenu est requis pour une réécriture." }, { status: 400 });
+    }
+
+    if (!(await checkMinimumBalance(user.id, 30))) {
+      return NextResponse.json(
+        { error: "Fonds insuffisants (pièces) pour réécrire ce texte." },
+        { status: 402 }
+      );
     }
 
     const { data: profile } = await supabase
@@ -113,6 +121,16 @@ IMPORTANT:
 ${searchContext}
 ${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
       prompt: prompt,
+      async onFinish({ usage }) {
+        await deductCost(
+          user.id,
+          selectedModelName,
+          usage.promptTokens,
+          usage.completionTokens,
+          "Réécriture d'un document",
+          projectContext?.id || null
+        );
+      },
     });
 
     return result.toTextStreamResponse();

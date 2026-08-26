@@ -47,6 +47,7 @@ export async function POST(req: Request) {
       referenceAnalysis,
       referencePurpose,
       referenceName,
+      projectId,
     } = await req.json();
 
     const selectedModelName = chosenModel || "gemini-2.5-flash";
@@ -156,7 +157,8 @@ ${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
           selectedModelName,
           usage.promptTokens,
           usage.completionTokens,
-          `Génération du Plan: ${title}`
+          `Génération du Plan: ${title}`,
+          projectId
         );
       }
     });

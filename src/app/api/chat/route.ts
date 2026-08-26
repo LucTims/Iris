@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
+import { checkMinimumBalance, deductCost } from "@/lib/ai/cost-engine";
 import {
   detectIntent,
   resolveTargetChapter,
@@ -106,6 +107,14 @@ export async function POST(req: Request) {
     const lastUserMessage = userMessages.length > 0
       ? (userMessages[userMessages.length - 1].text || userMessages[userMessages.length - 1].content || "")
       : "";
+
+    // Vérifie le solde de pièces (le chat consomme des tokens comme le reste)
+    if (!(await checkMinimumBalance(user.id, 5))) {
+      return NextResponse.json(
+        { error: "Fonds insuffisants. Rechargez des pièces pour continuer à utiliser l'assistant." },
+        { status: 402 }
+      );
+    }
 
     // Detect Intent (with conversation history for confirmations like "oui va y", "tu peux le faire sur le livre ?")
     const intent = detectIntent(lastUserMessage, messages);
@@ -225,6 +234,15 @@ Consignes de génération :
         prompt: editPrompt
       });
 
+      await deductCost(
+        user.id,
+        selectedModelName,
+        modificationResult.usage?.promptTokens,
+        modificationResult.usage?.completionTokens,
+        "Assistant IA — modification de chapitre",
+        bodyProjectId || (context as any)?.projectId || null
+      );
+
       let cleanedHtml = modificationResult.object.newContent || "";
       cleanedHtml = cleanedHtml
         .replace(/^```html\s*/i, "")
@@ -297,6 +315,16 @@ Consignes de style :
       model: getAiModel(selectedModelName),
       system: systemPrompt,
       messages: aiMessages,
+      async onFinish({ usage }) {
+        await deductCost(
+          user.id,
+          selectedModelName,
+          usage.promptTokens,
+          usage.completionTokens,
+          "Assistant IA — conversation",
+          bodyProjectId || (context as any)?.projectId || null
+        );
+      },
     });
 
     return result.toTextStreamResponse();

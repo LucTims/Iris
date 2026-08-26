@@ -12,8 +12,27 @@ function PaymentPendingContent() {
   const txId = searchParams.get("simulated_tx") || searchParams.get("transaction_id");
   const router = useRouter();
   const supabase = createClient();
-  const { refreshWalletBalance } = useUser();
+  const { refreshWalletBalance, isAdmin } = useUser();
   const [status, setStatus] = useState<"pending" | "paid" | "failed">("pending");
+  const [confirming, setConfirming] = useState(false);
+  const isDev = process.env.NODE_ENV !== "production";
+
+  const handleTestConfirm = async () => {
+    if (!txId) return;
+    setConfirming(true);
+    try {
+      await fetch("/api/dev/confirm-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactionId: txId }),
+      });
+      // Le polling détectera le passage à "paid" et créditera l'affichage.
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   useEffect(() => {
     if (!txId) return;
@@ -61,6 +80,16 @@ function PaymentPendingContent() {
             Veuillez valider le paiement sur votre téléphone (Mobile Money) ou finaliser la transaction sur la page Sebpay.
             Cette page s'actualisera automatiquement une fois le paiement confirmé.
           </p>
+          {(isDev || isAdmin) && txId && (
+            <button
+              onClick={handleTestConfirm}
+              disabled={confirming}
+              className="mb-4 text-xs font-bold px-4 py-2 rounded-xl border border-dashed border-neutral-300 text-neutral-500 hover:text-secondary hover:border-secondary transition-colors disabled:opacity-50"
+              title="Confirmer manuellement ce paiement (test — dev/admin uniquement)"
+            >
+              {confirming ? "Confirmation…" : "🧪 Simuler la validation du paiement (test)"}
+            </button>
+          )}
         </>
       )}
 

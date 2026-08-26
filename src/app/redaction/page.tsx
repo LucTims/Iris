@@ -285,6 +285,7 @@ function RedactionContent() {
               length: project.length,
               instructions: project.instructions,
               includeToc,
+              projectId: project.id,
               model: project.model || ctx?.model || "gemini-2.5-flash",
               useWebSearch,
               // Document de référence analysé : priorité à la version persistée
