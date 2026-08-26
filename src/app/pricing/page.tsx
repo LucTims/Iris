@@ -311,6 +311,12 @@ export default function PricingPage() {
                       <option value="ML">Mali</option>
                       <option value="NE">Niger</option>
                       <option value="GW">Guinée-Bissau</option>
+                      <option value="CM">Cameroun</option>
+                      <option value="CG">Congo</option>
+                      <option value="GA">Gabon</option>
+                      <option value="GQ">Guinée Équatoriale</option>
+                      <option value="CF">Rép. Centrafricaine</option>
+                      <option value="TD">Tchad</option>
                     </select>
                   </div>
                   <div>
