@@ -783,6 +783,10 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           {editor && (
             <BubbleMenu
               editor={editor}
+              tippyOptions={{
+                placement: 'top',
+                offset: [0, typeof window !== "undefined" && window.innerWidth < 768 ? 65 : 8]
+              }}
               className="flex flex-col bg-white/95 backdrop-blur-md border border-neutral-200/90 shadow-2xl rounded-2xl px-2 py-1.5 z-50 overflow-hidden max-w-[92vw]"
             >
               <div className="flex items-center gap-1 flex-wrap">
