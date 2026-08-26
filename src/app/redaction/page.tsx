@@ -9,6 +9,9 @@ import ImportManuscriptModal from "@/components/ImportManuscriptModal";
 import ExportBookModal from "@/components/ExportBookModal";
 import GeoScoreModal from "@/components/GeoScoreModal";
 import RewriteModal from "@/components/RewriteModal";
+import GenerateBookModal from "@/components/GenerateBookModal";
+import { SIZE_PRESETS } from "@/lib/book/generationPresets";
+import type { BookSizeKey } from "@/lib/book/generationPresets";
 import { parseManuscriptFile, splitHtmlIntoChapters } from "@/lib/parser";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import ReactMarkdown from "react-markdown";
@@ -143,6 +146,7 @@ function RedactionContent() {
   // Génération automatique de tout le livre (chapitre par chapitre depuis le sommaire)
   const [isBatchGenerating, setIsBatchGenerating] = useState(false);
   const [batchLabel, setBatchLabel] = useState("Iris rédige votre livre");
+  const [isBookModalOpen, setIsBookModalOpen] = useState(false);
   const [liveWordCount, setLiveWordCount] = useState(0);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<RichManuscriptEditorHandle>(null);
@@ -920,10 +924,10 @@ function RedactionContent() {
   };
 
 
-  // Extrait la liste des grands points (chapitres) depuis le HTML du sommaire.
+  // Extrait la liste des chapitres (titre + aperçu) depuis le HTML du sommaire.
   // On ne garde que les items de PREMIER niveau de la liste (les sous-points
-  // imbriqués sont ignorés), sinon on retombe sur les titres/paragraphes.
-  const parseSommaireTitles = (html: string): string[] => {
+  // imbriqués sont ignorés). Le titre est dans le <strong>, l'aperçu après.
+  const parseSommaireChapters = (html: string): { title: string; brief: string }[] => {
     if (!html) return [];
     const outer = html.match(/<ul[^>]*>([\s\S]*)<\/ul>/i)?.[1] || html;
     let inner = outer;
@@ -934,58 +938,117 @@ function RedactionContent() {
     } while (inner !== prev);
     const clean = (s: string) =>
       s.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+
+    const splitTitleBrief = (rawLi: string): { title: string; brief: string } => {
+      const strong = rawLi.match(/<strong[^>]*>([\s\S]*?)<\/strong>/i);
+      if (strong) {
+        const title = clean(strong[1]);
+        const brief = clean(rawLi.replace(strong[0], "")).replace(/^[\s—–:-]+/, "").trim();
+        return { title, brief };
+      }
+      const text = clean(rawLi);
+      const sep = text.split(/\s[—–-]\s/);
+      if (sep.length > 1) return { title: sep[0].trim(), brief: sep.slice(1).join(" — ").trim() };
+      return { title: text, brief: "" };
+    };
+
     let items = Array.from(inner.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi))
-      .map((m) => clean(m[1]))
-      .filter((t) => t.length > 1);
+      .map((m) => splitTitleBrief(m[1]))
+      .filter((c) => c.title.length > 1);
     if (items.length === 0) {
-      items = Array.from(html.matchAll(/<(?:h2|h3|p)[^>]*>([\s\S]*?)<\/(?:h2|h3|p)>/gi))
-        .map((m) => clean(m[1]))
-        .filter((t) => t.length > 2 && !/sommaire|table des mati/i.test(t));
+      items = Array.from(html.matchAll(/<(?:h2|h3)[^>]*>([\s\S]*?)<\/(?:h2|h3)>/gi))
+        .map((m) => ({ title: clean(m[1]), brief: "" }))
+        .filter((c) => c.title.length > 2 && !/sommaire|table des mati/i.test(c.title));
     }
-    // Dédoublonnage en conservant l'ordre
-    return Array.from(new Set(items)).slice(0, 30);
+    // Dédoublonnage sur le titre en conservant l'ordre
+    const seen = new Set<string>();
+    return items.filter((c) => (seen.has(c.title) ? false : (seen.add(c.title), true))).slice(0, 24);
   };
 
-  // Génère automatiquement tout le livre : un chapitre par point du sommaire,
-  // rédigé séquentiellement (un appel IA par chapitre pour respecter la limite
-  // de 60 s), avec l'animation d'écriture et une progression visible.
-  const handleGenerateWholeBook = async () => {
+  // Le chapitre-sommaire, s'il existe (sinon null → mode prototype).
+  const findSommaireChapter = () => chapters.find((c) => /sommaire|table des mati/i.test(c.title || "")) || null;
+
+  // Nombre de chapitres détectés dans le sommaire (pour l'estimation du popup).
+  const sommaireChapterCount = (() => {
+    const s = findSommaireChapter();
+    if (!s) return null;
+    const only = (s.content.split(/<hr[^>]*data-page-break[^>]*>/i)[0] || s.content).trim();
+    const n = parseSommaireChapters(only).length;
+    return n > 0 ? n : null;
+  })();
+
+  // Ouvre le popup de configuration (longueur + modèle).
+  const handleGenerateWholeBook = () => setIsBookModalOpen(true);
+
+  // Génère automatiquement tout le livre selon les options du popup : un chapitre
+  // par point (du sommaire, ou d'une structure proposée par l'IA en mode prototype),
+  // rédigé séquentiellement (un appel IA par chapitre pour tenir la limite de 60 s).
+  const runWholeBookGeneration = async (opts: { sizeKey: BookSizeKey; model: string }) => {
+    setIsBookModalOpen(false);
     const pId = currentProjectId || localStorage.getItem("iris_current_project_id");
     if (!pId) {
       alert("Projet introuvable. Enregistrez d'abord votre projet.");
       return;
     }
-    const sommaire = chapters.find((c) => /sommaire|table des mati/i.test(c.title || ""));
-    const sommaireHtml = sommaire?.content || chapters[0]?.content || "";
-    // La génération initiale peut mettre "sommaire + contenu complet" dans un
-    // seul chapitre : on isole la partie sommaire (avant le 1er saut de page)
-    // pour (a) parser les bons titres et (b) ne pas dupliquer le contenu.
-    const sommaireOnly = (sommaireHtml.split(/<hr[^>]*data-page-break[^>]*>/i)[0] || sommaireHtml).trim();
-    const titles = parseSommaireTitles(sommaireOnly);
-    if (titles.length === 0) {
-      alert("Aucun point détecté dans le sommaire. Générez d'abord un sommaire à partir de l'assistant.");
-      return;
-    }
-    if (
-      !confirm(
-        `Iris va rédiger ${titles.length} chapitre(s) à partir du sommaire.\n\nLes chapitres existants seront remplacés, cela peut prendre quelques minutes et consomme des pièces.\n\nContinuer ?`
-      )
-    ) {
-      return;
-    }
+    const preset = SIZE_PRESETS[opts.sizeKey];
+    const model = opts.model || selectedAiModel;
 
     setIsBatchGenerating(true);
     setBatchLabel("Préparation des chapitres…");
     try {
-      // 1. (Re)crée la structure : sommaire en tête, puis un chapitre par point.
+      const sommaire = findSommaireChapter();
+      let planChapters: { title: string; brief: string }[] = [];
+      let sommaireOnly = "";
+
+      if (sommaire) {
+        // MODE SOMMAIRE : on lit les chapitres depuis le sommaire (édité ou non).
+        sommaireOnly = (sommaire.content.split(/<hr[^>]*data-page-break[^>]*>/i)[0] || sommaire.content).trim();
+        planChapters = parseSommaireChapters(sommaireOnly);
+      } else {
+        // MODE PROTOTYPE : pas de sommaire dans le livre → l'IA propose une
+        // structure à partir du prototype et du nombre de chapitres visé.
+        const prototype = chapters[0]?.content || "";
+        const res = await fetch("/api/generate-outline", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: bookTitle,
+            subtitle: projectData?.subtitle,
+            synopsis: projectData?.synopsis || "",
+            tone: projectData?.tone || "professionnel",
+            audience: projectData?.audience,
+            category: projectData?.category,
+            length: projectData?.length,
+            instructions: projectData?.instructions,
+            prototype: prototype.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 4000),
+            targetChapters: preset.chaptersIfNoSommaire,
+            referenceAnalysis: (projectData as any)?.reference_analysis || undefined,
+            model,
+            projectId: pId,
+          }),
+        });
+        if (res.status === 402) { alert("Pièces insuffisantes pour préparer la structure du livre."); return; }
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.chapters?.length) {
+          alert("Impossible de préparer la structure du livre. Réessayez.");
+          return;
+        }
+        planChapters = data.chapters.map((c: any) => ({ title: String(c.title || "").trim(), brief: String(c.brief || "").trim() })).filter((c: any) => c.title);
+      }
+
+      if (planChapters.length === 0) {
+        alert("Aucun chapitre à générer. Ajoutez un sommaire ou réessayez.");
+        return;
+      }
+
+      // (Re)crée la structure : sommaire en tête (mode sommaire) puis un chapitre par point.
       const draft: { number: number; title: string; content: string; status: string }[] = [];
       let num = 1;
       if (sommaire) {
-        // On ne garde que la partie sommaire (jamais le contenu complet du blob).
         draft.push({ number: num++, title: sommaire.title, content: sommaireOnly, status: "En cours" });
       }
-      for (const t of titles) {
-        draft.push({ number: num++, title: t, content: "", status: "Brouillon" });
+      for (const c of planChapters) {
+        draft.push({ number: num++, title: c.title, content: "", status: "Brouillon" });
       }
 
       const created = await replaceChaptersOnServer(pId, chapters, draft);
@@ -995,13 +1058,16 @@ function RedactionContent() {
       }
       setChapters(created);
 
-      const outline = sommaireOnly.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 2000);
       const startIdx = sommaire ? 1 : 0;
       const total = created.length - startIdx;
+      const outline = sommaire
+        ? sommaireOnly.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 2000)
+        : planChapters.map((c, k) => `${k + 1}. ${c.title} — ${c.brief}`).join("\n").substring(0, 2000);
 
-      // 2. Rédige chaque chapitre de contenu, l'un après l'autre.
+      // Rédige chaque chapitre de contenu, l'un après l'autre.
       for (let i = startIdx; i < created.length; i++) {
         const chap = created[i];
+        const brief = planChapters[i - startIdx]?.brief || "";
         setActiveChapterIndex(i);
         setBatchLabel(`Rédaction ${i - startIdx + 1}/${total} — ${chap.title}`);
 
@@ -1026,7 +1092,9 @@ function RedactionContent() {
               chapterNumber: chap.number,
               previousChaptersSummary,
               bookOutline: outline,
-              model: selectedAiModel,
+              chapterBrief: brief,
+              targetWords: preset.wordsPerChapter,
+              model,
               projectId: pId,
               useWebSearch,
             }),
@@ -1037,12 +1105,11 @@ function RedactionContent() {
             return;
           }
           if (resp.status === 429 && attempt < 2) {
-            // Limite de débit atteinte : petite pause puis nouvelle tentative.
             setBatchLabel(`Pause anti-surcharge… (chapitre ${i - startIdx + 1}/${total})`);
             await new Promise((r) => setTimeout(r, 20000));
             continue;
           }
-          if (!resp.ok) break; // on passe au chapitre suivant
+          if (!resp.ok) break;
 
           const reader = resp.body?.getReader();
           const decoder = new TextDecoder();
@@ -1065,7 +1132,6 @@ function RedactionContent() {
           ok = true;
         }
 
-        // Persiste le chapitre généré.
         if (ok) {
           try {
             await fetch(`/api/projects/${pId}/chapters/${chap.id}`, {
@@ -1079,7 +1145,7 @@ function RedactionContent() {
               return u;
             });
           } catch {
-            /* la sauvegarde échoue silencieusement, le contenu reste à l'écran */
+            /* échec de sauvegarde silencieux, le contenu reste à l'écran */
           }
         }
       }
@@ -1926,6 +1992,14 @@ function RedactionContent() {
         isOpen={isRewriteModalOpen}
         onClose={() => setIsRewriteModalOpen(false)}
         onRewrite={handleRewriteChapter}
+      />
+
+      <GenerateBookModal
+        isOpen={isBookModalOpen}
+        onClose={() => setIsBookModalOpen(false)}
+        onConfirm={runWholeBookGeneration}
+        defaultModel={selectedAiModel}
+        sommaireChapters={sommaireChapterCount}
       />
     </div>
   );
