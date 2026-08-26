@@ -147,6 +147,9 @@ function RedactionContent() {
   const [isBatchGenerating, setIsBatchGenerating] = useState(false);
   const [batchLabel, setBatchLabel] = useState("Iris rédige votre livre");
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
+  // Signal d'arrêt de la génération complète (respecté entre deux chapitres).
+  const batchStopRef = useRef(false);
   const [liveWordCount, setLiveWordCount] = useState(0);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<RichManuscriptEditorHandle>(null);
@@ -993,6 +996,8 @@ function RedactionContent() {
     const preset = SIZE_PRESETS[opts.sizeKey];
     const model = opts.model || selectedAiModel;
 
+    batchStopRef.current = false;
+    setBatchProgress(null);
     setIsBatchGenerating(true);
     setBatchLabel("Préparation des chapitres…");
     try {
@@ -1066,9 +1071,11 @@ function RedactionContent() {
 
       // Rédige chaque chapitre de contenu, l'un après l'autre.
       for (let i = startIdx; i < created.length; i++) {
+        if (batchStopRef.current) break; // arrêt demandé par l'utilisateur
         const chap = created[i];
         const brief = planChapters[i - startIdx]?.brief || "";
         setActiveChapterIndex(i);
+        setBatchProgress({ current: i - startIdx + 1, total });
         setBatchLabel(`Rédaction ${i - startIdx + 1}/${total} — ${chap.title}`);
 
         const previousChaptersSummary = created
@@ -1156,6 +1163,96 @@ function RedactionContent() {
       alert("Une erreur est survenue pendant la génération du livre. Les chapitres déjà rédigés sont enregistrés.");
     } finally {
       setIsBatchGenerating(false);
+      setBatchProgress(null);
+      batchStopRef.current = false;
+    }
+  };
+
+  // Régénère un seul chapitre (bouton dans l'en-tête). Reprend l'aperçu du
+  // sommaire et le contexte des chapitres précédents pour rester cohérent.
+  const regenerateChapter = async (index: number) => {
+    const chap = chapters[index];
+    if (!chap) return;
+    if (/sommaire|table des mati/i.test(chap.title || "")) {
+      alert("Le sommaire ne se régénère pas ici — modifiez-le via l'assistant.");
+      return;
+    }
+    const pId = currentProjectId || localStorage.getItem("iris_current_project_id");
+    if (!confirm(`Régénérer le chapitre « ${chap.title} » ? Son contenu actuel sera remplacé.`)) return;
+
+    setActiveChapterIndex(index);
+    setIsGeneratingChapter(true);
+    try {
+      let brief = "";
+      let outline = "";
+      const sommaire = findSommaireChapter();
+      if (sommaire) {
+        const only = (sommaire.content.split(/<hr[^>]*data-page-break[^>]*>/i)[0] || sommaire.content).trim();
+        const list = parseSommaireChapters(only);
+        brief = list.find((c) => c.title.trim() === (chap.title || "").trim())?.brief || "";
+        outline = only.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 2000);
+      }
+      const previousChaptersSummary = chapters
+        .slice(0, index)
+        .filter((c) => !/sommaire|table des mati/i.test(c.title || ""))
+        .map((c, k) => `Chapitre ${k + 1} (${c.title})`)
+        .join("\n");
+
+      const resp = await fetch("/api/generate-chapter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: bookTitle,
+          synopsis: projectData?.synopsis || "",
+          tone: projectData?.tone || "professionnel",
+          chapterTitle: chap.title,
+          chapterNumber: chap.number,
+          previousChaptersSummary,
+          bookOutline: outline,
+          chapterBrief: brief,
+          model: selectedAiModel,
+          projectId: pId,
+          useWebSearch,
+        }),
+      });
+      if (!resp.ok) {
+        alert(resp.status === 402 ? "Pièces insuffisantes pour régénérer ce chapitre." : "Erreur lors de la régénération du chapitre.");
+        return;
+      }
+      const reader = resp.body?.getReader();
+      const decoder = new TextDecoder();
+      let txt = "";
+      if (reader) {
+        let done = false;
+        while (!done) {
+          const { value, done: d } = await reader.read();
+          done = d;
+          if (value) {
+            txt += decoder.decode(value, { stream: true });
+            setChapters((prev) => {
+              const u = [...prev];
+              if (u[index]) u[index] = { ...u[index], content: txt, status: "En cours" };
+              return u;
+            });
+          }
+        }
+      }
+      if (pId && typeof chap.id === "string") {
+        try {
+          await fetch(`/api/projects/${pId}/chapters/${chap.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: chap.title, content: txt, status: "Terminé" }),
+          });
+        } catch {
+          /* échec de sauvegarde silencieux */
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors de la régénération du chapitre:", error);
+      alert("Une erreur est survenue lors de la régénération du chapitre.");
+    } finally {
+      setIsGeneratingChapter(false);
     }
   };
 
@@ -1423,6 +1520,19 @@ function RedactionContent() {
                 ))}
               </select>
 
+              {/* Régénérer le chapitre actuellement sélectionné */}
+              {!/sommaire|table des mati/i.test(currentChapter?.title || "") && (
+                <button
+                  onClick={() => regenerateChapter(activeChapterIndex)}
+                  disabled={isBatchGenerating || isGeneratingChapter || isRewriting}
+                  className="bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-2xs disabled:opacity-50 cursor-pointer"
+                  title="Régénérer ce chapitre avec l'IA (remplace son contenu)"
+                >
+                  <span className="material-symbols-outlined text-sm">refresh</span>
+                  <span className="hidden xl:inline">Régénérer</span>
+                </button>
+              )}
+
               {/* Action pour scinder un document long contenant plusieurs sous-parties en chapitres distincts */}
               {chapters.length === 1 && (
                 <button
@@ -1611,6 +1721,15 @@ function RedactionContent() {
                   : isInitialGenerating
                   ? "Iris rédige votre livre"
                   : "Iris écrit ce chapitre"
+              }
+              generationProgress={isBatchGenerating ? batchProgress : null}
+              onStopGeneration={
+                isBatchGenerating
+                  ? () => {
+                      batchStopRef.current = true;
+                      setBatchLabel("Arrêt en cours… (fin du chapitre courant)");
+                    }
+                  : undefined
               }
               onFileSelected={handleFileSelectedForImport}
             />

@@ -33,6 +33,10 @@ export interface RichManuscriptEditorProps {
   isGenerating?: boolean;
   /** Optional label shown on the generation animation (e.g. "Iris réécrit votre livre"). */
   generationLabel?: string;
+  /** Real progress (current/total chapters) shown as a determinate bar during batch generation. */
+  generationProgress?: { current: number; total: number } | null;
+  /** When provided, shows a Stop button on the generation overlay. */
+  onStopGeneration?: () => void;
   onFileSelected?: (file: File) => void;
 }
 

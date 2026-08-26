@@ -57,6 +57,8 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       onSendSelectionToChat,
       isGenerating = false,
       generationLabel,
+      generationProgress,
+      onStopGeneration,
       onFileSelected,
     },
     ref
@@ -445,6 +447,8 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
         {isGenerating && (
           <EditorGenerationOverlay
             label={generationLabel || "Iris écrit votre livre"}
+            progress={generationProgress}
+            onStop={onStopGeneration}
           />
         )}
       </AnimatePresence>

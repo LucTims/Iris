@@ -21,10 +21,20 @@ const DEFAULT_MESSAGES = [
 export default function EditorGenerationOverlay({
   label = "Iris écrit votre livre",
   messages = DEFAULT_MESSAGES,
+  progress,
+  onStop,
 }: {
   label?: string;
   messages?: string[];
+  /** Progression réelle (chapitre courant / total) — affiche une barre déterminée. */
+  progress?: { current: number; total: number } | null;
+  /** Callback d'arrêt : affiche un bouton « Arrêter » (stop après le chapitre en cours). */
+  onStop?: () => void;
 }) {
+  const pct =
+    progress && progress.total > 0
+      ? Math.min(100, Math.round((progress.current / progress.total) * 100))
+      : null;
   const [msgIndex, setMsgIndex] = useState(0);
 
   useEffect(() => {
@@ -144,15 +154,43 @@ export default function EditorGenerationOverlay({
           </div>
         </div>
 
-        {/* Barre de progression indéterminée (shimmer) */}
-        <div className="relative w-full h-1.5 rounded-full bg-neutral-200/70 overflow-hidden">
-          <motion.div
-            className="absolute top-0 h-full w-1/3 rounded-full bg-gradient-to-r from-transparent via-secondary to-transparent"
-            initial={{ x: "-40%" }}
-            animate={{ x: "340%" }}
-            transition={{ duration: 1.4, ease: "easeInOut", repeat: Infinity }}
-          />
-        </div>
+        {/* Barre de progression : déterminée si on connaît l'avancement, sinon shimmer */}
+        {pct != null ? (
+          <div className="w-full space-y-1.5">
+            <div className="flex items-center justify-between text-[11px] font-bold text-neutral-500">
+              <span>Chapitre {progress!.current} / {progress!.total}</span>
+              <span>{pct}%</span>
+            </div>
+            <div className="relative w-full h-2 rounded-full bg-neutral-200/70 overflow-hidden">
+              <motion.div
+                className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-secondary to-amber-400"
+                initial={false}
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="relative w-full h-1.5 rounded-full bg-neutral-200/70 overflow-hidden">
+            <motion.div
+              className="absolute top-0 h-full w-1/3 rounded-full bg-gradient-to-r from-transparent via-secondary to-transparent"
+              initial={{ x: "-40%" }}
+              animate={{ x: "340%" }}
+              transition={{ duration: 1.4, ease: "easeInOut", repeat: Infinity }}
+            />
+          </div>
+        )}
+
+        {/* Bouton d'arrêt (stop après le chapitre en cours) */}
+        {onStop && (
+          <button
+            onClick={onStop}
+            className="mt-1 inline-flex items-center gap-1.5 rounded-xl border border-neutral-300 bg-white/80 px-4 py-2 text-xs font-bold text-neutral-700 hover:bg-white hover:border-red-300 hover:text-red-600 transition-colors"
+          >
+            <span className="material-symbols-outlined text-base">stop_circle</span>
+            Arrêter
+          </button>
+        )}
       </motion.div>
     </motion.div>
   );
