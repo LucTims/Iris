@@ -51,7 +51,8 @@ export async function deductCost(
   modelId: string,
   inputTokens: number | undefined,
   outputTokens: number | undefined,
-  description: string
+  description: string,
+  projectId?: string | null
 ): Promise<boolean> {
   // Le SDK IA peut renvoyer des compteurs de tokens indéfinis (selon le provider/la
   // version) ; on ne doit jamais laisser un NaN se propager jusqu'au RPC de débit.
@@ -93,7 +94,8 @@ export async function deductCost(
       model_id: modelId,
       input_tokens: safeInputTokens,
       output_tokens: safeOutputTokens,
-      usd_cost: totalCostUsd
+      usd_cost: totalCostUsd,
+      ...(projectId ? { project_id: projectId } : {}),
     }
   });
 

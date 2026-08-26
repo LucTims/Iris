@@ -239,7 +239,8 @@ Consignes de génération :
         selectedModelName,
         modificationResult.usage?.promptTokens,
         modificationResult.usage?.completionTokens,
-        "Assistant IA — modification de chapitre"
+        "Assistant IA — modification de chapitre",
+        bodyProjectId || (context as any)?.projectId || null
       );
 
       let cleanedHtml = modificationResult.object.newContent || "";
@@ -320,7 +321,8 @@ Consignes de style :
           selectedModelName,
           usage.promptTokens,
           usage.completionTokens,
-          "Assistant IA — conversation"
+          "Assistant IA — conversation",
+          bodyProjectId || (context as any)?.projectId || null
         );
       },
     });

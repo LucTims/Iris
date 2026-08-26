@@ -2,6 +2,30 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 
+// GET /api/admin/users — liste enrichie (solde, pièces dépensées, projets…).
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+    const { data, error } = await supabase.rpc("get_admin_users");
+    if (error) {
+      const forbidden = (error.message || "").toLowerCase().includes("forbidden");
+      return NextResponse.json(
+        { error: forbidden ? "Accès réservé aux administrateurs." : "Erreur de chargement." },
+        { status: forbidden ? 403 : 500 }
+      );
+    }
+    return NextResponse.json({ users: data || [] });
+  } catch (e) {
+    console.error("GET /api/admin/users error:", e);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
+}
+
 export async function PATCH(req: Request) {
   try {
     const supabase = await createClient();

@@ -106,8 +106,8 @@ export default function AnalyticsHubPage() {
                   <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-4">
                     <Coins className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Investissement IA</span>
-                  <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">{loading ? "-" : globalStats?.estimatedCost?.toFixed(2) || "0.00"} €</p>
+                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Pièces dépensées</span>
+                  <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">{loading ? "-" : (globalStats?.totalCoins || 0).toLocaleString('fr-FR')} <span className="text-lg">🪙</span></p>
                 </div>
               </div>
             </div>
@@ -150,8 +150,9 @@ export default function AnalyticsHubPage() {
               ) : (
                 <div className="divide-y divide-neutral-100">
                   {filteredProjects.map((project) => {
-                    const stats = projectStats[project.id] || { words: 0, chaptersCount: 0 };
+                    const stats = projectStats[project.id] || { words: 0, chaptersCount: 0, coins: 0 };
                     const pages = Math.ceil(stats.words / 250);
+                    const coins = (stats as any).coins || 0;
                     
                     return (
                       <div key={project.id} className="p-6 hover:bg-neutral-50/50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-6 group">
@@ -182,6 +183,11 @@ export default function AnalyticsHubPage() {
                           <div className="text-center">
                             <span className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Pages</span>
                             <span className="font-bold text-neutral-800">{pages}</span>
+                          </div>
+                          <div className="w-px h-8 bg-neutral-200"></div>
+                          <div className="text-center">
+                            <span className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Pièces</span>
+                            <span className="font-bold text-amber-600">{coins.toLocaleString('fr-FR')}</span>
                           </div>
                         </div>
 

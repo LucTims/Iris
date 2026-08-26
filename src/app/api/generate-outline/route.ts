@@ -103,7 +103,8 @@ Génère EXACTEMENT ${nbChapters} chapitres (ni plus, ni moins), dans un ordre l
       selectedModelName,
       result.usage?.promptTokens,
       result.usage?.completionTokens,
-      `Structure du livre : ${title || ""}`
+      `Structure du livre : ${title || ""}`,
+      projectId
     );
 
     const chapters = (result.object.chapters || [])

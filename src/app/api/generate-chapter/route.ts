@@ -117,7 +117,8 @@ Instructions impératives :
           selectedModelName,
           usage.promptTokens,
           usage.completionTokens,
-          `Génération Chapitre ${chapterNumber}: ${chapterTitle}`
+          `Génération Chapitre ${chapterNumber}: ${chapterTitle}`,
+          projectId
         );
         if (!success) {
           console.error(`Erreur lors de la déduction des pièces pour l'utilisateur ${user.id}`);

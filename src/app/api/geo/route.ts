@@ -59,7 +59,8 @@ Ton rôle est d'analyser un texte et de donner un score sur 100 de sa "compréhe
       modelId,
       result.usage?.promptTokens,
       result.usage?.completionTokens,
-      "Analyse GEO"
+      "Analyse GEO",
+      projectId
     );
 
     return NextResponse.json(result.object);

@@ -138,7 +138,8 @@ Instructions impératives :
       selectedModelName,
       genResult.usage?.promptTokens,
       genResult.usage?.completionTokens,
-      `Action IA : ${customInstruction ? "instruction libre" : actionType}`
+      `Action IA : ${customInstruction ? "instruction libre" : actionType}`,
+      projectId
     );
 
     let cleaned = (genResult.text || "")

@@ -127,7 +127,8 @@ ${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
           selectedModelName,
           usage.promptTokens,
           usage.completionTokens,
-          "Réécriture d'un document"
+          "Réécriture d'un document",
+          projectContext?.id || null
         );
       },
     });
