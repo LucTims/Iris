@@ -998,11 +998,20 @@ function RedactionContent() {
         });
         if (res.status === 402) { alert("Pièces insuffisantes pour préparer la structure du livre."); return; }
         const data = await res.json().catch(() => null);
-        if (!res.ok || !data?.chapters?.length) {
-          alert("Impossible de préparer la structure du livre. Réessayez.");
-          return;
+        planChapters = (data?.chapters || [])
+          .map((c: any) => ({ title: String(c.title || "").trim(), brief: String(c.brief || "").trim() }))
+          .filter((c: any) => c.title);
+
+        // Filet de sécurité côté client : si la structure n'a pas pu être
+        // préparée (réseau, 500…), on fabrique une trame minimale à partir du
+        // projet pour que le livre sans sommaire s'écrive quand même.
+        if (planChapters.length === 0) {
+          const base = (projectData?.synopsis || bookTitle || "").toString().trim();
+          planChapters = Array.from({ length: preset.chaptersIfNoSommaire }, (_, k) => ({
+            title: `Chapitre ${k + 1}`,
+            brief: base ? `Développe cette partie du livre : ${base.slice(0, 200)}` : "",
+          }));
         }
-        planChapters = data.chapters.map((c: any) => ({ title: String(c.title || "").trim(), brief: String(c.brief || "").trim() })).filter((c: any) => c.title);
       }
 
       if (planChapters.length === 0) {

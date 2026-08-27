@@ -1,5 +1,4 @@
-import { generateObject } from "ai";
-import { z } from "zod";
+import { generateText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
@@ -9,10 +8,38 @@ import { getAiModel } from "@/lib/ai/search-context";
 export const maxDuration = 60;
 
 /**
- * Génère UNIQUEMENT une structure de chapitres (titre + aperçu) au format JSON.
- * Utilisé par « Générer tout le livre » quand il n'existe pas de sommaire
- * (mode prototype) : on déduit la structure du projet + du prototype + du
- * nombre de chapitres visé, puis chaque chapitre est rédigé séparément.
+ * Analyse une liste de chapitres renvoyée en TEXTE (un chapitre par ligne,
+ * « Titre :: aperçu »). On évite volontairement `generateObject` (sortie
+ * structurée), peu fiable avec la combinaison @ai-sdk/google v4 + ai v7 :
+ * un simple texte + parsing tolérant est bien plus robuste et ne casse jamais
+ * la génération d'un livre sans sommaire.
+ */
+function parseOutlineText(text: string): { title: string; brief: string }[] {
+  if (!text) return [];
+  return text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    // On retire une éventuelle numérotation ou puce en début de ligne.
+    .map((line) => line.replace(/^\s*(?:\d+[.)]|[-*•])\s*/, "").trim())
+    .map((line) => {
+      // Séparateurs acceptés (par ordre de priorité) : « :: », « — », « – », « - », « : ».
+      const m = line.match(/^(.*?)\s*(?:::|—|–|\s-\s|:)\s*(.*)$/);
+      if (m) {
+        return { title: m[1].replace(/<[^>]*>/g, "").trim(), brief: m[2].replace(/<[^>]*>/g, "").trim() };
+      }
+      return { title: line.replace(/<[^>]*>/g, "").trim(), brief: "" };
+    })
+    .filter((c) => c.title.length > 1 && !/^chapitres?$/i.test(c.title))
+    .slice(0, 24);
+}
+
+/**
+ * Génère UNIQUEMENT une structure de chapitres (titre + aperçu).
+ * Utilisé par « Générer tout le livre » quand il n'existe PAS de sommaire :
+ * on déduit la structure à partir des infos du projet (titre, synopsis,
+ * public…) — un « prototype » facultatif l'enrichit — puis chaque chapitre
+ * est rédigé séparément. Fonctionne même sans prototype.
  */
 export async function POST(req: Request) {
   try {
@@ -67,7 +94,7 @@ export async function POST(req: Request) {
       console.warn("Usage tracking error:", trackErr);
     }
 
-    const prompt = `Tu es un architecte de livres. Propose la STRUCTURE en chapitres d'un livre.
+    const prompt = `Tu es un architecte de livres. Propose la STRUCTURE en chapitres d'un livre (sans page de sommaire, mais chaque chapitre a bien un grand titre).
 
 Détails :
 Titre : ${title || "Sans titre"}
@@ -81,20 +108,15 @@ Consignes : ${instructions || "—"}
 ${prototype ? `\nPrototype rédigé par l'IA (sers-t'en comme base d'inspiration) :\n${String(prototype).slice(0, 4000)}\n` : ""}
 ${referenceAnalysis ? `\nAnalyse d'un document de référence fourni par l'auteur :\n${String(referenceAnalysis).slice(0, 4000)}\n` : ""}
 
-Génère EXACTEMENT ${nbChapters} chapitres (ni plus, ni moins), dans un ordre logique et progressif. Pour chaque chapitre : un titre clair et un aperçu de 1 à 2 phrases décrivant précisément ce qu'il couvrira. Réponds en français.`;
+Génère EXACTEMENT ${nbChapters} chapitres (ni plus, ni moins), dans un ordre logique et progressif.
 
-    const result = await generateObject({
+FORMAT DE RÉPONSE STRICT — réponds UNIQUEMENT avec la liste, un chapitre par ligne, au format exact :
+Titre du chapitre :: aperçu en 1 à 2 phrases de ce que couvre le chapitre
+
+N'ajoute AUCUNE numérotation, AUCUN titre général, AUCUNE ligne vide, AUCUN texte avant ou après la liste. Réponds en français.`;
+
+    const result = await generateText({
       model: getAiModel(selectedModelName),
-      schema: z.object({
-        chapters: z
-          .array(
-            z.object({
-              title: z.string().describe("Titre du chapitre"),
-              brief: z.string().describe("Aperçu en 1 à 2 phrases du contenu du chapitre"),
-            })
-          )
-          .describe("Liste ordonnée des chapitres du livre"),
-      }),
       prompt,
     });
 
@@ -103,12 +125,21 @@ Génère EXACTEMENT ${nbChapters} chapitres (ni plus, ni moins), dans un ordre l
       selectedModelName,
       result.usage,
       `Structure du livre : ${title || ""}`,
-      { projectId, outputText: JSON.stringify(result.object ?? {}) }
+      { projectId, outputText: result.text || "" }
     );
 
-    const chapters = (result.object.chapters || [])
-      .filter((c) => c && c.title && c.title.trim())
-      .slice(0, 24);
+    let chapters = parseOutlineText(result.text || "");
+
+    // Filet de sécurité : si le modèle n'a rien renvoyé d'exploitable, on
+    // fabrique une structure minimale à partir du projet pour que la génération
+    // du livre ne soit JAMAIS bloquée (l'auteur pourra affiner les titres).
+    if (chapters.length === 0) {
+      const base = (synopsis || title || "").toString().trim();
+      chapters = Array.from({ length: nbChapters }, (_, k) => ({
+        title: `Chapitre ${k + 1}`,
+        brief: base ? `Développe cette partie du livre : ${base.slice(0, 200)}` : "",
+      }));
+    }
 
     return NextResponse.json({ chapters });
   } catch (error) {
