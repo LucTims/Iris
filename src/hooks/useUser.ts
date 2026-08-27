@@ -33,7 +33,14 @@ export function useUser() {
           .single();
         
         if (profileData) {
-          setProfile(profileData);
+          const meta = user.user_metadata || {};
+          setProfile({
+            ...profileData,
+            bio: meta.bio || profileData.bio,
+            website_url: meta.website_url || profileData.website_url,
+            twitter_url: meta.twitter_url || profileData.twitter_url,
+            amazon_url: meta.amazon_url || profileData.amazon_url
+          });
         }
 
         // Fetch wallet

@@ -39,6 +39,7 @@ export default function CoverStudioEditorPage() {
   const [coverApplied, setCoverApplied] = useState(false);
   const [appliedCoverUrl, setAppliedCoverUrl] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
+  const [unappliedCoverModalOpen, setUnappliedCoverModalOpen] = useState(false);
 
   // Dès que la couverture (image ou style) change, elle n'est plus « appliquée ».
   useEffect(() => {
@@ -194,15 +195,9 @@ export default function CoverStudioEditorPage() {
   //    l'appliquer ; 2) puis on ouvre le popup de choix du format (EPUB/PDF/DOCX…).
   const handleDownloadBook = async () => {
     if (!coverApplied) {
-      const ok = confirm(
-        "Vous n'avez pas encore appliqué cette couverture à votre livre.\n\n" +
-          "Voulez-vous l'appliquer maintenant avant le téléchargement ?\n" +
-          "(Sinon le livre sera exporté sans cette couverture.)"
-      );
-      if (ok) {
-        const url = await handleApplyToBook({ silent: true });
-        if (!url) return; // l'application a échoué → on n'ouvre pas l'export
-      }
+      setDownloadModalOpen(false);
+      setUnappliedCoverModalOpen(true);
+      return;
     }
     setDownloadModalOpen(false);
     setExportOpen(true);
@@ -631,6 +626,57 @@ export default function CoverStudioEditorPage() {
                 >
                   <span className="material-symbols-outlined">book</span>
                   <span>Télécharger le Livre Complet</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unapplied Cover Modal */}
+      {unappliedCoverModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-body animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl flex flex-col relative border border-neutral-100">
+            <button onClick={() => setUnappliedCoverModalOpen(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-full text-neutral-600 transition-colors z-10">
+              <span className="material-symbols-outlined text-lg">close</span>
+            </button>
+            
+            <div className="p-8 sm:p-10 text-center space-y-6">
+              <div className="w-20 h-20 mx-auto bg-orange-100 rounded-3xl flex items-center justify-center rotate-3 border border-orange-200 shadow-inner">
+                <span className="material-symbols-outlined text-4xl text-secondary">warning</span>
+              </div>
+              
+              <div className="space-y-2">
+                <h2 className="font-heading font-extrabold text-2xl text-neutral-900">Couverture non appliquée</h2>
+                <p className="text-sm text-neutral-500 max-w-sm mx-auto leading-relaxed">
+                  Vous n'avez pas encore appliqué cette couverture à votre livre. Voulez-vous l'appliquer maintenant avant le téléchargement ?
+                </p>
+                <p className="text-xs text-neutral-400 italic mt-1">(Sinon le livre sera exporté sans cette couverture.)</p>
+              </div>
+
+              <div className="pt-4 flex flex-col gap-3 max-w-sm mx-auto">
+                <button 
+                  onClick={async () => {
+                    const url = await handleApplyToBook({ silent: true });
+                    if (url) {
+                      setUnappliedCoverModalOpen(false);
+                      setExportOpen(true);
+                    }
+                  }}
+                  className="w-full bg-secondary hover:bg-orange-600 text-white font-bold text-sm py-3.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-lg">check_circle</span>
+                  <span>Appliquer la couverture</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setUnappliedCoverModalOpen(false);
+                    setExportOpen(true);
+                  }}
+                  className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-sm py-3.5 rounded-xl transition-all"
+                >
+                  Passer
                 </button>
               </div>
             </div>

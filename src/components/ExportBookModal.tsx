@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, LayoutTemplate, Download, ArrowRight, ArrowLeft } from "lucide-react";
 import { saveAs } from "file-saver";
@@ -25,6 +25,12 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
 
   // Steps: 1 = Cover, 2 = Layout, 3 = Final Download, 4 = Congratulations
   const [step, setStep] = useState<1 | 2 | 3 | 4>(initialStep);
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep(initialStep);
+    }
+  }, [isOpen, initialStep]);
 
   // Step 3 state (Original Export logic)
   const [selectedFormat, setSelectedFormat] = useState<"epub" | "pdf" | "docx" | "markdown">("epub");
@@ -134,7 +140,7 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
   };
 
   const resetAndClose = () => {
-    setStep(1);
+    setStep(initialStep);
     onClose();
   };
 

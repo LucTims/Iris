@@ -41,6 +41,9 @@ const adminNavItems: NavItem[] = [
   { id: "notifications", label: "Notifications", shortLabel: "Notifs", icon: Bell, href: "/admin/notifications" },
   { id: "finances", label: "Finances & SEBPay", shortLabel: "Finances", icon: Receipt, href: "/admin/finances" },
   { id: "ai", label: "Surveillance IA", shortLabel: "IA", icon: Cpu, href: "/admin/ai" },
+];
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

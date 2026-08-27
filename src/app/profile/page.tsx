@@ -45,19 +45,26 @@ export default function SettingsPage() {
     setMessage("");
 
     try {
-      const { error } = await supabase
+      const { error: profileError } = await supabase
         .from("profiles")
-        .upsert({
-          id: user.id,
+        .update({
           full_name: fullName,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", user.id);
+
+      if (profileError) throw profileError;
+
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
           bio: bio,
           website_url: websiteUrl,
           twitter_url: twitterUrl,
           amazon_url: amazonUrl,
-          updated_at: new Date().toISOString()
-        });
+        }
+      });
 
-      if (error) throw error;
+      if (authError) throw authError;
       setMessage("Profil mis à jour avec succès !");
       
       // Auto-hide success message after 3 seconds
