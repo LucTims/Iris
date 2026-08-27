@@ -90,12 +90,50 @@ async function embedExternalImages(html: string): Promise<string> {
   return html;
 }
 
+/**
+ * Récupère l'image de couverture et la renvoie en data URL base64 (que pdfmake
+ * sait embarquer). Accepte déjà un data: URL (renvoyé tel quel) ou une URL http
+ * (téléchargée puis inlinée). Renvoie null en cas d'échec — la couverture est
+ * alors simplement omise, jamais bloquante.
+ */
+async function inlineCover(url: string | undefined | null): Promise<string | null> {
+  if (!url) return null;
+  if (url.startsWith("data:image/")) return url;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    let ct = res.headers.get("content-type") || "";
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length > 8_000_000) return null;
+    if (!/image\/(png|jpe?g)/i.test(ct)) {
+      // Certaines URL ne renvoient pas de content-type fiable : on suppose JPEG.
+      ct = "image/jpeg";
+    }
+    return `data:${ct};base64,${buf.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
 function buildDocDefinition(
   title: string,
   subtitle: string | undefined,
-  chapters: ChapterData[]
+  chapters: ChapterData[],
+  coverImage: string | null
 ): any {
   const content: any[] = [];
+
+  // Page de couverture pleine page (A4 = 595 × 842 pt). L'image est posée en
+  // absolu pour occuper toute la page (sans marges), puis saut de page.
+  if (coverImage) {
+    content.push({
+      image: coverImage,
+      width: 595,
+      height: 842,
+      absolutePosition: { x: 0, y: 0 },
+      pageBreak: "after",
+    });
+  }
 
   // Title page
   content.push({ text: (title || "Sans titre").toUpperCase(), style: "coverTitle", margin: [0, 220, 0, 10] });
@@ -142,13 +180,16 @@ function buildDocDefinition(
     pageMargins: [70, 70, 70, 70],
     info: { title, subject: `Livre généré avec Iris - ${title}` },
     content,
-    footer: (currentPage: number, pageCount: number) => ({
-      text: `${currentPage} / ${pageCount}`,
-      alignment: "center",
-      fontSize: 9,
-      color: "#999999",
-      margin: [0, 10, 0, 0],
-    }),
+    footer: (currentPage: number, pageCount: number) =>
+      coverImage && currentPage === 1
+        ? null
+        : {
+            text: `${currentPage} / ${pageCount}`,
+            alignment: "center",
+            fontSize: 9,
+            color: "#999999",
+            margin: [0, 10, 0, 0],
+          },
     styles: {
       coverTitle: { fontSize: 26, bold: true, alignment: "center", color: "#222222" },
       coverSubtitle: { fontSize: 14, italics: true, alignment: "center", color: "#666666", margin: [0, 6, 0, 0] },
@@ -184,7 +225,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Accès non autorisé. Veuillez vous connecter." }, { status: 401 });
     }
 
-    const { title, subtitle, chapters } = await req.json();
+    const { title, subtitle, chapters, coverUrl } = await req.json();
     if (!Array.isArray(chapters) || chapters.length === 0) {
       return NextResponse.json({ error: "Aucun chapitre à exporter." }, { status: 400 });
     }
@@ -199,8 +240,10 @@ export async function POST(req: Request) {
       });
     }
 
+    const coverImage = await inlineCover(coverUrl);
+
     const printer = await getPrinter();
-    const docDefinition = buildDocDefinition(title || "Mon Livre Iris", subtitle, preparedChapters);
+    const docDefinition = buildDocDefinition(title || "Mon Livre Iris", subtitle, preparedChapters, coverImage);
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
     const buffer = await streamToBuffer(pdfDoc);
 

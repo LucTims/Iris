@@ -15,7 +15,8 @@ export async function generateEpub(
   title: string,
   subtitle: string | undefined,
   author: string,
-  chapters: ChapterData[]
+  chapters: ChapterData[],
+  coverUrl?: string
 ): Promise<Blob> {
   // Dynamic import of JSZip
   const JSZip = (await import("jszip")).default;
@@ -25,6 +26,37 @@ export async function generateEpub(
 
   // 1. mimetype (must be first, uncompressed)
   zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
+
+  // 0. Couverture (facultative). On récupère l'image (data: URL ou http),
+  // on l'ajoute au zip et on prépare les fragments manifest/spine/metadata.
+  // En cas d'échec, la couverture est simplement omise (jamais bloquant).
+  let coverExt = "";
+  let coverMime = "";
+  if (coverUrl) {
+    try {
+      const r = await fetch(coverUrl);
+      if (r.ok) {
+        const mime = (r.headers.get("content-type") || "").toLowerCase();
+        coverMime = /png/.test(mime) ? "image/png" : "image/jpeg";
+        coverExt = coverMime === "image/png" ? "png" : "jpg";
+        const buf = new Uint8Array(await r.arrayBuffer());
+        if (buf.length > 0 && buf.length < 8_000_000) {
+          zip.file(`OEBPS/cover.${coverExt}`, buf);
+        } else {
+          coverExt = "";
+        }
+      }
+    } catch {
+      coverExt = "";
+    }
+  }
+  const hasCover = !!coverExt;
+
+  const coverManifest = hasCover
+    ? `    <item id="cover-image" href="cover.${coverExt}" media-type="${coverMime}" properties="cover-image"/>\n    <item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>\n`
+    : "";
+  const coverMeta = hasCover ? `    <meta name="cover" content="cover-image"/>\n` : "";
+  const coverSpine = hasCover ? `    <itemref idref="cover" linear="yes"/>\n` : "";
 
   // 2. META-INF/container.xml
   zip.file(
@@ -56,20 +88,39 @@ export async function generateEpub(
     <dc:creator>${escapeXml(author)}</dc:creator>
     <dc:language>fr</dc:language>
     <dc:publisher>Iris</dc:publisher>
-    <meta property="dcterms:modified">${new Date().toISOString().replace(/\.\d+Z$/, "Z")}</meta>
+${coverMeta}    <meta property="dcterms:modified">${new Date().toISOString().replace(/\.\d+Z$/, "Z")}</meta>
   </metadata>
   <manifest>
     <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
-    <item id="titlepage" href="titlepage.xhtml" media-type="application/xhtml+xml"/>
+${coverManifest}    <item id="titlepage" href="titlepage.xhtml" media-type="application/xhtml+xml"/>
     <item id="style" href="style.css" media-type="text/css"/>
 ${manifestItems}
   </manifest>
   <spine>
-    <itemref idref="titlepage"/>
+${coverSpine}    <itemref idref="titlepage"/>
 ${spineItems}
   </spine>
 </package>`
   );
+
+  // Page de couverture (image pleine page) — placée en tout premier dans le spine.
+  if (hasCover) {
+    zip.file(
+      "OEBPS/cover.xhtml",
+      `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Couverture</title>
+  <style>html,body{margin:0;padding:0;height:100%;text-align:center;} img{max-width:100%;max-height:100%;object-fit:contain;}</style>
+</head>
+<body>
+  <img src="cover.${coverExt}" alt="Couverture"/>
+</body>
+</html>`
+    );
+  }
 
   // 4. OEBPS/nav.xhtml (Navigation Document - required for EPUB 3)
   const navItems = chapters

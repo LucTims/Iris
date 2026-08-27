@@ -16,13 +16,15 @@ interface ExportBookModalProps {
     chapters?: any[];
     cover_url?: string;
   } | null;
+  /** Étape de départ (3 = aller directement au choix du format, sans l'upsell couverture). */
+  initialStep?: 1 | 3;
 }
 
-export default function ExportBookModal({ isOpen, onClose, project }: ExportBookModalProps) {
+export default function ExportBookModal({ isOpen, onClose, project, initialStep = 1 }: ExportBookModalProps) {
   const router = useRouter();
-  
+
   // Steps: 1 = Cover, 2 = Layout, 3 = Final Download, 4 = Congratulations
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(initialStep);
 
   // Step 3 state (Original Export logic)
   const [selectedFormat, setSelectedFormat] = useState<"epub" | "pdf" | "docx" | "markdown">("epub");
@@ -47,14 +49,18 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
 
     try {
       let finalChapters = chaptersData;
+      // Source de vérité de la couverture : la valeur en base (cover_url),
+      // appliquée depuis le Studio de couverture.
+      let coverUrl = project?.cover_url || "";
 
-      // S'il n'y a pas de chapitres ou si le contenu est vide (ex: appelé depuis le dashboard),
-      // on fetch les vrais chapitres depuis l'API
-      if ((finalChapters.length === 0 || !finalChapters[0]?.content) && project?.id) {
+      // S'il manque les chapitres OU la couverture, on récupère le projet complet
+      // (les chapitres réels + cover_url à jour) depuis l'API.
+      if (((finalChapters.length === 0 || !finalChapters[0]?.content) || !coverUrl) && project?.id) {
         const res = await fetch(`/api/projects/${project.id}`);
         if (res.ok) {
           const data = await res.json();
-          if (data.chapters && data.chapters.length > 0) {
+          if (!coverUrl) coverUrl = data.project?.cover_url || "";
+          if ((finalChapters.length === 0 || !finalChapters[0]?.content) && data.chapters && data.chapters.length > 0) {
             finalChapters = data.chapters.map((ch: any, idx: number) => ({
               title: ch.title || `Chapitre ${ch.number || idx + 1}`,
               content: ch.content || "",
@@ -72,12 +78,12 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
 
       if (selectedFormat === "docx") {
         const { generateDocx } = await import("@/lib/export/generateDocx");
-        const blob = await generateDocx(bookTitle, project?.subtitle, finalChapters);
+        const blob = await generateDocx(bookTitle, project?.subtitle, finalChapters, coverUrl);
         saveAs(blob, `${sanitizedTitle}.docx`);
 
       } else if (selectedFormat === "epub") {
         const { generateEpub } = await import("@/lib/export/generateEpub");
-        const blob = await generateEpub(bookTitle, project?.subtitle, "Auteur", finalChapters);
+        const blob = await generateEpub(bookTitle, project?.subtitle, "Auteur", finalChapters, coverUrl);
         saveAs(blob, `${sanitizedTitle}.epub`);
 
       } else if (selectedFormat === "pdf") {
@@ -90,6 +96,7 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
             title: bookTitle,
             subtitle: project?.subtitle,
             chapters: finalChapters,
+            coverUrl,
           }),
         });
 

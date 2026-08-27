@@ -84,6 +84,29 @@ function renderImage(dataUri: string): Paragraph | null {
   }
 }
 
+/**
+ * Récupère l'image de couverture (data: URL ou http) en octets pour l'embarquer
+ * dans le DOCX. Renvoie null en cas d'échec (couverture alors omise).
+ */
+async function coverToBytes(url: string): Promise<{ bytes: Uint8Array; type: "png" | "jpg" } | null> {
+  try {
+    if (url.startsWith("data:image/")) {
+      const m = url.match(/^data:image\/(png|jpe?g);base64,/i);
+      if (!m) return null;
+      return { bytes: dataUriToBytes(url), type: /png/i.test(m[1]) ? "png" : "jpg" };
+    }
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const mime = (r.headers.get("content-type") || "").toLowerCase();
+    const type: "png" | "jpg" = /png/.test(mime) ? "png" : "jpg";
+    const bytes = new Uint8Array(await r.arrayBuffer());
+    if (!bytes.length || bytes.length > 8_000_000) return null;
+    return { bytes, type };
+  } catch {
+    return null;
+  }
+}
+
 interface ChapterData {
   title: string;
   content: string;
@@ -561,9 +584,40 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
 export async function generateDocx(
   title: string,
   subtitle: string | undefined,
-  chapters: ChapterData[]
+  chapters: ChapterData[],
+  coverUrl?: string
 ): Promise<Blob> {
-  const sections = [];
+  const sections: any[] = [];
+
+  // Cover Section (image pleine page sur sa propre page, avant la page de titre).
+  if (coverUrl) {
+    const cov = await coverToBytes(coverUrl);
+    if (cov) {
+      const size = readImageSize(cov.bytes);
+      let w = 480;
+      let h = 700;
+      if (size && size.w > 0) {
+        const ratio = size.h / size.w;
+        h = Math.round(w * ratio);
+        if (h > 720) { h = 720; w = Math.round(h / ratio); }
+      }
+      sections.push({
+        properties: {},
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new ImageRun({
+                data: cov.bytes,
+                transformation: { width: w, height: h },
+                type: cov.type,
+              } as any),
+            ],
+          }),
+        ],
+      });
+    }
+  }
 
   // Title Page Section
   const titlePageChildren: Paragraph[] = [

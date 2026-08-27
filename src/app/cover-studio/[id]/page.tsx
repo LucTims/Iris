@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { useUser } from "@/hooks/useUser";
+
+const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
 
 export default function CoverStudioEditorPage() {
   const params = useParams();
@@ -32,6 +35,15 @@ export default function CoverStudioEditorPage() {
   const [promptText, setPromptText] = useState("Illustration abstraite géométrique dorée et moderne");
   const [isGenerating, setIsGenerating] = useState(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  // La couverture a-t-elle été appliquée au livre (cover_url en base) ?
+  const [coverApplied, setCoverApplied] = useState(false);
+  const [appliedCoverUrl, setAppliedCoverUrl] = useState("");
+  const [exportOpen, setExportOpen] = useState(false);
+
+  // Dès que la couverture (image ou style) change, elle n'est plus « appliquée ».
+  useEffect(() => {
+    setCoverApplied(false);
+  }, [coverImage, bgColor, accentColor, title, subtitle, author, selectedTheme]);
 
   const aiProviders = ["Chat GPT", "Nana banana", "Dall-E"];
 
@@ -141,17 +153,19 @@ export default function CoverStudioEditorPage() {
     link.click();
   };
 
-  const handleApplyToBook = async () => {
+  // Applique la couverture au livre (enregistre cover_url en base). Retourne l'URL
+  // appliquée (ou null en cas d'échec). En mode « silent » (flux de téléchargement),
+  // on n'affiche pas l'alerte de succès et on ne redirige pas.
+  const handleApplyToBook = async (opts?: { silent?: boolean }): Promise<string | null> => {
     if (!projectId) {
       alert("Erreur: Aucun projet sélectionné. Veuillez ouvrir ce studio depuis un projet spécifique.");
-      return;
+      return null;
     }
-    
+
     try {
-      // Si une image IA a été générée/uploadée, on pourrait la sauvegarder directement.
-      // Pour l'exemple, on génère le canvas ou on prend le coverImage
+      // Image IA/uploadée si présente, sinon on rend la couverture stylisée en JPEG.
       const coverUrl = coverImage || generateCanvas().toDataURL("image/jpeg", 0.8);
-      
+
       const res = await fetch(`/api/projects/${projectId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -159,16 +173,39 @@ export default function CoverStudioEditorPage() {
       });
 
       if (res.ok) {
-        alert("Couverture appliquée avec succès !");
-        router.push("/cover-studio");
+        setAppliedCoverUrl(coverUrl);
+        setCoverApplied(true);
+        if (!opts?.silent) alert("Couverture appliquée au livre avec succès !");
+        return coverUrl;
       } else {
-        const data = await res.json();
-        alert(`Erreur: ${data.error}`);
+        const data = await res.json().catch(() => ({}));
+        alert(`Erreur: ${data.error || "impossible d'appliquer la couverture."}`);
+        return null;
       }
     } catch (err) {
       console.error(err);
       alert("Erreur de connexion.");
+      return null;
     }
+  };
+
+  // Flux « Télécharger le Livre Complet » depuis le studio de couverture :
+  // 1) si la couverture n'a pas été appliquée, on le signale et on propose de
+  //    l'appliquer ; 2) puis on ouvre le popup de choix du format (EPUB/PDF/DOCX…).
+  const handleDownloadBook = async () => {
+    if (!coverApplied) {
+      const ok = confirm(
+        "Vous n'avez pas encore appliqué cette couverture à votre livre.\n\n" +
+          "Voulez-vous l'appliquer maintenant avant le téléchargement ?\n" +
+          "(Sinon le livre sera exporté sans cette couverture.)"
+      );
+      if (ok) {
+        const url = await handleApplyToBook({ silent: true });
+        if (!url) return; // l'application a échoué → on n'ouvre pas l'export
+      }
+    }
+    setDownloadModalOpen(false);
+    setExportOpen(true);
   };
 
   const getTransformStyle = () => {
@@ -588,14 +625,8 @@ export default function CoverStudioEditorPage() {
                   <span>Télécharger l'image seule (PNG)</span>
                 </button>
                 
-                <button 
-                  onClick={() => {
-                    handleApplyToBook().then(() => {
-                      if (projectId) {
-                        router.push(`/redaction?projectId=${projectId}`);
-                      }
-                    });
-                  }}
+                <button
+                  onClick={handleDownloadBook}
                   className="w-full bg-secondary hover:bg-orange-600 text-white font-bold text-sm py-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-3"
                 >
                   <span className="material-symbols-outlined">book</span>
@@ -606,6 +637,15 @@ export default function CoverStudioEditorPage() {
           </div>
         </div>
       )}
+
+      {/* Popup de choix du format (EPUB / PDF / DOCX…), ouvert directement à
+          l'étape d'export. Les chapitres et la couverture sont récupérés en base. */}
+      <ExportBookModal
+        isOpen={exportOpen}
+        onClose={() => setExportOpen(false)}
+        initialStep={3}
+        project={{ id: projectId, title, subtitle, cover_url: appliedCoverUrl }}
+      />
     </div>
   );
 }
