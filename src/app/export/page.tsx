@@ -47,7 +47,7 @@ function ExportHubContent() {
               Studio Mise en page & KDP
             </h1>
             <p className="text-sm text-neutral-500 mt-2 max-w-xl">
-              Préparez votre livre pour l'impression ou les liseuses. Ajustez les marges, choisissez vos polices et ajoutez des lettrines.
+              Préparez un PDF prêt pour Amazon KDP : taille de coupe (6×9…), marges de reliure calculées automatiquement, police, pages de titre/copyright, table des matières et numéros de page.
             </p>
           </div>
         </div>
