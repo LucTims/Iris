@@ -18,6 +18,7 @@ export default function NewBookWizard() {
   const { walletBalance } = useUser();
   const [step, setStep] = useState(1);
   const totalSteps = 3;
+  const formContainerRef = useRef<HTMLDivElement>(null);
   
   const recognitionRef = useRef<any>(null);
   const [isListening, setIsListening] = useState(false);
@@ -39,12 +40,26 @@ export default function NewBookWizard() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const scrollToTop = () => {
+    setTimeout(() => {
+      formContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
+  };
+
   const nextStep = () => {
-    if (step < totalSteps) setStep(step + 1);
+    if (step < totalSteps) {
+      setStep(step + 1);
+      scrollToTop();
+    }
   };
 
   const prevStep = () => {
-    if (step > 1) setStep(step - 1);
+    if (step > 1) {
+      setStep(step - 1);
+      scrollToTop();
+    }
   };
 
   const toggleListening = () => {
@@ -203,7 +218,7 @@ export default function NewBookWizard() {
     <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
       {/* GLOBAL REUSABLE SIDEBAR */}
       <Sidebar />
-      <div className="flex-1 flex flex-col h-screen overflow-y-auto">
+      <div id="main-scroll-container" className="flex-1 flex flex-col h-screen overflow-y-auto">
       {/* Top Navigation */}
       <header className="bg-white border-b border-neutral-200 h-16 px-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shrink-0">
         <Link href="/projects" className="flex items-center gap-2 text-neutral-600 hover:text-neutral-900 transition-colors">
@@ -221,7 +236,7 @@ export default function NewBookWizard() {
         {renderStepIndicators()}
 
         {/* Wizard Card */}
-        <div className="bg-white rounded-t-[32px] sm:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] sm:shadow-xl border-t sm:border border-neutral-100 max-w-2xl w-full p-6 sm:p-10 relative overflow-y-auto flex-1 sm:flex-none flex flex-col">
+        <div ref={formContainerRef} className="bg-white rounded-t-[32px] sm:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] sm:shadow-xl border-t sm:border border-neutral-100 max-w-2xl w-full p-6 sm:p-10 relative overflow-y-auto flex-1 sm:flex-none flex flex-col">
           
           <div className="mb-6 sm:mb-8 shrink-0">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-secondary font-bold text-[11px] uppercase tracking-wider mb-3">
