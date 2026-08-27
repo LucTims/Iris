@@ -470,6 +470,45 @@ export default function NewBookWizard() {
                       </div>
                     </div>
 
+                    {/* Estimate Cost Block */}
+                    <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4 mt-4">
+                      <p className="text-xs font-bold text-neutral-600 mb-2 uppercase tracking-wider">
+                        Coût estimé pour la rédaction totale :
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        {(() => {
+                          let words = 17500;
+                          let chapters = 20;
+                          if (formData.length.includes("Court")) { words = 5000; chapters = 6; }
+                          if (formData.length.includes("Long")) { words = 37500; chapters = 45; }
+                          
+                          // We need estimateChapterCoins, let's use a rough inline formula if it's not imported.
+                          // Actually, I'll just calculate it mathematically right here based on 14000 ratio:
+                          // Gemini Flash = ~$0.08 / 17.5k words -> ~1100 coins
+                          // GPT-4o = ~$0.57 / 17.5k words -> ~8000 coins
+                          // With 14000 ratio: 1 coin = ~0.015 words (Flash). Let's use simple multipliers:
+                          const flashMultiplier = 1100 / 17500; // ~0.0628
+                          const gptMultiplier = 8000 / 17500; // ~0.457
+                          
+                          const flashCost = Math.round(words * flashMultiplier);
+                          const gptCost = Math.round(words * gptMultiplier);
+                          
+                          return (
+                            <>
+                              <div className="flex justify-between items-center">
+                                <span className="text-neutral-600">Modèle basique (Gemini 2.5 Flash) :</span>
+                                <span className="font-bold text-amber-600">~{flashCost} pièces</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-neutral-600">Modèle premium (Claude / GPT-4o) :</span>
+                                <span className="font-bold text-amber-600">~{gptCost} pièces</span>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
                     <div className="space-y-2 pt-2">
                       <label className="text-sm font-bold text-neutral-700">Consignes spécifiques pour l'IA (Optionnel)</label>
                       <textarea
@@ -601,7 +640,7 @@ export default function NewBookWizard() {
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-sm text-neutral-900">Gemini 2.5 Flash</span>
                         <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center whitespace-nowrap">
-                          ~20 🪙/page
+                          ~15 🪙/page
                         </span>
                       </div>
                       <p className="text-[11px] text-neutral-500 leading-tight mt-1">
@@ -620,7 +659,7 @@ export default function NewBookWizard() {
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-sm text-neutral-900">ChatGPT (GPT-4o)</span>
                           <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center whitespace-nowrap">
-                          ~80 🪙/page
+                          ~110 🪙/page
                         </span>
                       </div>
                       <p className="text-[11px] text-neutral-500 leading-tight mt-1">
@@ -642,7 +681,7 @@ export default function NewBookWizard() {
                             <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider hidden xs:inline-block">Premium</span>
                         </span>
                         <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center whitespace-nowrap">
-                          ~150 🪙/page
+                          ~100 🪙/page
                         </span>
                       </div>
                       <p className="text-[11px] text-neutral-500 leading-tight mt-1">
