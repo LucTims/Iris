@@ -52,6 +52,8 @@ export default function ProjectsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedProjectForExport, setSelectedProjectForExport] = useState<any | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // New book form state
   const [newTitle, setNewTitle] = useState("");
@@ -67,9 +69,7 @@ export default function ProjectsPage() {
       (project.subtitle || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (project.category || "").toLowerCase().includes(searchQuery.toLowerCase());
 
-    const p = getProjectProgress(project);
-    if (activeFilter === "Tous") return matchesSearch;
-    return matchesSearch && p.logicalStatus === activeFilter;
+    return matchesSearch;
   });
 
   const handleCreateBook = async (e: React.FormEvent) => {
@@ -99,18 +99,30 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleDeleteBook = async (id: string) => {
-    if (confirm("Voulez-vous vraiment supprimer ce projet de livre ?")) {
-      try {
-        const res = await fetch(`/api/projects/${id}`, {
-          method: "DELETE"
-        });
-        if (res.ok) {
-          setProjects(prev => prev.filter(p => p.id !== id));
-        }
-      } catch (err) {
-        console.error("Erreur de suppression:", err);
+  const handleDeleteBook = (id: string) => {
+    setProjectToDelete(id);
+  };
+
+  const confirmDeleteBook = async () => {
+    if (!projectToDelete) return;
+    setIsDeleting(true);
+    const id = projectToDelete;
+    
+    // Optimistic UI update
+    setProjects(prev => prev.filter(p => p.id !== id));
+    setProjectToDelete(null); // Close modal immediately
+    setIsDeleting(false);
+    
+    try {
+      const res = await fetch(`/api/projects/${id}`, {
+        method: "DELETE"
+      });
+      if (!res.ok) {
+        // If it fails, we should ideally fetch projects again, but for now just log it
+        console.error("Erreur côté serveur lors de la suppression");
       }
+    } catch (err) {
+      console.error("Erreur de suppression:", err);
     }
   };
 
@@ -158,23 +170,8 @@ export default function ProjectsPage() {
               />
             </div>
 
-            {/* Filter Tabs & Grid/List View Toggle */}
+            {/* Grid/List View Toggle */}
             <div className="flex items-center justify-between sm:justify-end gap-3">
-              <div className="flex bg-neutral-100 p-1 rounded-xl">
-                {["Tous", "En rédaction", "Mise en page", "Terminé"].map((filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setActiveFilter(filter)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      activeFilter === filter
-                        ? "bg-white text-neutral-900 shadow-2xs"
-                        : "text-neutral-600 hover:text-neutral-900"
-                    }`}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
 
               <div className="flex items-center bg-neutral-100 p-1 rounded-xl">
                 <button
@@ -572,6 +569,35 @@ export default function ProjectsPage() {
         onClose={() => setIsExportModalOpen(false)}
         project={selectedProjectForExport}
       />
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {projectToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl scale-100 animate-slideUp">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+              <span className="material-symbols-outlined text-red-600 text-2xl">delete</span>
+            </div>
+            <h3 className="text-xl font-bold text-center text-neutral-900 mb-2">Supprimer le projet ?</h3>
+            <p className="text-center text-sm text-neutral-500 mb-6">
+              Cette action est irréversible. Toutes les données de ce livre seront définitivement perdues.
+            </p>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setProjectToDelete(null)}
+                className="flex-1 py-3 px-4 rounded-xl font-bold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 transition-colors"
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={confirmDeleteBook}
+                className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-colors"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
