@@ -111,6 +111,9 @@ Instructions impératives :
       model: getAiModel(selectedModelName),
       system: systemPrompt,
       prompt: "Rédige ce chapitre maintenant en HTML en respectant scrupuleusement les consignes et le style.",
+      onError({ error }) {
+        console.error(`[generate-chapter] Erreur pendant le stream IA (chapitre ${chapterNumber}):`, error);
+      },
       async onFinish({ usage, text }) {
         const success = await deductGenerationCost(
           user.id,

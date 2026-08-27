@@ -121,6 +121,9 @@ IMPORTANT:
 ${searchContext}
 ${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
       prompt: prompt,
+      onError({ error }) {
+        console.error("[rewrite-chapter] Erreur pendant le stream IA:", error);
+      },
       async onFinish({ usage, text }) {
         await deductGenerationCost(
           user.id,

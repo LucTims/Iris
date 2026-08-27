@@ -92,18 +92,36 @@ export async function fetchSearchContext(
   // model will answer from its own knowledge.
   if (!tools) return "";
 
+  // GARDE-FOU CRITIQUE : ce pré-flight s'exécute AVANT le stream principal et
+  // partage le même budget de temps (maxDuration = 60 s). Un try/catch seul ne
+  // protège PAS d'un appel qui « pend » (grounding Google lent, throttlé ou
+  // bloqué) : sans limite, il peut consommer toute la fenêtre et faire tuer la
+  // génération principale → le stream se coupe sans texte et onFinish (donc le
+  // débit des pièces) ne s'exécute jamais. On borne donc l'appel avec un
+  // AbortController : passé le délai, on annule et on continue SANS grounding
+  // (le modèle répond depuis ses connaissances). La recherche web est un bonus,
+  // jamais un point de défaillance de l'écriture du livre.
+  const controller = new AbortController();
+  const PREFLIGHT_TIMEOUT_MS = 12_000;
+  const timeout = setTimeout(() => controller.abort(), PREFLIGHT_TIMEOUT_MS);
+
   try {
     const { text } = await generateText({
       model: google("gemini-2.5-flash"),
       tools,
+      abortSignal: controller.signal,
       prompt: `Recherche des données factuelles récentes et vérifiées sur le sujet suivant. Retourne UNIQUEMENT une liste de faits clés avec leurs sources (URLs). Pas de commentaire, pas d'introduction. Maximum 10 faits.\n\nSujet : ${searchQuery}`,
     });
     return text && text.trim()
       ? `\n\n--- DONNÉES FACTUELLES ISSUES DE RECHERCHES WEB (à utiliser en priorité) ---\n${text}\n--- FIN DES DONNÉES FACTUELLES ---\n`
       : "";
   } catch (err) {
-    console.warn("Web search pre-flight failed (non-blocking):", err);
+    // Inclut l'annulation par timeout (AbortError) : dans tous les cas on
+    // dégrade proprement vers « pas de grounding » sans jamais bloquer la suite.
+    console.warn("Web search pre-flight ignoré (non bloquant):", err);
     return "";
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

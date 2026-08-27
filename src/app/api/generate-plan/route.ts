@@ -151,6 +151,13 @@ IMPORTANT:
 ${searchContext}
 ${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
       prompt: prompt,
+      onError({ error }) {
+        // Sans ce handler, une erreur du modèle pendant le stream est avalée :
+        // le client reçoit une réponse 200 vide (« ça tourne puis rien ») et
+        // l'erreur réelle n'apparaît nulle part. On la journalise pour pouvoir
+        // diagnostiquer (quota/clé API, modèle indisponible, timeout…).
+        console.error("[generate-plan] Erreur pendant le stream IA:", error);
+      },
       async onFinish({ usage, text }) {
         await deductGenerationCost(
           user.id,
