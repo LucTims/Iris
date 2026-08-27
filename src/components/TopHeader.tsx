@@ -89,7 +89,7 @@ export default function TopHeader() {
 
           {/* Notifications Dropdown Panel */}
           {notifMenuOpen && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-neutral-200 py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="fixed top-[72px] left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2 sm:w-96 bg-white rounded-2xl shadow-xl border border-neutral-200 py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
               <div className="px-4 pb-3 border-b border-neutral-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="font-heading font-extrabold text-sm text-neutral-900">Notifications</span>
@@ -180,7 +180,7 @@ export default function TopHeader() {
 
           {/* Dropdown Menu */}
           {userMenuOpen && (
-            <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="fixed top-[72px] left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2 sm:w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
               <div className="px-4 py-3 border-b border-neutral-100">
                 <p className="font-heading font-bold text-sm text-neutral-900">{displayName}</p>
                 <p className="text-xs text-neutral-500 truncate">{displayEmail}</p>
