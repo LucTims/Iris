@@ -29,6 +29,16 @@ export interface RichManuscriptEditorProps {
   onGenerateFullChapter?: () => void;
   /** Ouvre le flux « Générer tout le livre » (bouton flottant, visible sur mobile). */
   onGenerateWholeBook?: () => void;
+  /**
+   * Mode d'affichage courant :
+   * - "full"    : on regarde le livre entier (document unique ou sommaire) →
+   *               le bouton flottant propose « Générer tout le livre ».
+   * - "chapter" : on regarde UN chapitre découpé → le bouton flottant devient
+   *               « Générer le chapitre » et n'agit que sur ce chapitre.
+   */
+  bookViewMode?: "full" | "chapter";
+  /** Ouvre le popup « Générer le chapitre » (instructions de (ré)écriture du chapitre courant). */
+  onGenerateChapter?: () => void;
   onContextualAiAction?: (actionType: string, selectedText: string, customInstruction?: string) => Promise<string>;
   /** Send the current selection (text + range) up to the chat panel for a free-form edit. */
   onSendSelectionToChat?: (selection: EditorSelection) => void;

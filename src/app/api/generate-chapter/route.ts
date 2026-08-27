@@ -40,6 +40,7 @@ export async function POST(req: Request) {
       previousChaptersSummary,
       bookOutline,
       chapterBrief,
+      instructions,
       targetWords,
       model: chosenModel,
       projectId,
@@ -88,6 +89,7 @@ Ton / Style demandé : ${tone || "Professionnel et engageant"}
 ${bookOutline ? `Sommaire / Table des matières du livre (rédige ce chapitre en cohérence avec ce plan, sans déborder sur les points prévus dans les autres chapitres) :\n${bookOutline}\n` : ""}
 ${previousChaptersSummary ? `Résumé des chapitres précédents pour garder la cohérence :\n${previousChaptersSummary}\n` : ""}
 ${chapterBrief ? `Ce chapitre doit couvrir précisément : ${chapterBrief}\n` : ""}
+${instructions ? `CONSIGNES SPÉCIFIQUES DE L'AUTEUR pour ce chapitre (à respecter en priorité) :\n${instructions}\n` : ""}
 
 Tu dois rédiger le texte du :
 Chapitre ${chapterNumber} : ${chapterTitle}

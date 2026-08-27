@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import type { RichManuscriptEditorHandle } from "@/components/RichManuscriptEditor";
+import type { ChapterGenerateOptions } from "@/components/ChapterGenerateModal";
 
 // Lazy-load heavy components to reduce initial bundle size by ~1.5MB
 const RichManuscriptEditor = dynamic(
@@ -17,6 +18,7 @@ const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { 
 const GeoScoreModal = dynamic(() => import("@/components/GeoScoreModal"), { ssr: false });
 
 const GenerateBookModal = dynamic(() => import("@/components/GenerateBookModal"), { ssr: false });
+const ChapterGenerateModal = dynamic(() => import("@/components/ChapterGenerateModal"), { ssr: false });
 
 // Lazy-load parsers only when needed (mammoth ~600KB, jszip ~140KB)
 const loadParser = () => import("@/lib/parser");
@@ -143,6 +145,7 @@ function RedactionContent() {
   const [isBatchGenerating, setIsBatchGenerating] = useState(false);
   const [batchLabel, setBatchLabel] = useState("Iris rédige votre livre");
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
+  const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
   // Signal d'arrêt de la génération complète (respecté entre deux chapitres).
   const batchStopRef = useRef(false);
@@ -1131,55 +1134,98 @@ function RedactionContent() {
 
   // Régénère un seul chapitre (bouton dans l'en-tête). Reprend l'aperçu du
   // sommaire et le contexte des chapitres précédents pour rester cohérent.
-  const regenerateChapter = async (index: number) => {
+  // Traduit une intention rapide du popup en consigne de base, puis y ajoute
+  // les précisions libres de l'auteur.
+  const buildChapterInstruction = (opts: ChapterGenerateOptions): string => {
+    const base: Record<string, string> = {
+      rewrite: "Réécris entièrement ce chapitre en repartant de zéro, tout en respectant son titre et son sujet.",
+      enrich:
+        "Enrichis et développe ce chapitre : ajoute des détails, des exemples concrets, des données chiffrées et des explications, sans supprimer les idées déjà présentes.",
+      fix: "Corrige et améliore ce chapitre (orthographe, grammaire, style, clarté, fluidité) sans en changer le fond ni la structure.",
+      shorten: "Raccourcis ce chapitre en ne gardant que l'essentiel, de façon plus concise et percutante.",
+      custom: "",
+    };
+    return [base[opts.intent] || "", opts.instructions].filter(Boolean).join("\n\n").trim();
+  };
+
+  // Génère ou modifie UNIQUEMENT le chapitre courant selon les choix du popup.
+  // - contenu existant + intention ≠ « réécrire »  → /api/rewrite-chapter (on part du texte actuel)
+  // - chapitre vide OU « réécrire entièrement »     → /api/generate-chapter (on repart du brief du sommaire)
+  const runChapterGeneration = async (index: number, opts: ChapterGenerateOptions) => {
     const chap = chapters[index];
     if (!chap) return;
-    if (/sommaire|table des mati/i.test(chap.title || "")) {
-      alert("Le sommaire ne se régénère pas ici — modifiez-le via l'assistant.");
-      return;
-    }
+    setIsChapterModalOpen(false);
+
     const pId = currentProjectId || localStorage.getItem("iris_current_project_id");
-    if (!confirm(`Régénérer le chapitre « ${chap.title} » ? Son contenu actuel sera remplacé.`)) return;
+    const instruction = buildChapterInstruction(opts);
+    const plain = (chap.content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const hasContent = plain.length > 40;
+    const modify = hasContent && opts.intent !== "rewrite";
 
     setActiveChapterIndex(index);
     setIsGeneratingChapter(true);
     try {
-      let brief = "";
-      let outline = "";
-      const sommaire = findSommaireChapter();
-      if (sommaire) {
-        const only = (sommaire.content.split(/<hr[^>]*data-page-break[^>]*>/i)[0] || sommaire.content).trim();
-        const list = parseSommaireChapters(only);
-        brief = list.find((c) => c.title.trim() === (chap.title || "").trim())?.brief || "";
-        outline = only.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 2000);
-      }
-      const previousChaptersSummary = chapters
-        .slice(0, index)
-        .filter((c) => !/sommaire|table des mati/i.test(c.title || ""))
-        .map((c, k) => `Chapitre ${k + 1} (${c.title})`)
-        .join("\n");
+      let resp: Response;
+      if (modify) {
+        // Modifier le contenu existant (rewrite conserve les titres/structure).
+        resp = await fetch("/api/rewrite-chapter", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: chap.content,
+            instructions: instruction || "Améliore ce chapitre pour le rendre plus clair et professionnel.",
+            projectContext: {
+              id: pId,
+              title: bookTitle,
+              audience: projectData?.audience || "",
+              tone: projectData?.tone || "professionnel",
+            },
+            model: opts.model,
+            useWebSearch,
+          }),
+        });
+      } else {
+        // (Re)générer depuis le brief du sommaire, en injectant les consignes de l'auteur.
+        let brief = "";
+        let outline = "";
+        const sommaire = findSommaireChapter();
+        if (sommaire) {
+          const only = (sommaire.content.split(/<hr[^>]*data-page-break[^>]*>/i)[0] || sommaire.content).trim();
+          const list = parseSommaireChapters(only);
+          brief = list.find((c) => c.title.trim() === (chap.title || "").trim())?.brief || "";
+          outline = only.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 2000);
+        }
+        const previousChaptersSummary = chapters
+          .slice(0, index)
+          .filter((c) => !/sommaire|table des mati/i.test(c.title || ""))
+          .map((c, k) => `Chapitre ${k + 1} (${c.title})`)
+          .join("\n");
 
-      const resp = await fetch("/api/generate-chapter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: bookTitle,
-          synopsis: projectData?.synopsis || "",
-          tone: projectData?.tone || "professionnel",
-          chapterTitle: chap.title,
-          chapterNumber: chap.number,
-          previousChaptersSummary,
-          bookOutline: outline,
-          chapterBrief: brief,
-          model: selectedAiModel,
-          projectId: pId,
-          useWebSearch,
-        }),
-      });
+        resp = await fetch("/api/generate-chapter", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: bookTitle,
+            synopsis: projectData?.synopsis || "",
+            tone: projectData?.tone || "professionnel",
+            chapterTitle: chap.title,
+            chapterNumber: chap.number,
+            previousChaptersSummary,
+            bookOutline: outline,
+            chapterBrief: brief,
+            instructions: instruction,
+            model: opts.model,
+            projectId: pId,
+            useWebSearch,
+          }),
+        });
+      }
+
       if (!resp.ok) {
-        alert(resp.status === 402 ? "Pièces insuffisantes pour régénérer ce chapitre." : "Erreur lors de la régénération du chapitre.");
+        alert(resp.status === 402 ? "Pièces insuffisantes pour ce chapitre." : "Erreur lors de la génération du chapitre.");
         return;
       }
+
       const reader = resp.body?.getReader();
       const decoder = new TextDecoder();
       let txt = "";
@@ -1198,7 +1244,8 @@ function RedactionContent() {
           }
         }
       }
-      if (pId && typeof chap.id === "string") {
+
+      if (pId && typeof chap.id === "string" && txt.trim()) {
         try {
           await fetch(`/api/projects/${pId}/chapters/${chap.id}`, {
             method: "PUT",
@@ -1210,8 +1257,8 @@ function RedactionContent() {
         }
       }
     } catch (error) {
-      console.error("Erreur lors de la régénération du chapitre:", error);
-      alert("Une erreur est survenue lors de la régénération du chapitre.");
+      console.error("Erreur lors de la génération du chapitre:", error);
+      alert("Une erreur est survenue lors de la génération du chapitre.");
     } finally {
       setIsGeneratingChapter(false);
     }
@@ -1518,19 +1565,6 @@ function RedactionContent() {
                 ))}
               </select>
 
-              {/* Régénérer le chapitre actuellement sélectionné */}
-              {!/sommaire|table des mati/i.test(currentChapter?.title || "") && (
-                <button
-                  onClick={() => regenerateChapter(activeChapterIndex)}
-                  disabled={isBatchGenerating || isGeneratingChapter || isRewriting}
-                  className="bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-2xs disabled:opacity-50 cursor-pointer"
-                  title="Régénérer ce chapitre avec l'IA (remplace son contenu)"
-                >
-                  <span className="material-symbols-outlined text-sm">refresh</span>
-                  <span className="hidden xl:inline">Régénérer</span>
-                </button>
-              )}
-
               <button
                 onClick={handleGenerateWholeBook}
                 disabled={isBatchGenerating}
@@ -1688,6 +1722,12 @@ function RedactionContent() {
               }}
               onGenerateFullChapter={handleGenerateFullChapter}
               onGenerateWholeBook={handleGenerateWholeBook}
+              bookViewMode={
+                chapters.length <= 1 || /sommaire|table des mati/i.test(currentChapter?.title || "")
+                  ? "full"
+                  : "chapter"
+              }
+              onGenerateChapter={() => setIsChapterModalOpen(true)}
               onContextualAiAction={handleContextualAiAction}
               onSendSelectionToChat={handleSendSelectionToChat}
               isGenerating={isGeneratingChapter || isRewriting || isInitialGenerating || isBatchGenerating}
@@ -2091,6 +2131,16 @@ function RedactionContent() {
         onConfirm={runWholeBookGeneration}
         defaultModel={selectedAiModel}
         sommaireChapters={sommaireChapterCount}
+      />
+
+      <ChapterGenerateModal
+        key={`chapmodal-${activeChapterIndex}-${isChapterModalOpen}`}
+        isOpen={isChapterModalOpen}
+        onClose={() => setIsChapterModalOpen(false)}
+        onConfirm={(opts) => runChapterGeneration(activeChapterIndex, opts)}
+        chapterTitle={currentChapter?.title || "Ce chapitre"}
+        hasContent={((currentChapter?.content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().length) > 40}
+        defaultModel={selectedAiModel}
       />
     </div>
   );
