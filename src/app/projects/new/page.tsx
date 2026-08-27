@@ -182,7 +182,7 @@ export default function NewBookWizard() {
 
   const renderStepIndicators = () => {
     return (
-      <div className="flex items-center justify-center gap-3 mb-10 w-full max-w-xl mx-auto">
+      <div className="flex items-center justify-center gap-3 mb-8 w-full max-w-xl mx-auto px-6 sm:px-0">
         {[1, 2, 3].map((s) => (
           <div key={s} className="flex-1 h-2 rounded-full bg-neutral-200 overflow-hidden relative">
             <motion.div
@@ -216,31 +216,31 @@ export default function NewBookWizard() {
         <div className="w-24"></div> {/* Spacer for centering */}
       </header>
 
-      <main className="flex-1 flex flex-col items-center pt-8 pb-20 px-4">
+      <main className="flex-1 flex flex-col items-center pt-6 sm:pt-8 pb-0 sm:pb-20 px-0 sm:px-4">
         {/* Step Indicator */}
         {renderStepIndicators()}
 
         {/* Wizard Card */}
-        <div className="bg-white rounded-3xl shadow-xl border border-neutral-100 max-w-2xl w-full p-6 sm:p-10 relative overflow-hidden">
+        <div className="bg-white rounded-t-[32px] sm:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] sm:shadow-xl border-t sm:border border-neutral-100 max-w-2xl w-full p-6 sm:p-10 relative overflow-y-auto flex-1 sm:flex-none flex flex-col">
           
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8 shrink-0">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-secondary font-bold text-[11px] uppercase tracking-wider mb-3">
               <span className="material-symbols-outlined text-sm">auto_awesome</span>
               <span>Étape {step} sur {totalSteps}</span>
             </span>
-            <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-neutral-900">
+            <h1 className="font-heading font-extrabold text-xl sm:text-3xl text-neutral-900 leading-tight">
               {step === 1 && "Détails du projet"}
               {step === 2 && "Le cœur du sujet"}
               {step === 3 && "Structure & Finalisation"}
             </h1>
-            <p className="text-sm text-neutral-500 mt-2">
+            <p className="text-xs sm:text-sm text-neutral-500 mt-1.5 sm:mt-2 leading-snug">
               {step === 1 && "Commençons par les informations de base de votre futur livre."}
               {step === 2 && "Nourrissez l'IA avec votre vision, vos idées et l'ambiance souhaitée."}
               {step === 3 && "Définissez les paramètres de génération avant de lancer la rédaction."}
             </p>
           </div>
 
-          <form onSubmit={step === totalSteps ? handlePreSubmit : (e) => { e.preventDefault(); nextStep(); }}>
+          <form className="flex-1 flex flex-col" onSubmit={step === totalSteps ? handlePreSubmit : (e) => { e.preventDefault(); nextStep(); }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
@@ -248,7 +248,7 @@ export default function NewBookWizard() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
-                className="space-y-6"
+                className="space-y-5 sm:space-y-6 flex-1"
               >
                 {/* STEP 1: Basic Details */}
                 {step === 1 && (
@@ -553,7 +553,7 @@ export default function NewBookWizard() {
             </AnimatePresence>
 
             {/* Navigation Buttons */}
-            <div className="mt-10 pt-6 border-t border-neutral-100 flex items-center justify-between">
+            <div className="mt-auto pt-6 border-t border-neutral-100 flex items-center justify-between shrink-0">
               {step > 1 ? (
                 <button
                   type="button"
