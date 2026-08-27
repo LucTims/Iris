@@ -167,8 +167,8 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
                 <ArrowRight className="w-4 h-4" />
               </button>
               
-              <button 
-                onClick={() => setStep(2)}
+              <button
+                onClick={() => setStep(3)}
                 className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-sm py-3.5 rounded-xl transition-all"
               >
                 Passer cette étape
@@ -190,75 +190,13 @@ export default function ExportBookModal({ isOpen, onClose, project }: ExportBook
   }
 
   // ----------------------------------------------------
-  // STEP 2: LAYOUT / KDP
-  // ----------------------------------------------------
-  if (step === 2) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-body animate-fadeIn">
-        <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl overflow-y-auto flex flex-col relative border border-neutral-100 max-h-[85dvh]">
-          <button onClick={resetAndClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-full text-neutral-600 transition-colors z-10">
-            <span className="material-symbols-outlined text-lg">close</span>
-          </button>
-          
-          <button onClick={() => setStep(1)} className="absolute top-4 left-4 w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded-full transition-colors z-10">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-
-          <div className="p-8 sm:p-10 text-center space-y-6">
-            <div className="w-20 h-20 mx-auto bg-blue-50 rounded-3xl flex items-center justify-center -rotate-3 border border-blue-100 shadow-inner">
-              <LayoutTemplate className="w-10 h-10 text-blue-500" strokeWidth={1.5} />
-            </div>
-            
-            <div className="space-y-2">
-              <h2 className="font-heading font-extrabold text-2xl text-neutral-900">Formatage & Mise en page</h2>
-              <p className="text-sm text-neutral-500 max-w-md mx-auto leading-relaxed">
-                Voulez-vous formater votre livre pour l&apos;impression (KDP), ajouter des lettrines, un sommaire et modifier la typographie ?
-              </p>
-              <p className="text-xs text-neutral-400 italic mt-1">(Recommandé pour l&apos;édition papier)</p>
-            </div>
-
-            <div className="pt-4 flex flex-col gap-3 max-w-sm mx-auto">
-              <button 
-                onClick={() => {
-                  if (project?.id) router.push(`/export/${project.id}`);
-                  onClose();
-                }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-3.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
-              >
-                <span>Aller au Studio de Mise en page</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              
-              <button 
-                onClick={() => setStep(3)}
-                className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-sm py-3.5 rounded-xl transition-all"
-              >
-                Passer et télécharger un export basique
-              </button>
-            </div>
-          </div>
-          
-          <div className="bg-neutral-50 px-8 py-4 border-t border-neutral-100 flex items-center justify-between text-xs font-bold text-neutral-400">
-            <span>Étape 2 sur 3</span>
-            <div className="flex gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-secondary"></div>
-              <div className="w-2 h-2 rounded-full bg-secondary"></div>
-              <div className="w-2 h-2 rounded-full bg-neutral-300"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ----------------------------------------------------
   // STEP 3: DIRECT EXPORT
   // ----------------------------------------------------
   if (step === 3) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-body animate-fadeIn">
         <div className="bg-white rounded-3xl max-w-2xl w-full border border-neutral-200 shadow-2xl overflow-hidden flex flex-col max-h-[85dvh] relative">
-          <button onClick={() => setStep(2)} className="absolute top-5 left-5 w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded-full transition-colors z-20">
+          <button onClick={() => setStep(1)} className="absolute top-5 left-5 w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded-full transition-colors z-20">
             <ArrowLeft className="w-5 h-5" />
           </button>
 

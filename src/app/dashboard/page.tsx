@@ -236,7 +236,7 @@ export default function DashboardPage() {
                   <h4 className="font-heading font-bold text-base text-neutral-900 mb-1">Exportation Multi-Format</h4>
                   <p className="text-xs text-neutral-500 leading-relaxed">Téléchargez vos livres en un clic aux formats EPUB et PDF prêts pour la vente immédiate.</p>
                 </div>
-                <Link href="/export">
+                <Link href="/projects">
                   <button className="w-full bg-neutral-50 hover:bg-neutral-100 text-neutral-900 text-xs font-bold py-2.5 rounded-xl border border-neutral-200 transition-colors">
                     Exporter un livre →
                   </button>

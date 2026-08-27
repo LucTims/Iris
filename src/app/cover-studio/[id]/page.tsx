@@ -588,7 +588,7 @@ export default function CoverStudioEditorPage() {
                   onClick={() => {
                     handleApplyToBook().then(() => {
                       if (projectId) {
-                        router.push(`/export/${projectId}`);
+                        router.push(`/redaction?projectId=${projectId}`);
                       }
                     });
                   }}
