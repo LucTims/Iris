@@ -40,17 +40,8 @@ export default function BillingPage() {
       </header>
 
       <main className="p-4 sm:p-6 md:p-10 max-w-5xl mx-auto w-full space-y-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          <aside className="w-full md:w-64 space-y-1">
-            <Link href="/settings" className="w-full flex items-center gap-3 px-4 py-3 text-neutral-600 hover:bg-neutral-100 rounded-xl font-medium text-xs">
-              <span className="material-symbols-outlined text-lg">person</span>
-              <span>Profil</span>
-            </Link>
-            <button className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-900 text-white rounded-xl font-bold text-xs">
-              <span className="material-symbols-outlined text-lg">account_balance_wallet</span>
-              <span>Portefeuille &amp; Pièces</span>
-            </button>
-          </aside>
+        <div className="flex flex-col gap-8">
+
 
           <main className="flex-1 space-y-6">
             {/* Wallet Box */}

@@ -1657,6 +1657,10 @@ function RedactionContent() {
                       <span className="material-symbols-outlined text-base text-neutral-400">dashboard</span>
                       <span>Tableau de bord</span>
                     </Link>
+                    <Link href="/profile" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
+                      <span className="material-symbols-outlined text-base text-neutral-400">person</span>
+                      <span>Mon Profil</span>
+                    </Link>
                     <Link href="/settings" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
                       <span className="material-symbols-outlined text-base text-neutral-400">settings</span>
                       <span>Paramètres</span>

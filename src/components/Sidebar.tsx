@@ -19,6 +19,7 @@ import {
   PanelLeftOpen,
   X,
   Menu,
+  User,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -51,7 +52,7 @@ export default function Sidebar() {
   ];
 
   const bottomNavItems = [
-    { id: "parametres", label: "Paramètres", icon: <Settings strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/settings" },
+    { id: "profil", label: "Mon profil", icon: <User strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/profile" },
     { id: "aide", label: "Centre d'aide & FAQ", icon: <HelpCircle strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/faq" },
   ];
 

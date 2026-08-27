@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -22,6 +22,7 @@ import {
   Shield,
   Sparkles,
   ExternalLink,
+  Bell,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 
@@ -37,11 +38,9 @@ const adminNavItems: NavItem[] = [
   { id: "overview", label: "Vue d'ensemble", shortLabel: "Dashboard", icon: LayoutDashboard, href: "/admin" },
   { id: "users", label: "Utilisateurs", icon: Users, href: "/admin/users" },
   { id: "projects", label: "Projets & Livres", shortLabel: "Projets", icon: BookOpen, href: "/admin/projects" },
+  { id: "notifications", label: "Notifications", shortLabel: "Notifs", icon: Bell, href: "/admin/notifications" },
   { id: "finances", label: "Finances & SEBPay", shortLabel: "Finances", icon: Receipt, href: "/admin/finances" },
   { id: "ai", label: "Surveillance IA", shortLabel: "IA", icon: Cpu, href: "/admin/ai" },
-];
-
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
