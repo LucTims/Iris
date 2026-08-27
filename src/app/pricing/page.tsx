@@ -123,7 +123,7 @@ export default function PricingPage() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-green-500 text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Idéal pour ~30 000 mots (un petit livre complet)</span>
+                <span className="text-neutral-700 text-sm">Idéal pour écrire ~70 pages (un livre complet)</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-green-500 text-xl shrink-0">check_circle</span>
@@ -177,7 +177,7 @@ export default function PricingPage() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">1 à 2 livres complets (~100 000 mots avec le modèle Standard)</span>
+                <span className="text-neutral-700 text-sm">Jusqu'à ~210 pages avec le modèle Standard</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
@@ -231,7 +231,7 @@ export default function PricingPage() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-secondary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">3 à 5 livres complets avec le modèle Standard</span>
+                <span className="text-neutral-700 text-sm">Jusqu'à ~500 pages avec le modèle Standard</span>
               </li>
             </ul>
             
