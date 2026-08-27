@@ -637,7 +637,7 @@ export default function NewBookWizard() {
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-sm text-neutral-900">Gemini 2.5 Flash</span>
                         <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center whitespace-nowrap">
-                          ~15 🪙/page
+                          ~20 🪙/page
                         </span>
                       </div>
                       <p className="text-[11px] text-neutral-500 leading-tight mt-1">
@@ -654,9 +654,9 @@ export default function NewBookWizard() {
                     <div className="text-xl mt-0.5">🧠</div>
                     <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-sm text-neutral-900">ChatGPT (GPT-4o)</span>
+                          <span className="font-bold text-sm text-neutral-900">ChatGPT (GPT-4o mini)</span>
                           <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center whitespace-nowrap">
-                          ~110 🪙/page
+                          ~30 🪙/page
                         </span>
                       </div>
                       <p className="text-[11px] text-neutral-500 leading-tight mt-1">
@@ -678,7 +678,7 @@ export default function NewBookWizard() {
                             <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider hidden xs:inline-block">Premium</span>
                         </span>
                         <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center whitespace-nowrap">
-                          ~100 🪙/page
+                          ~50 🪙/page
                         </span>
                       </div>
                       <p className="text-[11px] text-neutral-500 leading-tight mt-1">
