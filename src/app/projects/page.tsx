@@ -105,24 +105,27 @@ export default function ProjectsPage() {
 
   const confirmDeleteBook = async () => {
     if (!projectToDelete) return;
-    setIsDeleting(true);
     const id = projectToDelete;
     
-    // Optimistic UI update
-    setProjects(prev => prev.filter(p => p.id !== id));
+    // Optimistic UI update via SWR
+    const previousProjects = projects;
+    fetchProjects({ projects: previousProjects.filter((p: any) => p.id !== id) }, false);
+    
     setProjectToDelete(null); // Close modal immediately
-    setIsDeleting(false);
+    setIsDeleting(true);
     
     try {
       const res = await fetch(`/api/projects/${id}`, {
         method: "DELETE"
       });
       if (!res.ok) {
-        // If it fails, we should ideally fetch projects again, but for now just log it
         console.error("Erreur côté serveur lors de la suppression");
       }
     } catch (err) {
       console.error("Erreur de suppression:", err);
+    } finally {
+      setIsDeleting(false);
+      fetchProjects(); // Revalidate with server
     }
   };
 
