@@ -151,12 +151,22 @@ IMPORTANT:
 ${searchContext}
 ${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
       prompt: prompt,
-      onError({ error }) {
+      async onError({ error }) {
         // Sans ce handler, une erreur du modèle pendant le stream est avalée :
         // le client reçoit une réponse 200 vide (« ça tourne puis rien ») et
-        // l'erreur réelle n'apparaît nulle part. On la journalise pour pouvoir
-        // diagnostiquer (quota/clé API, modèle indisponible, timeout…).
+        // l'erreur réelle n'apparaît nulle part. On la journalise ET on la
+        // persiste en base (ai_usage) pour pouvoir diagnostiquer à distance
+        // la vraie cause (quota/clé API, 429, modèle indisponible, timeout…).
+        const msg = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
         console.error("[generate-plan] Erreur pendant le stream IA:", error);
+        try {
+          await supabase.from("ai_usage").insert({
+            user_id: user.id,
+            project_id: projectId || null,
+            action: "generate_plan_error",
+            model: msg.slice(0, 300),
+          });
+        } catch { /* best-effort */ }
       },
       async onFinish({ usage, text }) {
         await deductGenerationCost(
@@ -172,6 +182,12 @@ ${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
     return result.toTextStreamResponse();
   } catch (error) {
     console.error("Erreur lors de la génération IA:", error);
+    const msg = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    try {
+      const sb = await createClient();
+      const { data: { user: u } } = await sb.auth.getUser();
+      if (u) await sb.from("ai_usage").insert({ user_id: u.id, action: "generate_plan_error", model: `[500] ${msg}`.slice(0, 300) });
+    } catch { /* best-effort */ }
     return NextResponse.json(
       { error: "Une erreur est survenue lors de la communication avec l'IA." },
       { status: 500 }

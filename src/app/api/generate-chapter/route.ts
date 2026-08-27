@@ -113,8 +113,17 @@ Instructions impératives :
       model: getAiModel(selectedModelName),
       system: systemPrompt,
       prompt: "Rédige ce chapitre maintenant en HTML en respectant scrupuleusement les consignes et le style.",
-      onError({ error }) {
+      async onError({ error }) {
+        const msg = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
         console.error(`[generate-chapter] Erreur pendant le stream IA (chapitre ${chapterNumber}):`, error);
+        try {
+          await supabase.from("ai_usage").insert({
+            user_id: user.id,
+            project_id: projectId || null,
+            action: "generate_chapter_error",
+            model: msg.slice(0, 300),
+          });
+        } catch { /* best-effort */ }
       },
       async onFinish({ usage, text }) {
         const success = await deductGenerationCost(
