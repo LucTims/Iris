@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
-import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
+import { checkMinimumBalance, deductChapterCost } from "@/lib/ai/cost-engine";
 import {
   getAiModel,
   fetchSearchContext,
@@ -125,11 +125,11 @@ ${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
         console.error("[rewrite-chapter] Erreur pendant le stream IA:", error);
       },
       async onFinish({ usage, text }) {
-        await deductGenerationCost(
+        await deductChapterCost(
           user.id,
           selectedModelName,
           usage,
-          "Réécriture d'un document",
+          "Réécriture d'un chapitre",
           { projectId: projectContext?.id || null, outputText: text }
         );
       },

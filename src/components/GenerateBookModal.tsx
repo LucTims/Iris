@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { SIZE_PRESETS, BOOK_MODELS, estimateBookCoins } from "@/lib/book/generationPresets";
+import { SIZE_PRESETS, BOOK_MODELS, estimatePagesCoins } from "@/lib/book/generationPresets";
+import { WORDS_PER_PAGE } from "@/lib/ai/pricing";
 import type { BookSizeKey } from "@/lib/book/generationPresets";
 
 const LS_SIZE = "iris_book_gen_size";
 const LS_MODEL = "iris_book_gen_model";
+const fmt = (n: number) => Math.round(n).toLocaleString("fr-FR");
 
 interface GenerateBookModalProps {
   isOpen: boolean;
@@ -14,6 +16,8 @@ interface GenerateBookModalProps {
   defaultModel?: string;
   /** Nombre de chapitres détecté dans le sommaire (null si aucun sommaire). */
   sommaireChapters: number | null;
+  /** Solde de pièces de l'utilisateur (pour le contrôle avant lancement). */
+  balance?: number;
 }
 
 /**
@@ -26,6 +30,7 @@ export default function GenerateBookModal({
   onConfirm,
   defaultModel = "gemini-2.5-flash",
   sommaireChapters,
+  balance,
 }: GenerateBookModalProps) {
   // Mémorise le dernier choix (longueur + modèle) entre deux ouvertures.
   const [sizeKey, setSizeKey] = useState<BookSizeKey>(() => {
@@ -62,6 +67,15 @@ export default function GenerateBookModal({
   const preset = SIZE_PRESETS[sizeKey];
   const hasSommaire = sommaireChapters != null && sommaireChapters > 0;
   const estimatedChapters = hasSommaire ? (sommaireChapters as number) : preset.chaptersIfNoSommaire;
+
+  // Nombre de pages estimé → devis EXACT (pages × tarif/page) par modèle.
+  const pages = hasSommaire
+    ? Math.max(1, Math.round((sommaireChapters as number) * preset.wordsPerChapter / WORDS_PER_PAGE))
+    : preset.pagesEstimate;
+  const devis = BOOK_MODELS.map((m) => ({ ...m, coins: estimatePagesCoins(pages, m.id) }));
+  const selectedCost = estimatePagesCoins(pages, model);
+  const hasBalance = typeof balance === "number";
+  const insufficient = hasBalance && (balance as number) < selectedCost;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-neutral-900/50 backdrop-blur-xs p-0 sm:p-4">
@@ -142,15 +156,33 @@ export default function GenerateBookModal({
             </div>
           </div>
 
-          {/* Estimation */}
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5">
-            <span className="font-bold text-neutral-700">
-              ~ {estimatedChapters} chapitres • {preset.wordsPerChapter} mots / chapitre
-            </span>
-            <span className="text-amber-700 font-bold">
-              🪙 ≈ {estimateBookCoins(preset.wordsPerChapter, model, estimatedChapters).toLocaleString("fr-FR")} pièces
-              <span className="text-neutral-400 font-medium"> (estimation)</span>
-            </span>
+          {/* Devis : coût de la rédaction totale, par modèle */}
+          <div className="rounded-2xl border border-neutral-200 overflow-hidden">
+            <div className="px-4 py-2.5 bg-neutral-50 border-b border-neutral-100 flex items-center justify-between">
+              <span className="text-xs font-bold text-neutral-700">Coût estimé pour la rédaction totale</span>
+              <span className="text-[11px] text-neutral-400 font-medium">~ {pages} pages</span>
+            </div>
+            <div className="divide-y divide-neutral-50">
+              {devis.map((m) => {
+                const active = model === m.id;
+                return (
+                  <div key={m.id} className={`flex items-center justify-between px-4 py-2.5 ${active ? "bg-orange-50/50" : ""}`}>
+                    <span className="flex items-center gap-2 text-xs">
+                      <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-secondary" : "bg-neutral-300"}`} />
+                      <span className={`font-bold ${active ? "text-secondary" : "text-neutral-700"}`}>{m.label}</span>
+                      <span className="text-neutral-400">{m.hint.replace(/^.*—\s*/, "")}</span>
+                    </span>
+                    <span className={`text-sm font-extrabold ${active ? "text-neutral-900" : "text-neutral-600"}`}>🪙 {fmt(m.coins)}</span>
+                  </div>
+                );
+              })}
+            </div>
+            {hasBalance && (
+              <div className={`px-4 py-2.5 text-xs font-bold flex items-center justify-between ${insufficient ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>
+                <span>Votre solde : {fmt(balance as number)} pièces</span>
+                <span>{insufficient ? `Il vous manque ${fmt(selectedCost - (balance as number))}` : "Solde suffisant ✓"}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -161,10 +193,12 @@ export default function GenerateBookModal({
           </button>
           <button
             onClick={confirm}
-            className="bg-secondary hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-xs flex items-center gap-2 transition-colors"
+            disabled={insufficient}
+            title={insufficient ? "Solde insuffisant pour ce modèle — choisissez un modèle moins cher ou rechargez." : undefined}
+            className="bg-secondary hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-xs flex items-center gap-2 transition-colors"
           >
             <span className="material-symbols-outlined text-base">auto_awesome</span>
-            Lancer la génération
+            {insufficient ? "Solde insuffisant" : "Lancer la génération"}
           </button>
         </div>
       </div>

@@ -45,7 +45,7 @@ export default function PricingPage() {
     },
     {
       question: "Comment sont décomptées les pièces ?",
-      answer: "Les pièces sont décomptées à chaque utilisation de l'IA (génération de chapitre, réécriture, etc.) en fonction du modèle choisi. Le modèle Standard est le plus économique, tandis que le modèle Plume d'Auteur consomme plus de pièces pour une qualité supérieure."
+      answer: "Écrire un livre coûte un nombre de pièces PAR PAGE, selon le modèle choisi : environ 20 pièces/page avec Gemini (éco), 30 avec ChatGPT (recommandé) et 50 avec Claude (premium). Le coût total exact s'affiche avant de lancer la rédaction, et une couverture générée par IA coûte 200 pièces."
     },
     {
       question: "Quels sont les moyens de paiement acceptés ?",
@@ -119,7 +119,7 @@ export default function PricingPage() {
             <ul className="space-y-4 mb-8 flex-1">
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-green-500 text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Génération de base (Iris Starter)</span>
+                <span className="text-neutral-700 text-sm">Tous les modèles IA inclus (Gemini, ChatGPT, Claude)</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-green-500 text-xl shrink-0">check_circle</span>
@@ -173,7 +173,7 @@ export default function PricingPage() {
             <ul className="space-y-4 mb-8 flex-1">
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm font-medium">Accès à Iris Pro (GPT-4o)</span>
+                <span className="text-neutral-700 text-sm font-medium">Tous les modèles IA inclus (Gemini, ChatGPT, Claude)</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
@@ -223,7 +223,7 @@ export default function PricingPage() {
             <ul className="space-y-4 mb-8 flex-1">
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-secondary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Accès à Iris Author (Claude 3.5 Sonnet)</span>
+                <span className="text-neutral-700 text-sm">Tous les modèles IA inclus (Gemini, ChatGPT, Claude)</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-secondary text-xl shrink-0">check_circle</span>
@@ -251,9 +251,10 @@ export default function PricingPage() {
 
         {/* Note d'estimation */}
         <p className="max-w-2xl w-full mx-auto mt-8 text-center text-xs text-neutral-400 leading-relaxed">
-          Estimations avec le modèle Standard (Gemini) et sans date d'expiration.
-          Les modèles premium (GPT-4o, Claude) offrent une plume plus soignée et
-          consomment les pièces plus vite.
+          Tous les packs donnent accès à <strong>tous les modèles IA</strong> et n'ont pas de date d'expiration.
+          Le coût d'un livre dépend du nombre de pages et du modèle choisi :
+          environ <strong>20 pièces/page</strong> avec Gemini (éco), <strong>30</strong> avec ChatGPT (recommandé)
+          et <strong>50</strong> avec Claude (premium). Le coût exact s'affiche avant chaque génération.
         </p>
 
         {/* FAQ Section */}

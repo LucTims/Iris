@@ -37,6 +37,60 @@ export function usdToCoins(usd: number): number {
   return Math.max(1, Math.ceil(usd * COINS_PER_USD));
 }
 
+/* ------------------------------------------------------------------ *
+ * TARIFICATION À LA VALEUR — pièces par PAGE, par gamme de modèle.
+ *
+ * Le client ne voit jamais de tokens : écrire une page de livre coûte un
+ * nombre FIXE de pièces selon le modèle. Plus le modèle est haut de gamme,
+ * plus la page coûte cher. Le prix est ainsi DÉTERMINISTE (devis exact avant
+ * génération), et toujours très au-dessus du coût API réel (marge garantie).
+ * ------------------------------------------------------------------ */
+
+/** Mots par page imprimée (référence pour convertir mots ↔ pages). */
+export const WORDS_PER_PAGE = 275;
+
+/** Pièces facturées par page rédigée, par modèle. */
+export const COINS_PER_PAGE: Record<string, number> = {
+  // Éco
+  "gemini-2.5-flash": 20,
+  "gemini-1.5-flash": 20,
+  // Standard / recommandé
+  "gpt-4o-mini": 30,
+  // Premium
+  "claude-sonnet-5": 50,
+  "claude-3-5-sonnet-20240620": 50,
+  "gpt-4o": 50,
+  "gemini-2.5-pro": 50,
+};
+
+/** Tarif pièces/page d'un modèle (défaut prudent : 30, replis par famille). */
+export function coinsPerPage(model: string): number {
+  const known = COINS_PER_PAGE[model];
+  if (known) return known;
+  const m = (model || "").toLowerCase();
+  if (m.includes("flash")) return 20;
+  if (m.includes("mini")) return 30;
+  if (m.includes("claude") || m.includes("opus") || m.includes("sonnet") || m.includes("gpt-4o") || m.includes("pro")) return 50;
+  return 30;
+}
+
+/** Nombre de pages correspondant à un nombre de mots (arrondi au supérieur). */
+export function pagesFromWords(words: number): number {
+  if (!Number.isFinite(words) || words <= 0) return 0;
+  return Math.ceil(words / WORDS_PER_PAGE);
+}
+
+/** Nombre de pages d'un texte HTML/brut (compte les mots hors balises). */
+export function pagesFromText(text: string | undefined | null): number {
+  if (!text) return 0;
+  const plain = text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const words = plain ? plain.split(" ").length : 0;
+  return pagesFromWords(words);
+}
+
+/** Coût FIXE d'une image de couverture générée par IA (forfait, indépendant du modèle). */
+export const COVER_IMAGE_COINS = 200;
+
 /**
  * Extrait les tokens (entrée/sortie) d'un objet `usage` renvoyé par le SDK IA,
  * de façon TOLÉRANTE au nommage. Le SDK `ai` a renommé ces champs en v5 :
@@ -80,16 +134,22 @@ export const MODEL_RATES_USD: Record<string, { in: number; out: number }> = {
   "claude-3-5-sonnet-20240620": { in: 3, out: 15 },
 };
 
-/** Coût estimé (pièces) d'un chapitre d'environ `words` mots avec `model`. */
+/**
+ * Coût (pièces) d'un chapitre d'environ `words` mots avec `model` — désormais
+ * calculé À LA PAGE (tarification à la valeur), plus au token. Le résultat est
+ * exact : pages(mots) × tarif/page du modèle.
+ */
 export function estimateChapterCoins(words: number, model: string): number {
-  const rate = MODEL_RATES_USD[model] || MODEL_RATES_USD["gemini-2.5-flash"];
-  const inTokens = 1500; // système + contexte + sommaire
-  const outTokens = Math.round(words * 1.6); // ~1,6 token par mot
-  const usd = (inTokens * rate.in + outTokens * rate.out) / 1_000_000;
-  return usdToCoins(usd);
+  return Math.max(1, pagesFromWords(words) * coinsPerPage(model));
 }
 
-/** Coût estimé (pièces) d'un livre de N chapitres. */
+/** Coût (pièces) d'un livre de `chapters` chapitres d'environ `words` mots chacun. */
 export function estimateBookCoins(words: number, model: string, chapters: number): number {
-  return estimateChapterCoins(words, model) * Math.max(1, chapters);
+  const totalWords = Math.max(1, words) * Math.max(1, chapters);
+  return Math.max(1, pagesFromWords(totalWords) * coinsPerPage(model));
+}
+
+/** Coût (pièces) pour un nombre de pages donné avec un modèle — devis direct. */
+export function estimatePagesCoins(pages: number, model: string): number {
+  return Math.max(1, Math.max(1, Math.round(pages)) * coinsPerPage(model));
 }

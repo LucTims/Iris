@@ -17,11 +17,10 @@ export interface CoinPack {
   showOnPricing: boolean;
 }
 
-// `approxPages` : estimation avec le modèle par DÉFAUT (Standard = Gemini 2.5
-// Flash, ~6 pièces/page réelles). Cadre "jusqu'à" car les modèles premium
-// (GPT-4o, Claude) consomment ~6x plus de pièces pour la même longueur. Ces
-// valeurs restent rentables (marge ≥4,6x sur tous les modèles) : le facteur
-// COINS_PER_USD (voir @/lib/ai/pricing) garantit la marge quel que soit le pack.
+// `approxPages` : pages MAX avec le modèle le plus économique (Gemini Flash,
+// 20 pièces/page). "jusqu'à" car ChatGPT (30) et Claude (50) consomment plus.
+// Tarification à la valeur (voir COINS_PER_PAGE dans @/lib/ai/pricing) : marge
+// brute ≥ 10x sur tous les modèles.
 export const COIN_PACKS: CoinPack[] = [
   {
     id: "pack_starter",
@@ -30,7 +29,7 @@ export const COIN_PACKS: CoinPack[] = [
     coins: 1000,
     bonus: 0,
     tagline: "Idéal pour tester l'éditeur.",
-    approxPages: "jusqu'à ~70 pages",
+    approxPages: "jusqu'à ~50 pages",
     showOnPricing: true,
   },
   {
@@ -41,7 +40,7 @@ export const COIN_PACKS: CoinPack[] = [
     bonus: 500,
     popular: true,
     tagline: "Le choix parfait pour les passionnés.",
-    approxPages: "jusqu'à ~210 pages",
+    approxPages: "jusqu'à ~150 pages",
     showOnPricing: true,
   },
   {
@@ -51,7 +50,7 @@ export const COIN_PACKS: CoinPack[] = [
     coins: 7000,
     bonus: 2000,
     tagline: "L'expérience ultime pour les créateurs.",
-    approxPages: "jusqu'à ~490 pages",
+    approxPages: "jusqu'à ~350 pages",
     showOnPricing: true,
   },
   {
@@ -61,7 +60,7 @@ export const COIN_PACKS: CoinPack[] = [
     coins: 16000,
     bonus: 1000,
     tagline: "Pour les auteurs qui publient en série.",
-    approxPages: "jusqu'à ~1 100 pages",
+    approxPages: "jusqu'à ~800 pages",
     showOnPricing: false,
   },
   {
@@ -71,7 +70,7 @@ export const COIN_PACKS: CoinPack[] = [
     coins: 45000,
     bonus: 0,
     tagline: "Volume maximal pour les studios d'édition.",
-    approxPages: "jusqu'à ~3 100 pages",
+    approxPages: "jusqu'à ~2 250 pages",
     showOnPricing: false,
   },
 ];

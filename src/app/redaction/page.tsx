@@ -61,7 +61,7 @@ function RedactionContent() {
   const searchParams = useSearchParams();
   const isNewProject = searchParams?.get("new") === "true";
   const urlProjectId = searchParams?.get("projectId");
-  const { displayName, displayEmail, signOut } = useUser();
+  const { displayName, displayEmail, signOut, walletBalance } = useUser();
   const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
 
   // Save status: 'saved' | 'saving' | 'error'
@@ -1141,6 +1141,150 @@ function RedactionContent() {
     }
   };
 
+  // Vrai ? au moins un chapitre (hors sommaire) est encore VIDE → on peut reprendre.
+  const isRealChapterEmpty = (c: Chapter) =>
+    !/sommaire|table des mati/i.test(c.title || "") &&
+    (c.content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().length < 40;
+  const hasUnwrittenChapters = chapters.some(isRealChapterEmpty) && chapters.some((c) => !isRealChapterEmpty(c) || /sommaire|table des mati/i.test(c.title || ""));
+
+  // REPRISE : ne (re)génère QUE les chapitres restés vides, sans toucher aux
+  // chapitres déjà rédigés (contrairement à « Générer tout le livre » qui
+  // recrée toute la structure). Sert après un arrêt pour pièces insuffisantes.
+  const continueBookGeneration = async () => {
+    const pId = currentProjectId || localStorage.getItem("iris_current_project_id");
+    if (!pId) { alert("Projet introuvable. Enregistrez d'abord votre projet."); return; }
+
+    const targets = chapters
+      .map((c, idx) => ({ c, idx }))
+      .filter(({ c }) => isRealChapterEmpty(c));
+    if (targets.length === 0) { alert("Tous les chapitres sont déjà rédigés."); return; }
+
+    const model = selectedAiModel;
+    batchStopRef.current = false;
+    setBatchProgress(null);
+    setIsBatchGenerating(true);
+    setBatchLabel("Reprise de la rédaction…");
+    try {
+      const sommaire = findSommaireChapter();
+      let outline = "";
+      let planList: { title: string; brief: string }[] = [];
+      if (sommaire) {
+        const only = (sommaire.content.split(/<hr[^>]*data-page-break[^>]*>/i)[0] || sommaire.content).trim();
+        planList = parseSommaireChapters(only);
+        outline = only.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 2000);
+      }
+
+      const total = targets.length;
+      let done = 0;
+      for (const { c: chap, idx } of targets) {
+        if (batchStopRef.current) break;
+        done++;
+        setActiveChapterIndex(idx);
+        setBatchProgress({ current: done, total });
+        setBatchLabel(`Rédaction ${done}/${total} — ${chap.title}`);
+
+        const brief = planList.find((p) => p.title.trim() === (chap.title || "").trim())?.brief || "";
+        const previousChaptersSummary = chapters
+          .slice(0, idx)
+          .filter((c2) => !/sommaire|table des mati/i.test(c2.title || ""))
+          .map((c2, k) => `Chapitre ${k + 1} (${c2.title})`)
+          .join("\n");
+
+        let attempt = 0;
+        let txt = "";
+        let ok = false;
+        while (attempt < 2 && !ok) {
+          attempt++;
+          const resp = await fetch("/api/generate-chapter", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: bookTitle,
+              synopsis: projectData?.synopsis || "",
+              tone: projectData?.tone || "professionnel",
+              chapterTitle: chap.title,
+              chapterNumber: chap.number,
+              previousChaptersSummary,
+              bookOutline: outline,
+              chapterBrief: brief,
+              model,
+              projectId: pId,
+              useWebSearch,
+            }),
+          });
+          if (resp.status === 402) {
+            setIsBatchGenerating(false);
+            setBatchProgress(null);
+            alert("Pièces insuffisantes pour continuer. Les chapitres déjà rédigés sont enregistrés — rechargez puis cliquez à nouveau sur « Continuer la rédaction ».");
+            return;
+          }
+          if (resp.status === 429 && attempt < 2) {
+            setBatchLabel(`Pause anti-surcharge… (${done}/${total})`);
+            await new Promise((r) => setTimeout(r, 20000));
+            continue;
+          }
+          if (!resp.ok) break;
+
+          const reader = resp.body?.getReader();
+          const decoder = new TextDecoder();
+          txt = "";
+          if (reader) {
+            let d = false;
+            while (!d) {
+              const { value, done: dd } = await reader.read();
+              d = dd;
+              if (value) {
+                txt += decoder.decode(value, { stream: true });
+                setChapters((prev) => {
+                  const u = [...prev];
+                  if (u[idx]) u[idx] = { ...u[idx], content: txt, status: "En cours" };
+                  return u;
+                });
+              }
+            }
+          }
+          if (!txt.trim()) {
+            if (attempt < 2) {
+              setBatchLabel(`Nouvelle tentative… (${done}/${total})`);
+              await new Promise((r) => setTimeout(r, 15000));
+              continue;
+            }
+            setIsBatchGenerating(false);
+            setBatchProgress(null);
+            alert("La génération s'est interrompue (quota IA atteint ou service surchargé). Les chapitres déjà rédigés sont enregistrés. Réessayez plus tard ou changez de modèle.");
+            return;
+          }
+          ok = true;
+        }
+
+        if (ok && typeof chap.id === "string" && txt.trim()) {
+          try {
+            await fetch(`/api/projects/${pId}/chapters/${chap.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ title: chap.title, content: txt, status: "Terminé" }),
+            });
+            setChapters((prev) => {
+              const u = [...prev];
+              if (u[idx]) u[idx] = { ...u[idx], status: "Terminé" };
+              return u;
+            });
+          } catch {
+            /* sauvegarde silencieuse */
+          }
+        }
+      }
+      setActiveChapterIndex(0);
+    } catch (error) {
+      console.error("Erreur lors de la reprise de la rédaction:", error);
+      alert("Une erreur est survenue pendant la reprise. Les chapitres déjà rédigés sont enregistrés.");
+    } finally {
+      setIsBatchGenerating(false);
+      setBatchProgress(null);
+      batchStopRef.current = false;
+    }
+  };
+
   // Régénère un seul chapitre (bouton dans l'en-tête). Reprend l'aperçu du
   // sommaire et le contexte des chapitres précédents pour rester cohérent.
   // Traduit une intention rapide du popup en consigne de base, puis y ajoute
@@ -1573,6 +1717,19 @@ function RedactionContent() {
                   </option>
                 ))}
               </select>
+
+              {/* Reprise : visible seulement si des chapitres restent vides
+                  ET qu'au moins un est déjà rédigé (livre partiellement écrit). */}
+              {hasUnwrittenChapters && !isBatchGenerating && (
+                <button
+                  onClick={continueBookGeneration}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-sm"
+                  title="Reprendre la rédaction : ne (ré)génère que les chapitres restés vides, sans toucher aux chapitres déjà écrits"
+                >
+                  <span className="material-symbols-outlined text-sm">play_arrow</span>
+                  <span className="hidden xl:inline">Continuer la rédaction</span>
+                </button>
+              )}
 
               <button
                 onClick={handleGenerateWholeBook}
@@ -2144,6 +2301,7 @@ function RedactionContent() {
         onConfirm={runWholeBookGeneration}
         defaultModel={selectedAiModel}
         sommaireChapters={sommaireChapterCount}
+        balance={walletBalance}
       />
 
       <ChapterGenerateModal

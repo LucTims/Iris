@@ -2,7 +2,8 @@ import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
+import { checkMinimumBalance, deductChapterCost } from "@/lib/ai/cost-engine";
+import { estimateChapterCoins } from "@/lib/ai/pricing";
 import {
   getAiModel,
   fetchSearchContext,
@@ -53,7 +54,11 @@ export async function POST(req: Request) {
 
     const selectedModelName = chosenModel || "gemini-2.5-flash";
 
-    const hasEnoughCoins = await checkMinimumBalance(user.id, 50);
+    // Garde-fou : on exige le coût ESTIMÉ du chapitre (pages × tarif/page) AVANT
+    // de générer, pour s'arrêter proprement quand les pièces manquent — sans
+    // produire un chapitre qu'on ne pourrait pas facturer.
+    const requiredCoins = estimateChapterCoins(wordsTarget || 800, selectedModelName);
+    const hasEnoughCoins = await checkMinimumBalance(user.id, requiredCoins);
     if (!hasEnoughCoins) {
       return NextResponse.json(
         { error: "Fonds insuffisants. Veuillez acheter des pièces pour continuer à générer des chapitres." },
@@ -126,7 +131,7 @@ Instructions impératives :
         } catch { /* best-effort */ }
       },
       async onFinish({ usage, text }) {
-        const success = await deductGenerationCost(
+        const success = await deductChapterCost(
           user.id,
           selectedModelName,
           usage,

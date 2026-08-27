@@ -5,9 +5,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
+import { SIZE_PRESETS, BOOK_MODELS, estimatePagesCoins } from "@/lib/book/generationPresets";
+import type { BookSizeKey } from "@/lib/book/generationPresets";
+import { useUser } from "@/hooks/useUser";
+
+// Associe le libellé de longueur du formulaire à une clé de preset.
+const lengthToSizeKey = (length: string): BookSizeKey =>
+  /court/i.test(length) ? "court" : /long/i.test(length) ? "long" : "moyen";
 
 export default function NewBookWizard() {
   const router = useRouter();
+  const { walletBalance } = useUser();
   const [step, setStep] = useState(1);
   const totalSteps = 3;
   
@@ -470,44 +478,33 @@ export default function NewBookWizard() {
                       </div>
                     </div>
 
-                    {/* Estimate Cost Block */}
-                    <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4 mt-4">
-                      <p className="text-xs font-bold text-neutral-600 mb-2 uppercase tracking-wider">
-                        Coût estimé pour la rédaction totale :
-                      </p>
-                      <div className="space-y-2 text-sm">
-                        {(() => {
-                          let words = 17500;
-                          let chapters = 20;
-                          if (formData.length.includes("Court")) { words = 5000; chapters = 6; }
-                          if (formData.length.includes("Long")) { words = 37500; chapters = 45; }
-                          
-                          // We need estimateChapterCoins, let's use a rough inline formula if it's not imported.
-                          // Actually, I'll just calculate it mathematically right here based on 14000 ratio:
-                          // Gemini Flash = ~$0.08 / 17.5k words -> ~1100 coins
-                          // GPT-4o = ~$0.57 / 17.5k words -> ~8000 coins
-                          // With 14000 ratio: 1 coin = ~0.015 words (Flash). Let's use simple multipliers:
-                          const flashMultiplier = 1100 / 17500; // ~0.0628
-                          const gptMultiplier = 8000 / 17500; // ~0.457
-                          
-                          const flashCost = Math.round(words * flashMultiplier);
-                          const gptCost = Math.round(words * gptMultiplier);
-                          
-                          return (
-                            <>
-                              <div className="flex justify-between items-center">
-                                <span className="text-neutral-600">Modèle basique (Gemini 2.5 Flash) :</span>
-                                <span className="font-bold text-amber-600">~{flashCost} pièces</span>
+                    {/* Devis en direct : coût estimé de la rédaction selon la longueur et le modèle */}
+                    {(() => {
+                      const preset = SIZE_PRESETS[lengthToSizeKey(formData.length)];
+                      const pages = preset.pagesEstimate;
+                      return (
+                        <div className="rounded-2xl border border-neutral-200 overflow-hidden mt-1">
+                          <div className="px-4 py-2.5 bg-neutral-50 border-b border-neutral-100 flex items-center justify-between">
+                            <span className="text-xs font-bold text-neutral-700">Coût estimé pour la rédaction totale</span>
+                            <span className="text-[11px] text-neutral-400 font-medium">~ {pages} pages ({preset.pages})</span>
+                          </div>
+                          <div className="divide-y divide-neutral-50">
+                            {BOOK_MODELS.map((m) => (
+                              <div key={m.id} className="flex items-center justify-between px-4 py-2.5 text-xs">
+                                <span className="text-neutral-700 font-bold">
+                                  {m.label} <span className="text-neutral-400 font-medium">{m.hint.replace(/^.*—\s*/, "")}</span>
+                                </span>
+                                <span className="text-sm font-extrabold text-neutral-900">🪙 {estimatePagesCoins(pages, m.id).toLocaleString("fr-FR")}</span>
                               </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-neutral-600">Modèle premium (Claude / GPT-4o) :</span>
-                                <span className="font-bold text-amber-600">~{gptCost} pièces</span>
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </div>
+                            ))}
+                          </div>
+                          <div className="px-4 py-2 bg-neutral-50 border-t border-neutral-100 text-[11px] text-neutral-500 flex items-center justify-between">
+                            <span>Votre solde : <strong className="text-neutral-700">{(walletBalance || 0).toLocaleString("fr-FR")} pièces</strong></span>
+                            <span>Le modèle se choisit à l'étape suivante</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     <div className="space-y-2 pt-2">
                       <label className="text-sm font-bold text-neutral-700">Consignes spécifiques pour l'IA (Optionnel)</label>
