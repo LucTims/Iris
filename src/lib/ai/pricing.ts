@@ -25,12 +25,11 @@ export const COIN_MARGIN = 4;
  *
  * Repères (marge nette selon le pack acheté, bonus inclus) :
  *   2500 → ~x2,9 (Author) … x4,1 (Starter)   [ancien]
- *   3500 → x4 strict même sur le gros pack
- *   4000 → ~x4,5 moyen (couvre serveur + BDD + frais SEBPay)  ← RETENU
- *   4200 → x5 strict
- * Ajuster ici et partout (cost-engine + estimations) suit automatiquement.
+ *   3500 -> x4 strict même sur le gros pack
+ *   4000 -> ~x4,5 moyen
+ *   14000 -> x23 (Nouveau levier de rentabilité : permet qu'1 livre de 70p en Flash coûte ~1000 pièces)
  */
-export const COINS_PER_USD = 4000;
+export const COINS_PER_USD = 14000;
 
 /** Convertit un coût en USD en pièces (arrondi au supérieur, minimum 1). */
 export function usdToCoins(usd: number): number {

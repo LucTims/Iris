@@ -30,7 +30,7 @@ export const COIN_PACKS: CoinPack[] = [
     coins: 1000,
     bonus: 0,
     tagline: "Idéal pour tester l'éditeur.",
-    approxPages: "jusqu'à ~150 pages",
+    approxPages: "jusqu'à ~70 pages",
     showOnPricing: true,
   },
   {
@@ -41,7 +41,7 @@ export const COIN_PACKS: CoinPack[] = [
     bonus: 500,
     popular: true,
     tagline: "Le choix parfait pour les passionnés.",
-    approxPages: "jusqu'à ~450 pages",
+    approxPages: "jusqu'à ~210 pages",
     showOnPricing: true,
   },
   {
@@ -51,7 +51,7 @@ export const COIN_PACKS: CoinPack[] = [
     coins: 7000,
     bonus: 2000,
     tagline: "L'expérience ultime pour les créateurs.",
-    approxPages: "jusqu'à ~1 100 pages",
+    approxPages: "jusqu'à ~490 pages",
     showOnPricing: true,
   },
   {
@@ -61,7 +61,7 @@ export const COIN_PACKS: CoinPack[] = [
     coins: 16000,
     bonus: 1000,
     tagline: "Pour les auteurs qui publient en série.",
-    approxPages: "jusqu'à ~2 500 pages",
+    approxPages: "jusqu'à ~1 100 pages",
     showOnPricing: false,
   },
   {
@@ -71,7 +71,7 @@ export const COIN_PACKS: CoinPack[] = [
     coins: 45000,
     bonus: 0,
     tagline: "Volume maximal pour les studios d'édition.",
-    approxPages: "jusqu'à ~7 000 pages",
+    approxPages: "jusqu'à ~3 100 pages",
     showOnPricing: false,
   },
 ];

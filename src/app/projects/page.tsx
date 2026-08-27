@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import AppLayout from "@/components/AppLayout";
 import { useProjects } from "@/hooks/useProjects";
+import { estimateChapterCoins } from "@/lib/ai/pricing";
 
 function getProjectProgress(book: any) {
   let logicalStatus = book.status || "En rédaction";
@@ -56,6 +57,7 @@ export default function ProjectsPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newSubtitle, setNewSubtitle] = useState("");
   const [newCategory, setNewCategory] = useState("Business & Entrepreneuriat");
+  const [newLength, setNewLength] = useState("Moyen (~70 pages)");
 
   const { projects, isLoading: loading, mutate: fetchProjects } = useProjects();
 
@@ -81,7 +83,8 @@ export default function ProjectsPage() {
         body: JSON.stringify({
           title: newTitle,
           subtitle: newSubtitle || "Nouveau projet de livre",
-          category: newCategory
+          category: newCategory,
+          length: newLength
         })
       });
 
@@ -493,6 +496,53 @@ export default function ProjectsPage() {
                   <option>Santé & Bien-être</option>
                   <option>Technologie & Marketing Digital</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
+                  Taille du livre estimée
+                </label>
+                <select
+                  value={newLength}
+                  onChange={(e) => setNewLength(e.target.value)}
+                  className="w-full px-4 py-3 text-sm border border-neutral-200 rounded-xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none font-medium text-neutral-900 bg-white"
+                >
+                  <option>Court (~20 pages)</option>
+                  <option>Moyen (~70 pages)</option>
+                  <option>Long (~150 pages)</option>
+                </select>
+              </div>
+
+              {/* Estimate Cost Block */}
+              <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4 mt-2">
+                <p className="text-xs font-bold text-neutral-600 mb-2 uppercase tracking-wider">
+                  Coût estimé pour la rédaction totale :
+                </p>
+                <div className="space-y-2 text-sm">
+                  {(() => {
+                    let words = 17500;
+                    let chapters = 20;
+                    if (newLength.includes("Court")) { words = 5000; chapters = 6; }
+                    if (newLength.includes("Long")) { words = 37500; chapters = 45; }
+                    
+                    const wordsPerChapter = Math.round(words / chapters);
+                    const flashCost = estimateChapterCoins(wordsPerChapter, "gemini-2.5-flash") * chapters;
+                    const gptCost = estimateChapterCoins(wordsPerChapter, "gpt-4o") * chapters;
+                    
+                    return (
+                      <>
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-600">Modèle basique (Gemini Flash) :</span>
+                          <span className="font-bold text-amber-600">~{flashCost} pièces</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-600">Modèle premium (GPT-4o / Claude) :</span>
+                          <span className="font-bold text-amber-600">~{gptCost} pièces</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
 
               <div className="pt-4 flex items-center justify-end gap-3 border-t border-neutral-100">
