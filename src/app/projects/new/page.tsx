@@ -553,7 +553,7 @@ export default function NewBookWizard() {
             </AnimatePresence>
 
             {/* Navigation Buttons */}
-            <div className="mt-auto pt-6 border-t border-neutral-100 flex items-center justify-between shrink-0">
+            <div className="mt-auto pt-6 pb-24 sm:pb-0 border-t border-neutral-100 flex items-center justify-between shrink-0">
               {step > 1 ? (
                 <button
                   type="button"
