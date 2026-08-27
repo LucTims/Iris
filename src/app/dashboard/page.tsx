@@ -91,31 +91,31 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Card 2: AI Words Generated */}
+            {/* Card 2: Time Saved */}
             <div className="bg-white rounded-3xl p-6 border border-neutral-200/80 shadow-2xs relative flex flex-col justify-between">
               <div className="flex items-center justify-between mb-4">
-                <span className="material-symbols-outlined text-secondary text-2xl">auto_awesome</span>
-                <span className="text-[11px] font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">+24.5k cette semaine</span>
+                <span className="material-symbols-outlined text-secondary text-2xl">schedule</span>
+                <span className="text-[11px] font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">~40h / livre</span>
               </div>
               <div>
                 <span className="font-heading font-extrabold text-2xl text-neutral-900 block mb-1">
-                  N/A
+                  ~{projects.length * 40} Heures
                 </span>
-                <span className="text-xs font-semibold text-neutral-500">Mots générés par Iris</span>
+                <span className="text-xs font-semibold text-neutral-500">Temps de rédaction économisé</span>
               </div>
             </div>
 
-            {/* Card 3: Downloads & Readers */}
+            {/* Card 3: Completed Books */}
             <div className="bg-white rounded-3xl p-6 border border-neutral-200/80 shadow-2xs relative flex flex-col justify-between">
               <div className="flex items-center justify-between mb-4">
-                <span className="material-symbols-outlined text-secondary text-2xl">group</span>
-                <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">+18% engagement</span>
+                <span className="material-symbols-outlined text-secondary text-2xl">library_books</span>
+                <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">Prêts à être publiés</span>
               </div>
               <div>
                 <span className="font-heading font-extrabold text-2xl text-neutral-900 block mb-1">
-                  0
+                  {projects.filter(p => p.status === "Terminé").length}
                 </span>
-                <span className="text-xs font-semibold text-neutral-500">Lecteurs & Téléchargements</span>
+                <span className="text-xs font-semibold text-neutral-500">Livres terminés</span>
               </div>
             </div>
 
