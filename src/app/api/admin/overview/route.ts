@@ -1,21 +1,12 @@
 ﻿import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
+import { requireAdmin } from "@/lib/admin/isAdmin";
 
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-    }
-
-    // Verify admin status
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    if (profile?.role !== 'admin' && user.email !== 'www.martau@gmail.com') {
-      return NextResponse.json({ error: "Accès réservé aux administrateurs." }, { status: 403 });
-    }
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+    const { supabase } = guard;
 
     // Use Service Role to bypass RLS for admin counts
     const adminClient = createSupabaseAdmin(

@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { requireAdmin } from "@/lib/admin/isAdmin";
 
 // GET /api/admin/users — liste enrichie (solde, pièces dépensées, projets…).
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+    const { supabase } = guard;
 
     const { data, error } = await supabase.rpc("get_admin_users");
     if (error) {
@@ -28,26 +26,8 @@ export async function GET() {
 
 export async function PATCH(req: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-    }
-
-    // Vérification stricte : basée sur le rôle en base (cohérent avec le reste de l'app),
-    // avec repli temporaire sur l'e-mail historique tant que profiles.role n'est pas confirmé
-    // en base pour tous les comptes admin. À retirer une fois le rôle vérifié en production.
-    const { data: callerProfile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    const isAdmin = callerProfile?.role === "admin" || user.email === "www.martau@gmail.com";
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-    }
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
 
     const { userId, newPlan } = await req.json();
 
