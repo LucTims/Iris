@@ -1827,7 +1827,6 @@ function RedactionContent() {
                 </div>
               )}
             </div>
-          </div>
         </header>
 
         {/* MOBILE VIEW SEGMENTED CONTROL (visible on mobile / small screens) */}
