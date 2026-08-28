@@ -101,6 +101,7 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
           body: JSON.stringify({
             title: bookTitle,
             subtitle: project?.subtitle,
+            category: project?.category,
             chapters: finalChapters,
             coverUrl,
           }),

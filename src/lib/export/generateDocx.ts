@@ -128,7 +128,10 @@ function parseTextRuns(html: string, options?: { forceBold?: boolean; size?: num
 
   let isBold = options?.forceBold || false;
   let isItalic = false;
-  const fontStack: string[] = ["Outfit"];
+  // Corps de texte en serif (Georgia est présente d'office sous Word/Pages) :
+  // rendu « livre » cohérent avec le PDF, au lieu de l'ancien sans-serif Outfit
+  // qui, en plus, n'est pas installé chez la plupart des lecteurs.
+  const fontStack: string[] = ["Georgia"];
   const colorStack: string[] = ["222222"];
 
   for (const segment of segments) {
@@ -512,8 +515,8 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
             elements.push(
               new Paragraph({
                 children: [
-                  new TextRun({ text: firstLetter, bold: true, font: "Outfit", size: 56, color: "1E293B" }),
-                  new TextRun({ text: rest, font: "Outfit", size: 24, color: "222222" }),
+                  new TextRun({ text: firstLetter, bold: true, font: "Georgia", size: 56, color: "1E293B" }),
+                  new TextRun({ text: rest, font: "Georgia", size: 24, color: "222222" }),
                 ],
                 spacing: { before: 120, after: 120 },
                 alignment: AlignmentType.JUSTIFIED,
@@ -627,7 +630,7 @@ export async function generateDocx(
         new TextRun({
           text: title.toUpperCase(),
           bold: true,
-          font: "Outfit",
+          font: "Georgia",
           size: 56, // 28pt
           color: "333333",
         }),
@@ -644,7 +647,7 @@ export async function generateDocx(
           new TextRun({
             text: subtitle,
             italics: true,
-            font: "Outfit",
+            font: "Georgia",
             size: 28, // 14pt
             color: "666666",
           }),

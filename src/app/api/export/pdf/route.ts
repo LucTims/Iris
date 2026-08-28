@@ -7,6 +7,19 @@ import {
   extractLeadingHeading,
   isSummaryChapter,
 } from "@/lib/export/htmlToPdfmake";
+import { detectGenre, type BookGenre } from "@/lib/ai/book-style";
+
+/**
+ * Palette typographique par genre — c'est ce qui donne au PDF un rendu de
+ * livre réellement édité plutôt qu'un document par défaut. Les familles sont
+ * chargées depuis src/lib/export/fonts (voir getPrinter) ; `body` est appliqué
+ * en police PAR DÉFAUT du document (avant, tout tombait sur Roboto sans-serif).
+ */
+function fontsForGenre(genre: BookGenre): { body: string; display: string } {
+  return genre === "fiction"
+    ? { body: "Lora", display: "PlayfairDisplay" }
+    : { body: "Merriweather", display: "Montserrat" };
+}
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -119,8 +132,10 @@ function buildDocDefinition(
   title: string,
   subtitle: string | undefined,
   chapters: ChapterData[],
-  coverImage: string | null
+  coverImage: string | null,
+  genre: BookGenre
 ): any {
+  const { body: bodyFont, display: displayFont } = fontsForGenre(genre);
   const content: any[] = [];
 
   // Page de couverture pleine page (A4 = 595 × 842 pt). L'image est posée en
@@ -135,75 +150,87 @@ function buildDocDefinition(
     });
   }
 
-  // Title page
-  content.push({ text: (title || "Sans titre").toUpperCase(), style: "coverTitle", margin: [0, 220, 0, 10] });
+  // Page de titre intérieure
+  content.push({ text: (title || "Sans titre").toUpperCase(), style: "coverTitle", margin: [0, 200, 0, 10] });
   if (subtitle) content.push({ text: subtitle, style: "coverSubtitle" });
-  content.push({ text: "───────────────", alignment: "center", color: "#cccccc", margin: [0, 20, 0, 60] });
-  content.push({ text: "Généré avec Iris", style: "branding", pageBreak: "after" });
+  content.push({ text: "❦", alignment: "center", color: "#b08d57", fontSize: 18, margin: [0, 30, 0, 0], pageBreak: "after" });
 
-  // Table of contents — the author's own summary chapter ("Sommaire" /
-  // "Table des matières") is the single source of truth, so we only fall back
-  // to an auto-generated list when no such chapter exists (e.g. an imported
-  // manuscript). This avoids the duplicated / near-blank TOC page.
-  const hasSummary = chapters.some((ch) => isSummaryChapter(ch.title, ch.content));
-  if (!hasSummary) {
-    // The title page already ends with pageBreak:"after", so the TOC title must
-    // NOT force another break here (that would leave a blank page).
-    content.push({ text: "Table des Matières", style: "tocTitle", margin: [0, 40, 0, 20] });
-    chapters.forEach((ch, idx) => {
-      content.push({ text: ch.title || `Chapitre ${ch.number || idx + 1}`, style: "tocItem" });
-    });
-  }
+  // Page de copyright (mentions légales minimales d'un vrai livre).
+  const year = new Date().getFullYear();
+  content.push({ text: title || "Sans titre", style: "copyrightTitle", margin: [0, 320, 0, 0] });
+  content.push({
+    text: `© ${year}. Tous droits réservés.\n\nAucune partie de cet ouvrage ne peut être reproduite ou transmise sous quelque forme que ce soit sans l'autorisation écrite de l'auteur.`,
+    style: "copyright",
+    margin: [0, 12, 0, 0],
+  });
+  content.push({ text: "Composé avec Iris", style: "copyright", italics: true, margin: [0, 24, 0, 0], pageBreak: "after" });
 
-  // Chapters. Each chapter starts on a new page. When the body already begins
-  // with its own <h1> title we use that text (and drop the duplicate heading +
-  // its redundant page break) so there is exactly one title and one page break.
-  chapters.forEach((ch, idx) => {
+  // Chapitres. Le sommaire éventuel écrit par l'IA (chapitre « Sommaire » /
+  // « Table des matières ») est ÉCARTÉ : il est remplacé par une vraie table
+  // des matières native pdfmake avec de VRAIS numéros de page (ci-dessous).
+  const realChapters = chapters.filter((ch) => !isSummaryChapter(ch.title, ch.content));
+
+  // Vraie table des matières (numéros de page résolus par pdfmake en 2 passes).
+  // Pas de pageBreak:"after" ici : le premier chapitre force déjà son propre
+  // saut de page (pageBreak:"before"), un double saut laisserait une page blanche.
+  content.push({
+    toc: {
+      title: { text: "Table des matières", style: "tocTitle", margin: [0, 40, 0, 24] },
+    },
+  });
+
+  // Chapitres. Chaque chapitre commence sur une nouvelle page. Quand le corps
+  // commence déjà par son propre <h1>, on en extrait le titre (et on supprime
+  // le doublon + son saut de page redondant) pour n'avoir qu'un seul titre.
+  realChapters.forEach((ch, idx) => {
     const { title: leadTitle, rest } = extractLeadingHeading(ch.content);
     const effectiveTitle = leadTitle || ch.title || `Chapitre ${ch.number || idx + 1}`;
-    // Force a page break before every chapter EXCEPT the first element that
-    // directly follows the title page's own pageBreak:"after" (no TOC in
-    // between) — a double break there would insert a blank page.
-    const needsBreak = !(idx === 0 && hasSummary);
     content.push({
       text: effectiveTitle,
       style: "chapterTitle",
-      ...(needsBreak ? { pageBreak: "before" } : {}),
-      margin: [0, 30, 0, 10],
+      tocItem: true,
+      tocStyle: { fontSize: 12, font: bodyFont, color: "#333333" },
+      tocMargin: [0, 6, 0, 0],
+      pageBreak: "before",
+      margin: [0, 60, 0, 6],
     });
-    content.push({ text: "───────────────", alignment: "center", color: "#dddddd", margin: [0, 0, 0, 20] });
+    content.push({ text: "❦", alignment: "center", color: "#b08d57", fontSize: 14, margin: [0, 0, 0, 24] });
     content.push(...htmlToPdfmakeContent(rest));
   });
 
   return {
     pageSize: "A4",
-    pageMargins: [70, 70, 70, 70],
-    info: { title, subject: `Livre généré avec Iris - ${title}` },
+    pageMargins: [72, 80, 72, 80],
+    info: { title, subject: `Livre composé avec Iris - ${title}` },
     content,
-    footer: (currentPage: number, pageCount: number) =>
-      coverImage && currentPage === 1
-        ? null
-        : {
-            text: `${currentPage} / ${pageCount}`,
-            alignment: "center",
-            fontSize: 9,
-            color: "#999999",
-            margin: [0, 10, 0, 0],
-          },
-    styles: {
-      coverTitle: { fontSize: 26, bold: true, alignment: "center", color: "#222222" },
-      coverSubtitle: { fontSize: 14, italics: true, alignment: "center", color: "#666666", margin: [0, 6, 0, 0] },
-      branding: { fontSize: 10, italics: true, alignment: "center", color: "#999999" },
-      tocTitle: { fontSize: 18, bold: true, alignment: "center", color: "#222222" },
-      tocItem: { fontSize: 12, color: "#444444", margin: [0, 4, 0, 4] },
-      chapterTitle: { fontSize: 20, bold: true, alignment: "center", color: "#222222" },
-      h1: { fontSize: 16, bold: true, color: "#222222", margin: [0, 14, 0, 8] },
-      h2: { fontSize: 14, bold: true, color: "#333333", margin: [0, 12, 0, 6] },
-      h3: { fontSize: 13, bold: true, color: "#333333", margin: [0, 10, 0, 4] },
-      paragraph: { fontSize: 11, alignment: "justify", margin: [0, 0, 0, 8] },
-      blockquote: { fontSize: 11, italics: true, color: "#555555" },
+    footer: (currentPage: number, pageCount: number) => {
+      // Pas de numéro sur la couverture ni la page de titre/copyright.
+      const firstNumbered = coverImage ? 4 : 3;
+      if (currentPage < firstNumbered || currentPage > pageCount) return null;
+      return {
+        text: `${currentPage}`,
+        alignment: "center",
+        font: bodyFont,
+        fontSize: 10,
+        color: "#999999",
+        margin: [0, 16, 0, 0],
+      };
     },
-    defaultStyle: { font: "Roboto", fontSize: 11, lineHeight: 1.35 },
+    styles: {
+      coverTitle: { font: displayFont, fontSize: 30, bold: true, alignment: "center", color: "#1a1a1a", characterSpacing: 1 },
+      coverSubtitle: { font: displayFont, fontSize: 15, italics: true, alignment: "center", color: "#666666", margin: [0, 10, 0, 0] },
+      copyrightTitle: { font: displayFont, fontSize: 14, alignment: "center", color: "#333333" },
+      copyright: { font: bodyFont, fontSize: 9, alignment: "center", color: "#888888", lineHeight: 1.4 },
+      tocTitle: { font: displayFont, fontSize: 22, bold: true, alignment: "center", color: "#1a1a1a" },
+      chapterTitle: { font: displayFont, fontSize: 24, bold: true, alignment: "center", color: "#1a1a1a" },
+      h1: { font: displayFont, fontSize: 17, bold: true, color: "#1a1a1a", margin: [0, 16, 0, 8] },
+      h2: { font: displayFont, fontSize: 14, bold: true, color: "#333333", margin: [0, 14, 0, 6] },
+      h3: { font: displayFont, fontSize: 12.5, bold: true, color: "#333333", margin: [0, 10, 0, 4] },
+      paragraph: { fontSize: 11.5, alignment: "justify", margin: [0, 0, 0, 9] },
+      blockquote: { fontSize: 11.5, italics: true, color: "#555555" },
+    },
+    // LA correction clé : police par défaut = serif de livre, plus Roboto.
+    defaultStyle: { font: bodyFont, fontSize: 11.5, lineHeight: 1.45 },
   };
 }
 
@@ -225,10 +252,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Accès non autorisé. Veuillez vous connecter." }, { status: 401 });
     }
 
-    const { title, subtitle, chapters, coverUrl } = await req.json();
+    const { title, subtitle, category, chapters, coverUrl } = await req.json();
     if (!Array.isArray(chapters) || chapters.length === 0) {
       return NextResponse.json({ error: "Aucun chapitre à exporter." }, { status: 400 });
     }
+
+    const genre = detectGenre(category);
 
     // Inline external images so pdfmake can embed them
     const preparedChapters: ChapterData[] = [];
@@ -243,7 +272,7 @@ export async function POST(req: Request) {
     const coverImage = await inlineCover(coverUrl);
 
     const printer = await getPrinter();
-    const docDefinition = buildDocDefinition(title || "Mon Livre Iris", subtitle, preparedChapters, coverImage);
+    const docDefinition = buildDocDefinition(title || "Mon Livre Iris", subtitle, preparedChapters, coverImage, genre);
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
     const buffer = await streamToBuffer(pdfDoc);
 
