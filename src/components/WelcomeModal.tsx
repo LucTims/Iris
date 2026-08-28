@@ -16,7 +16,7 @@ export default function WelcomeModal() {
 
     // Check if user has already seen the welcome popup in profile or localStorage
     const localSeen = typeof window !== "undefined" 
-      ? localStorage.getItem(iris_welcome_seen_) 
+      ? localStorage.getItem(`iris_welcome_seen_${user.id}`) 
       : null;
 
     const hasSeen = profile?.has_seen_welcome_modal || localSeen === "true";
