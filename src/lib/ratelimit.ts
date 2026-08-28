@@ -1,28 +1,31 @@
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
 export type RateLimitInfo = {
   count: number;
   resetTime: number;
 };
 
-// Simple In-Memory Rate Limiter Map for MVP
-// En production sur un environnement Vercel distribué (Edge/Serverless),
-// il est recommandé d'utiliser Redis (ex: @upstash/ratelimit).
-const rateLimits = new Map<string, RateLimitInfo>();
-
 /**
- * Nettoie le cache pour éviter les fuites de mémoire.
+ * Rate limiting distribué (table Postgres + RPC atomique `check_rate_limit`),
+ * remplace l'ancien Map en mémoire. Un Map process-local ne protège plus rien
+ * dès que l'app tourne sur plusieurs instances serverless (Vercel) : chaque
+ * instance avait son propre compteur, donc la vraie limite effective était
+ * "limite × nombre d'instances actives", pas la limite affichée.
+ *
+ * Utilise un client service-role dédié : le RPC `check_rate_limit` est
+ * volontairement réservé au service_role côté SQL (REVOKE FROM PUBLIC), pour
+ * qu'un utilisateur authentifié ne puisse pas l'appeler directement avec la
+ * clé d'un AUTRE utilisateur et polluer son compteur (déni de service ciblé).
  */
-function cleanupRateLimits() {
-  const now = Date.now();
-  for (const [key, info] of rateLimits.entries()) {
-    if (now > info.resetTime) {
-      rateLimits.delete(key);
-    }
+let adminClient: SupabaseClient | null = null;
+function getAdminClient(): SupabaseClient {
+  if (!adminClient) {
+    adminClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
   }
-}
-
-// Nettoyage automatique toutes les 5 minutes
-if (typeof setInterval !== "undefined") {
-  setInterval(cleanupRateLimits, 5 * 60 * 1000);
+  return adminClient;
 }
 
 /**
@@ -32,24 +35,32 @@ if (typeof setInterval !== "undefined") {
  * @param windowMs Fenêtre de temps en millisecondes
  * @returns { success: boolean, count: number, resetTime: number }
  */
-export async function checkRateLimit(identifier: string, limit: number, windowMs: number) {
-  const now = Date.now();
-  const info = rateLimits.get(identifier);
+export async function checkRateLimit(
+  identifier: string,
+  limit: number,
+  windowMs: number
+): Promise<{ success: boolean; count: number; resetTime: number }> {
+  const windowSeconds = Math.max(1, Math.round(windowMs / 1000));
 
-  if (!info || now > info.resetTime) {
-    // Si c'est la première requête ou si la fenêtre est réinitialisée
-    const resetTime = now + windowMs;
-    rateLimits.set(identifier, {
-      count: 1,
-      resetTime,
-    });
-    return { success: true, count: 1, resetTime };
+  const { data, error } = await getAdminClient().rpc("check_rate_limit", {
+    p_key: identifier,
+    p_limit: limit,
+    p_window_seconds: windowSeconds,
+  });
+
+  if (error) {
+    // Fail-open délibéré ICI (contrairement à la facturation) : une panne du
+    // rate limiter ne doit pas bloquer complètement l'application pour tous
+    // les utilisateurs. Le coût réel (pièces) reste vérifié séparément par
+    // checkMinimumBalance, qui lui est fail-closed.
+    console.error("[ratelimit] check_rate_limit indisponible, on laisse passer:", error.message);
+    return { success: true, count: 0, resetTime: Date.now() + windowMs };
   }
 
-  if (info.count >= limit) {
-    return { success: false, count: info.count, resetTime: info.resetTime };
-  }
-
-  info.count += 1;
-  return { success: true, count: info.count, resetTime: info.resetTime };
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    success: !!row?.allowed,
+    count: Number(row?.current_count) || 0,
+    resetTime: row?.reset_at ? new Date(row.reset_at as string).getTime() : Date.now() + windowMs,
+  };
 }

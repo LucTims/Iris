@@ -1,18 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-
-async function ensureAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, status: 401, msg: "Non autorisé" };
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  const isAdmin = profile?.role === "admin" || user.email === "www.martau@gmail.com";
-  if (!isAdmin) return { ok: false as const, status: 403, msg: "Accès réservé aux administrateurs." };
-  return { ok: true as const, user };
-}
+import { requireAdmin } from "@/lib/admin/isAdmin";
 
 function admin() {
   return createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -20,8 +8,8 @@ function admin() {
 
 // GET — tous les modèles IA et leurs tarifs (actifs et inactifs).
 export async function GET() {
-  const guard = await ensureAdmin();
-  if (!guard.ok) return NextResponse.json({ error: guard.msg }, { status: guard.status });
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
   const { data, error } = await admin()
     .from("ai_models")
     .select("id, name, provider, model_id, input_cost_per_1m, output_cost_per_1m, active")
@@ -32,8 +20,8 @@ export async function GET() {
 
 // PATCH — mettre à jour le tarif / l'état d'un modèle.
 export async function PATCH(req: Request) {
-  const guard = await ensureAdmin();
-  if (!guard.ok) return NextResponse.json({ error: guard.msg }, { status: guard.status });
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
 
   const { id, input_cost_per_1m, output_cost_per_1m, active } = await req.json();
   if (!id) return NextResponse.json({ error: "id requis" }, { status: 400 });

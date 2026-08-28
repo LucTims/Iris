@@ -44,5 +44,13 @@ next-env.d.ts
 # temp / scratch files (ne pas committer)
 temp_*.txt
 temp_*.md
+temp.tsx
+temp_*.tsx
+/check_*.js
+/test_*.js
+/test_*.ts
+/test_export.*
+/fix_*.js
+/script.py
 # gros documents sources déposés par erreur dans src/
 src/**/*.pdf

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { mockAdminTransactions } from "@/lib/admin/mockData";
 import { AdminTransaction } from "@/lib/admin/types";
+import { requireAdmin } from "@/lib/admin/isAdmin";
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
@@ -13,21 +13,8 @@ function getSupabaseAdmin() {
 export async function GET(req: Request) {
   try {
     // Garde admin : cette route expose TOUTES les transactions.
-    const supabaseUser = await createClient();
-    const {
-      data: { user },
-    } = await supabaseUser.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-    }
-    const { data: callerProfile } = await supabaseUser
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-    if (callerProfile?.role !== "admin" && user.email !== "www.martau@gmail.com") {
-      return NextResponse.json({ error: "Accès réservé aux administrateurs." }, { status: 403 });
-    }
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
 
     let transactions: AdminTransaction[] = [];
     const supabaseAdmin = getSupabaseAdmin();

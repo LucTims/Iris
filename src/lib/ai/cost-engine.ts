@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   COINS_PER_USD,
   readUsageTokens,
@@ -9,20 +10,35 @@ import {
   MODEL_RATES_USD,
 } from "@/lib/ai/pricing";
 
-export async function checkMinimumBalance(userId: string, requiredCoins: number): Promise<boolean> {
-  const supabase = await createClient();
-  
+/**
+ * Toutes les fonctions ci-dessous acceptent un client Supabase optionnel
+ * (`client`), par défaut le client lié à la session utilisateur courante
+ * (cookies). Le job de génération de livre en arrière-plan (pas de session
+ * HTTP/cookies, appelé serveur-à-serveur) leur passe explicitement un client
+ * service-role à la place — `process_ai_cost` accepte les deux (voir
+ * migration wallet_security_rpcs : authenticated débite son propre wallet,
+ * service_role peut débiter n'importe quel utilisateur).
+ */
+
+export async function checkMinimumBalance(
+  userId: string,
+  requiredCoins: number,
+  client?: SupabaseClient
+): Promise<boolean> {
+  const supabase = client ?? (await createClient());
+
   const { data: wallet, error } = await supabase
     .from("wallets")
     .select("balance")
     .eq("user_id", userId)
     .single();
 
+  // Fail CLOSED : une erreur DB (timeout, table indisponible, wallet absent...)
+  // ne doit jamais se traduire par une génération gratuite. Un incident
+  // d'infra doit produire un message "réessayez", pas une fuite de facturation.
   if (error || !wallet) {
-    // Table doesn't exist yet or user has no wallet row — allow generation
-    // so AI features work before the billing system is fully set up.
-    console.warn("Wallet check skipped (table missing or no row):", error?.message);
-    return true;
+    console.error("Wallet check failed — generation refusée par sécurité:", error?.message);
+    return false;
   }
 
   return wallet.balance >= requiredCoins;
@@ -37,9 +53,10 @@ export async function deductFixedCoins(
   userId: string,
   amount: number,
   description: string,
-  metadata: Record<string, unknown> = {}
+  metadata: Record<string, unknown> = {},
+  client?: SupabaseClient
 ): Promise<boolean> {
-  const supabase = await createClient();
+  const supabase = client ?? (await createClient());
   const p_amount = Math.max(1, Math.ceil(amount));
 
   const { error: rpcError } = await supabase.rpc("process_ai_cost", {
@@ -68,7 +85,7 @@ export async function deductChapterCost(
   modelId: string,
   usage: unknown,
   description: string,
-  opts: { projectId?: string | null; outputText?: string } = {}
+  opts: { projectId?: string | null; outputText?: string; client?: SupabaseClient } = {}
 ): Promise<boolean> {
   const pages = pagesFromText(opts.outputText);
   const pageCoins = Math.max(1, pages * coinsPerPage(modelId));
@@ -83,14 +100,20 @@ export async function deductChapterCost(
 
   const amount = Math.max(pageCoins, tokenCoins, 1);
 
-  return deductFixedCoins(userId, amount, description, {
-    model_id: modelId,
-    pages,
-    coins_per_page: coinsPerPage(modelId),
-    page_coins: pageCoins,
-    token_coins: tokenCoins,
-    ...(opts.projectId ? { project_id: opts.projectId } : {}),
-  });
+  return deductFixedCoins(
+    userId,
+    amount,
+    description,
+    {
+      model_id: modelId,
+      pages,
+      coins_per_page: coinsPerPage(modelId),
+      page_coins: pageCoins,
+      token_coins: tokenCoins,
+      ...(opts.projectId ? { project_id: opts.projectId } : {}),
+    },
+    opts.client
+  );
 }
 
 /**
@@ -109,7 +132,7 @@ export async function deductGenerationCost(
   modelId: string,
   usage: unknown,
   description: string,
-  opts: { projectId?: string | null; outputText?: string; inputText?: string } = {}
+  opts: { projectId?: string | null; outputText?: string; inputText?: string; client?: SupabaseClient } = {}
 ): Promise<boolean> {
   const { input, output } = readUsageTokens(usage);
 
@@ -138,7 +161,8 @@ export async function deductGenerationCost(
     effInput,
     effOutput,
     description,
-    opts.projectId ?? null
+    opts.projectId ?? null,
+    opts.client
   );
 }
 
@@ -148,14 +172,15 @@ export async function deductCost(
   inputTokens: number | undefined,
   outputTokens: number | undefined,
   description: string,
-  projectId?: string | null
+  projectId?: string | null,
+  client?: SupabaseClient
 ): Promise<boolean> {
   // Le SDK IA peut renvoyer des compteurs de tokens indéfinis (selon le provider/la
   // version) ; on ne doit jamais laisser un NaN se propager jusqu'au RPC de débit.
   const safeInputTokens = inputTokens ?? 0;
   const safeOutputTokens = outputTokens ?? 0;
 
-  const supabase = await createClient();
+  const supabase = client ?? (await createClient());
 
   // 1. Get model costs
   const { data: model, error: modelError } = await supabase
@@ -177,7 +202,7 @@ export async function deductCost(
   // 3. Convert to Coins — marge incluse. La constante vit dans @/lib/ai/pricing
   // (source unique de l'économie des pièces, ajustable x4 → x5).
   let costInCoins = Math.ceil(totalCostUsd * COINS_PER_USD);
-  
+
   // Enforce a minimum of 1 coin if it was a very small request
   if (costInCoins < 1) costInCoins = 1;
 
