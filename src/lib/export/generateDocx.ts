@@ -341,14 +341,12 @@ function renderSectionDivider(html: string): Paragraph {
 function htmlToDocxElements(html: string): (Paragraph | Table)[] {
   const elements: (Paragraph | Table)[] = [];
 
-  // Normalize the AI writers' page-break marker (<hr data-page-break>) into the
-  // manual-page-break form handled below, so a new "grand point" inside a single
-  // chapter body starts on a fresh page. A LEADING marker is stripped by the
-  // caller (extractLeadingHeading) so this never adds a blank page at the top of
-  // a section, which already begins on a new page. Any other <hr> is dropped.
-  html = html
-    .replace(/<hr[^>]*data-page-break[^>]*>/gi, '<div data-type="pageBreak"></div>')
-    .replace(/<hr[^>]*>/gi, "");
+  // Tout <hr> = saut de page. TipTap peut réécrire `<hr data-page-break>` en
+  // simple `<hr>` (attribut non conservé) : ne reconnaître que la forme avec
+  // attribut (et supprimer le reste) faisait disparaître les sauts de page des
+  // chapitres. Les séparateurs de scène utilisent `<div class="section-divider">`,
+  // jamais `<hr>`, donc traiter tout `<hr>` comme saut de page est sûr.
+  html = html.replace(/<hr[^>]*>/gi, '<div data-type="pageBreak"></div>');
 
   // Isolate special block-level divs (callouts, key-figure, pull-quote, section-divider)
   const specialDivRe = /(<div[^>]*class="[^"]*\b(?:callout|key-figure|pull-quote|section-divider)\b[^"]*"[^>]*>[\s\S]*?<\/div>)/gi;
@@ -524,6 +522,12 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
             );
           }
         } else if (h1Match) {
+          // Un <h1> = nouveau chapitre → nouvelle page (sauf en tout début de
+          // document). Garantit la pagination même si les marqueurs <hr> ont
+          // été retirés du contenu par l'éditeur.
+          if (elements.length > 0) {
+            elements.push(new Paragraph({ children: [new PageBreak()] }));
+          }
           elements.push(
             new Paragraph({
               children: parseTextRuns(trimmedNoImg, { forceBold: true, size: 32 }), // 16pt
