@@ -4,11 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductChapterCost } from "@/lib/ai/cost-engine";
 import { estimateChapterCoins } from "@/lib/ai/pricing";
-import {
-  getAiModel,
-  fetchSearchContext,
-  SEARCH_GROUNDING_INSTRUCTION,
-} from "@/lib/ai/search-context";
+import { getAiModel, fetchSearchContext } from "@/lib/ai/search-context";
+import { detectGenre, shouldGroundWithWebSearch, buildChapterSystemPrompt } from "@/lib/ai/book-style";
 
 export const maxDuration = 60;
 
@@ -36,6 +33,8 @@ export async function POST(req: Request) {
       title,
       synopsis,
       tone,
+      category,
+      characters,
       chapterTitle,
       chapterNumber,
       previousChaptersSummary,
@@ -47,6 +46,11 @@ export async function POST(req: Request) {
       projectId,
       useWebSearch = true,
     } = await req.json();
+
+    // Genre (fiction vs non-fiction) : conditionne la mise en forme (pas
+    // d'encadrés ni de sources en fiction) et l'usage de la recherche web.
+    const genre = detectGenre(category, tone);
+    const webSearchEnabled = shouldGroundWithWebSearch(genre, useWebSearch);
 
     // Cible de longueur (déduite du nombre de pages voulu). Bornée pour éviter
     // des chapitres démesurés qui dépasseraient la limite de temps de 60 s.
@@ -79,40 +83,25 @@ export async function POST(req: Request) {
 
     const searchContext = await fetchSearchContext(
       selectedModelName,
-      useWebSearch,
+      webSearchEnabled,
       `${title} - ${chapterTitle} ${synopsis || ""}`
     );
 
-    const systemPrompt = `Tu es un auteur professionnel de best-sellers. Ta mission est de rédiger un chapitre COMPLET pour un livre.
-Le texte que tu génères sera directement inséré dans le manuscrit de l'auteur.
-
-Livre concerné :
-Titre : ${title}
-Synopsis global : ${synopsis || "Non défini"}
-Ton / Style demandé : ${tone || "Professionnel et engageant"}
-
-${bookOutline ? `Sommaire / Table des matières du livre (rédige ce chapitre en cohérence avec ce plan, sans déborder sur les points prévus dans les autres chapitres) :\n${bookOutline}\n` : ""}
-${previousChaptersSummary ? `Résumé des chapitres précédents pour garder la cohérence :\n${previousChaptersSummary}\n` : ""}
-${chapterBrief ? `Ce chapitre doit couvrir précisément : ${chapterBrief}\n` : ""}
-${instructions ? `CONSIGNES SPÉCIFIQUES DE L'AUTEUR pour ce chapitre (à respecter en priorité) :\n${instructions}\n` : ""}
-
-Tu dois rédiger le texte du :
-Chapitre ${chapterNumber} : ${chapterTitle}
-${searchContext}
-${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}
-
-Instructions impératives :
-1. Rédige le chapitre complet, détaillé et immersif. ${wordsTarget ? `Vise environ ${wordsTarget} mots (±20 %).` : "Vise au moins 800 à 1500 mots."}
-2. N'ajoute AUCUN préambule (pas de "Voici le chapitre :" ni de "Bien sûr, je vais rédiger...").
-3. IMPORTANT: Chaque chapitre doit absolument commencer sur une nouvelle page. Pour ce faire, COMMENCE toujours ton texte par la balise <hr data-page-break>.
-4. Juste après cette balise, ajoute le titre du chapitre en balise <h1>. Par exemple : <hr data-page-break><h1>Chapitre ${chapterNumber} : ${chapterTitle}</h1>.
-5. Ensuite, rédige le contenu du chapitre en HTML valide, avec des balises <p>, <h2>, <h3>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>.
-6. Quand le contenu contient des données comparatives, des listes de critères chiffrés ou des informations tabulaires, présente-les dans un tableau HTML bien structuré.
-7. Pour mettre en valeur un point clé, utilise des encadrés : <div class="callout callout-info">…</div> (information importante), <div class="callout callout-warning">…</div> (mise en garde / risque), <div class="callout callout-tip">…</div> (conseil pratique), <div class="callout callout-example">…</div> (exemple concret). Le contenu d'un encadré doit être en HTML (<p>, <strong>…). N'en abuse pas : 1 à 3 encadrés par chapitre, uniquement quand ça apporte vraiment de la valeur.
-8. Pour un chiffre ou statistique marquant, utilise : <div class="key-figure">85% des entreprises…</div>. Maximum 1-2 par chapitre.
-9. Pour une citation marquante, utilise : <div class="pull-quote">La citation ici</div>. Maximum 1-2 par chapitre.
-10. Pour marquer une transition entre sections, tu peux utiliser un séparateur décoratif : <div class="section-divider section-divider-stars"></div> (ou ornament, line, dots). Utilise-les avec parcimonie.
-11. Pour un début de chapitre ou de section important, utilise une lettrine : <p class="drop-cap">Le texte du paragraphe…</p>. Maximum 1 par chapitre (typiquement le premier paragraphe).`;
+    const systemPrompt = buildChapterSystemPrompt({
+      genre,
+      title,
+      synopsis,
+      tone,
+      characters,
+      bookOutline,
+      chapterBrief,
+      instructions,
+      chapterNumber,
+      chapterTitle,
+      previousSummary: previousChaptersSummary,
+      searchContext,
+      wordsTarget: wordsTarget || undefined,
+    });
 
     const result = streamText({
       model: getAiModel(selectedModelName),

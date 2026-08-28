@@ -3,11 +3,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
-import {
-  getAiModel,
-  fetchSearchContext,
-  SEARCH_GROUNDING_INSTRUCTION,
-} from "@/lib/ai/search-context";
+import { getAiModel, fetchSearchContext, SEARCH_GROUNDING_INSTRUCTION } from "@/lib/ai/search-context";
+import { detectGenre, shouldGroundWithWebSearch } from "@/lib/ai/book-style";
 
 export const maxDuration = 60;
 
@@ -51,6 +48,8 @@ export async function POST(req: Request) {
     } = await req.json();
 
     const selectedModelName = chosenModel || "gemini-2.5-flash";
+    const genre = detectGenre(category, tone);
+    const webSearchEnabled = shouldGroundWithWebSearch(genre, useWebSearch);
 
     // Check coins
     const hasEnoughCoins = await checkMinimumBalance(user.id, 50);
@@ -73,9 +72,16 @@ export async function POST(req: Request) {
 
     const searchContext = await fetchSearchContext(
       selectedModelName,
-      useWebSearch,
+      webSearchEnabled,
       `${title} ${category || ""} ${synopsis || ""}`
     );
+
+    // En fiction, on ne veut ni tableaux de données, ni sources : le sommaire
+    // et le prototype doivent rester purement narratifs.
+    const fictionPlanNote =
+      genre === "fiction"
+        ? `\n- Ce livre est une œuvre de FICTION / un récit : n'utilise NI tableau de données, NI encadré, NI citation de source. Reste dans un registre narratif.`
+        : "";
 
     let missionText = "";
 
@@ -147,9 +153,9 @@ IMPORTANT:
 - NE FAIS AUCUNE SALUTATION (ne dis pas "Bonjour", ni "Voici le contenu", ni "Absolument", ni "En tant qu'IA").
 - Commence directement par la balise <h1>.
 - Quand le contenu contient des données comparatives, des listes de critères chiffrés ou des informations tabulaires, présente-les dans un tableau HTML bien structuré.
-- Ne rajoute aucun commentaire personnel à la fin, sois purement factuel et professionnel dans l'exécution de la tâche.
+- Ne rajoute aucun commentaire personnel à la fin, sois purement factuel et professionnel dans l'exécution de la tâche.${fictionPlanNote}
 ${searchContext}
-${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
+${webSearchEnabled ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
       prompt: prompt,
       async onError({ error }) {
         // Sans ce handler, une erreur du modèle pendant le stream est avalée :

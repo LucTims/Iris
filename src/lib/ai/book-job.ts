@@ -3,7 +3,12 @@ import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { checkMinimumBalance, deductChapterCost } from "@/lib/ai/cost-engine";
 import { estimateChapterCoins } from "@/lib/ai/pricing";
-import { getAiModel, fetchSearchContext, SEARCH_GROUNDING_INSTRUCTION } from "@/lib/ai/search-context";
+import { getAiModel, fetchSearchContext } from "@/lib/ai/search-context";
+import {
+  detectGenre,
+  shouldGroundWithWebSearch,
+  buildChapterSystemPrompt,
+} from "@/lib/ai/book-style";
 
 /**
  * Génération de livre complet — pipeline serveur résilient.
@@ -35,6 +40,7 @@ export interface BookJobSettings {
   title: string;
   synopsis?: string;
   tone?: string;
+  category?: string;
   characters?: string;
   instructions?: string;
   bookOutline?: string;
@@ -60,45 +66,25 @@ function buildSystemPrompt(
   searchContext: string,
   wordsTarget: number
 ): string {
-  const continuityBlock = recentSummaries.length
-    ? `Résumé des chapitres précédents pour garder la cohérence (personnages, événements, état de l'intrigue) :\n${recentSummaries
-        .map((s) => `Chapitre ${s.number} (${s.title}) : ${s.summary}`)
-        .join("\n")}\n`
+  const previousSummary = recentSummaries.length
+    ? recentSummaries.map((s) => `Chapitre ${s.number} (${s.title}) : ${s.summary}`).join("\n")
     : "";
 
-  const bibleBlock = settings.characters
-    ? `Bible des personnages / univers du livre (respecte-la scrupuleusement, ne change pas les noms, traits ou faits établis) :\n${settings.characters}\n`
-    : "";
-
-  return `Tu es un auteur professionnel de best-sellers. Ta mission est de rédiger un chapitre COMPLET pour un livre.
-Le texte que tu génères sera directement inséré dans le manuscrit de l'auteur.
-
-Livre concerné :
-Titre : ${settings.title}
-Synopsis global : ${settings.synopsis || "Non défini"}
-Ton / Style demandé : ${settings.tone || "Professionnel et engageant"}
-
-${bibleBlock}${settings.bookOutline ? `Sommaire / Table des matières du livre (rédige ce chapitre en cohérence avec ce plan, sans déborder sur les points prévus dans les autres chapitres) :\n${settings.bookOutline}\n` : ""}
-${continuityBlock}${chapter.brief ? `Ce chapitre doit couvrir précisément : ${chapter.brief}\n` : ""}
-${settings.instructions ? `CONSIGNES SPÉCIFIQUES DE L'AUTEUR (à respecter en priorité) :\n${settings.instructions}\n` : ""}
-
-Tu dois rédiger le texte du :
-Chapitre ${chapter.number} : ${chapter.title}
-${searchContext}
-${settings.useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}
-
-Instructions impératives :
-1. Rédige le chapitre complet, détaillé et immersif. ${wordsTarget ? `Vise environ ${wordsTarget} mots (±20 %).` : "Vise au moins 800 à 1500 mots."}
-2. N'ajoute AUCUN préambule (pas de "Voici le chapitre :" ni de "Bien sûr, je vais rédiger...").
-3. IMPORTANT: Chaque chapitre doit absolument commencer sur une nouvelle page. Pour ce faire, COMMENCE toujours ton texte par la balise <hr data-page-break>.
-4. Juste après cette balise, ajoute le titre du chapitre en balise <h1>. Par exemple : <hr data-page-break><h1>Chapitre ${chapter.number} : ${chapter.title}</h1>.
-5. Ensuite, rédige le contenu du chapitre en HTML valide, avec des balises <p>, <h2>, <h3>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>.
-6. Quand le contenu contient des données comparatives, des listes de critères chiffrés ou des informations tabulaires, présente-les dans un tableau HTML bien structuré.
-7. Pour mettre en valeur un point clé, utilise des encadrés : <div class="callout callout-info">…</div>, <div class="callout callout-warning">…</div>, <div class="callout callout-tip">…</div>, <div class="callout callout-example">…</div>. N'en abuse pas : 1 à 3 encadrés par chapitre.
-8. Pour un chiffre ou statistique marquant, utilise : <div class="key-figure">85% des entreprises…</div>. Maximum 1-2 par chapitre.
-9. Pour une citation marquante, utilise : <div class="pull-quote">La citation ici</div>. Maximum 1-2 par chapitre.
-10. Pour marquer une transition entre sections : <div class="section-divider section-divider-stars"></div> (ou ornament, line, dots), avec parcimonie.
-11. Pour un début de chapitre ou de section important, une lettrine : <p class="drop-cap">Le texte du paragraphe…</p>. Maximum 1 par chapitre.`;
+  return buildChapterSystemPrompt({
+    genre: detectGenre(settings.category, settings.tone),
+    title: settings.title,
+    synopsis: settings.synopsis,
+    tone: settings.tone,
+    characters: settings.characters,
+    bookOutline: settings.bookOutline,
+    chapterBrief: chapter.brief,
+    instructions: settings.instructions,
+    chapterNumber: chapter.number,
+    chapterTitle: chapter.title,
+    previousSummary,
+    searchContext,
+    wordsTarget: wordsTarget || undefined,
+  });
 }
 
 /**
@@ -177,9 +163,11 @@ export async function processNextChapter(
   }
 
   const recentSummaries = job.chapter_summaries.slice(-MAX_RECENT_SUMMARIES);
+  // Pas de recherche web en fiction (les sources n'ont rien à faire dans un roman).
+  const genre = detectGenre(settings.category, settings.tone);
   const searchContext = await fetchSearchContext(
     selectedModelName,
-    !!settings.useWebSearch,
+    shouldGroundWithWebSearch(genre, settings.useWebSearch),
     `${settings.title} - ${chapter.title} ${settings.synopsis || ""}`
   );
 
