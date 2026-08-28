@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateImage } from "ai";
+import { generateImage, generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
@@ -100,8 +100,18 @@ export async function POST(req: Request) {
         bytes = Buffer.from(image.uint8Array);
         contentType = image.mediaType || "image/png";
       } else {
+        let finalPrompt = prompt;
+        try {
+          const { text } = await generateText({
+            model: google("gemini-2.5-flash"),
+            prompt: `Translate this image generation prompt to English. Improve it to be highly descriptive, vivid, and optimized for an AI image generator like Flux or Midjourney. Keep it concise but detailed. DO NOT output anything else except the English prompt.\n\nOriginal prompt: ${prompt}`,
+          });
+          finalPrompt = text.trim();
+        } catch (e) {
+          console.error("[generate-cover] Translation failed, using original prompt.", e);
+        }
         const seed = Math.floor(Math.random() * 1_000_000);
-        const fetched = await fetchImageBytes(pollinationsUrl(prompt, seed));
+        const fetched = await fetchImageBytes(pollinationsUrl(finalPrompt, seed));
         bytes = fetched.bytes;
         contentType = fetched.contentType;
       }
