@@ -149,6 +149,8 @@ function RedactionContent() {
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
   // Signal d'arrêt de la génération complète (respecté entre deux chapitres).
   const batchStopRef = useRef(false);
+  // Job serveur de génération de livre en cours (voir /api/generate-book/*).
+  const bookJobIdRef = useRef<string | null>(null);
   const [liveWordCount, setLiveWordCount] = useState(0);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<RichManuscriptEditorHandle>(null);
@@ -1042,93 +1044,100 @@ function RedactionContent() {
         ? sommaireOnly.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 2000)
         : planChapters.map((c, k) => `${k + 1}. ${c.title} — ${c.brief}`).join("\n").substring(0, 2000);
 
-      // Rédige chaque chapitre de contenu, l'un après l'autre.
-      for (let i = startIdx; i < created.length; i++) {
-        if (batchStopRef.current) break; // arrêt demandé par l'utilisateur
-        const chap = created[i];
-        const brief = planChapters[i - startIdx]?.brief || "";
-        setActiveChapterIndex(i);
-        setBatchProgress({ current: i - startIdx + 1, total });
-        setBatchLabel(`Rédaction ${i - startIdx + 1}/${total} — ${chap.title}`);
+      // Démarre le job de génération CÔTÉ SERVEUR : chaque chapitre s'enchaîne
+      // tout seul sur le serveur (voir /api/generate-book/*), donc fermer cet
+      // onglet n'interrompt plus rien — contrairement à l'ancienne boucle qui
+      // tournait ici, dans le navigateur, chapitre après chapitre.
+      const plan = created.slice(startIdx).map((c, k) => ({
+        chapterId: c.id,
+        number: c.number,
+        title: c.title,
+        brief: planChapters[k]?.brief || "",
+      }));
 
-        const previousChaptersSummary = created
-          .slice(startIdx, i)
-          .map((c, k) => `Chapitre ${k + 1} (${c.title})`)
-          .join("\n");
+      const startResp = await fetch("/api/generate-book/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: pId,
+          chapters: plan,
+          settings: {
+            title: bookTitle,
+            synopsis: projectData?.synopsis || "",
+            tone: projectData?.tone || "professionnel",
+            characters: (projectData as any)?.characters || undefined,
+            instructions: projectData?.instructions || undefined,
+            bookOutline: outline,
+            model,
+            targetWords: preset.wordsPerChapter,
+            useWebSearch,
+          },
+        }),
+      });
 
-        let attempt = 0;
-        let txt = "";
-        let ok = false;
-        while (attempt < 2 && !ok) {
-          attempt++;
-          const resp = await fetch("/api/generate-chapter", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: bookTitle,
-              synopsis: projectData?.synopsis || "",
-              tone: projectData?.tone || "professionnel",
-              chapterTitle: chap.title,
-              chapterNumber: chap.number,
-              previousChaptersSummary,
-              bookOutline: outline,
-              chapterBrief: brief,
-              targetWords: preset.wordsPerChapter,
-              model,
-              projectId: pId,
-              useWebSearch,
-            }),
-          });
+      if (startResp.status === 402) {
+        alert("Fonds insuffisants pour démarrer la génération du livre.");
+        return;
+      }
+      if (!startResp.ok) {
+        alert("Impossible de démarrer la génération du livre. Réessayez.");
+        return;
+      }
+      const { jobId } = await startResp.json();
+      bookJobIdRef.current = jobId;
 
-          if (resp.status === 402) {
-            alert("Pièces insuffisantes pour continuer la génération du livre. Les chapitres déjà rédigés sont enregistrés.");
+      // Poll le statut du job jusqu'à complétion/échec/annulation, en
+      // reflétant la progression réelle des chapitres depuis la base.
+      await new Promise<void>((resolve) => {
+        const poll = async () => {
+          if (batchStopRef.current) {
+            try {
+              await fetch("/api/generate-book/cancel", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ jobId }),
+              });
+            } catch { /* best-effort */ }
+            resolve();
             return;
           }
-          if (resp.status === 429 && attempt < 2) {
-            setBatchLabel(`Pause anti-surcharge… (chapitre ${i - startIdx + 1}/${total})`);
-            await new Promise((r) => setTimeout(r, 20000));
-            continue;
-          }
-          if (!resp.ok) break;
 
-          const reader = resp.body?.getReader();
-          const decoder = new TextDecoder();
-          txt = "";
-          if (reader) {
-            let done = false;
-            while (!done) {
-              const { value, done: d } = await reader.read();
-              done = d;
-              if (value) {
-                txt += decoder.decode(value, { stream: true });
-                setChapters((prev) => {
-                  const u = [...prev];
-                  if (u[i]) u[i] = { ...u[i], content: txt, status: "En cours" };
-                  return u;
-                });
+          try {
+            const res = await fetch(`/api/generate-book/status?jobId=${jobId}`);
+            const data = await res.json().catch(() => null);
+            if (data?.chapters) {
+              setChapters(data.chapters);
+            }
+            const job = data?.job;
+            if (job) {
+              const doneCount = Math.min(job.current_index, total);
+              setBatchProgress({ current: doneCount, total });
+              setBatchLabel(
+                job.status === "running"
+                  ? `Rédaction ${doneCount + 1}/${total}…`
+                  : job.status
+              );
+              if (job.status === "failed") {
+                if (job.last_error === "insufficient_funds") {
+                  alert("Pièces insuffisantes pour continuer la génération du livre. Les chapitres déjà rédigés sont enregistrés.");
+                } else {
+                  alert("Une erreur est survenue pendant la génération du livre. Les chapitres déjà rédigés sont enregistrés. Vous pouvez relancer la génération pour reprendre.");
+                }
+                resolve();
+                return;
+              }
+              if (job.status === "completed" || job.status === "canceled") {
+                resolve();
+                return;
               }
             }
+          } catch (err) {
+            console.warn("Erreur de polling du job de génération:", err);
           }
-          ok = true;
-        }
-
-        if (ok) {
-          try {
-            await fetch(`/api/projects/${pId}/chapters/${chap.id}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ title: chap.title, content: txt, status: "Terminé" }),
-            });
-            setChapters((prev) => {
-              const u = [...prev];
-              if (u[i]) u[i] = { ...u[i], status: "Terminé" };
-              return u;
-            });
-          } catch {
-            /* échec de sauvegarde silencieux, le contenu reste à l'écran */
-          }
-        }
-      }
+          setTimeout(poll, 3000);
+        };
+        poll();
+      });
 
       setActiveChapterIndex(startIdx);
     } catch (error) {
@@ -1175,105 +1184,86 @@ function RedactionContent() {
       }
 
       const total = targets.length;
-      let done = 0;
-      for (const { c: chap, idx } of targets) {
-        if (batchStopRef.current) break;
-        done++;
-        setActiveChapterIndex(idx);
-        setBatchProgress({ current: done, total });
-        setBatchLabel(`Rédaction ${done}/${total} — ${chap.title}`);
+      const plan = targets.map(({ c: chap }) => ({
+        chapterId: chap.id,
+        number: chap.number,
+        title: chap.title,
+        brief: planList.find((p) => p.title.trim() === (chap.title || "").trim())?.brief || "",
+      }));
 
-        const brief = planList.find((p) => p.title.trim() === (chap.title || "").trim())?.brief || "";
-        const previousChaptersSummary = chapters
-          .slice(0, idx)
-          .filter((c2) => !/sommaire|table des mati/i.test(c2.title || ""))
-          .map((c2, k) => `Chapitre ${k + 1} (${c2.title})`)
-          .join("\n");
+      const startResp = await fetch("/api/generate-book/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: pId,
+          chapters: plan,
+          settings: {
+            title: bookTitle,
+            synopsis: projectData?.synopsis || "",
+            tone: projectData?.tone || "professionnel",
+            characters: (projectData as any)?.characters || undefined,
+            instructions: projectData?.instructions || undefined,
+            bookOutline: outline,
+            model,
+            useWebSearch,
+          },
+        }),
+      });
 
-        let attempt = 0;
-        let txt = "";
-        let ok = false;
-        while (attempt < 2 && !ok) {
-          attempt++;
-          const resp = await fetch("/api/generate-chapter", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: bookTitle,
-              synopsis: projectData?.synopsis || "",
-              tone: projectData?.tone || "professionnel",
-              chapterTitle: chap.title,
-              chapterNumber: chap.number,
-              previousChaptersSummary,
-              bookOutline: outline,
-              chapterBrief: brief,
-              model,
-              projectId: pId,
-              useWebSearch,
-            }),
-          });
-          if (resp.status === 402) {
-            setIsBatchGenerating(false);
-            setBatchProgress(null);
-            alert("Pièces insuffisantes pour continuer. Les chapitres déjà rédigés sont enregistrés — rechargez puis cliquez à nouveau sur « Continuer la rédaction ».");
+      if (startResp.status === 402) {
+        alert("Pièces insuffisantes pour continuer. Rechargez votre solde puis cliquez à nouveau sur « Continuer la rédaction ».");
+        return;
+      }
+      if (!startResp.ok) {
+        alert("Impossible de reprendre la génération. Réessayez.");
+        return;
+      }
+      const { jobId } = await startResp.json();
+      bookJobIdRef.current = jobId;
+
+      await new Promise<void>((resolve) => {
+        const poll = async () => {
+          if (batchStopRef.current) {
+            try {
+              await fetch("/api/generate-book/cancel", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ jobId }),
+              });
+            } catch { /* best-effort */ }
+            resolve();
             return;
           }
-          if (resp.status === 429 && attempt < 2) {
-            setBatchLabel(`Pause anti-surcharge… (${done}/${total})`);
-            await new Promise((r) => setTimeout(r, 20000));
-            continue;
-          }
-          if (!resp.ok) break;
-
-          const reader = resp.body?.getReader();
-          const decoder = new TextDecoder();
-          txt = "";
-          if (reader) {
-            let d = false;
-            while (!d) {
-              const { value, done: dd } = await reader.read();
-              d = dd;
-              if (value) {
-                txt += decoder.decode(value, { stream: true });
-                setChapters((prev) => {
-                  const u = [...prev];
-                  if (u[idx]) u[idx] = { ...u[idx], content: txt, status: "En cours" };
-                  return u;
-                });
+          try {
+            const res = await fetch(`/api/generate-book/status?jobId=${jobId}`);
+            const data = await res.json().catch(() => null);
+            if (data?.chapters) setChapters(data.chapters);
+            const job = data?.job;
+            if (job) {
+              setBatchProgress({ current: Math.min(job.current_index, total), total });
+              setBatchLabel(job.status === "running" ? `Rédaction ${Math.min(job.current_index + 1, total)}/${total}…` : job.status);
+              if (job.status === "failed") {
+                alert(
+                  job.last_error === "insufficient_funds"
+                    ? "Pièces insuffisantes pour continuer. Les chapitres déjà rédigés sont enregistrés — rechargez puis cliquez à nouveau sur « Continuer la rédaction »."
+                    : "La génération s'est interrompue. Les chapitres déjà rédigés sont enregistrés. Réessayez ou changez de modèle."
+                );
+                resolve();
+                return;
+              }
+              if (job.status === "completed" || job.status === "canceled") {
+                resolve();
+                return;
               }
             }
+          } catch (err) {
+            console.warn("Erreur de polling du job de génération:", err);
           }
-          if (!txt.trim()) {
-            if (attempt < 2) {
-              setBatchLabel(`Nouvelle tentative… (${done}/${total})`);
-              await new Promise((r) => setTimeout(r, 15000));
-              continue;
-            }
-            setIsBatchGenerating(false);
-            setBatchProgress(null);
-            alert("La génération s'est interrompue (quota IA atteint ou service surchargé). Les chapitres déjà rédigés sont enregistrés. Réessayez plus tard ou changez de modèle.");
-            return;
-          }
-          ok = true;
-        }
+          setTimeout(poll, 3000);
+        };
+        poll();
+      });
 
-        if (ok && typeof chap.id === "string" && txt.trim()) {
-          try {
-            await fetch(`/api/projects/${pId}/chapters/${chap.id}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ title: chap.title, content: txt, status: "Terminé" }),
-            });
-            setChapters((prev) => {
-              const u = [...prev];
-              if (u[idx]) u[idx] = { ...u[idx], status: "Terminé" };
-              return u;
-            });
-          } catch {
-            /* sauvegarde silencieuse */
-          }
-        }
-      }
       setActiveChapterIndex(0);
     } catch (error) {
       console.error("Erreur lors de la reprise de la rédaction:", error);
