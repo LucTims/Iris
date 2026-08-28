@@ -16,9 +16,102 @@ import {
 } from "@/lib/ai/cover";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// Les modèles d'image gratuits (Hugging Face) peuvent « démarrer à froid »
+// (chargement du modèle) : on laisse une marge généreuse pour ne pas couper
+// une génération légitime. Nécessite un plan Vercel autorisant maxDuration>60.
+export const maxDuration = 300;
 
 const COVERS_BUCKET = "covers";
+
+/** Jeton Hugging Face — accepte plusieurs noms de variable d'environnement. */
+function hfToken(): string | undefined {
+  return (
+    process.env.HUGGINGFACE_API_KEY ||
+    process.env.HF_TOKEN ||
+    process.env.HUGGING_FACE_TOKEN ||
+    process.env.HUGGINGFACE_TOKEN
+  );
+}
+
+/** Modèle d'image HF (surchargeable via env). FLUX.1-schnell = rapide (4 étapes). */
+const HF_IMAGE_MODEL = process.env.HF_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell";
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Génère une image via Hugging Face Inference. Gère les deux cas qui faisaient
+ * échouer la version précédente :
+ *   - le nouvel endpoint « router » (l'ancien api-inference renvoie souvent 404) ;
+ *   - le démarrage à froid : HF répond 503 + JSON {estimated_time} tant que le
+ *     modèle charge — on réessaie au lieu d'abandonner.
+ * Lève une erreur explicite si le jeton manque ou après plusieurs échecs.
+ */
+async function generateWithHuggingFace(prompt: string): Promise<{ bytes: Buffer; contentType: string }> {
+  const token = hfToken();
+  if (!token) {
+    throw new Error("HUGGINGFACE_API_KEY manquant côté serveur.");
+  }
+
+  const endpoints = [
+    `https://router.huggingface.co/hf-inference/models/${HF_IMAGE_MODEL}`,
+    `https://api-inference.huggingface.co/models/${HF_IMAGE_MODEL}`,
+  ];
+
+  let lastErr = "";
+  for (const url of endpoints) {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "image/png",
+        },
+        body: JSON.stringify({
+          inputs: prompt,
+          parameters: { width: COVER_WIDTH, height: COVER_HEIGHT },
+          // Ne fait pas patienter côté HF : on gère nous-mêmes le retry.
+          options: { wait_for_model: true, use_cache: false },
+        }),
+      });
+
+      const ct = res.headers.get("content-type") || "";
+
+      if (res.ok && ct.startsWith("image/")) {
+        const bytes = Buffer.from(await res.arrayBuffer());
+        if (bytes.length < 500) throw new Error("Image HF vide.");
+        return { bytes, contentType: ct };
+      }
+
+      // Réponse JSON = erreur ou « modèle en cours de chargement ».
+      const text = await res.text();
+      lastErr = `${res.status} ${text.slice(0, 200)}`;
+
+      // 503 / "loading" → on attend l'estimation puis on réessaie.
+      if (res.status === 503 || /loading|currently loading|estimated_time/i.test(text)) {
+        let waitMs = 8000;
+        try {
+          const j = JSON.parse(text);
+          if (j.estimated_time) waitMs = Math.min(30000, Math.ceil(j.estimated_time * 1000) + 1500);
+        } catch { /* garde le défaut */ }
+        await sleep(waitMs);
+        continue;
+      }
+
+      // 404 sur cet endpoint → on tente l'endpoint suivant.
+      if (res.status === 404) break;
+
+      // 401/403 → jeton invalide : inutile d'insister.
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(`Hugging Face a refusé le jeton (${res.status}).`);
+      }
+
+      // Autre erreur : petit backoff puis retry.
+      await sleep(2000 * (attempt + 1));
+    }
+  }
+  throw new Error(`Hugging Face indisponible: ${lastErr}`);
+}
 
 function admin() {
   return createAdminClient(
@@ -100,45 +193,42 @@ export async function POST(req: Request) {
         bytes = Buffer.from(image.uint8Array);
         contentType = image.mediaType || "image/png";
       } else {
+        // Traduction/enrichissement du prompt en anglais (Flux rend mieux en
+        // anglais). Bornée dans le temps : ce bonus ne doit jamais bloquer ni
+        // rallonger indéfiniment la génération.
         let finalPrompt = prompt;
         try {
+          const controller = new AbortController();
+          const t = setTimeout(() => controller.abort(), 8000);
           const { text } = await generateText({
             model: google("gemini-2.5-flash"),
-            prompt: `Translate this image generation prompt to English. Improve it to be highly descriptive, vivid, and optimized for an AI image generator like Flux or Midjourney. Keep it concise but detailed. DO NOT output anything else except the English prompt.\n\nOriginal prompt: ${prompt}`,
+            abortSignal: controller.signal,
+            prompt: `Translate and enrich this book-cover image prompt into vivid, concise ENGLISH optimised for a Flux image model. Output ONLY the English prompt.\n\n${prompt}`,
           });
-          finalPrompt = text.trim();
+          clearTimeout(t);
+          if (text.trim()) finalPrompt = text.trim();
         } catch (e) {
-          console.error("[generate-cover] Translation failed, using original prompt.", e);
-        }
-        
-        const hfRes = await fetch("https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            inputs: finalPrompt,
-            parameters: {
-              width: COVER_WIDTH,
-              height: COVER_HEIGHT,
-            }
-          }),
-        });
-
-        if (!hfRes.ok) {
-          const errText = await hfRes.text();
-          console.error("[generate-cover] HF Error:", errText);
-          throw new Error("Erreur Hugging Face API");
+          console.warn("[generate-cover] traduction ignorée (non bloquant):", e);
         }
 
-        bytes = Buffer.from(await hfRes.arrayBuffer());
-        contentType = hfRes.headers.get("content-type") || "image/jpeg";
+        // Moteur gratuit : Hugging Face en priorité, repli automatique sur
+        // Pollinations si HF échoue (jeton, 404, surcharge…), pour que le mode
+        // gratuit produise quasiment toujours une image.
+        try {
+          const hf = await generateWithHuggingFace(finalPrompt);
+          bytes = hf.bytes;
+          contentType = hf.contentType;
+        } catch (hfErr) {
+          console.warn("[generate-cover] HF indisponible, repli Pollinations:", hfErr);
+          const fallback = await fetchImageBytes(pollinationsUrl(finalPrompt, Math.floor(Math.random() * 1e6)));
+          bytes = fallback.bytes;
+          contentType = fallback.contentType;
+        }
       }
     } catch (genErr) {
       console.error("[generate-cover] échec de la génération:", genErr);
       return NextResponse.json(
-        { error: "La génération de la couverture a échoué. Réessayez ou changez de moteur." },
+        { error: "La génération de la couverture a échoué. Réessayez dans un instant ou changez de moteur." },
         { status: 502 }
       );
     }
@@ -171,7 +261,7 @@ export async function POST(req: Request) {
         user_id: user.id,
         project_id: projectId || null,
         action: `generate_cover_${engine}`,
-        model: engine === "premium" ? IMAGEN_MODEL : "pollinations-flux",
+        model: engine === "premium" ? IMAGEN_MODEL : HF_IMAGE_MODEL,
       });
     } catch { /* non bloquant */ }
 

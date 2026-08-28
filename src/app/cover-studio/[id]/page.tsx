@@ -59,6 +59,12 @@ export default function CoverStudioEditorPage() {
           if (p) {
             setTitle(p.title || "Titre du livre");
             setSubtitle(p.subtitle || "");
+            // Ré-hydrate la couverture déjà appliquée pour qu'elle persiste
+            // d'une visite à l'autre (avant, le studio l'oubliait au rechargement).
+            if (p.cover_url) {
+              setCoverImage(p.cover_url);
+              setAppliedCoverUrl(p.cover_url);
+            }
           }
         }
       } catch (error) {
@@ -320,6 +326,16 @@ export default function CoverStudioEditorPage() {
                 transformStyle: "preserve-3d"
               }}
             >
+              {/* Overlay animé pendant la génération de l'image */}
+              {isGenerating && (
+                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-neutral-950/70 backdrop-blur-sm animate-fadeIn">
+                  <div className="w-14 h-14 rounded-full border-2 border-white/20 border-t-secondary animate-spin"></div>
+                  <div className="text-center px-6">
+                    <p className="text-white font-heading font-bold text-sm">Création de votre couverture…</p>
+                    <p className="text-neutral-300 text-[11px] mt-1">L'illustration apparaîtra ici dans quelques instants.</p>
+                  </div>
+                </div>
+              )}
               {!coverImage && (
                 <>
                   {/* Subtle background overlay effect when no image */}
@@ -437,7 +453,25 @@ export default function CoverStudioEditorPage() {
                 </div>
 
                 <div className="flex-1 mb-4 bg-neutral-50 rounded-2xl p-4 border border-neutral-100 flex flex-col overflow-y-auto">
-                   <p className="text-xs text-neutral-400 text-center mt-auto mb-auto">Demandez à l'IA de générer une couverture, ou utilisez le bouton rapide pour utiliser les informations de votre livre.</p>
+                   {isGenerating ? (
+                     <div className="m-auto flex flex-col items-center gap-4 text-center">
+                       <div className="flex items-end gap-1.5 h-8">
+                         <span className="w-2 h-2 rounded-full bg-secondary animate-bounce [animation-delay:-0.3s]"></span>
+                         <span className="w-2 h-2 rounded-full bg-secondary animate-bounce [animation-delay:-0.15s]"></span>
+                         <span className="w-2 h-2 rounded-full bg-secondary animate-bounce"></span>
+                       </div>
+                       <div>
+                         <p className="text-xs font-bold text-neutral-700">
+                           {coverEngine === "premium" ? "Génération premium en cours…" : "Génération en cours…"}
+                         </p>
+                         <p className="text-[11px] text-neutral-400 mt-1">
+                           La première image peut prendre jusqu'à une minute (démarrage du modèle).
+                         </p>
+                       </div>
+                     </div>
+                   ) : (
+                     <p className="text-xs text-neutral-400 text-center mt-auto mb-auto">Demandez à l'IA de générer une couverture, ou utilisez le bouton rapide pour utiliser les informations de votre livre.</p>
+                   )}
                 </div>
 
                 <div className="space-y-3 mt-auto">
