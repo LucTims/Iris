@@ -124,20 +124,24 @@ function buildDocDefinition(
   subtitle: string | undefined,
   chapters: ChapterData[],
   coverImage: string | null,
-  category: string | undefined
+  category: string | undefined,
+  format: "digital" | "print" = "digital"
 ): any {
   // Palette typographique riche, choisie selon le STYLE du livre (roman,
   // jeunesse, thriller, business, académique…) — pas seulement fiction/non-fiction.
   const { body: bodyFont, display: displayFont } = bookFontPairing(category);
+  // Dimensions de page selon le format (impression 6×9" ou A4 numérique).
+  const pageW = format === "print" ? 432 : 595;
+  const pageH = format === "print" ? 648 : 842;
   const content: any[] = [];
 
-  // Page de couverture pleine page (A4 = 595 × 842 pt). L'image est posée en
-  // absolu pour occuper toute la page (sans marges), puis saut de page.
+  // Page de couverture pleine page. L'image est posée en absolu pour occuper
+  // toute la page (sans marges), aux dimensions du format choisi, puis saut.
   if (coverImage) {
     content.push({
       image: coverImage,
-      width: 595,
-      height: 842,
+      width: pageW,
+      height: pageH,
       absolutePosition: { x: 0, y: 0 },
       pageBreak: "after",
     });
@@ -206,22 +210,58 @@ function buildDocDefinition(
     content.push(...htmlToPdfmakeContent(rest));
   });
 
+  // Page de FIN — clôt le livre comme un ouvrage édité.
+  content.push({ text: "Fin", style: "endMark", pageBreak: "before", margin: [0, 260, 0, 0] });
+  content.push({ text: "❦", alignment: "center", color: "#b08d57", fontSize: 16, margin: [0, 18, 0, 0] });
+
+  // Nombre de pages liminaires (front matter) à NE PAS numéroter ni coiffer
+  // d'un en-tête courant : couverture (si image) + titre + copyright + TOC.
+  const frontMatterCount = (coverImage ? 1 : 0) + 2 + (hasSummary ? 1 : 0);
+  const runningTitle = (title || "").toUpperCase();
+
+  // Format d'impression : "print" = trim 6×9 pouces (432×648 pt) avec des
+  // marges compatibles KDP (gouttière intérieure généreuse) ; "digital" = A4.
+  const isPrint = format === "print";
+  const pageSize = isPrint ? { width: 432, height: 648 } : "A4";
+  const pageMargins: [number, number, number, number] = isPrint
+    ? [58, 64, 54, 64] // [intérieur/gouttière, haut, extérieur, bas] ~0.75"/0.9"/0.75"/0.9"
+    : [72, 80, 72, 80];
+
   return {
-    pageSize: "A4",
-    pageMargins: [72, 80, 72, 80],
+    pageSize,
+    pageMargins,
     info: { title, subject: `Livre composé avec Iris - ${title}` },
     content,
+    // En-tête courant : titre du livre en petites capitales grises, sur les
+    // pages de contenu uniquement (ni sur le front matter, ni sur la page de fin).
+    header: (currentPage: number, pageCount: number) => {
+      if (currentPage <= frontMatterCount || currentPage >= pageCount) return null;
+      return {
+        text: runningTitle,
+        alignment: "center",
+        font: displayFont,
+        fontSize: 8,
+        characterSpacing: 2,
+        color: "#b0b0b0",
+        margin: [0, 34, 0, 0],
+      };
+    },
     footer: (currentPage: number, pageCount: number) => {
-      // Pas de numéro sur la couverture ni la page de titre/copyright.
-      const firstNumbered = coverImage ? 4 : 3;
-      if (currentPage < firstNumbered || currentPage > pageCount) return null;
+      // Pas de numéro sur le front matter ni la page de fin.
+      if (currentPage <= frontMatterCount || currentPage >= pageCount) return null;
+      // En impression : numéro à l'extérieur (gauche sur page paire, droite sur
+      // page impaire) ; en numérique : centré.
+      const alignment = isPrint ? (currentPage % 2 === 0 ? "left" : "right") : "center";
+      const margin: [number, number, number, number] = isPrint
+        ? [54, 16, 54, 0]
+        : [0, 16, 0, 0];
       return {
         text: `${currentPage}`,
-        alignment: "center",
+        alignment,
         font: bodyFont,
         fontSize: 10,
         color: "#999999",
-        margin: [0, 16, 0, 0],
+        margin,
       };
     },
     styles: {
@@ -236,6 +276,7 @@ function buildDocDefinition(
       h3: { font: displayFont, fontSize: 12.5, bold: true, color: "#333333", margin: [0, 10, 0, 4] },
       paragraph: { fontSize: 11.5, alignment: "justify", margin: [0, 0, 0, 9] },
       blockquote: { fontSize: 11.5, italics: true, color: "#555555" },
+      endMark: { font: displayFont, fontSize: 20, italics: true, alignment: "center", color: "#1a1a1a" },
     },
     // LA correction clé : police par défaut = serif de livre, plus Roboto.
     defaultStyle: { font: bodyFont, fontSize: 11.5, lineHeight: 1.45 },
@@ -260,7 +301,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Accès non autorisé. Veuillez vous connecter." }, { status: 401 });
     }
 
-    const { title, subtitle, category, chapters, coverUrl } = await req.json();
+    const { title, subtitle, category, chapters, coverUrl, format } = await req.json();
+    const exportFormat: "digital" | "print" = format === "print" ? "print" : "digital";
     if (!Array.isArray(chapters) || chapters.length === 0) {
       return NextResponse.json({ error: "Aucun chapitre à exporter." }, { status: 400 });
     }
@@ -278,7 +320,7 @@ export async function POST(req: Request) {
     const coverImage = await inlineCover(coverUrl);
 
     const printer = await getPrinter();
-    const docDefinition = buildDocDefinition(title || "Mon Livre Iris", subtitle, preparedChapters, coverImage, category);
+    const docDefinition = buildDocDefinition(title || "Mon Livre Iris", subtitle, preparedChapters, coverImage, category, exportFormat);
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
     const buffer = await streamToBuffer(pdfDoc);
 
