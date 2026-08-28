@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
     "test:admin": "tsx tests/admin/runner.ts"
   },
   "dependencies": {
@@ -83,6 +84,7 @@
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
     "tailwindcss-typography": "^3.1.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }
