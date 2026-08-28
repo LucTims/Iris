@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -99,7 +99,7 @@ export default function WelcomeModal() {
             {/* Title & Greeting */}
             <div className="space-y-1">
               <h2 className="font-heading text-lg sm:text-xl font-bold tracking-tight text-neutral-900">
-                Bienvenue sur Iris{displayName ?   : ""} !
+                Bienvenue sur Iris{displayName ? ` ${displayName}` : ""} !
               </h2>
               <p className="text-xs text-neutral-500">
                 Votre studio de création littéraire avec l&apos;IA.
