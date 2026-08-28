@@ -33,25 +33,20 @@ export interface CoverPromptInput {
  */
 export function buildCoverPrompt(input: CoverPromptInput): string {
   const base = (input.userPrompt || "").trim();
-  const descriptive =
-    base ||
-    [
-      input.synopsis ? `Scène évoquant : ${input.synopsis}` : "",
-      input.category ? `Genre : ${input.category}` : "",
-      input.tone ? `Ambiance : ${input.tone}` : "",
-      input.title ? `Livre intitulé « ${input.title} »` : "",
-    ]
-      .filter(Boolean)
-      .join(". ");
+  if (base) {
+    return base;
+  }
 
-  const subject = descriptive || "Couverture de livre élégante et évocatrice";
+  const parts = [
+    input.title ? `Title theme: ${input.title}` : "",
+    input.category ? `Genre: ${input.category}` : "",
+    input.tone ? `Mood and atmosphere: ${input.tone}` : "",
+    input.synopsis ? `Story premise: ${input.synopsis}` : "",
+  ].filter(Boolean);
 
-  return [
-    `Illustration de couverture de livre professionnelle, verticale (format portrait).`,
-    subject + ".",
-    `Composition soignée, éclairage cinématographique, haute qualité, adaptée à l'impression.`,
-    `IMPORTANT : aucune lettre, aucun mot, aucun texte dans l'image (le titre sera ajouté séparément).`,
-  ].join(" ");
+  return parts.length > 0
+    ? parts.join(". ")
+    : "An inspiring and captivating scenic artwork with cinematic lighting and rich atmosphere";
 }
 
 /** URL Pollinations (GET renvoie directement l'image). */

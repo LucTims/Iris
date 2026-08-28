@@ -155,6 +155,8 @@ async function executeImagePipeline(
           prompt,
           n: 1,
           size: "1024x1792",
+          quality: "hd",
+          style: "vivid",
           response_format: "b64_json",
         }),
       });
@@ -164,7 +166,7 @@ async function executeImagePipeline(
         const data = await openaiRes.json();
         if (data.data?.[0]?.b64_json) {
           const bytes = Buffer.from(data.data[0].b64_json, "base64");
-          return { bytes, contentType: "image/png", usedModel: "openai/dall-e-3" };
+          return { bytes, contentType: "image/png", usedModel: "openai/dall-e-3-hd" };
         }
       } else {
         const errText = await openaiRes.text();
@@ -245,18 +247,19 @@ export async function POST(req: Request) {
       const { text } = await generateText({
         model: google("gemini-2.5-flash"),
         abortSignal: controller.signal,
-        prompt: `You are an elite master book cover art director and prompt engineer.
-Transform the following book cover idea into an award-winning, stunning, highly detailed prompt for FLUX and Midjourney.
+        prompt: `You are a world-renowned visual art director and master concept artist creating multimillion-dollar bestseller book covers and cinematic movie posters.
 
-Book Context / User Request:
+Convert this book concept/request into a breathtaking, ultra-detailed, majestic art prompt:
 "${basePrompt}"
 
-Rules:
-1. Output MUST be in ENGLISH.
-2. Vertical portrait composition (ratio 2:3 or 9:16).
-3. Focus on dramatic cinematic lighting, volumetric atmosphere, rich color palette, hyper-detailed textures, photorealistic or master digital painting rendering.
-4. CRITICAL: Absolute prohibition of any text, letters, words, titles, typography, signs, or watermarks.
-5. Return ONLY the final prompt text, no explanations, no quotes.`,
+Essential Requirements:
+1. Translate to rich, vivid, evocative ENGLISH.
+2. Elevate the scene: make the subject look noble, majestic, cinematic, and gorgeous. If it mentions a character or animal (e.g. a cat with gold coins), describe a regal subject with luminous glowing eyes, gleaming fur/attire, surrounded by glittering antique minted gold coins, ancient treasure chests, shimmering dust particles, and golden hour lighting.
+3. Include high-end aesthetic details: "cinematic masterpiece, dramatic lighting, volumetric god rays, rich vibrant color harmony, Octane Render, 8k resolution, razor sharp focus, award-winning illustration".
+4. Composition: Full-bleed vertical portrait orientation (2:3 or 9:16 aspect ratio).
+5. NEVER include words like "book cover", "book lying on desk", "pages", "paper", "reading", "spine". Describe ONLY the visual scene directly.
+6. Absolutely NO typography, NO letters, NO text, NO numbers, NO watermark.
+7. Return strictly the prompt text only, without quotes or preface.`,
       });
       clearTimeout(t);
       if (text.trim()) finalPrompt = text.trim();
