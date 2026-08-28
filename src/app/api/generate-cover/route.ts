@@ -110,10 +110,30 @@ export async function POST(req: Request) {
         } catch (e) {
           console.error("[generate-cover] Translation failed, using original prompt.", e);
         }
-        const seed = Math.floor(Math.random() * 1_000_000);
-        const fetched = await fetchImageBytes(pollinationsUrl(finalPrompt, seed));
-        bytes = fetched.bytes;
-        contentType = fetched.contentType;
+        
+        const hfRes = await fetch("https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            inputs: finalPrompt,
+            parameters: {
+              width: COVER_WIDTH,
+              height: COVER_HEIGHT,
+            }
+          }),
+        });
+
+        if (!hfRes.ok) {
+          const errText = await hfRes.text();
+          console.error("[generate-cover] HF Error:", errText);
+          throw new Error("Erreur Hugging Face API");
+        }
+
+        bytes = Buffer.from(await hfRes.arrayBuffer());
+        contentType = hfRes.headers.get("content-type") || "image/jpeg";
       }
     } catch (genErr) {
       console.error("[generate-cover] échec de la génération:", genErr);
