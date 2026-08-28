@@ -1643,9 +1643,10 @@ function RedactionContent() {
       {/* MAIN STUDIO CONTAINER */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* 2. SLEEK ESSENTIAL HEADER BAR */}
-        <header className="bg-white border-b border-neutral-200/80 h-16 px-2 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 shrink-0 z-30 overflow-x-auto no-scrollbar">
-          {/* Left: Book Title & Active Chapter Picker */}
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+        <header className="bg-white border-b border-neutral-200/80 h-16 px-2 sm:px-6 flex items-center justify-between shrink-0 z-30">
+          <div className="flex-1 flex items-center justify-between gap-2 sm:gap-4 overflow-x-auto no-scrollbar h-full pr-2">
+            {/* Left: Book Title & Active Chapter Picker */}
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link
               href="/projects"
               className="flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all shrink-0"
@@ -1779,15 +1780,16 @@ function RedactionContent() {
               
               <button
                 onClick={() => setIsExportModalOpen(true)}
-                className="bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+                className="bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-3 sm:px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-base">download</span>
-                <span>Exporter / Télécharger</span>
+                <span className="hidden sm:inline">Exporter / Télécharger</span>
               </button>
             </div>
+          </div>
 
-            {/* Profile Menu Toggle */}
-            <div className="relative">
+          {/* Profile Menu Toggle - Now Outside the scroll container */}
+          <div className="relative shrink-0 pl-2 sm:pl-4 border-l border-neutral-100 ml-2">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm cursor-pointer hover:ring-2 hover:ring-orange-300 transition-all"
@@ -1824,7 +1826,6 @@ function RedactionContent() {
                 </div>
               )}
             </div>
-          </div>
         </header>
 
         {/* MOBILE VIEW SEGMENTED CONTROL (visible on mobile / small screens) */}
