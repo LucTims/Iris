@@ -1955,9 +1955,9 @@ function RedactionContent() {
                     className="bg-white border border-neutral-200 text-neutral-800 text-[11px] font-bold px-2 py-1 rounded-lg outline-none cursor-pointer hover:border-secondary transition-all"
                     title="Choisir le modèle d'IA"
                   >
-                    <option value="gemini-2.5-flash">✨ Gemini 2.5 Flash (~20 ✨/page)</option>
-                    <option value="gpt-4o">🚀 ChatGPT (GPT-4o) (~80 ✨/page)</option>
-                    <option value="claude-sonnet-4-6">🖋️ Claude Sonnet 4.6 (~150 ✨/page)</option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gpt-4o">ChatGPT (GPT-4o)</option>
+                    <option value="claude-3-5-sonnet-20241022">Claude Sonnet 3.5</option>
                   </select>
 
                   <button

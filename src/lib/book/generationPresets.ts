@@ -45,9 +45,9 @@ export const SIZE_PRESETS: Record<BookSizeKey, BookSizePreset> = {
 
 /** Les 3 modèles proposés à l'auteur, du plus économique au premium. */
 export const BOOK_MODELS = [
-  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Éco — 20 pièces/page" },
-  { id: "gpt-4o-mini", label: "GPT-4o mini", hint: "Recommandé — 30 pièces/page" },
-  { id: "claude-sonnet-5", label: "Claude Sonnet", hint: "Premium — 50 pièces/page" },
+  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Rapide et économique" },
+  { id: "gpt-4o-mini", label: "GPT-4o mini", hint: "Bon compromis qualité/prix" },
+  { id: "claude-3-5-sonnet-20241022", label: "Claude Sonnet 3.5", hint: "Excellente qualité de rédaction" },
 ];
 
 // Les estimateurs de coût en pièces vivent dans la source unique @/lib/ai/pricing.
