@@ -27,12 +27,17 @@ import { generateText } from "ai";
  */
 
 export function getAiModel(modelId: string) {
-  if (modelId.startsWith("gpt-")) {
-    return openai(modelId);
-  } else if (modelId.startsWith("claude-")) {
-    return anthropic(modelId);
+  if (modelId.startsWith("gpt-") || modelId.startsWith("chatgpt") || modelId.startsWith("o1") || modelId.startsWith("o3")) {
+    const mappedOpenAi = modelId.includes("mini") ? "gpt-4o-mini" : "gpt-4o";
+    return openai(mappedOpenAi);
+  } else if (modelId.startsWith("claude")) {
+    // Si l'identifiant est l'ancien "claude-3-5-sonnet-20240620", router vers le modèle actif le plus puissant
+    const mappedClaude = modelId.includes("haiku") ? "claude-haiku-4-5-20251001" : "claude-3-5-sonnet-latest";
+    return anthropic(mappedClaude);
   } else {
-    return google(modelId);
+    // Par défaut Gemini
+    const mappedGemini = modelId.includes("pro") ? "gemini-2.5-pro" : "gemini-2.5-flash";
+    return google(mappedGemini);
   }
 }
 
