@@ -1772,14 +1772,10 @@ function RedactionContent() {
             </Link>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsGeoScoreModalOpen(true)}
-                className="bg-purple-100 hover:bg-purple-200 text-purple-700 text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
-                title="Évaluer le Score GEO de ce document"
-              >
-                <span className="material-symbols-outlined text-base">target</span>
-                <span>Score GEO</span>
-              </button>
+              <Link href="/pricing" className="flex items-center gap-1.5 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 text-yellow-800 text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs" title="Acheter des pièces">
+                <span className="text-sm">🪙</span>
+                <span>{walletBalance !== null ? walletBalance : "..."}</span>
+              </Link>
               
               <button
                 onClick={() => setIsExportModalOpen(true)}
