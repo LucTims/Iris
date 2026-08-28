@@ -214,3 +214,58 @@ ${chapterStructureRules(chapterNumber, chapterTitle)}
 
 ${bodyFormattingRules(genre)}`;
 }
+
+/**
+ * Palette typographique par STYLE de livre — pour un rendu riche et adapté à
+ * chaque genre (le catalogue Iris ne se limite pas aux romans). Renvoie des
+ * clés pdfmake (voir fontRegistry) : `body` = corps, `display` = titres.
+ *
+ * Toutes les familles citées sont embarquées en TTF, donc réellement rendues à
+ * l'export. On repère le style via des mots-clés de catégorie (et le ton en
+ * repli), avec un défaut littéraire pour la fiction et sobre pour la non-fiction.
+ */
+export function bookFontPairing(
+  category?: string | null,
+  tone?: string | null
+): { body: string; display: string } {
+  const hay = `${category || ""} ${tone || ""}`
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const has = (...kws: string[]) => kws.some((k) => hay.includes(k));
+
+  // Jeunesse / enfants : chaleureux et rond.
+  if (has("jeunesse", "enfant", "young adult", "conte")) {
+    return { body: "Nunito", display: "Poppins" };
+  }
+  // Romance / sentimental : élégant.
+  if (has("romance", "sentimental")) {
+    return { body: "Lora", display: "CormorantGaramond" };
+  }
+  // Thriller / policier / horreur : serif dense + titres modernes serrés.
+  if (has("thriller", "policier", "polar", "suspense", "horreur")) {
+    return { body: "PTSerif", display: "Montserrat" };
+  }
+  // Poésie : garamond classique.
+  if (has("poesie", "poeme")) {
+    return { body: "EBGaramond", display: "EBGaramond" };
+  }
+  // Business / finance / management : sobre et professionnel.
+  if (has("business", "finance", "management", "entreprise", "marketing", "economie")) {
+    return { body: "Merriweather", display: "Montserrat" };
+  }
+  // Développement personnel / self-help : accueillant.
+  if (has("developpement personnel", "bien-etre", "bien etre", "self", "motivation", "coaching")) {
+    return { body: "SourceSerif4", display: "Poppins" };
+  }
+  // Académique / essai / histoire / science / technique : rigoureux.
+  if (has("academique", "essai", "histoire", "science", "technique", "manuel", "education", "scolaire", "guide")) {
+    return { body: "PTSerif", display: "PTSerif" };
+  }
+  // Fiction générale (roman, aventure, fantasy, SF, drame…) : littéraire.
+  if (detectGenre(category, tone) === "fiction") {
+    return { body: "Lora", display: "PlayfairDisplay" };
+  }
+  // Non-fiction par défaut.
+  return { body: "Merriweather", display: "Montserrat" };
+}

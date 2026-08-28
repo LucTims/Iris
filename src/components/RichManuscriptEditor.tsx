@@ -27,7 +27,9 @@ import {
   FONT_CATEGORY_ORDER,
   fontsByCategory,
   googleFontsImportUrl,
+  cssFamilyForPdfKey,
 } from '@/lib/export/fontRegistry';
+import { bookFontPairing } from '@/lib/ai/book-style';
 
 const FONTS_BY_CATEGORY = fontsByCategory();
 const GOOGLE_FONTS_IMPORT = googleFontsImportUrl();
@@ -71,9 +73,15 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       generationProgress,
       onStopGeneration,
       onFileSelected,
+      category,
     },
     ref
   ) {
+  // Palette typographique de l'export, appliquée à l'aperçu (WYSIWYG) : l'auteur
+  // voit dans l'éditeur les mêmes polices corps/titres que dans le PDF final.
+  const { body: bodyPdfKey, display: displayPdfKey } = bookFontPairing(category);
+  const bookBodyFont = cssFamilyForPdfKey(bodyPdfKey);
+  const bookDisplayFont = cssFamilyForPdfKey(displayPdfKey);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(100);
   
@@ -465,7 +473,13 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   }
 
   return (
-    <div className="relative flex-1 flex flex-col h-full bg-[#F9FAFB] overflow-hidden min-w-0 font-body">
+    <div
+      className="relative flex-1 flex flex-col h-full bg-[#F9FAFB] overflow-hidden min-w-0 font-body"
+      style={{
+        ["--book-body-font" as string]: `'${bookBodyFont}'`,
+        ["--book-display-font" as string]: `'${bookDisplayFont}'`,
+      } as React.CSSProperties}
+    >
       {/* ================= 0. GENERATION / REWRITE ANIMATION OVERLAY ================= */}
       <AnimatePresence>
         {isGenerating && (
@@ -935,30 +949,85 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               cursor: pointer;
             }
 
+            /* APERÇU FIDÈLE À L'EXPORT (WYSIWYG) : corps en serif de livre et
+               titres en police display, pour que l'auteur voie dans l'éditeur
+               le même rendu (deux polices) que dans le PDF exporté. Les polices
+               par défaut correspondent à la palette d'export ; une police
+               choisie manuellement sur un texte (font picker) reste prioritaire. */
+            .tiptap {
+              font-family: var(--book-body-font, 'Merriweather'), Georgia, 'Times New Roman', serif;
+              color: #1f2937;
+            }
+
             .tiptap p, .tiptap h1, .tiptap h2, .tiptap h3, .tiptap h4, .tiptap h5 {
-              line-height: 1.6;
+              line-height: 1.7;
               margin-bottom: 0.5em;
             }
 
+            .tiptap p {
+              text-align: justify;
+            }
+
+            .tiptap h1, .tiptap h2, .tiptap h3, .tiptap h4 {
+              font-family: var(--book-display-font, 'Playfair Display'), Georgia, serif;
+            }
+
             .tiptap h1 {
-              font-size: 2.2em;
-              font-weight: 800;
+              font-size: 2em;
+              font-weight: 700;
               margin-top: 0.6em;
               margin-bottom: 0.4em;
+              text-align: center;
             }
 
             .tiptap h2 {
-              font-size: 1.6em;
+              font-size: 1.5em;
               font-weight: 700;
               margin-top: 0.8em;
               margin-bottom: 0.4em;
             }
 
             .tiptap h3 {
-              font-size: 1.3em;
+              font-size: 1.25em;
               font-weight: 700;
               margin-top: 0.9em;
               margin-bottom: 0.3em;
+            }
+
+            /* Saut de page / début de chapitre — rendu VISIBLE dans l'éditeur,
+               pour refléter le fait qu'à l'export chaque chapitre démarre sur
+               une nouvelle page (avant, l'éditeur n'affichait rien). */
+            .tiptap hr[data-page-break],
+            .tiptap hr {
+              border: none;
+              border-top: 2px dashed #cbd5e1;
+              margin: 2.5rem 0 2rem;
+              position: relative;
+            }
+            .tiptap hr[data-page-break]::after {
+              content: '⤓ nouvelle page';
+              position: absolute;
+              top: -0.75em;
+              left: 50%;
+              transform: translateX(-50%);
+              background: #fff;
+              padding: 0 0.75rem;
+              font-family: 'Outfit', sans-serif;
+              font-size: 0.65rem;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: #94a3b8;
+            }
+
+            /* Lettrine : rendu propre dans l'éditeur (aperçu de l'export). */
+            .tiptap p.drop-cap::first-letter {
+              font-family: var(--book-display-font, 'Playfair Display'), serif;
+              font-size: 3.2em;
+              font-weight: 700;
+              line-height: 0.9;
+              float: left;
+              margin: 0.05em 0.08em 0 0;
+              color: #1a1a1a;
             }
 
             .tiptap blockquote {

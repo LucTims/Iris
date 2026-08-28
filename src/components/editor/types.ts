@@ -50,6 +50,9 @@ export interface RichManuscriptEditorProps {
   /** When provided, shows a Stop button on the generation overlay. */
   onStopGeneration?: () => void;
   onFileSelected?: (file: File) => void;
+  /** Catégorie du livre : sert à afficher, dans l'éditeur, la MÊME palette
+   * typographique que l'export (aperçu WYSIWYG). */
+  category?: string;
 }
 
 export type PageFormatType = "A4" | "A5";

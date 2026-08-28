@@ -97,3 +97,11 @@ export function googleFontsImportUrl(): string {
   });
   return `https://fonts.googleapis.com/css2?${families.join("&")}&display=swap`;
 }
+
+/** clé pdfmake → nom CSS de la famille (pour l'aperçu éditeur WYSIWYG). */
+export const PDF_TO_CSS_FONT: Record<string, string> = Object.fromEntries(
+  FONT_LIBRARY.map((f) => [f.pdf, f.css])
+);
+export function cssFamilyForPdfKey(pdf: string): string {
+  return PDF_TO_CSS_FONT[pdf] || "Merriweather";
+}

@@ -7,20 +7,8 @@ import {
   extractLeadingHeading,
   isSummaryChapter,
 } from "@/lib/export/htmlToPdfmake";
-import { detectGenre, type BookGenre } from "@/lib/ai/book-style";
+import { bookFontPairing } from "@/lib/ai/book-style";
 import { PDF_FONT_KEYS } from "@/lib/export/fontRegistry";
-
-/**
- * Palette typographique par genre — c'est ce qui donne au PDF un rendu de
- * livre réellement édité plutôt qu'un document par défaut. Les familles sont
- * chargées depuis src/lib/export/fonts (voir getPrinter) ; `body` est appliqué
- * en police PAR DÉFAUT du document (avant, tout tombait sur Roboto sans-serif).
- */
-function fontsForGenre(genre: BookGenre): { body: string; display: string } {
-  return genre === "fiction"
-    ? { body: "Lora", display: "PlayfairDisplay" }
-    : { body: "Merriweather", display: "Montserrat" };
-}
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -136,9 +124,11 @@ function buildDocDefinition(
   subtitle: string | undefined,
   chapters: ChapterData[],
   coverImage: string | null,
-  genre: BookGenre
+  category: string | undefined
 ): any {
-  const { body: bodyFont, display: displayFont } = fontsForGenre(genre);
+  // Palette typographique riche, choisie selon le STYLE du livre (roman,
+  // jeunesse, thriller, business, académique…) — pas seulement fiction/non-fiction.
+  const { body: bodyFont, display: displayFont } = bookFontPairing(category);
   const content: any[] = [];
 
   // Page de couverture pleine page (A4 = 595 × 842 pt). L'image est posée en
@@ -168,19 +158,34 @@ function buildDocDefinition(
   });
   content.push({ text: "Composé avec Iris", style: "copyright", italics: true, margin: [0, 24, 0, 0], pageBreak: "after" });
 
-  // Chapitres. Le sommaire éventuel écrit par l'IA (chapitre « Sommaire » /
-  // « Table des matières ») est ÉCARTÉ : il est remplacé par une vraie table
-  // des matières native pdfmake avec de VRAIS numéros de page (ci-dessous).
-  const realChapters = chapters.filter((ch) => !isSummaryChapter(ch.title, ch.content));
+  // Détecte si l'auteur a demandé un sommaire : en mode « avec sommaire »,
+  // generate-plan crée un chapitre « Sommaire » / « Table des matières ». Sa
+  // présence = l'utilisateur veut une table des matières. En mode « sans
+  // sommaire », il n'y en a pas → on n'ajoute AUCUNE table des matières
+  // (avant, une TOC apparaissait à tort même quand l'auteur l'avait désactivée).
+  const hasSummary = chapters.some((ch) => isSummaryChapter(ch.title, ch.content));
 
-  // Vraie table des matières (numéros de page résolus par pdfmake en 2 passes).
-  // Pas de pageBreak:"after" ici : le premier chapitre force déjà son propre
-  // saut de page (pageBreak:"before"), un double saut laisserait une page blanche.
-  content.push({
-    toc: {
-      title: { text: "Table des matières", style: "tocTitle", margin: [0, 40, 0, 24] },
-    },
+  // Corps du livre : on écarte (a) le chapitre-sommaire lui-même (remplacé par
+  // une vraie TOC paginée), et (b) les chapitres « fantômes » sans contenu réel
+  // — des placeholders titre-seul hérités du plan qui produisaient des
+  // pages-titres en double avant chaque chapitre.
+  const realChapters = chapters.filter((ch) => {
+    if (isSummaryChapter(ch.title, ch.content)) return false;
+    const { rest } = extractLeadingHeading(ch.content || "");
+    const bodyText = (rest || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    return bodyText.length >= 20;
   });
+
+  // Table des matières native (numéros de page résolus par pdfmake en 2 passes)
+  // UNIQUEMENT en mode « avec sommaire ». Pas de pageBreak:"after" : le premier
+  // chapitre force déjà son propre saut de page.
+  if (hasSummary) {
+    content.push({
+      toc: {
+        title: { text: "Table des matières", style: "tocTitle", margin: [0, 40, 0, 24] },
+      },
+    });
+  }
 
   // Chapitres. Chaque chapitre commence sur une nouvelle page. Quand le corps
   // commence déjà par son propre <h1>, on en extrait le titre (et on supprime
@@ -260,8 +265,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Aucun chapitre à exporter." }, { status: 400 });
     }
 
-    const genre = detectGenre(category);
-
     // Inline external images so pdfmake can embed them
     const preparedChapters: ChapterData[] = [];
     for (const ch of chapters) {
@@ -275,7 +278,7 @@ export async function POST(req: Request) {
     const coverImage = await inlineCover(coverUrl);
 
     const printer = await getPrinter();
-    const docDefinition = buildDocDefinition(title || "Mon Livre Iris", subtitle, preparedChapters, coverImage, genre);
+    const docDefinition = buildDocDefinition(title || "Mon Livre Iris", subtitle, preparedChapters, coverImage, category);
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
     const buffer = await streamToBuffer(pdfDoc);
 
