@@ -185,13 +185,30 @@ export async function POST(req: Request) {
     let contentType = "image/jpeg";
     try {
       if (engine === "premium") {
-        const { image } = await generateImage({
-          model: google.image(IMAGEN_MODEL),
-          prompt,
-          aspectRatio: "9:16",
+        const openaiRes = await fetch("https://api.openai.com/v1/images/generations", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "dall-e-3",
+            prompt,
+            n: 1,
+            size: "1024x1792",
+            response_format: "b64_json"
+          }),
         });
-        bytes = Buffer.from(image.uint8Array);
-        contentType = image.mediaType || "image/png";
+
+        if (!openaiRes.ok) {
+          const errText = await openaiRes.text();
+          console.error("[generate-cover] OpenAI Error:", errText);
+          throw new Error("Erreur OpenAI DALL-E 3");
+        }
+
+        const data = await openaiRes.json();
+        bytes = Buffer.from(data.data[0].b64_json, "base64");
+        contentType = "image/png";
       } else {
         // Traduction/enrichissement du prompt en anglais (Flux rend mieux en
         // anglais). Bornée dans le temps : ce bonus ne doit jamais bloquer ni
@@ -249,9 +266,9 @@ export async function POST(req: Request) {
 
     // 3) Premium : on débite APRÈS succès (génération + stockage).
     if (engine === "premium") {
-      await deductFixedCoins(user.id, COVER_IMAGE_COINS, "Couverture premium (Imagen)", {
+      await deductFixedCoins(user.id, COVER_IMAGE_COINS, "Couverture premium (DALL-E 3)", {
         project_id: projectId || null,
-        engine: "imagen",
+        engine: "dall-e-3",
       });
     }
 
@@ -261,7 +278,7 @@ export async function POST(req: Request) {
         user_id: user.id,
         project_id: projectId || null,
         action: `generate_cover_${engine}`,
-        model: engine === "premium" ? IMAGEN_MODEL : HF_IMAGE_MODEL,
+        model: engine === "premium" ? "dall-e-3" : HF_IMAGE_MODEL,
       });
     } catch { /* non bloquant */ }
 
