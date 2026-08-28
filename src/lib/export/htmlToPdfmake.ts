@@ -38,8 +38,11 @@ export function extractLeadingHeading(html: string): { title: string | null; res
   if (!html) return { title: null, rest: html || "" };
   // Drop a single leading page-break marker / empty spacer: the chapter already
   // starts on a fresh page, so this break is redundant.
+  // Retire un éventuel marqueur de saut de page (n'importe quel <hr>, avec ou
+  // sans attribut data-page-break — TipTap peut avoir retiré l'attribut) ou un
+  // paragraphe vide en tête, avant de chercher le <h1> du titre à dédupliquer.
   const stripped = html.replace(
-    /^\s*(?:<hr[^>]*data-page-break[^>]*>|<p>\s*(?:&nbsp;)?\s*<\/p>|&nbsp;)\s*/i,
+    /^\s*(?:<hr[^>]*>|<p>\s*(?:&nbsp;)?\s*<\/p>|&nbsp;)\s*/i,
     ""
   );
   const m = stripped.match(/^\s*<h1[^>]*>([\s\S]*?)<\/h1>/i);
@@ -308,10 +311,14 @@ export function htmlToPdfmakeContent(html: string): PdfNode[] {
   const out: PdfNode[] = [];
   if (!html) return out;
 
-  // Normalize page-break markers, strip other <hr>
-  const source = html
-    .replace(/<hr[^>]*data-page-break[^>]*>/gi, '<div data-type="pageBreak"></div>')
-    .replace(/<hr[^>]*>/gi, "");
+  // Tout <hr> = saut de page. IMPORTANT : l'éditeur TipTap peut réécrire
+  // `<hr data-page-break>` en simple `<hr>` (l'attribut data n'est pas conservé
+  // par l'extension HorizontalRule par défaut). L'ancienne version ne
+  // reconnaissait que la forme avec attribut et SUPPRIMAIT le `<hr>` simple →
+  // les chapitres ne partaient plus sur une nouvelle page. Les séparateurs de
+  // scène utilisent `<div class="section-divider">` (jamais `<hr>`), donc
+  // traiter tout `<hr>` comme saut de page est sûr.
+  const source = html.replace(/<hr[^>]*>/gi, '<div data-type="pageBreak"></div>');
 
   // A page-break marker sets pageBreak:'before' on the NEXT emitted node.
   let pendingBreak = false;
@@ -411,7 +418,14 @@ export function htmlToPdfmakeContent(html: string): PdfNode[] {
             columnGap: 2,
             margin: [0, 0, 0, 8],
           });
-        } else if (h1) push({ text: parseInlineRuns(withoutImg, { bold: true }), style: "h1" });
+        } else if (h1) {
+          // Un <h1> marque un nouveau chapitre : il DOIT commencer sur une
+          // nouvelle page (sauf s'il ouvre le document ou si un saut de page
+          // est déjà en attente). Garantit la pagination même quand les
+          // marqueurs <hr> ont disparu du contenu.
+          if (out.length > 0) pendingBreak = true;
+          push({ text: parseInlineRuns(withoutImg, { bold: true }), style: "h1", margin: [0, 40, 0, 12] });
+        }
         else if (h2) push({ text: parseInlineRuns(withoutImg, { bold: true }), style: "h2" });
         else if (h3) push({ text: parseInlineRuns(withoutImg, { bold: true }), style: "h3" });
         else if (bq) push({ text: parseInlineRuns(withoutImg, { italics: true }), style: "blockquote", margin: [24, 6, 0, 6] });
