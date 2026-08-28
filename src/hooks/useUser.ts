@@ -15,6 +15,7 @@ export function useUser() {
     website_url?: string;
     twitter_url?: string;
     amazon_url?: string;
+    has_seen_welcome_modal?: boolean;
   } | null>(null);
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -97,16 +98,34 @@ export function useUser() {
     }
   };
 
+  const markWelcomeModalAsSeen = async () => {
+    if (!user) return;
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`iris_welcome_seen_${user.id}`, "true");
+      }
+      setProfile((prev) => (prev ? { ...prev, has_seen_welcome_modal: true } : prev));
+      await supabase
+        .from("profiles")
+        .update({ has_seen_welcome_modal: true })
+        .eq("id", user.id);
+    } catch (err) {
+      console.error("Erreur lors de l'enregistrement de l'état du modal de bienvenue:", err);
+    }
+  };
+
   return {
     user,
     profile: profile ? { ...profile, role: effectiveRole } : { role: effectiveRole },
     walletBalance,
     isAdmin: effectiveRole === "admin",
     loading,
+    isLoading: loading,
     signOut,
     displayName,
     displayEmail,
     avatarUrl,
     refreshWalletBalance,
+    markWelcomeModalAsSeen,
   };
 }
