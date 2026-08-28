@@ -27,7 +27,8 @@ export default function CoverStudioEditorPage() {
   
   // New States for the Refactor
   const [coverMode, setCoverMode] = useState<"ai" | "upload" | "styles">("ai");
-  const [selectedAPI, setSelectedAPI] = useState("Chat GPT");
+  // Moteur d'image : "free" (Pollinations, gratuit) ou "premium" (Imagen, en pièces).
+  const [coverEngine, setCoverEngine] = useState<"free" | "premium">("free");
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [previewAngle, setPreviewAngle] = useState<"face" | "iso-left" | "iso-right">("face");
   const [showAutoConfirm, setShowAutoConfirm] = useState(false);
@@ -46,7 +47,6 @@ export default function CoverStudioEditorPage() {
     setCoverApplied(false);
   }, [coverImage, bgColor, accentColor, title, subtitle, author, selectedTheme]);
 
-  const aiProviders = ["Chat GPT", "Nana banana", "Dall-E"];
 
   useEffect(() => {
     // Fetch the project data to prepopulate the cover details
@@ -78,26 +78,44 @@ export default function CoverStudioEditorPage() {
     { name: "Minimaliste Sombre", bg: "#111827", accent: "#10B981", font: "Outfit" }
   ];
 
-  const handleGenerateAI = () => {
-    if (!promptText.trim()) return;
+  // Appelle la vraie route de génération d'image. `auto` = laisse le serveur
+  // construire le prompt depuis les métadonnées du livre (sinon on envoie la
+  // consigne saisie). `engine` : "free" (Pollinations, gratuit) ou "premium"
+  // (Imagen, facturé en pièces).
+  const runCoverGeneration = async (opts: { auto: boolean }) => {
+    if (!opts.auto && !promptText.trim()) return;
     setIsGenerating(true);
-    // Simulate API call
-    setTimeout(() => {
-      // Mock generated image
-      setCoverImage("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop");
+    try {
+      const res = await fetch("/api/generate-cover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          engine: coverEngine,
+          prompt: opts.auto ? undefined : promptText,
+        }),
+      });
+      if (res.status === 402) {
+        alert("Pièces insuffisantes pour une couverture premium. Choisissez le mode gratuit ou rechargez votre solde.");
+        return;
+      }
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.url) {
+        alert(data?.error || "La génération de la couverture a échoué. Réessayez.");
+        return;
+      }
+      setCoverImage(data.url);
+    } catch (err) {
+      console.error("Erreur génération couverture:", err);
+      alert("Une erreur réseau est survenue pendant la génération.");
+    } finally {
       setIsGenerating(false);
-    }, 1500);
+      setShowAutoConfirm(false);
+    }
   };
 
-  const handleAutoGenerate = () => {
-    setIsGenerating(true);
-    // Simulate auto AI call based on book data
-    setTimeout(() => {
-      // Mock generated image
-      setCoverImage("https://images.unsplash.com/photo-1542204165-65bf26472b9b?q=80&w=2574&auto=format&fit=crop");
-      setIsGenerating(false);
-    }, 2000);
-  };
+  const handleGenerateAI = () => runCoverGeneration({ auto: false });
+  const handleAutoGenerate = () => runCoverGeneration({ auto: true });
 
   const generateCanvas = () => {
     const canvas = document.createElement("canvas");
@@ -401,13 +419,21 @@ export default function CoverStudioEditorPage() {
                     <span className="material-symbols-outlined text-amber-500">forum</span>
                     Assistant IA
                   </h2>
-                  <select 
-                    value={selectedAPI}
-                    onChange={(e) => setSelectedAPI(e.target.value)}
-                    className="text-xs font-bold bg-neutral-50 border border-neutral-200 text-neutral-700 rounded-lg px-3 py-1.5 outline-none focus:border-secondary cursor-pointer"
-                  >
-                    {aiProviders.map(api => <option key={api} value={api}>{api}</option>)}
-                  </select>
+                  <div className="flex items-center bg-neutral-100 rounded-lg p-0.5">
+                    <button
+                      onClick={() => setCoverEngine("free")}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-md transition-all ${coverEngine === "free" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500"}`}
+                    >
+                      Gratuit
+                    </button>
+                    <button
+                      onClick={() => setCoverEngine("premium")}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-md transition-all flex items-center gap-1 ${coverEngine === "premium" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500"}`}
+                    >
+                      <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+                      Premium · 200
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex-1 mb-4 bg-neutral-50 rounded-2xl p-4 border border-neutral-100 flex flex-col overflow-y-auto">
