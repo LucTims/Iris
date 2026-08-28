@@ -1865,6 +1865,7 @@ function RedactionContent() {
           }`}>
             <RichManuscriptEditor
               ref={editorRef}
+              category={projectData?.category}
               initialContent={currentChapter.content}
               chapterTitle={currentChapter.title}
               onTitleChange={(newTitle) => {

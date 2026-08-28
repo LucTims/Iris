@@ -387,12 +387,29 @@ export function htmlToPdfmakeContent(html: string): PdfNode[] {
         const bq = /<blockquote[^>]*>/i.test(withoutImg);
 
         if (dropCap && plainText.length > 0) {
+          // Vraie lettrine : la capitale initiale posée à gauche, le texte du
+          // premier paragraphe s'écoulant À SA DROITE (mise en colonnes), au
+          // lieu d'une grosse lettre seule sur sa ligne suivie d'un retour à la
+          // ligne — ce qui n'était pas professionnel.
+          const runs = parseInlineRuns(withoutImg);
+          // Retire la 1re lettre du flux (elle devient la lettrine).
+          if (runs.length && typeof runs[0].text === "string" && runs[0].text.length) {
+            runs[0] = { ...runs[0], text: runs[0].text.replace(/^\s+/, "").slice(1) };
+          }
           push({
-            text: [
-              { text: plainText.charAt(0), fontSize: 28, bold: true, color: "#1e293b" },
-              { text: plainText.substring(1) },
+            columns: [
+              {
+                width: "auto",
+                text: plainText.charAt(0).toUpperCase(),
+                fontSize: 46,
+                bold: true,
+                color: "#1a1a1a",
+                margin: [0, 2, 6, 0],
+              },
+              { width: "*", text: runs, style: "paragraph" },
             ],
-            style: "paragraph",
+            columnGap: 2,
+            margin: [0, 0, 0, 8],
           });
         } else if (h1) push({ text: parseInlineRuns(withoutImg, { bold: true }), style: "h1" });
         else if (h2) push({ text: parseInlineRuns(withoutImg, { bold: true }), style: "h2" });
