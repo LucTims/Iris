@@ -1,5 +1,6 @@
 import Sidebar from "@/components/Sidebar";
 import TopHeader from "@/components/TopHeader";
+import WelcomeModal from "@/components/WelcomeModal";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -22,6 +23,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* First-time Welcome Popup */}
+      <WelcomeModal />
     </div>
   );
 }

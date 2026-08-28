@@ -32,7 +32,7 @@ export function getAiModel(modelId: string) {
     return openai(mappedOpenAi);
   } else if (modelId.startsWith("claude")) {
     // Si l'identifiant est l'ancien "claude-3-5-sonnet-20240620", router vers le modèle actif le plus puissant
-    const mappedClaude = modelId.includes("haiku") ? "claude-haiku-4-5-20251001" : "claude-3-5-sonnet-latest";
+    const mappedClaude = modelId.includes("haiku") ? "claude-haiku-4-5-20251001" : "claude-sonnet-4-6";
     return anthropic(mappedClaude);
   } else {
     // Par défaut Gemini

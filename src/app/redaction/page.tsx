@@ -1957,7 +1957,7 @@ function RedactionContent() {
                   >
                     <option value="gemini-2.5-flash">✨ Gemini 2.5 Flash (~20 ✨/page)</option>
                     <option value="gpt-4o">🚀 ChatGPT (GPT-4o) (~80 ✨/page)</option>
-                    <option value="claude-3-5-sonnet-20240620">🖋️ Claude 3.5 Sonnet (~150 ✨/page)</option>
+                    <option value="claude-sonnet-4-6">🖋️ Claude Sonnet 4.6 (~150 ✨/page)</option>
                   </select>
 
                   <button
