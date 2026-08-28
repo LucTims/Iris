@@ -34,6 +34,9 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
 
   // Step 3 state (Original Export logic)
   const [selectedFormat, setSelectedFormat] = useState<"epub" | "pdf" | "docx" | "markdown">("epub");
+  // Mise en page du PDF : "digital" (A4, lecture écran) ou "print" (6×9",
+  // marges compatibles KDP pour l'impression papier).
+  const [pdfLayout, setPdfLayout] = useState<"digital" | "print">("digital");
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
 
@@ -104,6 +107,7 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
             category: project?.category,
             chapters: finalChapters,
             coverUrl,
+            format: pdfLayout,
           }),
         });
 
@@ -334,6 +338,29 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
                 </div>
 
               </div>
+
+              {/* Choix de mise en page — visible uniquement pour le PDF */}
+              {selectedFormat === "pdf" && (
+                <div className="mt-4 border-t border-neutral-100 pt-4">
+                  <p className="text-xs font-bold text-neutral-700 mb-2">Mise en page du PDF</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setPdfLayout("digital")}
+                      className={`text-left p-3 rounded-xl border transition-all ${pdfLayout === "digital" ? "border-secondary bg-orange-50/60" : "border-neutral-200 hover:bg-neutral-50"}`}
+                    >
+                      <span className="block text-xs font-bold text-neutral-900">Numérique (A4)</span>
+                      <span className="block text-[11px] text-neutral-500">Lecture à l'écran</span>
+                    </button>
+                    <button
+                      onClick={() => setPdfLayout("print")}
+                      className={`text-left p-3 rounded-xl border transition-all ${pdfLayout === "print" ? "border-secondary bg-orange-50/60" : "border-neutral-200 hover:bg-neutral-50"}`}
+                    >
+                      <span className="block text-xs font-bold text-neutral-900">Impression · KDP (6×9")</span>
+                      <span className="block text-[11px] text-neutral-500">Marges prêtes pour Amazon</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
           </div>
