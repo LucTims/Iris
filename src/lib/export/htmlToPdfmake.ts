@@ -9,20 +9,16 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { CSS_TO_PDF_FONT } from "@/lib/export/fontRegistry";
+
 type PdfNode = any;
 
 /**
- * The only fonts we support in the PDF (must match the editor's font picker
- * and the fonts registered by the export route). Keys are lowercased CSS
- * family names; values are the pdfmake font names.
+ * Correspondance « nom de police CSS (minuscule) » → clé pdfmake. Dérivée du
+ * registre unique (fontRegistry), donc toute police du sélecteur de l'éditeur
+ * est reconnue et réellement appliquée à l'export PDF.
  */
-export const SUPPORTED_PDF_FONTS: Record<string, string> = {
-  roboto: "Roboto",
-  merriweather: "Merriweather",
-  lora: "Lora",
-  montserrat: "Montserrat",
-  "playfair display": "PlayfairDisplay",
-};
+export const SUPPORTED_PDF_FONTS: Record<string, string> = CSS_TO_PDF_FONT;
 
 function mapFont(rawFamily: string): string | undefined {
   const first = rawFamily.split(",")[0].replace(/['"]/g, "").trim().toLowerCase();

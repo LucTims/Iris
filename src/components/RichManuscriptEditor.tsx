@@ -23,6 +23,14 @@ import { Color } from '@tiptap/extension-color';
 import { Highlight } from '@tiptap/extension-highlight';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { FontFamily } from '@tiptap/extension-font-family';
+import {
+  FONT_CATEGORY_ORDER,
+  fontsByCategory,
+  googleFontsImportUrl,
+} from '@/lib/export/fontRegistry';
+
+const FONTS_BY_CATEGORY = fontsByCategory();
+const GOOGLE_FONTS_IMPORT = googleFontsImportUrl();
 
 import { ConvertKit } from '@tiptap-pro/extension-convert-kit';
 import { TableKit } from '@tiptap-pro/extension-pages-tablekit';
@@ -609,17 +617,22 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
             className="bg-white border border-neutral-300 text-xs font-bold px-2.5 py-1.5 rounded-xl outline-none cursor-pointer max-w-[145px] shadow-2xs"
             title="Police d'écriture"
           >
-            {/* Uniquement les polices réellement supportées à l'export PDF/DOCX */}
+            {/* Bibliothèque complète — toutes ces polices sont embarquées en TTF
+                et réellement rendues à l'export PDF (voir fontRegistry). */}
             <option value="">Police par défaut</option>
-            <optgroup label="─── Sans-Serif ───">
-              <option value="Roboto" style={{fontFamily:'Roboto'}}>Roboto</option>
-              <option value="Montserrat" style={{fontFamily:'Montserrat'}}>Montserrat</option>
-            </optgroup>
-            <optgroup label="─── Serif (Livres) ───">
-              <option value="Merriweather" style={{fontFamily:'Merriweather'}}>Merriweather</option>
-              <option value="Lora" style={{fontFamily:'Lora'}}>Lora</option>
-              <option value="Playfair Display" style={{fontFamily:'Playfair Display'}}>Playfair Display</option>
-            </optgroup>
+            {FONT_CATEGORY_ORDER.map((cat) => {
+              const fonts = FONTS_BY_CATEGORY[cat];
+              if (!fonts || fonts.length === 0) return null;
+              return (
+                <optgroup key={cat} label={`─── ${cat} ───`}>
+                  {fonts.map((f) => (
+                    <option key={f.pdf} value={f.css} style={{ fontFamily: f.css }}>
+                      {f.label}
+                    </option>
+                  ))}
+                </optgroup>
+              );
+            })}
           </select>
 
           {/* Font Size Stepper: − [16] + */}
@@ -899,7 +912,8 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
 
           {/* 21 Google Fonts Stylesheet and TipTap Pro Pages CSS */}
           <style dangerouslySetInnerHTML={{__html: `
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Roboto:ital,wght@0,300;0,400;0,700;1,400&family=Open+Sans:ital,wght@0,300;0,400;0,700;1,400&family=Lato:ital,wght@0,300;0,400;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Raleway:wght@300;400;500;600;700&family=Nunito:wght@300;400;600;700&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,wght@0,300;0,400;0,700;1,400&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Dancing+Script:wght@400;700&family=Pacifico&family=Caveat:wght@400;700&family=Fira+Code:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap');
+            @import url('${GOOGLE_FONTS_IMPORT}');
+            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
             .tiptap-page {
               background-color: white;

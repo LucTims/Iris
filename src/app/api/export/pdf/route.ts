@@ -8,6 +8,7 @@ import {
   isSummaryChapter,
 } from "@/lib/export/htmlToPdfmake";
 import { detectGenre, type BookGenre } from "@/lib/ai/book-style";
+import { PDF_FONT_KEYS } from "@/lib/export/fontRegistry";
 
 /**
  * Palette typographique par genre — c'est ce qui donne au PDF un rendu de
@@ -53,11 +54,13 @@ async function getPrinter(): Promise<any> {
     },
   };
 
-  // Curated fonts bundled as TTF files (see src/lib/export/fonts). Loaded from
-  // disk; if a family is missing we simply skip it (pdfmake falls back to Roboto).
+  // Toute la bibliothèque de polices, embarquée en TTF (src/lib/export/fonts) et
+  // pilotée par le registre unique (fontRegistry). Chaque famille du sélecteur
+  // de l'éditeur est ainsi réellement rendue à l'export ; si un fichier manque,
+  // on saute la famille (pdfmake retombe sur Roboto) sans casser l'export.
   const fontsDir = path.join(process.cwd(), "src", "lib", "export", "fonts");
-  const families = ["Merriweather", "Lora", "Montserrat", "PlayfairDisplay"];
-  for (const fam of families) {
+  for (const fam of PDF_FONT_KEYS) {
+    if (fonts[fam]) continue; // Roboto déjà chargé via vfs
     try {
       fonts[fam] = {
         normal: fs.readFileSync(path.join(fontsDir, `${fam}-normal.ttf`)),
