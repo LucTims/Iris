@@ -1787,9 +1787,10 @@ function RedactionContent() {
               </button>
             </div>
           </div>
+        </div>
 
-          {/* Profile Menu Toggle - Now Outside the scroll container */}
-          <div className="relative shrink-0 pl-2 sm:pl-4 border-l border-neutral-100 ml-2">
+        {/* Profile Menu Toggle - Now Outside the scroll container */}
+        <div className="relative shrink-0 pl-2 sm:pl-4 border-l border-neutral-100 ml-2">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm cursor-pointer hover:ring-2 hover:ring-orange-300 transition-all"
@@ -1826,6 +1827,7 @@ function RedactionContent() {
                 </div>
               )}
             </div>
+          </div>
         </header>
 
         {/* MOBILE VIEW SEGMENTED CONTROL (visible on mobile / small screens) */}
