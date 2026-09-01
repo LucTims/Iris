@@ -58,6 +58,14 @@ export async function POST(req: Request) {
       );
     }
 
+    // Extract last user prompt (needed early for intent detection & search decision)
+    const userMessages = messages.filter(
+      (msg: any) => msg.sender === "user" || msg.role === "user"
+    );
+    const lastUserMessage = userMessages.length > 0
+      ? (userMessages[userMessages.length - 1].text || userMessages[userMessages.length - 1].content || "")
+      : "";
+
     // Documents de référence analysés par l'IA (importés au chat) : on injecte
     // leur analyse dans le prompt pour que l'IA écrive un meilleur livre.
     const referenceDocuments = Array.isArray((context as any)?.referenceDocuments)
@@ -75,41 +83,52 @@ export async function POST(req: Request) {
             .join("\n\n")}\n--- FIN DES DOCUMENTS DE RÉFÉRENCE ---\nAppuie-toi sur ces documents pour répondre et écrire, sans recopier de longs extraits mot pour mot.\n`
         : "";
 
-    // 1. Fetch user profile & plan
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, plan")
-      .eq("id", user.id)
-      .single();
+    const projectId = bodyProjectId || context?.projectId;
 
+    // ⚡ OPTIMISATION : Paralléliser TOUTES les requêtes Supabase indépendantes
+    // Au lieu de ~5 requêtes séquentielles (3-5s), on les lance en parallèle (~0.5-1s)
+    const [profileResult, quotaResult, balanceOk, chaptersResult] = await Promise.all([
+      // 1. Fetch user profile & plan
+      supabase.from("profiles").select("role, plan").eq("id", user.id).single(),
+      // 2. Quota check (needs supabase + userId, indépendant du profil à ce stade)
+      supabase
+        .from("ai_usage")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("created_at", (() => { const d = new Date(); d.setUTCDate(1); d.setUTCHours(0,0,0,0); return d.toISOString(); })()),
+      // 3. Balance check
+      checkMinimumBalance(user.id, 5),
+      // 4. Chapters fetch (si pas fournis dans le body)
+      (Array.isArray(bodyChapters) && bodyChapters.length > 0) || !projectId
+        ? Promise.resolve({ data: null })
+        : supabase.from("chapters").select("id, title, content, number").eq("project_id", projectId).order("number", { ascending: true }),
+    ]);
+
+    const profile = profileResult.data;
     const userPlan = profile?.plan || "free";
     const userRole = profile?.role || "user";
 
-    // 2. Server Whitelist: Force gemini-2.5-flash for free users attempting gemini-2.5-pro
+    // Server Whitelist: Force gemini-2.5-flash for free users attempting gemini-2.5-pro
     let selectedModelName = chosenModel || "gemini-2.5-flash";
     if (selectedModelName === "gemini-2.5-pro" && userPlan === "free" && userRole !== "admin") {
       selectedModelName = "gemini-2.5-flash";
     }
 
-    // 3. Quota Enforcement: Check usage since the start of the current month
-    const quota = await checkMonthlyQuota(supabase, user.id, userPlan, userRole);
-    if (!quota.allowed) {
-      return NextResponse.json(
-        { error: `Quota mensuel d'IA atteint (${quota.limit} générations). Passez à un plan supérieur pour continuer.` },
-        { status: 429 }
-      );
+    // Quota enforcement (inline, using the parallel result)
+    if (userRole !== "admin") {
+      const PLAN_MONTHLY_LIMITS: Record<string, number> = { free: 50, standard: 300, pro: 1000, studio: 5000 };
+      const limit = PLAN_MONTHLY_LIMITS[userPlan] ?? PLAN_MONTHLY_LIMITS.free;
+      const used = quotaResult.count || 0;
+      if (used >= limit) {
+        return NextResponse.json(
+          { error: `Quota mensuel d'IA atteint (${limit} générations). Passez à un plan supérieur pour continuer.` },
+          { status: 429 }
+        );
+      }
     }
 
-    // Extract last user prompt
-    const userMessages = messages.filter(
-      (msg: any) => msg.sender === "user" || msg.role === "user"
-    );
-    const lastUserMessage = userMessages.length > 0
-      ? (userMessages[userMessages.length - 1].text || userMessages[userMessages.length - 1].content || "")
-      : "";
-
-    // Vérifie le solde de pièces (le chat consomme des tokens comme le reste)
-    if (!(await checkMinimumBalance(user.id, 5))) {
+    // Balance check
+    if (!balanceOk) {
       return NextResponse.json(
         { error: "Fonds insuffisants. Rechargez des pièces pour continuer à utiliser l'assistant." },
         { status: 402 }
@@ -119,34 +138,22 @@ export async function POST(req: Request) {
     // Detect Intent (with conversation history for confirmations like "oui va y", "tu peux le faire sur le livre ?")
     const intent = detectIntent(lastUserMessage, messages);
 
-    // 4. Resolve available chapters for all branches
+    // Resolve available chapters for all branches
     let availableChapters: ChapterItem[] = Array.isArray(bodyChapters) && bodyChapters.length > 0
       ? bodyChapters
       : (Array.isArray(context?.chapters) ? context.chapters : []);
 
-    const projectId = bodyProjectId || context?.projectId;
-    if (availableChapters.length === 0 && projectId) {
-      try {
-        const { data: dbChapters } = await supabase
-          .from("chapters")
-          .select("id, title, content, number")
-          .eq("project_id", projectId)
-          .order("number", { ascending: true });
-
-        if (dbChapters && dbChapters.length > 0) {
-          availableChapters = dbChapters.map((c: any, idx: number) => ({
-            id: c.id,
-            title: c.title,
-            content: c.content,
-            number: c.number || idx + 1,
-            index: idx
-          }));
-        }
-      } catch (dbErr) {
-        console.warn("Could not fetch chapters from DB:", dbErr);
-      }
+    if (availableChapters.length === 0 && chaptersResult.data && chaptersResult.data.length > 0) {
+      availableChapters = chaptersResult.data.map((c: any, idx: number) => ({
+        id: c.id,
+        title: c.title,
+        content: c.content,
+        number: c.number || idx + 1,
+        index: idx
+      }));
     }
 
+    // ⚡ OPTIMISATION : Réduire le snippet de 1000 → 400 caractères pour accélérer le traitement
     const chaptersOverview = availableChapters.map((c, i) => {
       const num = c.number || i + 1;
       const title = c.title || `Chapitre ${num}`;
@@ -156,7 +163,7 @@ export async function POST(req: Request) {
       const extractedHeadings = headingsMatches.map(h => h.replace(/<[^>]*>/g, '').trim()).filter(Boolean);
 
       const plainText = c.content ? c.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : "Chapitre vide";
-      const snippet = plainText.length > 1000 ? plainText.substring(0, 1000) + "..." : plainText;
+      const snippet = plainText.length > 400 ? plainText.substring(0, 400) + "..." : plainText;
 
       let sectionInfo = "";
       if (extractedHeadings.length > 0) {
@@ -166,17 +173,15 @@ export async function POST(req: Request) {
       return `[Chapitre ${num} : "${title}"]${sectionInfo}\n  Contenu du texte : ${snippet}`;
     }).join('\n\n');
 
-    // 5. Track usage in Supabase ai_usage table
-    try {
-      await supabase.from("ai_usage").insert({
-        user_id: user.id,
-        project_id: projectId || null,
-        action: intent === "MODIFY_CHAPTER" ? "chat_modify_chapter" : "chat_assistant",
-        model: selectedModelName
-      });
-    } catch (trackErr) {
+    // Track usage in Supabase ai_usage table (fire-and-forget, don't await)
+    supabase.from("ai_usage").insert({
+      user_id: user.id,
+      project_id: projectId || null,
+      action: intent === "MODIFY_CHAPTER" ? "chat_modify_chapter" : "chat_assistant",
+      model: selectedModelName
+    }).then(() => {}).catch((trackErr: any) => {
       console.warn("Usage tracking error:", trackErr);
-    }
+    });
 
     // Branch A: MODIFY_CHAPTER
     if (intent === "MODIFY_CHAPTER") {
@@ -270,11 +275,15 @@ Consignes de génération :
     }
 
     // Branch B: CHAT_ONLY
-    const searchContext = await fetchSearchContext(
-      selectedModelName,
-      useWebSearch,
-      lastUserMessage
-    );
+    // ⚡ OPTIMISATION : Skip la recherche web pour les messages courts/conversationnels
+    const SKIP_SEARCH_PATTERNS = /^(hello|hi|hey|bonjour|salut|coucou|merci|ok|oui|non|yo|d'accord|va-?y|super|cool|parfait|genial|génial|bonsoir|bien|top|nickel|exactement|c'est bon|go|lance|fais-?le)/i;
+    const shouldSearch = useWebSearch
+      && lastUserMessage.trim().length > 15
+      && !SKIP_SEARCH_PATTERNS.test(lastUserMessage.trim());
+
+    const searchContext = shouldSearch
+      ? await fetchSearchContext(selectedModelName, true, lastUserMessage)
+      : "";
 
     const systemPrompt = `Tu es Iris IA : à la fois un assistant de recherche/connaissance complet ET le co-auteur du livre de l'auteur. Tu es cultivé, curieux et compétent sur TOUS les sujets (histoire, économie, sciences, marchés financiers, actualité, etc.), exactement comme un grand modèle de langage généraliste.
 
