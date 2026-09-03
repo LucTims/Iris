@@ -1,10 +1,10 @@
-import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductChapterCost } from "@/lib/ai/cost-engine";
+import { generateWithFallback } from "@/lib/ai/model-fallback";
 import { estimateChapterCoins } from "@/lib/ai/pricing";
-import { getAiModel, fetchSearchContext } from "@/lib/ai/search-context";
+import { fetchSearchContext } from "@/lib/ai/search-context";
 import { detectGenre, shouldGroundWithWebSearch, buildChapterSystemPrompt } from "@/lib/ai/book-style";
 
 export const maxDuration = 60;
@@ -103,37 +103,61 @@ export async function POST(req: Request) {
       wordsTarget: wordsTarget || undefined,
     });
 
-    const result = streamText({
-      model: getAiModel(selectedModelName),
-      system: systemPrompt,
-      prompt: "Rédige ce chapitre maintenant en HTML en respectant scrupuleusement les consignes et le style.",
-      async onError({ error }) {
-        const msg = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-        console.error(`[generate-chapter] Erreur pendant le stream IA (chapitre ${chapterNumber}):`, error);
-        try {
-          await supabase.from("ai_usage").insert({
-            user_id: user.id,
-            project_id: projectId || null,
-            action: "generate_chapter_error",
-            model: msg.slice(0, 300),
-          });
-        } catch { /* best-effort */ }
-      },
-      async onFinish({ usage, text }) {
-        const success = await deductChapterCost(
-          user.id,
-          selectedModelName,
-          usage,
-          `Génération Chapitre ${chapterNumber}: ${chapterTitle}`,
-          { projectId, outputText: text }
-        );
-        if (!success) {
-          console.error(`Erreur lors de la déduction des pièces pour l'utilisateur ${user.id}`);
-        }
-      }
-    });
+    // Génération AVEC REPLI AUTOMATIQUE entre fournisseurs : si la clé du modèle
+    // demandé est morte / en quota / surchargée, on bascule sur un autre
+    // fournisseur au lieu de renvoyer un chapitre vide. On facture le modèle qui
+    // a RÉELLEMENT écrit le texte.
+    let generated;
+    try {
+      generated = await generateWithFallback({
+        preferred: selectedModelName,
+        system: systemPrompt,
+        prompt: "Rédige ce chapitre maintenant en HTML en respectant scrupuleusement les consignes et le style.",
+      });
+    } catch (genErr) {
+      const msg = genErr instanceof Error ? genErr.message : String(genErr);
+      console.error(`[generate-chapter] Tous les fournisseurs ont échoué (chapitre ${chapterNumber}) :`, msg);
+      try {
+        await supabase.from("ai_usage").insert({
+          user_id: user.id,
+          project_id: projectId || null,
+          action: "generate_chapter_error",
+          model: msg.slice(0, 300),
+        });
+      } catch { /* best-effort */ }
+      return NextResponse.json(
+        { error: "Les services d'IA sont momentanément indisponibles. Réessayez dans quelques minutes." },
+        { status: 503 }
+      );
+    }
 
-    return result.toTextStreamResponse();
+    if (generated.fellBack) {
+      console.warn(`[generate-chapter] Repli sur ${generated.modelUsed} (chapitre ${chapterNumber}) :`, generated.errors.join(" | "));
+      try {
+        await supabase.from("ai_usage").insert({
+          user_id: user.id,
+          project_id: projectId || null,
+          action: "generate_chapter_fallback",
+          model: `${generated.modelUsed} <= ${generated.errors.join(" | ")}`.slice(0, 300),
+        });
+      } catch { /* best-effort */ }
+    }
+
+    const deducted = await deductChapterCost(
+      user.id,
+      generated.modelUsed,
+      generated.usage,
+      `Génération Chapitre ${chapterNumber}: ${chapterTitle}`,
+      { projectId, outputText: generated.text }
+    );
+    if (!deducted) {
+      console.error(`Erreur lors de la déduction des pièces pour l'utilisateur ${user.id}`);
+    }
+
+    return new Response(generated.text, {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+    });
   } catch (error) {
     console.error("Erreur lors de la génération du chapitre:", error);
     return NextResponse.json(

@@ -92,13 +92,17 @@ export function splitHtmlIntoChapters(
   }
 
   const ParserClass = getDOMParser() as any;
-  const parser = new ParserClass({
-    errorHandler: {
-      warning: () => {},
-      error: () => {},
-      fatalError: () => {}
-    }
-  });
+  // @xmldom/xmldom >= 0.9 a SUPPRIMÉ l'option `errorHandler` et LÈVE une erreur
+  // si on la passe encore ("errorHandler object is no longer supported, switch
+  // to onError!") — ce qui faisait planter tout découpage côté serveur. On
+  // utilise `onError` (silencieux) avec repli sur le constructeur sans option
+  // (le DOMParser natif du navigateur n'accepte aucun argument).
+  let parser: any;
+  try {
+    parser = new ParserClass({ onError: () => {} });
+  } catch {
+    parser = new ParserClass();
+  }
 
   const sanitized = sanitizeHtmlForXml(htmlString);
   const doc = parser.parseFromString(`<div>${sanitized}</div>`, 'text/html');
@@ -128,10 +132,19 @@ export function splitHtmlIntoChapters(
     return [{ title: fallbackTitle, content: htmlString }];
   }
 
+  // Choix du NIVEAU DE DÉCOUPE (bug corrigé) : découper à la fois sur H1 et H2
+  // fabriquait un « chapitre » par SECTION interne (fragments de quelques mots
+  // et doublons observés en production : 29 chapitres pour un livre de 6).
+  // Heuristique :
+  //   - plusieurs H1  → les H1 sont les chapitres, les H2 des sections ;
+  //   - sinon (0 ou 1 H1, cas « titre du livre + chapitres en H2 ») → les H2
+  //     sont les chapitres, pour ne pas écraser un manuscrit importé en un bloc.
+  const splitTag: 'H1' | 'H2' = h1s.length >= 2 ? 'H1' : h2s.length >= 1 ? 'H2' : 'H1';
+
   const hasDirectHeadings = children.some((child) => {
     if (child.nodeType !== 1) return false;
     const tag = (child as Element).tagName ? (child as Element).tagName.toUpperCase() : '';
-    return tag === 'H1' || tag === 'H2';
+    return tag === splitTag;
   });
 
   function getHeadingInfo(child: Node): { isHeading: boolean; title?: string } {
@@ -140,15 +153,13 @@ export function splitHtmlIntoChapters(
     }
     const el = child as Element;
     const tag = el.tagName ? el.tagName.toUpperCase() : '';
-    if (tag === 'H1' || tag === 'H2') {
+    if (tag === splitTag) {
       const rawTitle = el.textContent || '';
       const cleanTitle = rawTitle.replace(/\s+/g, ' ').trim();
       return { isHeading: true, title: cleanTitle };
     }
     if (!hasDirectHeadings) {
-      const innerH1 = el.getElementsByTagName('h1')[0];
-      const innerH2 = el.getElementsByTagName('h2')[0];
-      const innerHeading = innerH1 || innerH2;
+      const innerHeading = el.getElementsByTagName(splitTag.toLowerCase())[0];
       if (innerHeading) {
         const rawTitle = innerHeading.textContent || '';
         const cleanTitle = rawTitle.replace(/\s+/g, ' ').trim();
@@ -164,6 +175,17 @@ export function splitHtmlIntoChapters(
 
   for (const child of children) {
     const headingInfo = getHeadingInfo(child);
+    // Un titre de l'AUTRE niveau (ex. le H1 du livre quand on découpe sur H2) ne
+    // crée pas de chapitre, mais il NOMME le chapitre en cours s'il n'a pas
+    // encore de titre — sinon le premier chapitre garderait le titre par défaut.
+    if (!headingInfo.isHeading && child.nodeType === 1 && currentTitle === fallbackTitle) {
+      const el = child as Element;
+      const tag = el.tagName ? el.tagName.toUpperCase() : '';
+      if (tag === 'H1' || tag === 'H2') {
+        const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (t) currentTitle = t;
+      }
+    }
     if (headingInfo.isHeading) {
       // If nodes were previously accumulated, save previous chapter
       if (currentNodes.length > 0) {
@@ -188,5 +210,37 @@ export function splitHtmlIntoChapters(
     });
   }
 
-  return chapters;
+  // Un « chapitre » de quelques mots est en réalité un titre orphelin : on le
+  // rattache au chapitre précédent plutôt que de polluer la structure du livre.
+  // On ne fusionne QUE les titres orphelins : un bloc dont il ne reste
+  // quasiment rien une fois son titre retiré (ex. « Facilitation technologique »
+  // seul, 26 caractères, observé en production). Un chapitre court mais doté
+  // d'un vrai corps de texte est conservé tel quel.
+  // Seuil volontairement TRÈS bas : on ne veut fusionner que les titres au corps
+  // réellement vide (les fragments de production avaient 0 caractère de corps),
+  // jamais un chapitre court mais rédigé.
+  const MIN_BODY_CHARS = 5;
+  const compacted: ParsedChapter[] = [];
+  for (const ch of chapters) {
+    const withoutHeading = (ch.content || '').replace(/^\s*<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/i, '');
+    const body = withoutHeading.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (compacted.length > 0 && body.length < MIN_BODY_CHARS) {
+      compacted[compacted.length - 1].content += ch.content;
+    } else {
+      compacted.push({ ...ch });
+    }
+  }
+
+  // Le contenu qui précède le tout premier titre (souvent un simple
+  // <hr data-page-break>) formait un chapitre fantôme vide en tête : on le
+  // rattache au premier vrai chapitre pour ne rien perdre.
+  if (compacted.length > 1) {
+    const firstBody = (compacted[0].content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (firstBody.length === 0) {
+      compacted[1].content = compacted[0].content + compacted[1].content;
+      compacted.shift();
+    }
+  }
+
+  return compacted.length > 0 ? compacted : chapters;
 }
