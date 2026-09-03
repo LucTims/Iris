@@ -1,9 +1,9 @@
-import { generateText } from "ai";
 import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { checkMinimumBalance, deductChapterCost } from "@/lib/ai/cost-engine";
 import { estimateChapterCoins } from "@/lib/ai/pricing";
-import { getAiModel, fetchSearchContext } from "@/lib/ai/search-context";
+import { fetchSearchContext } from "@/lib/ai/search-context";
+import { generateWithFallback } from "@/lib/ai/model-fallback";
 import {
   detectGenre,
   shouldGroundWithWebSearch,
@@ -99,20 +99,28 @@ async function summarizeChapterForContinuity(chapterTitle: string, text: string)
   const plain = text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   const heuristicFallback = plain.slice(0, 400);
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
-    const { text: summary } = await generateText({
-      model: getAiModel("gemini-2.5-flash"),
-      abortSignal: controller.signal,
-      prompt: `Résume ce chapitre de livre ("${chapterTitle}") en 2 à 3 phrases MAXIMUM, orientées suite de l'histoire : personnages impliqués, événements clés, état final. Réponds UNIQUEMENT avec le résumé, sans préambule.\n\nTexte du chapitre :\n${plain.slice(0, 6000)}`,
-    });
+    // Le résumé ne doit pas dépendre d'un seul fournisseur (clé Gemini morte =
+    // perte de continuité sur tout le livre) : on passe par le repli, borné en
+    // temps pour ne jamais bloquer le job.
+    const { text: summary } = await Promise.race([
+      generateWithFallback({
+        preferred: "gemini-2.5-flash",
+        system: "Tu résumes des chapitres de livre de façon factuelle et concise.",
+        prompt: `Résume ce chapitre de livre ("${chapterTitle}") en 2 à 3 phrases MAXIMUM, orientées suite de l'histoire : personnages impliqués, événements clés, état final. Réponds UNIQUEMENT avec le résumé, sans préambule.\n\nTexte du chapitre :\n${plain.slice(0, 6000)}`,
+        maxAttempts: 2,
+      }),
+      new Promise<{ text: string }>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error("timeout résumé")), 12_000);
+      }),
+    ]);
     return summary?.trim() || heuristicFallback;
   } catch (err) {
     console.warn("[book-job] Résumé de continuité indisponible, repli heuristique:", err);
     return heuristicFallback;
   } finally {
-    clearTimeout(timeout);
+    if (timeout) clearTimeout(timeout);
   }
 }
 
@@ -175,11 +183,17 @@ export async function processNextChapter(
   for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_CHAPTER; attempt++) {
     try {
       const system = buildSystemPrompt(settings, chapter, recentSummaries, searchContext, wordsTarget);
-      const result = await generateText({
-        model: getAiModel(selectedModelName),
+      // REPLI AUTOMATIQUE : si la clé du modèle demandé est morte / en quota /
+      // surchargée, on bascule sur un autre fournisseur au lieu de faire échouer
+      // tout le livre. On facture ensuite le modèle qui a réellement écrit.
+      const result = await generateWithFallback({
+        preferred: selectedModelName,
         system,
         prompt: "Rédige ce chapitre maintenant en HTML en respectant scrupuleusement les consignes et le style.",
       });
+      if (result.fellBack) {
+        console.warn(`[book-job] Repli sur ${result.modelUsed} (chapitre ${chapter.number}) :`, result.errors.join(" | "));
+      }
 
       const text = result.text || "";
       const wordCount = text.replace(/<[^>]*>/g, " ").trim().split(/\s+/).filter(Boolean).length;
@@ -192,7 +206,7 @@ export async function processNextChapter(
 
       const deducted = await deductChapterCost(
         job.user_id,
-        selectedModelName,
+        result.modelUsed,
         result.usage,
         `Génération Chapitre ${chapter.number}: ${chapter.title}`,
         { projectId: job.project_id, outputText: text, client: db }

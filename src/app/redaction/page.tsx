@@ -923,9 +923,13 @@ function RedactionContent() {
       return { title: text, brief: "" };
     };
 
+    // On EXCLUT toute entrée qui désigne le sommaire lui-même : sans ce filtre,
+    // « Sommaire » devient un chapitre et l'IA rédige un essai SUR les sommaires
+    // au lieu du sujet du livre (bug observé en production).
+    const isTocEntry = (t: string) => /^\s*(sommaire|table des mati)/i.test(t);
     let items = Array.from(inner.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi))
       .map((m) => splitTitleBrief(m[1]))
-      .filter((c) => c.title.length > 1);
+      .filter((c) => c.title.length > 1 && !isTocEntry(c.title));
     if (items.length === 0) {
       items = Array.from(html.matchAll(/<(?:h2|h3)[^>]*>([\s\S]*?)<\/(?:h2|h3)>/gi))
         .map((m) => ({ title: clean(m[1]), brief: "" }))

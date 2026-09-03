@@ -1,8 +1,8 @@
-import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
+import { generateWithFallback } from "@/lib/ai/model-fallback";
 import { getAiModel, fetchSearchContext, SEARCH_GROUNDING_INSTRUCTION } from "@/lib/ai/search-context";
 import { detectGenre, shouldGroundWithWebSearch } from "@/lib/ai/book-style";
 
@@ -143,9 +143,7 @@ ${referenceBlock}
 
 ${missionText}`;
 
-    const result = streamText({
-      model: getAiModel(selectedModelName),
-      system: `Tu es un ghostwriter expert et rédacteur de livres professionnels.
+    const systemPrompt = `Tu es un ghostwriter expert et rédacteur de livres professionnels.
 IMPORTANT:
 - Tu dois répondre UNIQUEMENT avec le contenu formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>, <hr data-page-break>).
 - ${includeToc ? "Le tout premier élément DOIT être le titre du sommaire en <h1> : soit <h1>Sommaire</h1>, soit <h1>Table des matières</h1> (à toi de choisir selon le livre)." : "Le tout premier élément DOIT être <h1>Prototype du livre</h1>."}
@@ -155,37 +153,57 @@ IMPORTANT:
 - Quand le contenu contient des données comparatives, des listes de critères chiffrés ou des informations tabulaires, présente-les dans un tableau HTML bien structuré.
 - Ne rajoute aucun commentaire personnel à la fin, sois purement factuel et professionnel dans l'exécution de la tâche.${fictionPlanNote}
 ${searchContext}
-${webSearchEnabled ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
-      prompt: prompt,
-      async onError({ error }) {
-        // Sans ce handler, une erreur du modèle pendant le stream est avalée :
-        // le client reçoit une réponse 200 vide (« ça tourne puis rien ») et
-        // l'erreur réelle n'apparaît nulle part. On la journalise ET on la
-        // persiste en base (ai_usage) pour pouvoir diagnostiquer à distance
-        // la vraie cause (quota/clé API, 429, modèle indisponible, timeout…).
-        const msg = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-        console.error("[generate-plan] Erreur pendant le stream IA:", error);
-        try {
-          await supabase.from("ai_usage").insert({
-            user_id: user.id,
-            project_id: projectId || null,
-            action: "generate_plan_error",
-            model: msg.slice(0, 300),
-          });
-        } catch { /* best-effort */ }
-      },
-      async onFinish({ usage, text }) {
-        await deductGenerationCost(
-          user.id,
-          selectedModelName,
-          usage,
-          `Génération du Plan: ${title}`,
-          { projectId, outputText: text }
-        );
-      }
-    });
+${webSearchEnabled ? SEARCH_GROUNDING_INSTRUCTION : ""}`;
 
-    return result.toTextStreamResponse();
+    // Génération AVEC REPLI AUTOMATIQUE entre fournisseurs (voir model-fallback).
+    let generated;
+    try {
+      generated = await generateWithFallback({
+        preferred: selectedModelName,
+        system: systemPrompt,
+        prompt,
+      });
+    } catch (genErr) {
+      const msg = genErr instanceof Error ? genErr.message : String(genErr);
+      console.error("[generate-plan] Tous les fournisseurs ont échoué :", msg);
+      try {
+        await supabase.from("ai_usage").insert({
+          user_id: user.id,
+          project_id: projectId || null,
+          action: "generate_plan_error",
+          model: msg.slice(0, 300),
+        });
+      } catch { /* best-effort */ }
+      return NextResponse.json(
+        { error: "Les services d'IA sont momentanément indisponibles. Réessayez dans quelques minutes." },
+        { status: 503 }
+      );
+    }
+
+    if (generated.fellBack) {
+      console.warn(`[generate-plan] Repli sur ${generated.modelUsed} :`, generated.errors.join(" | "));
+      try {
+        await supabase.from("ai_usage").insert({
+          user_id: user.id,
+          project_id: projectId || null,
+          action: "generate_plan_fallback",
+          model: `${generated.modelUsed} <= ${generated.errors.join(" | ")}`.slice(0, 300),
+        });
+      } catch { /* best-effort */ }
+    }
+
+    await deductGenerationCost(
+      user.id,
+      generated.modelUsed,
+      generated.usage,
+      `Génération du Plan: ${title}`,
+      { projectId, outputText: generated.text }
+    );
+
+    return new Response(generated.text, {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+    });
   } catch (error) {
     console.error("Erreur lors de la génération IA:", error);
     const msg = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
