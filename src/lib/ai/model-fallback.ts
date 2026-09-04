@@ -54,7 +54,9 @@ export interface FallbackResult {
  */
 export async function generateWithFallback(opts: {
   preferred: string;
-  system: string;
+  /** Consigne système. Facultative : certains appels (structure du livre) n'en
+   * ont pas besoin et tout mettent dans le prompt. */
+  system?: string;
   prompt: string;
   /** Nombre maximum de fournisseurs essayés (défaut 3). */
   maxAttempts?: number;
