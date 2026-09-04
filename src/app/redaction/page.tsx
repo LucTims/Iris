@@ -56,6 +56,9 @@ interface Chapter {
 }
 
 import { useUser } from "@/hooks/useUser";
+import { resolveWorkType, chapterNounFor } from "@/lib/book/work-type";
+import { assignChapterLabels } from "@/lib/book/chapter-heading";
+import { detectGenre } from "@/lib/ai/book-style";
 
 function RedactionContent() {
   const searchParams = useSearchParams();
@@ -289,6 +292,9 @@ function RedactionContent() {
               length: project.length,
               instructions: project.instructions,
               includeToc,
+              // Forme de l'ouvrage : elle décide du découpage du sommaire
+              // (étapes pour un guide, chapitres thématiques pour un livre).
+              workType: (project as any)?.work_type || undefined,
               projectId: project.id,
               model: project.model || ctx?.model || "gemini-2.5-flash",
               useWebSearch,
@@ -940,6 +946,16 @@ function RedactionContent() {
     return items.filter((c) => (seen.has(c.title) ? false : (seen.add(c.title), true))).slice(0, 24);
   };
 
+  // Forme de l'ouvrage (livre / guide / ebook) : choisie par l'auteur à la
+  // création, déduite par heuristique pour les projets antérieurs. Elle pilote
+  // à la fois la structure demandée à l'IA et la mise en page à l'export.
+  const bookWorkType = resolveWorkType({
+    explicit: (projectData as any)?.work_type,
+    category: projectData?.category,
+    title: bookTitle,
+    length: projectData?.length,
+  });
+
   // Le chapitre-sommaire, s'il existe (sinon null → mode prototype).
   const findSommaireChapter = () => chapters.find((c) => /sommaire|table des mati/i.test(c.title || "")) || null;
 
@@ -999,6 +1015,7 @@ function RedactionContent() {
             instructions: projectData?.instructions,
             prototype: prototype.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 4000),
             targetChapters: preset.chaptersIfNoSommaire,
+            workType: (projectData as any)?.work_type || undefined,
             referenceAnalysis: (projectData as any)?.reference_analysis || undefined,
             model,
             projectId: pId,
@@ -1027,15 +1044,32 @@ function RedactionContent() {
         return;
       }
 
+      // TITRES CANONIQUES. Le numéro affiché au lecteur se calcule sur la
+      // POSITION dans le corps du livre, jamais sur le rang en base : le
+      // chapitre-sommaire occupe `number = 1`, donc le premier vrai chapitre
+      // porte `number = 2` et l'ancien code écrivait « Chapitre 2 :
+      // Introduction ». Les liminaires (Introduction, Conclusion…) ne sont pas
+      // numérotés, et un titre déjà préfixé n'est jamais re-préfixé.
+      const workTypeForBook = resolveWorkType({
+        explicit: (projectData as any)?.work_type,
+        category: projectData?.category,
+        title: bookTitle,
+        length: projectData?.length,
+      });
+      const labels = assignChapterLabels(
+        planChapters,
+        chapterNounFor(workTypeForBook, detectGenre(projectData?.category, projectData?.tone))
+      );
+
       // (Re)crée la structure : sommaire en tête (mode sommaire) puis un chapitre par point.
       const draft: { number: number; title: string; content: string; status: string }[] = [];
       let num = 1;
       if (sommaire) {
         draft.push({ number: num++, title: sommaire.title, content: sommaireOnly, status: "En cours" });
       }
-      for (const c of planChapters) {
-        draft.push({ number: num++, title: c.title, content: "", status: "Brouillon" });
-      }
+      planChapters.forEach((c, k) => {
+        draft.push({ number: num++, title: labels[k]?.heading || c.title, content: "", status: "Brouillon" });
+      });
 
       const created = await replaceChaptersOnServer(pId, chapters, draft);
       if (!created || created.length === 0) {
@@ -1057,8 +1091,11 @@ function RedactionContent() {
       const plan = created.slice(startIdx).map((c, k) => ({
         chapterId: c.id,
         number: c.number,
-        title: c.title,
+        title: labels[k]?.cleanTitle || planChapters[k]?.title || c.title,
         brief: planChapters[k]?.brief || "",
+        // Titre définitif imposé au modèle : c'est ce qui empêche toute
+        // renumérotation fantaisiste chapitre après chapitre.
+        heading: labels[k]?.heading || c.title,
       }));
 
       const startResp = await fetch("/api/generate-book/start", {
@@ -1078,6 +1115,7 @@ function RedactionContent() {
             model,
             targetWords: preset.wordsPerChapter,
             useWebSearch,
+            workType: bookWorkType,
           },
         }),
       });
@@ -1191,11 +1229,22 @@ function RedactionContent() {
       }
 
       const total = targets.length;
+      // Titres canoniques recalculés sur la structure COMPLÈTE du livre (pas
+      // seulement les chapitres restants) : sans ça, une reprise à mi-parcours
+      // renumérotait les chapitres restants à partir de 1.
+      const bodyChapters = chapters.filter((c) => !/sommaire|table des mati/i.test(c.title || ""));
+      const resumeLabels = assignChapterLabels(
+        bodyChapters.map((c) => ({ title: c.title || "" })),
+        chapterNounFor(bookWorkType, detectGenre(projectData?.category, projectData?.tone))
+      );
+      const headingById = new Map(bodyChapters.map((c, k) => [c.id, resumeLabels[k]?.heading || c.title]));
+
       const plan = targets.map(({ c: chap }) => ({
         chapterId: chap.id,
         number: chap.number,
         title: chap.title,
         brief: planList.find((p) => p.title.trim() === (chap.title || "").trim())?.brief || "",
+        heading: headingById.get(chap.id) || chap.title,
       }));
 
       const startResp = await fetch("/api/generate-book/start", {
@@ -1214,6 +1263,7 @@ function RedactionContent() {
             bookOutline: outline,
             model,
             useWebSearch,
+            workType: bookWorkType,
           },
         }),
       });
@@ -1370,6 +1420,19 @@ function RedactionContent() {
             model: opts.model,
             projectId: pId,
             useWebSearch,
+            workType: bookWorkType,
+            // Titre canonique du chapitre : calculé sur sa position réelle dans
+            // le corps du livre, pour que régénérer un chapitre seul ne le
+            // renumérote pas différemment du reste.
+            chapterHeading: (() => {
+              const body = chapters.filter((c) => !/sommaire|table des mati/i.test(c.title || ""));
+              const pos = body.findIndex((c) => c.id === chap.id);
+              const labels = assignChapterLabels(
+                body.map((c) => ({ title: c.title || "" })),
+                chapterNounFor(bookWorkType, detectGenre(projectData?.category, projectData?.tone))
+              );
+              return (pos >= 0 ? labels[pos]?.heading : undefined) || chap.title;
+            })(),
           }),
         });
       }
@@ -1680,7 +1743,23 @@ function RedactionContent() {
                   if (val === -1) {
                     // Fusionner le livre
                     if (confirm("Voulez-vous vraiment fusionner tous les chapitres en un seul document ? (Cette action supprimera le découpage actuel)")) {
-                      const mergedContent = chapters.map(c => `<h1>${c.title}</h1>\n${c.content}`).join('\n<br/>\n');
+                      // Ne JAMAIS re-préfixer un titre : le contenu des chapitres
+                      // commence déjà par son propre <h1>. L'ancien code ajoutait
+                      // systématiquement `<h1>{titre}</h1>` par-dessus, ce qui
+                      // produisait deux titres consécutifs — parfois avec deux
+                      // numéros différents (« Chapitre 1 : … » puis
+                      // « Chapitre 3 : … » pour le même chapitre).
+                      // Les chapitres sont séparés par un vrai saut de page,
+                      // pas par un <br/> qui ne casse aucune page à l'export.
+                      const mergedContent = chapters
+                        .map((c) => {
+                          const body = (c.content || '').trim();
+                          const startsWithHeading = /^\s*(?:<hr[^>]*data-page-break[^>]*>\s*)?<h1\b/i.test(body);
+                          return startsWithHeading
+                            ? body
+                            : `<hr data-page-break><h1>${c.title}</h1>\n${body}`;
+                        })
+                        .join('\n');
                       const mergedChapter = {
                         number: 1,
                         title: "Livre complet",
@@ -2282,6 +2361,13 @@ function RedactionContent() {
         project={{
           id: currentProjectId || undefined,
           title: bookTitle,
+          subtitle: projectData?.subtitle || undefined,
+          // La catégorie choisit la palette typographique et la forme décide de
+          // la mise en page : sans elles, l'export depuis l'éditeur retombait
+          // sur la composition générique, quelle que soit la nature du livre.
+          category: projectData?.category || undefined,
+          work_type: bookWorkType,
+          cover_url: (projectData as any)?.cover_url || undefined,
           chapters: chapters
         }}
       />

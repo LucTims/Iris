@@ -5,6 +5,7 @@ import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine"
 import { generateWithFallback } from "@/lib/ai/model-fallback";
 import { getAiModel, fetchSearchContext, SEARCH_GROUNDING_INSTRUCTION } from "@/lib/ai/search-context";
 import { detectGenre, shouldGroundWithWebSearch } from "@/lib/ai/book-style";
+import { resolveWorkType, workTypeOutlineRules, WORK_TYPE_META } from "@/lib/book/work-type";
 
 export const maxDuration = 60;
 
@@ -45,11 +46,19 @@ export async function POST(req: Request) {
       referencePurpose,
       referenceName,
       projectId,
+      workType: requestedWorkType,
     } = await req.json();
 
     const selectedModelName = chosenModel || "gemini-2.5-flash";
     const genre = detectGenre(category, tone);
     const webSearchEnabled = shouldGroundWithWebSearch(genre, useWebSearch);
+    // Forme de l'ouvrage : elle décide du DÉCOUPAGE (un guide se découpe en
+    // étapes opérationnelles, un livre en chapitres thématiques, un ebook en
+    // parties courtes). Sans cet axe, tout ouvrage non-fictionnel était
+    // structuré comme une formation, y compris un livre de développement
+    // personnel.
+    const workType = resolveWorkType({ explicit: requestedWorkType, category, title, length });
+    const outlineRules = workTypeOutlineRules(workType, genre);
 
     // Check coins
     const hasEnoughCoins = await checkMinimumBalance(user.id, 50);
@@ -96,7 +105,10 @@ Consignes :
 1. Choisis le libellé le plus adapté : écris **Table des matières** pour un ouvrage formel, académique, technique ou professionnel, sinon **Sommaire**. C'est le titre <h1> tout en haut.
 2. Liste les grands chapitres sous forme de liste à puces (<ul><li>…</li></ul>). Reste CONCIS sur le nombre de chapitres (ni trop peu, ni surdécoupé).
 3. Pour CHAQUE chapitre, mets le titre du chapitre dans une balise <strong>, suivi d'un tiret «— » puis d'un **aperçu de 1 à 2 phrases** décrivant ce que le chapitre couvrira. Exemple : <li><strong>Chapitre 1 : Le titre</strong> — Aperçu en une ou deux phrases de ce que contiendra ce chapitre.</li>
-4. N'écris AUCUN contenu de chapitre, aucun paragraphe de corps de texte, aucune balise <hr data-page-break>. Uniquement le titre <h1> puis la liste.`;
+4. N'écris AUCUN contenu de chapitre, aucun paragraphe de corps de texte, aucune balise <hr data-page-break>. Uniquement le titre <h1> puis la liste.
+5. NE NUMÉROTE PAS toi-même les entrées « Chapitre 1 », « Chapitre 2 »… : écris uniquement le TITRE de chaque partie. La numérotation est appliquée automatiquement ensuite, et un double préfixe (« Chapitre 5 : Chapitre 3 : … ») est le défaut le plus visible d'un livre mal fabriqué. Les seules exceptions sont « Introduction » et « Conclusion », qui gardent leur nom.
+
+${outlineRules}`;
     } else {
       // MODE SANS SOMMAIRE : l'auteur ne veut pas de sommaire dans le livre. On
       // produit un « prototype » léger (concept + angle + court extrait + structure
@@ -109,7 +121,9 @@ Le tout premier élément DOIT être <h1>Prototype du livre</h1>. Ensuite, en qu
 2. **Le ton** : un court extrait d'ouverture (2 à 4 phrases) qui illustre le style.
 3. **La structure envisagée** : décris en prose (pas en liste formelle) les grandes parties/idées que le livre pourrait suivre.
 
-Ce prototype doit rester COURT (il sert de base de travail, pas de livre fini). N'utilise pas de balise <hr data-page-break>.`;
+Ce prototype doit rester COURT (il sert de base de travail, pas de livre fini). N'utilise pas de balise <hr data-page-break>.
+
+${outlineRules}`;
     }
 
     const purposeLabel: Record<string, string> = {
@@ -126,6 +140,7 @@ ${referenceAnalysis}
       : "";
 
     const prompt = `Voici les détails du livre :
+Forme de l'ouvrage : ${WORK_TYPE_META[workType].label} — ${WORK_TYPE_META[workType].hint}
 Titre : ${title}
 Sous-titre : ${subtitle || "Non spécifié"}
 Catégorie : ${category}

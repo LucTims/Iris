@@ -14,6 +14,9 @@
  * comportement cohérent quel que soit le mode utilisé pour écrire le livre.
  */
 
+import type { WorkType } from "@/lib/book/work-type";
+import { workTypeWritingRules } from "@/lib/book/work-type";
+
 export type BookGenre = "fiction" | "nonfiction";
 
 /**
@@ -90,11 +93,15 @@ export function shouldGroundWithWebSearch(genre: BookGenre, requested: boolean |
  * Règles de mise en forme HTML communes à la STRUCTURE d'un chapitre
  * (saut de page + titre), identiques quel que soit le genre.
  */
-export function chapterStructureRules(chapterNumber: number | string, chapterTitle: string): string {
+export function chapterStructureRules(chapterHeading: string): string {
   return `- COMMENCE toujours ton texte par la balise <hr data-page-break>.
-- Juste après, ajoute le titre du chapitre en <h1>. Exemple : <hr data-page-break><h1>Chapitre ${chapterNumber} : ${chapterTitle}</h1>.
+- Juste après, écris le titre du chapitre en <h1>, EXACTEMENT ceci et rien d'autre :
+  <hr data-page-break><h1>${chapterHeading}</h1>
+- Ce titre est déjà numéroté et définitif. Ne le renumérote pas, ne le reformule pas, ne le dédouble pas, et n'écris AUCUN second <h1> dans le chapitre (les sous-parties sont en <h2>).
 - N'ajoute AUCUN préambule (pas de « Voici le chapitre : » ni de « Bien sûr… »).
-- N'utilise JAMAIS de Markdown (pas de **, pas de #, pas de \`\`\`). Uniquement du HTML valide.`;
+- N'utilise JAMAIS de Markdown : ni #, ni ##, ni **gras**, ni tiret de liste, ni bloc \`\`\`. Uniquement du HTML valide.
+- Si tu veux une lettrine, écris le paragraphe ENTIER dans la balise : <p class="drop-cap">Le monde dans lequel…</p>. Ne referme jamais la balise après la seule initiale.
+- Un encadré (<div class="callout">, <div class="key-figure">, <div class="pull-quote">) est un BLOC autonome : place-le entre deux paragraphes, jamais au milieu d'une phrase.`;
 }
 
 /**
@@ -102,7 +109,13 @@ export function chapterStructureRules(chapterNumber: number | string, chapterTit
  * encadré, aucune statistique, aucune source, aucun tableau. En non-fiction :
  * la panoplie complète (encadrés, chiffres clés, tableaux).
  */
-export function bodyFormattingRules(genre: BookGenre): string {
+export function bodyFormattingRules(genre: BookGenre, workType: WorkType = "livre"): string {
+  // La FORME (livre / guide / ebook) prime sur la palette de balises : c'est
+  // elle qui décide si l'appareil éditorial (encadrés, tableaux, checklists) a
+  // sa place. Sans ça, un livre de développement personnel héritait de toute la
+  // panoplie du guide pratique et se lisait comme une formation.
+  const formRules = workTypeWritingRules(genre === "fiction" ? "livre" : workType, genre);
+
   if (genre === "fiction") {
     return `Style de RÉCIT (fiction / narration) — le texte doit se lire comme un vrai roman publié :
 - Rédige en prose immersive avec des balises <p>. Titres de section <h2> uniquement si le chapitre en a réellement besoin (rare en fiction).
@@ -111,7 +124,9 @@ export function bodyFormattingRules(genre: BookGenre): string {
 - Pour une transition entre deux scènes, tu PEUX utiliser <div class="section-divider section-divider-stars"></div>.
 - Pour l'ouverture du chapitre, tu PEUX utiliser une lettrine sur le premier paragraphe : <p class="drop-cap">…</p> (1 seule fois, au tout début).
 - INTERDIT ABSOLU en fiction : les encadrés <div class="callout">, les <div class="key-figure">, les listes à puces d'analyse, les tableaux de données, et TOUTE citation de source du type « [Source: …] ». On ne commente jamais sa propre histoire et on ne cite jamais de statistiques dans un roman.
-- Montre, ne raconte pas : privilégie l'action, les sensations, les dialogues et les détails concrets plutôt que le résumé.`;
+- Montre, ne raconte pas : privilégie l'action, les sensations, les dialogues et les détails concrets plutôt que le résumé.
+
+${formRules}`;
   }
   return `Style d'OUVRAGE PRATIQUE (non-fiction) :
 - Structure claire avec paragraphes <p>, sous-titres <h2>/<h3>, et listes <ul>/<ol> quand c'est pertinent.
@@ -119,7 +134,9 @@ export function bodyFormattingRules(genre: BookGenre): string {
 - Points clés : encadrés <div class="callout callout-info">…</div> (info), callout-warning (mise en garde), callout-tip (conseil), callout-example (exemple). 1 à 3 par chapitre maximum, seulement quand ça apporte de la valeur.
 - Chiffre marquant : <div class="key-figure">85% des entreprises…</div> (1-2 max). Citation forte : <div class="pull-quote">…</div> (1-2 max).
 - Transition : <div class="section-divider section-divider-stars"></div> (ou ornament, line, dots), avec parcimonie.
-- Lettrine possible en ouverture : <p class="drop-cap">…</p> (1 max).`;
+- Lettrine possible en ouverture : <p class="drop-cap">…</p> (1 max).
+
+${formRules}`;
 }
 
 /**
@@ -169,6 +186,14 @@ export function buildChapterSystemPrompt(opts: {
   instructions?: string;
   chapterNumber: number | string;
   chapterTitle: string;
+  /**
+   * Titre canonique DÉFINITIF du chapitre, calculé par
+   * `assignChapterLabels` (ex. « Chapitre 1 : Forger une Résilience »).
+   * Quand il est fourni, c'est lui — et lui seul — qui sert de <h1>. Sans lui,
+   * on retombe sur l'ancienne composition numéro + titre.
+   */
+  chapterHeading?: string;
+  workType?: WorkType;
   previousSummary?: string;
   searchContext?: string;
   wordsTarget?: number;
@@ -184,10 +209,15 @@ export function buildChapterSystemPrompt(opts: {
     instructions,
     chapterNumber,
     chapterTitle,
+    chapterHeading,
+    workType = "livre",
     previousSummary,
     searchContext,
     wordsTarget,
   } = opts;
+
+  // Titre définitif : celui calculé en amont, sinon composition de repli.
+  const heading = chapterHeading || `Chapitre ${chapterNumber} : ${chapterTitle}`;
 
   const hasPrevious = !!(previousSummary && previousSummary.trim());
   const bibleLabel = genre === "fiction" ? "Bible des personnages / univers" : "Concepts et éléments clés";
@@ -202,7 +232,7 @@ Ton / Style : ${tone || "Professionnel et engageant"}
 
 ${characters ? `${bibleLabel} (à respecter scrupuleusement, sans changer les noms ni les faits établis) :\n${characters}\n` : ""}${bookOutline ? `Plan / sommaire du livre (reste dans le périmètre de CE chapitre, sans empiéter sur les autres) :\n${bookOutline}\n` : ""}${hasPrevious ? `Résumé des chapitres précédents (pour la cohérence) :\n${previousSummary}\n` : ""}${chapterBrief ? `Ce chapitre doit couvrir précisément : ${chapterBrief}\n` : ""}${instructions ? `CONSIGNES SPÉCIFIQUES DE L'AUTEUR (priorité maximale) :\n${instructions}\n` : ""}
 Chapitre à rédiger :
-Chapitre ${chapterNumber} : ${chapterTitle}
+${heading}
 
 ${continuityDirective(genre, chapterNumber, hasPrevious)}
 ${searchContext || ""}
@@ -210,9 +240,9 @@ ${searchContext || ""}
 Longueur : ${wordsTarget ? `vise environ ${wordsTarget} mots (±20 %).` : "vise au moins 800 à 1500 mots."}
 
 Structure du chapitre :
-${chapterStructureRules(chapterNumber, chapterTitle)}
+${chapterStructureRules(heading)}
 
-${bodyFormattingRules(genre)}`;
+${bodyFormattingRules(genre, workType)}`;
 }
 
 /**

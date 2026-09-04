@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { title, subtitle, category, audience, synopsis, tone, characters, length, instructions, referenceDocument } = body;
+    const { title, subtitle, category, audience, synopsis, tone, characters, length, instructions, referenceDocument, workType } = body;
 
     if (!title) {
       return NextResponse.json({ error: "Le titre du projet est requis" }, { status: 400 });
@@ -67,6 +67,10 @@ export async function POST(req: Request) {
         characters,
         length,
         instructions,
+        // Forme de l'ouvrage (livre / guide / ebook). Contrainte en base ; on
+        // n'enregistre que les valeurs valides et on laisse NULL sinon, la
+        // forme étant alors déduite par heuristique à la génération.
+        work_type: ["livre", "guide", "ebook"].includes(workType) ? workType : null,
         reference_analysis: refAnalysis,
         reference_meta: refMeta,
         status: "En cours"

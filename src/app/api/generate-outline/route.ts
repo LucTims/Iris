@@ -1,9 +1,10 @@
-import { generateText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
-import { getAiModel } from "@/lib/ai/search-context";
+import { generateWithFallback } from "@/lib/ai/model-fallback";
+import { detectGenre } from "@/lib/ai/book-style";
+import { resolveWorkType, workTypeOutlineRules, WORK_TYPE_META } from "@/lib/book/work-type";
 
 export const maxDuration = 60;
 
@@ -70,10 +71,15 @@ export async function POST(req: Request) {
       referenceAnalysis,
       model: chosenModel,
       projectId,
+      workType: requestedWorkType,
     } = await req.json();
 
     const selectedModelName = chosenModel || "gemini-2.5-flash";
     const nbChapters = Math.max(3, Math.min(24, Number(targetChapters) || 8));
+    // La forme de l'ouvrage décide du découpage : un guide s'articule en
+    // étapes opérationnelles, un livre en chapitres thématiques.
+    const workType = resolveWorkType({ explicit: requestedWorkType, category, title, length });
+    const outlineRules = workTypeOutlineRules(workType, detectGenre(category, tone));
 
     const hasEnoughCoins = await checkMinimumBalance(user.id, 20);
     if (!hasEnoughCoins) {
@@ -97,6 +103,7 @@ export async function POST(req: Request) {
     const prompt = `Tu es un architecte de livres. Propose la STRUCTURE en chapitres d'un livre (sans page de sommaire, mais chaque chapitre a bien un grand titre).
 
 Détails :
+Forme de l'ouvrage : ${WORK_TYPE_META[workType].label} — ${WORK_TYPE_META[workType].hint}
 Titre : ${title || "Sans titre"}
 Sous-titre : ${subtitle || "—"}
 Catégorie : ${category || "—"}
@@ -108,6 +115,8 @@ Consignes : ${instructions || "—"}
 ${prototype ? `\nPrototype rédigé par l'IA (sers-t'en comme base d'inspiration) :\n${String(prototype).slice(0, 4000)}\n` : ""}
 ${referenceAnalysis ? `\nAnalyse d'un document de référence fourni par l'auteur :\n${String(referenceAnalysis).slice(0, 4000)}\n` : ""}
 
+${outlineRules}
+
 Génère EXACTEMENT ${nbChapters} chapitres (ni plus, ni moins), dans un ordre logique et progressif.
 
 FORMAT DE RÉPONSE STRICT — réponds UNIQUEMENT avec la liste, un chapitre par ligne, au format exact :
@@ -115,18 +124,35 @@ Titre du chapitre :: aperçu en 1 à 2 phrases de ce que couvre le chapitre
 
 N'ajoute AUCUNE numérotation, AUCUN titre général, AUCUNE ligne vide, AUCUN texte avant ou après la liste. Réponds en français.`;
 
-    const result = await generateText({
-      model: getAiModel(selectedModelName),
-      prompt,
-    });
+    // REPLI AUTOMATIQUE entre fournisseurs : cette route appelait un seul
+    // modèle en direct, donc une clé morte (Gemini désactivé) empêchait toute
+    // préparation de structure et bloquait l'écriture d'un livre sans sommaire.
+    let result;
+    try {
+      result = await generateWithFallback({ preferred: selectedModelName, prompt });
+    } catch (genErr) {
+      const msg = genErr instanceof Error ? genErr.message : String(genErr);
+      console.error("[generate-outline] Tous les fournisseurs ont échoué :", msg);
+      try {
+        await supabase.from("ai_usage").insert({
+          user_id: user.id,
+          project_id: projectId || null,
+          action: "generate_outline_error",
+          model: msg.slice(0, 300),
+        });
+      } catch { /* best-effort */ }
+      result = { text: "", modelUsed: selectedModelName, usage: undefined, fellBack: false, errors: [] } as any;
+    }
 
-    await deductGenerationCost(
-      user.id,
-      selectedModelName,
-      result.usage,
-      `Structure du livre : ${title || ""}`,
-      { projectId, outputText: result.text || "" }
-    );
+    if (result.text) {
+      await deductGenerationCost(
+        user.id,
+        result.modelUsed,
+        result.usage,
+        `Structure du livre : ${title || ""}`,
+        { projectId, outputText: result.text }
+      );
+    }
 
     let chapters = parseOutlineText(result.text || "");
 

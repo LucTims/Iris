@@ -9,6 +9,9 @@ import {
   shouldGroundWithWebSearch,
   buildChapterSystemPrompt,
 } from "@/lib/ai/book-style";
+import { sanitizeGeneratedHtml } from "@/lib/ai/sanitize-html";
+import { resolveWorkType, chapterNounFor } from "@/lib/book/work-type";
+import { assignChapterLabels } from "@/lib/book/chapter-heading";
 
 /**
  * Génération de livre complet — pipeline serveur résilient.
@@ -31,9 +34,16 @@ import {
 
 export interface BookJobChapterPlan {
   chapterId: string;
+  /** Numéro de STOCKAGE (ordre en base) — pas le numéro affiché au lecteur. */
   number: number;
   title: string;
   brief: string;
+  /**
+   * Titre canonique affiché (« Chapitre 1 : … », « Introduction »), calculé à
+   * la préparation du plan. Facultatif pour les jobs créés avant son ajout :
+   * il est alors recalculé ici, au démarrage du chapitre.
+   */
+  heading?: string;
 }
 
 export interface BookJobSettings {
@@ -47,6 +57,8 @@ export interface BookJobSettings {
   model: string;
   targetWords?: number;
   useWebSearch?: boolean;
+  /** Forme de l'ouvrage choisie par l'auteur : "livre" | "guide" | "ebook". */
+  workType?: string;
 }
 
 export function getServiceRoleClient(): SupabaseClient {
@@ -62,16 +74,26 @@ const MAX_ATTEMPTS_PER_CHAPTER = 3;
 function buildSystemPrompt(
   settings: BookJobSettings,
   chapter: BookJobChapterPlan,
+  chapterHeading: string,
   recentSummaries: { number: number; title: string; summary: string }[],
   searchContext: string,
   wordsTarget: number
 ): string {
+  // Les résumés de continuité sont référencés par leur TITRE, jamais par un
+  // numéro de stockage : c'est ce numéro décalé qui faisait dire au modèle
+  // « le chapitre 2 » en parlant de l'introduction.
   const previousSummary = recentSummaries.length
-    ? recentSummaries.map((s) => `Chapitre ${s.number} (${s.title}) : ${s.summary}`).join("\n")
+    ? recentSummaries.map((s) => `« ${s.title} » : ${s.summary}`).join("\n")
     : "";
 
+  const genre = detectGenre(settings.category, settings.tone);
   return buildChapterSystemPrompt({
-    genre: detectGenre(settings.category, settings.tone),
+    genre,
+    workType: resolveWorkType({
+      explicit: settings.workType,
+      category: settings.category,
+      title: settings.title,
+    }),
     title: settings.title,
     synopsis: settings.synopsis,
     tone: settings.tone,
@@ -81,10 +103,37 @@ function buildSystemPrompt(
     instructions: settings.instructions,
     chapterNumber: chapter.number,
     chapterTitle: chapter.title,
+    chapterHeading,
     previousSummary,
     searchContext,
     wordsTarget: wordsTarget || undefined,
   });
+}
+
+/**
+ * Titre canonique du chapitre en cours de traitement.
+ *
+ * On privilégie le `heading` calculé à la préparation du plan. S'il manque
+ * (job démarré avant l'ajout du champ), on le RECALCULE sur tout le plan —
+ * jamais à partir de `chapter.number`, qui est un rang de stockage décalé par
+ * le chapitre-sommaire et qui produisait des titres comme
+ * « Chapitre 2 : Introduction ».
+ */
+function headingForChapter(job: BookJobRow, index: number): string {
+  const chapter = job.plan[index];
+  if (chapter?.heading) return chapter.heading;
+
+  const genre = detectGenre(job.settings.category, job.settings.tone);
+  const workType = resolveWorkType({
+    explicit: job.settings.workType,
+    category: job.settings.category,
+    title: job.settings.title,
+  });
+  const labels = assignChapterLabels(
+    job.plan.map((c) => ({ title: c.title })),
+    chapterNounFor(workType, genre)
+  );
+  return labels[index]?.heading || chapter?.title || `Chapitre ${index + 1}`;
 }
 
 /**
@@ -182,7 +231,8 @@ export async function processNextChapter(
   let lastError: unknown = null;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_CHAPTER; attempt++) {
     try {
-      const system = buildSystemPrompt(settings, chapter, recentSummaries, searchContext, wordsTarget);
+      const chapterHeading = headingForChapter(job, job.current_index);
+      const system = buildSystemPrompt(settings, chapter, chapterHeading, recentSummaries, searchContext, wordsTarget);
       // REPLI AUTOMATIQUE : si la clé du modèle demandé est morte / en quota /
       // surchargée, on bascule sur un autre fournisseur au lieu de faire échouer
       // tout le livre. On facture ensuite le modèle qui a réellement écrit.
@@ -195,12 +245,25 @@ export async function processNextChapter(
         console.warn(`[book-job] Repli sur ${result.modelUsed} (chapitre ${chapter.number}) :`, result.errors.join(" | "));
       }
 
-      const text = result.text || "";
+      // Nettoyage AVANT enregistrement : blocs ```html oubliés, Markdown
+      // résiduel, lettrine cassée, encadré au milieu d'une phrase, titre écrit
+      // deux fois. Le titre canonique est réimposé ici, donc le manuscrit
+      // stocké est déjà propre pour l'éditeur ET pour tous les exports.
+      const text = sanitizeGeneratedHtml(result.text || "", { expectedHeading: chapterHeading });
       const wordCount = text.replace(/<[^>]*>/g, " ").trim().split(/\s+/).filter(Boolean).length;
 
       const { error: chapterError } = await db
         .from("chapters")
-        .update({ content: text, status: "Terminé", word_count: wordCount, updated_at: new Date().toISOString() })
+        .update({
+          content: text,
+          // Le titre en base devient le titre canonique : la liste des
+          // chapitres, la table des matières et le <h1> du manuscrit affichent
+          // désormais rigoureusement la même chose.
+          title: chapterHeading,
+          status: "Terminé",
+          word_count: wordCount,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", chapter.chapterId);
       if (chapterError) throw chapterError;
 
@@ -215,8 +278,8 @@ export async function processNextChapter(
         console.error(`[book-job] Échec du débit pour le job ${job.id}, chapitre ${chapter.number}`);
       }
 
-      const summary = await summarizeChapterForContinuity(chapter.title, text);
-      const nextSummaries = [...job.chapter_summaries, { number: chapter.number, title: chapter.title, summary }];
+      const summary = await summarizeChapterForContinuity(chapterHeading, text);
+      const nextSummaries = [...job.chapter_summaries, { number: chapter.number, title: chapterHeading, summary }];
       const nextIndex = job.current_index + 1;
 
       await db

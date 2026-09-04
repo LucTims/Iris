@@ -8,6 +8,7 @@ import Sidebar from "@/components/Sidebar";
 import { SIZE_PRESETS, BOOK_MODELS, estimatePagesCoins } from "@/lib/book/generationPresets";
 import type { BookSizeKey } from "@/lib/book/generationPresets";
 import { useUser } from "@/hooks/useUser";
+import { WORK_TYPES, WORK_TYPE_META, type WorkType } from "@/lib/book/work-type";
 
 // Associe le libellé de longueur du formulaire à une clé de preset.
 const lengthToSizeKey = (length: string): BookSizeKey =>
@@ -34,6 +35,9 @@ export default function NewBookWizard() {
     length: "Moyen (Roman standard)",
     instructions: "",
     includeToc: true,
+    // Forme de l'ouvrage : elle pilote la structure ET la mise en page.
+    // Un livre se lit d'une traite, un guide se pratique, un ebook se parcourt.
+    workType: "livre" as WorkType,
   });
 
   const updateForm = (field: string, value: string | boolean) => {
@@ -289,6 +293,37 @@ export default function NewBookWizard() {
                         placeholder="Ex: Dominez votre marché en 30 jours"
                         className="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
                       />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-neutral-700">Forme de l&apos;ouvrage <span className="text-red-500">*</span></label>
+                      <p className="text-xs text-neutral-500">
+                        C&apos;est ce qui décide de la structure ET de la mise en page. Un livre se lit d&apos;une traite ;
+                        un guide s&apos;utilise pour faire ; un ebook se parcourt vite.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {WORK_TYPES.map((wt) => {
+                          const meta = WORK_TYPE_META[wt];
+                          const selected = formData.workType === wt;
+                          return (
+                            <button
+                              type="button"
+                              key={wt}
+                              onClick={() => updateForm("workType", wt)}
+                              aria-pressed={selected}
+                              className={`text-left border rounded-xl p-4 transition-all ${selected ? 'border-orange-500 bg-orange-50/50' : 'border-neutral-200 bg-white hover:bg-neutral-50'}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${selected ? 'border-orange-500' : 'border-neutral-300'}`}>
+                                  {selected && <span className="w-2 h-2 rounded-full bg-orange-500" />}
+                                </span>
+                                <span className={`text-sm font-bold ${selected ? 'text-orange-700' : 'text-neutral-700'}`}>{meta.label}</span>
+                              </div>
+                              <span className="block mt-1.5 text-xs leading-snug text-neutral-500">{meta.hint}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

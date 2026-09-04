@@ -7,7 +7,8 @@ import {
   extractLeadingHeading,
   isSummaryChapter,
 } from "@/lib/export/htmlToPdfmake";
-import { bookFontPairing } from "@/lib/ai/book-style";
+import { bookFontPairing, detectGenre } from "@/lib/ai/book-style";
+import { resolveWorkType, workTypeLayout } from "@/lib/book/work-type";
 import { PDF_FONT_KEYS } from "@/lib/export/fontRegistry";
 
 export const runtime = "nodejs";
@@ -125,8 +126,18 @@ function buildDocDefinition(
   chapters: ChapterData[],
   coverImage: string | null,
   category: string | undefined,
-  format: "digital" | "print" = "digital"
+  format: "digital" | "print" = "digital",
+  workTypeInput?: string | null
 ): any {
+  // MISE EN PAGE PAR FORME D'OUVRAGE. Un livre s'habille comme un livre
+  // (titre centré haut de page, fleuron, texte justifié, page de fin) ; un
+  // guide se compose comme un manuel (titre à gauche, pas de fleuron, texte
+  // au fer à gauche pour éviter les lézardes dans un texte riche en listes) ;
+  // un ebook reste compact. Auparavant, les trois recevaient exactement la
+  // même mise en page de roman.
+  const genre = detectGenre(category);
+  const workType = resolveWorkType({ explicit: workTypeInput, category, title });
+  const layout = workTypeLayout(workType, genre);
   // Palette typographique riche, choisie selon le STYLE du livre (roman,
   // jeunesse, thriller, business, académique…) — pas seulement fiction/non-fiction.
   const { body: bodyFont, display: displayFont } = bookFontPairing(category);
@@ -150,17 +161,24 @@ function buildDocDefinition(
   // Page de titre intérieure
   content.push({ text: (title || "Sans titre").toUpperCase(), style: "coverTitle", margin: [0, 200, 0, 10] });
   if (subtitle) content.push({ text: subtitle, style: "coverSubtitle" });
-  content.push({ text: "❦", alignment: "center", color: "#b08d57", fontSize: 18, margin: [0, 30, 0, 0], pageBreak: "after" });
+  if (layout.ornaments) {
+    content.push({ text: "❦", alignment: "center", color: "#b08d57", fontSize: 18, margin: [0, 30, 0, 0], pageBreak: "after" });
+  } else {
+    content.push({ text: "", margin: [0, 30, 0, 0], pageBreak: "after" });
+  }
 
-  // Page de copyright (mentions légales minimales d'un vrai livre).
+  // Page de copyright (mentions légales minimales d'un vrai livre). Un ebook
+  // court s'en passe : elle y coûterait une page sur quinze.
   const year = new Date().getFullYear();
-  content.push({ text: title || "Sans titre", style: "copyrightTitle", margin: [0, 320, 0, 0] });
-  content.push({
-    text: `© ${year}. Tous droits réservés.\n\nAucune partie de cet ouvrage ne peut être reproduite ou transmise sous quelque forme que ce soit sans l'autorisation écrite de l'auteur.`,
-    style: "copyright",
-    margin: [0, 12, 0, 0],
-  });
-  content.push({ text: "Composé avec Iris", style: "copyright", italics: true, margin: [0, 24, 0, 0], pageBreak: "after" });
+  if (layout.copyrightPage) {
+    content.push({ text: title || "Sans titre", style: "copyrightTitle", margin: [0, 320, 0, 0] });
+    content.push({
+      text: `© ${year}. Tous droits réservés.\n\nAucune partie de cet ouvrage ne peut être reproduite ou transmise sous quelque forme que ce soit sans l'autorisation écrite de l'auteur.`,
+      style: "copyright",
+      margin: [0, 12, 0, 0],
+    });
+    content.push({ text: "Composé avec Iris", style: "copyright", italics: true, margin: [0, 24, 0, 0], pageBreak: "after" });
+  }
 
   // Détecte si l'auteur a demandé un sommaire : en mode « avec sommaire »,
   // generate-plan crée un chapitre « Sommaire » / « Table des matières ». Sa
@@ -204,19 +222,31 @@ function buildDocDefinition(
       tocStyle: { fontSize: 12, font: bodyFont, color: "#333333" },
       tocMargin: [0, 6, 0, 0],
       pageBreak: "before",
-      margin: [0, 60, 0, 6],
+      margin: [0, layout.chapterTitleTopMargin, 0, 6],
     });
-    content.push({ text: "❦", alignment: "center", color: "#b08d57", fontSize: 14, margin: [0, 0, 0, 24] });
+    if (layout.ornaments) {
+      content.push({ text: "❦", alignment: "center", color: "#b08d57", fontSize: 14, margin: [0, 0, 0, 24] });
+    } else {
+      // Un filet sobre remplace le fleuron dans un guide / un ebook.
+      content.push({
+        canvas: [{ type: "line", x1: 0, y1: 0, x2: 120, y2: 0, lineWidth: 2, lineColor: "#b08d57" }],
+        margin: [0, 6, 0, 20],
+      });
+    }
     content.push(...htmlToPdfmakeContent(rest));
   });
 
-  // Page de FIN — clôt le livre comme un ouvrage édité.
-  content.push({ text: "Fin", style: "endMark", pageBreak: "before", margin: [0, 260, 0, 0] });
-  content.push({ text: "❦", alignment: "center", color: "#b08d57", fontSize: 16, margin: [0, 18, 0, 0] });
+  // Page de FIN — clôt un livre comme un ouvrage édité. Un guide se termine
+  // sur sa dernière étape, pas sur un « Fin » de roman.
+  if (layout.endPage) {
+    content.push({ text: "Fin", style: "endMark", pageBreak: "before", margin: [0, 260, 0, 0] });
+    content.push({ text: "❦", alignment: "center", color: "#b08d57", fontSize: 16, margin: [0, 18, 0, 0] });
+  }
 
   // Nombre de pages liminaires (front matter) à NE PAS numéroter ni coiffer
   // d'un en-tête courant : couverture (si image) + titre + copyright + TOC.
-  const frontMatterCount = (coverImage ? 1 : 0) + 2 + (hasSummary ? 1 : 0);
+  const frontMatterCount =
+    (coverImage ? 1 : 0) + 1 + (layout.copyrightPage ? 1 : 0) + (hasSummary ? 1 : 0);
   const runningTitle = (title || "").toUpperCase();
 
   // Format d'impression : "print" = trim 6×9 pouces (432×648 pt) avec des
@@ -235,7 +265,10 @@ function buildDocDefinition(
     // En-tête courant : titre du livre en petites capitales grises, sur les
     // pages de contenu uniquement (ni sur le front matter, ni sur la page de fin).
     header: (currentPage: number, pageCount: number) => {
-      if (currentPage <= frontMatterCount || currentPage >= pageCount) return null;
+      if (!layout.runningHead) return null;
+      if (currentPage <= frontMatterCount) return null;
+      // La dernière page n'est exclue que lorsqu'elle porte le « Fin ».
+      if (layout.endPage && currentPage >= pageCount) return null;
       return {
         text: runningTitle,
         alignment: "center",
@@ -247,8 +280,9 @@ function buildDocDefinition(
       };
     },
     footer: (currentPage: number, pageCount: number) => {
-      // Pas de numéro sur le front matter ni la page de fin.
-      if (currentPage <= frontMatterCount || currentPage >= pageCount) return null;
+      // Pas de numéro sur le front matter ni sur la page « Fin ».
+      if (currentPage <= frontMatterCount) return null;
+      if (layout.endPage && currentPage >= pageCount) return null;
       // En impression : numéro à l'extérieur (gauche sur page paire, droite sur
       // page impaire) ; en numérique : centré.
       const alignment = isPrint ? (currentPage % 2 === 0 ? "left" : "right") : "center";
@@ -270,16 +304,16 @@ function buildDocDefinition(
       copyrightTitle: { font: displayFont, fontSize: 14, alignment: "center", color: "#333333" },
       copyright: { font: bodyFont, fontSize: 9, alignment: "center", color: "#888888", lineHeight: 1.4 },
       tocTitle: { font: displayFont, fontSize: 22, bold: true, alignment: "center", color: "#1a1a1a" },
-      chapterTitle: { font: displayFont, fontSize: 24, bold: true, alignment: "center", color: "#1a1a1a" },
+      chapterTitle: { font: displayFont, fontSize: 24, bold: true, alignment: layout.chapterTitleAlignment, color: "#1a1a1a" },
       h1: { font: displayFont, fontSize: 17, bold: true, color: "#1a1a1a", margin: [0, 16, 0, 8] },
       h2: { font: displayFont, fontSize: 14, bold: true, color: "#333333", margin: [0, 14, 0, 6] },
       h3: { font: displayFont, fontSize: 12.5, bold: true, color: "#333333", margin: [0, 10, 0, 4] },
-      paragraph: { fontSize: 11.5, alignment: "justify", margin: [0, 0, 0, 9] },
+      paragraph: { fontSize: 11.5, alignment: layout.bodyAlignment, margin: [0, 0, 0, 9] },
       blockquote: { fontSize: 11.5, italics: true, color: "#555555" },
       endMark: { font: displayFont, fontSize: 20, italics: true, alignment: "center", color: "#1a1a1a" },
     },
     // LA correction clé : police par défaut = serif de livre, plus Roboto.
-    defaultStyle: { font: bodyFont, fontSize: 11.5, lineHeight: 1.45 },
+    defaultStyle: { font: bodyFont, fontSize: 11.5, lineHeight: layout.lineHeight },
   };
 }
 
@@ -301,7 +335,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Accès non autorisé. Veuillez vous connecter." }, { status: 401 });
     }
 
-    const { title, subtitle, category, chapters, coverUrl, format } = await req.json();
+    const { title, subtitle, category, chapters, coverUrl, format, workType } = await req.json();
     const exportFormat: "digital" | "print" = format === "print" ? "print" : "digital";
     if (!Array.isArray(chapters) || chapters.length === 0) {
       return NextResponse.json({ error: "Aucun chapitre à exporter." }, { status: 400 });
@@ -320,7 +354,7 @@ export async function POST(req: Request) {
     const coverImage = await inlineCover(coverUrl);
 
     const printer = await getPrinter();
-    const docDefinition = buildDocDefinition(title || "Mon Livre Iris", subtitle, preparedChapters, coverImage, category, exportFormat);
+    const docDefinition = buildDocDefinition(title || "Mon Livre Iris", subtitle, preparedChapters, coverImage, category, exportFormat, workType);
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
     const buffer = await streamToBuffer(pdfDoc);
 

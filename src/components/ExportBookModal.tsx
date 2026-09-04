@@ -13,6 +13,8 @@ interface ExportBookModalProps {
     title?: string;
     subtitle?: string;
     category?: string;
+    /** Forme de l'ouvrage : pilote la mise en page de l'export. */
+    work_type?: string;
     chapters?: any[];
     cover_url?: string;
   } | null;
@@ -108,6 +110,9 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
             chapters: finalChapters,
             coverUrl,
             format: pdfLayout,
+            // Un guide ne doit pas être composé comme un roman (ni fleuron,
+            // ni lettrine, ni page « Fin »).
+            workType: project?.work_type,
           }),
         });
 

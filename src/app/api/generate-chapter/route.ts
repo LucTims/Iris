@@ -6,6 +6,9 @@ import { generateWithFallback } from "@/lib/ai/model-fallback";
 import { estimateChapterCoins } from "@/lib/ai/pricing";
 import { fetchSearchContext } from "@/lib/ai/search-context";
 import { detectGenre, shouldGroundWithWebSearch, buildChapterSystemPrompt } from "@/lib/ai/book-style";
+import { sanitizeGeneratedHtml } from "@/lib/ai/sanitize-html";
+import { resolveWorkType, chapterNounFor } from "@/lib/book/work-type";
+import { assignChapterLabels } from "@/lib/book/chapter-heading";
 
 export const maxDuration = 60;
 
@@ -45,12 +48,26 @@ export async function POST(req: Request) {
       model: chosenModel,
       projectId,
       useWebSearch = true,
+      workType: requestedWorkType,
+      chapterHeading: providedHeading,
     } = await req.json();
 
     // Genre (fiction vs non-fiction) : conditionne la mise en forme (pas
     // d'encadrés ni de sources en fiction) et l'usage de la recherche web.
     const genre = detectGenre(category, tone);
     const webSearchEnabled = shouldGroundWithWebSearch(genre, useWebSearch);
+    const workType = resolveWorkType({ explicit: requestedWorkType, category, title });
+
+    // Titre canonique du chapitre. Le client peut l'imposer (il connaît la
+    // position réelle du chapitre dans le livre) ; sinon on le recompose ici en
+    // nettoyant le titre — un titre qui contient déjà « Chapitre 3 : » ne doit
+    // jamais être re-préfixé, et « Introduction » ne doit jamais être numéroté.
+    const effectiveHeading =
+      (typeof providedHeading === "string" && providedHeading.trim()) ||
+      assignChapterLabels(
+        [{ title: chapterTitle || "" }],
+        chapterNounFor(workType, genre)
+      )[0].heading;
 
     // Cible de longueur (déduite du nombre de pages voulu). Bornée pour éviter
     // des chapitres démesurés qui dépasseraient la limite de temps de 60 s.
@@ -98,6 +115,8 @@ export async function POST(req: Request) {
       instructions,
       chapterNumber,
       chapterTitle,
+      chapterHeading: effectiveHeading,
+      workType,
       previousSummary: previousChaptersSummary,
       searchContext,
       wordsTarget: wordsTarget || undefined,
@@ -143,20 +162,30 @@ export async function POST(req: Request) {
       } catch { /* best-effort */ }
     }
 
+    // Nettoyage avant renvoi : le client insère ce HTML tel quel dans le
+    // manuscrit, donc il doit déjà être exempt de blocs ```html, de Markdown
+    // résiduel, de lettrine cassée et de titre en double.
+    const cleanText = sanitizeGeneratedHtml(generated.text, { expectedHeading: effectiveHeading });
+
     const deducted = await deductChapterCost(
       user.id,
       generated.modelUsed,
       generated.usage,
       `Génération Chapitre ${chapterNumber}: ${chapterTitle}`,
-      { projectId, outputText: generated.text }
+      { projectId, outputText: cleanText }
     );
     if (!deducted) {
       console.error(`Erreur lors de la déduction des pièces pour l'utilisateur ${user.id}`);
     }
 
-    return new Response(generated.text, {
+    return new Response(cleanText, {
       status: 200,
-      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+        // Le client réaligne le titre du chapitre sur celui réellement écrit.
+        "X-Chapter-Heading": encodeURIComponent(effectiveHeading),
+      },
     });
   } catch (error) {
     console.error("Erreur lors de la génération du chapitre:", error);
