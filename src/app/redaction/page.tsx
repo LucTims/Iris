@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -59,6 +59,7 @@ import { useUser } from "@/hooks/useUser";
 import { resolveWorkType, chapterNounFor } from "@/lib/book/work-type";
 import { assignChapterLabels } from "@/lib/book/chapter-heading";
 import { detectGenre } from "@/lib/ai/book-style";
+import { findUnwrittenSections, canResume } from "@/lib/book/unwritten";
 
 function RedactionContent() {
   const searchParams = useSearchParams();
@@ -1199,7 +1200,36 @@ function RedactionContent() {
   const isRealChapterEmpty = (c: Chapter) =>
     !/sommaire|table des mati/i.test(c.title || "") &&
     (c.content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().length < 40;
-  const hasUnwrittenChapters = chapters.some(isRealChapterEmpty) && chapters.some((c) => !isRealChapterEmpty(c) || /sommaire|table des mati/i.test(c.title || ""));
+  const hasEmptyChapterRows =
+    chapters.some(isRealChapterEmpty) &&
+    chapters.some((c) => !isRealChapterEmpty(c) || /sommaire|table des mati/i.test(c.title || ""));
+
+  // Reprise possible AUSSI depuis un document fusionné (« Livre complet »).
+  // Après une génération interrompue dans cette vue, le livre tient sur UNE
+  // seule ligne : les chapitres restants n'y sont que des titres nus, sans
+  // corps. Aucune ligne n'étant vide, la reprise était jugée impossible et
+  // l'auteur devait relancer — et repayer — tout le livre.
+  const mergedUnwritten = useMemo(() => {
+    if (chapters.length !== 1) return null;
+    const doc = chapters[0];
+    if (!doc?.content || /sommaire|table des mati/i.test(doc.title || "")) return null;
+    try {
+      const sections = splitHtmlIntoChapters(doc.content, doc.title || "Chapitre 1");
+      if (sections.length <= 1) return null;
+      const report = findUnwrittenSections(sections);
+      return canResume(report) ? { sections, report } : null;
+    } catch {
+      return null; // un découpage impossible ne doit jamais casser l'éditeur
+    }
+  }, [chapters]);
+
+  const hasUnwrittenChapters = hasEmptyChapterRows || !!mergedUnwritten;
+
+  // Combien de chapitres reste-t-il réellement à écrire ? Affiché sur le
+  // bouton pour que l'auteur sache d'emblée ce qu'il va relancer — et payer.
+  const remainingChaptersCount = mergedUnwritten
+    ? mergedUnwritten.report.unwritten.length
+    : chapters.filter(isRealChapterEmpty).length;
 
   // REPRISE : ne (re)génère QUE les chapitres restés vides, sans toucher aux
   // chapitres déjà rédigés (contrairement à « Générer tout le livre » qui
@@ -1208,7 +1238,34 @@ function RedactionContent() {
     const pId = currentProjectId || localStorage.getItem("iris_current_project_id");
     if (!pId) { alert("Projet introuvable. Enregistrez d'abord votre projet."); return; }
 
-    const targets = chapters
+    // CAS DU DOCUMENT FUSIONNÉ. Si le livre tient sur une seule ligne
+    // (« Livre complet ») avec des chapitres réduits à leur titre, on le
+    // redécoupe d'abord en vraies lignes de chapitre. Le contenu déjà rédigé
+    // est intégralement conservé : seuls les titres sans corps deviendront des
+    // chapitres vides, que la reprise ira ensuite remplir.
+    let workingChapters = chapters;
+    if (mergedUnwritten) {
+      setBatchLabel("Préparation des chapitres restants…");
+      const draft = mergedUnwritten.sections.map((sp, idx) => ({
+        number: idx + 1,
+        title: sp.title || `Chapitre ${idx + 1}`,
+        content: sp.content || "",
+        status: "Brouillon",
+      }));
+      setSaveStatus("saving");
+      const persisted = await replaceChaptersOnServer(pId, chapters, draft);
+      if (!persisted || persisted.length === 0) {
+        setSaveStatus("error");
+        alert("Impossible de préparer les chapitres restants. Réessayez.");
+        return;
+      }
+      setChapters(persisted);
+      setActiveChapterIndex(0);
+      setSaveStatus("saved");
+      workingChapters = persisted;
+    }
+
+    const targets = workingChapters
       .map((c, idx) => ({ c, idx }))
       .filter(({ c }) => isRealChapterEmpty(c));
     if (targets.length === 0) { alert("Tous les chapitres sont déjà rédigés."); return; }
@@ -1219,7 +1276,8 @@ function RedactionContent() {
     setIsBatchGenerating(true);
     setBatchLabel("Reprise de la rédaction…");
     try {
-      const sommaire = findSommaireChapter();
+      const sommaire =
+        workingChapters.find((c) => /sommaire|table des mati/i.test(c.title || "")) || null;
       let outline = "";
       let planList: { title: string; brief: string }[] = [];
       if (sommaire) {
@@ -1232,7 +1290,7 @@ function RedactionContent() {
       // Titres canoniques recalculés sur la structure COMPLÈTE du livre (pas
       // seulement les chapitres restants) : sans ça, une reprise à mi-parcours
       // renumérotait les chapitres restants à partir de 1.
-      const bodyChapters = chapters.filter((c) => !/sommaire|table des mati/i.test(c.title || ""));
+      const bodyChapters = workingChapters.filter((c) => !/sommaire|table des mati/i.test(c.title || ""));
       const resumeLabels = assignChapterLabels(
         bodyChapters.map((c) => ({ title: c.title || "" })),
         chapterNounFor(bookWorkType, detectGenre(projectData?.category, projectData?.tone))
@@ -1807,16 +1865,22 @@ function RedactionContent() {
                 ))}
               </select>
 
-              {/* Reprise : visible seulement si des chapitres restent vides
-                  ET qu'au moins un est déjà rédigé (livre partiellement écrit). */}
+              {/* Reprise après une génération interrompue. Visible dès qu'il
+                  reste des chapitres à écrire et qu'au moins un est déjà
+                  rédigé — y compris quand le livre est encore fusionné en un
+                  seul document, cas où le bouton restait caché à tort. */}
               {hasUnwrittenChapters && !isBatchGenerating && (
                 <button
                   onClick={continueBookGeneration}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-sm"
-                  title="Reprendre la rédaction : ne (ré)génère que les chapitres restés vides, sans toucher aux chapitres déjà écrits"
+                  title={`Reprendre la rédaction : seuls les ${remainingChaptersCount} chapitre(s) non rédigé(s) seront écrits et facturés. Les chapitres déjà écrits ne sont pas touchés.`}
                 >
                   <span className="material-symbols-outlined text-sm">play_arrow</span>
-                  <span className="hidden xl:inline">Continuer la rédaction</span>
+                  <span className="hidden xl:inline">
+                    Continuer la rédaction
+                    {remainingChaptersCount > 0 ? ` (${remainingChaptersCount})` : ""}
+                  </span>
+                  <span className="xl:hidden">{remainingChaptersCount || ""}</span>
                 </button>
               )}
 
