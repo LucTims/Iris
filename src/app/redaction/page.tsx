@@ -846,7 +846,7 @@ function RedactionContent() {
         /sommaire|table des mati/i.test(c.title || "")
       );
       const bookOutline = outlineChapter && outlineChapter.id !== currentChapter.id
-        ? outlineChapter.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 2000)
+        ? outlineChapter.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 12000)
         : "";
 
       const response = await fetch("/api/generate-chapter", {
@@ -1081,8 +1081,8 @@ function RedactionContent() {
       const startIdx = sommaire ? 1 : 0;
       const total = created.length - startIdx;
       const outline = sommaire
-        ? sommaireOnly.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 2000)
-        : planChapters.map((c, k) => `${k + 1}. ${c.title} — ${c.brief}`).join("\n").substring(0, 2000);
+        ? sommaireOnly.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 12000)
+        : planChapters.map((c, k) => `${k + 1}. ${c.title} — ${c.brief}`).join("\n").substring(0, 12000);
 
       // Démarre le job de génération CÔTÉ SERVEUR : chaque chapitre s'enchaîne
       // tout seul sur le serveur (voir /api/generate-book/*), donc fermer cet
@@ -1225,7 +1225,7 @@ function RedactionContent() {
       if (sommaire) {
         const only = (sommaire.content.split(/<hr[^>]*data-page-break[^>]*>/i)[0] || sommaire.content).trim();
         planList = parseSommaireChapters(only);
-        outline = only.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 2000);
+        outline = only.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 12000);
       }
 
       const total = targets.length;
@@ -1394,7 +1394,7 @@ function RedactionContent() {
           const only = (sommaire.content.split(/<hr[^>]*data-page-break[^>]*>/i)[0] || sommaire.content).trim();
           const list = parseSommaireChapters(only);
           brief = list.find((c) => c.title.trim() === (chap.title || "").trim())?.brief || "";
-          outline = only.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 2000);
+          outline = only.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 12000);
         }
         const previousChaptersSummary = chapters
           .slice(0, index)
@@ -1421,6 +1421,15 @@ function RedactionContent() {
             projectId: pId,
             useWebSearch,
             workType: bookWorkType,
+            // Plan complet + position réelle : le chapitre régénéré seul doit
+            // connaître le reste du livre, sans quoi il redit ce qui a déjà
+            // été écrit ailleurs.
+            allHeadings: chapters
+              .filter((c) => !/sommaire|table des mati/i.test(c.title || ""))
+              .map((c) => c.title),
+            chapterIndex: chapters
+              .filter((c) => !/sommaire|table des mati/i.test(c.title || ""))
+              .findIndex((c) => c.id === chap.id),
             // Titre canonique du chapitre : calculé sur sa position réelle dans
             // le corps du livre, pour que régénérer un chapitre seul ne le
             // renumérote pas différemment du reste.
@@ -2040,7 +2049,7 @@ function RedactionContent() {
                   >
                     <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                     <option value="gpt-4o">ChatGPT (GPT-4o)</option>
-                    <option value="claude-3-5-sonnet-20241022">Claude Sonnet 3.5</option>
+                    <option value="claude-sonnet-5">Claude Sonnet</option>
                   </select>
 
                   <button

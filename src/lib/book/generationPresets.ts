@@ -47,7 +47,7 @@ export const SIZE_PRESETS: Record<BookSizeKey, BookSizePreset> = {
 export const BOOK_MODELS = [
   { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Rapide et économique" },
   { id: "gpt-4o-mini", label: "GPT-4o mini", hint: "Bon compromis qualité/prix" },
-  { id: "claude-3-5-sonnet-20241022", label: "Claude Sonnet 3.5", hint: "Excellente qualité de rédaction" },
+  { id: "claude-sonnet-5", label: "Claude Sonnet", hint: "Excellente qualité de rédaction" },
 ];
 
 // Les estimateurs de coût en pièces vivent dans la source unique @/lib/ai/pricing.

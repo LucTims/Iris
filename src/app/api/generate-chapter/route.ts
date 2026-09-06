@@ -9,6 +9,7 @@ import { detectGenre, shouldGroundWithWebSearch, buildChapterSystemPrompt } from
 import { sanitizeGeneratedHtml } from "@/lib/ai/sanitize-html";
 import { resolveWorkType, chapterNounFor } from "@/lib/book/work-type";
 import { assignChapterLabels } from "@/lib/book/chapter-heading";
+import { demoteUnsourcedKeyFigures } from "@/lib/ai/factuality";
 
 export const maxDuration = 60;
 
@@ -50,6 +51,8 @@ export async function POST(req: Request) {
       useWebSearch = true,
       workType: requestedWorkType,
       chapterHeading: providedHeading,
+      allHeadings,
+      chapterIndex,
     } = await req.json();
 
     // Genre (fiction vs non-fiction) : conditionne la mise en forme (pas
@@ -117,6 +120,11 @@ export async function POST(req: Request) {
       chapterTitle,
       chapterHeading: effectiveHeading,
       workType,
+      // Plan complet + position : même quand on régénère UN chapitre, le
+      // rédacteur doit voir ce qui est déjà traité ailleurs pour ne pas
+      // redire ni empiéter.
+      allHeadings: Array.isArray(allHeadings) ? allHeadings : undefined,
+      chapterIndex: typeof chapterIndex === "number" ? chapterIndex : undefined,
       previousSummary: previousChaptersSummary,
       searchContext,
       wordsTarget: wordsTarget || undefined,
@@ -165,7 +173,10 @@ export async function POST(req: Request) {
     // Nettoyage avant renvoi : le client insère ce HTML tel quel dans le
     // manuscrit, donc il doit déjà être exempt de blocs ```html, de Markdown
     // résiduel, de lettrine cassée et de titre en double.
-    const cleanText = sanitizeGeneratedHtml(generated.text, { expectedHeading: effectiveHeading });
+    const cleanText = demoteUnsourcedKeyFigures(
+      sanitizeGeneratedHtml(generated.text, { expectedHeading: effectiveHeading }),
+      searchContext
+    );
 
     const deducted = await deductChapterCost(
       user.id,

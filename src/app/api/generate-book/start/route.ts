@@ -4,6 +4,60 @@ import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance } from "@/lib/ai/cost-engine";
 import { estimateChapterCoins } from "@/lib/ai/pricing";
 import { getServiceRoleClient, type BookJobChapterPlan, type BookJobSettings } from "@/lib/ai/book-job";
+import { generateWithFallback } from "@/lib/ai/model-fallback";
+import { buildBiblePrompt, parseBible, isUsefulBible, EMPTY_BIBLE, type BookBible } from "@/lib/book/book-bible";
+import { detectGenre } from "@/lib/ai/book-style";
+import { resolveWorkType } from "@/lib/book/work-type";
+
+const BIBLE_TIMEOUT_MS = 25_000;
+
+/**
+ * Produit la fiche de référence, avec garde-fou de temps et repli silencieux.
+ * Un livre doit pouvoir s'écrire même si cette étape échoue.
+ */
+async function buildBibleSafely(
+  settings: BookJobSettings,
+  chapters: BookJobChapterPlan[]
+): Promise<BookBible> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const genre = detectGenre(settings.category, settings.tone);
+    const workType = resolveWorkType({
+      explicit: settings.workType,
+      category: settings.category,
+      title: settings.title,
+    });
+    const outline = chapters
+      .map((c, i) => `${i + 1}. ${c.heading || c.title}${c.brief ? ` — ${c.brief}` : ""}`)
+      .join("\n");
+
+    const prompt = buildBiblePrompt({
+      title: settings.title,
+      synopsis: settings.synopsis,
+      tone: settings.tone,
+      category: settings.category,
+      instructions: settings.instructions,
+      outline,
+      workType,
+      genre,
+    });
+
+    const { text } = await Promise.race([
+      generateWithFallback({ preferred: settings.model || "gemini-2.5-flash", prompt }),
+      new Promise<{ text: string }>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("timeout fiche de référence")), BIBLE_TIMEOUT_MS);
+      }),
+    ]);
+
+    const parsed = parseBible(text || "");
+    return isUsefulBible(parsed) ? parsed : { ...EMPTY_BIBLE };
+  } catch (err) {
+    console.warn("[generate-book/start] Fiche de référence indisponible, génération sans elle:", err);
+    return { ...EMPTY_BIBLE };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 /**
  * Démarre (ou reprend) une génération de livre complet en arrière-plan.
@@ -56,6 +110,17 @@ export async function POST(req: Request) {
       );
     }
 
+    // FICHE DE RÉFÉRENCE DE L'OUVRAGE, établie une seule fois avant d'écrire la
+    // première ligne. Elle est ensuite injectée dans le prompt de CHAQUE
+    // chapitre : c'est elle qui donne au rédacteur la vue d'ensemble qui lui
+    // manquait (thèse, promesse, lecteur, voix, vocabulaire constant, exemples
+    // déjà réservés, hors-sujet). Sans elle, chaque chapitre repartait
+    // pratiquement de zéro et le livre se contredisait d'un chapitre à l'autre.
+    //
+    // Jamais bloquant : si l'appel échoue ou dépasse le délai, on démarre sans
+    // fiche plutôt que d'empêcher l'auteur d'écrire son livre.
+    const bible = await buildBibleSafely(settings, chapters);
+
     const db = getServiceRoleClient();
     const { data: job, error: jobError } = await db
       .from("book_generation_jobs")
@@ -68,6 +133,7 @@ export async function POST(req: Request) {
         current_index: 0,
         total: chapters.length,
         chapter_summaries: [],
+        bible,
       })
       .select("id")
       .single();

@@ -28,7 +28,7 @@ export const maxDuration = 60;
 const PROBES = [
   { id: "gemini-2.5-flash", label: "Gemini", envVar: "GOOGLE_GENERATIVE_AI_API_KEY" },
   { id: "gpt-4o-mini", label: "ChatGPT", envVar: "OPENAI_API_KEY" },
-  { id: "claude-3-5-sonnet-20241022", label: "Claude", envVar: "ANTHROPIC_API_KEY" },
+  { id: "claude-sonnet-5", label: "Claude", envVar: "ANTHROPIC_API_KEY" },
 ];
 
 const PROBE_TIMEOUT_MS = 15_000;

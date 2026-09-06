@@ -14,8 +14,8 @@ import {
 import {
   getAiModel,
   fetchSearchContext,
-  SEARCH_GROUNDING_INSTRUCTION,
 } from "@/lib/ai/search-context";
+import { factualityRules } from "@/lib/ai/factuality";
 
 export const maxDuration = 60;
 
@@ -306,7 +306,7 @@ Chapitre actuellement affiché à l'écran : ${activeChapterIndex !== undefined 
 ${chaptersOverview || "Aucun chapitre rédigé pour le moment."}
 --- FIN DU MANUSCRIT ---
 ${referenceBlock}${searchContext}
-${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}
+${factualityRules(searchContext)}
 
 Consignes de style :
 1. Si l'auteur pose une question factuelle ou de culture générale, réponds-y directement et complètement AVANT toute autre considération. Ne la relie au livre que si c'est pertinent.

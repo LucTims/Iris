@@ -16,6 +16,9 @@
 
 import type { WorkType } from "@/lib/book/work-type";
 import { workTypeWritingRules } from "@/lib/book/work-type";
+import { factualityRules, keyFigureRule } from "@/lib/ai/factuality";
+import type { BookBible } from "@/lib/book/book-bible";
+import { renderBible, renderChapterScope } from "@/lib/book/book-bible";
 
 export type BookGenre = "fiction" | "nonfiction";
 
@@ -109,7 +112,11 @@ export function chapterStructureRules(chapterHeading: string): string {
  * encadré, aucune statistique, aucune source, aucun tableau. En non-fiction :
  * la panoplie complète (encadrés, chiffres clés, tableaux).
  */
-export function bodyFormattingRules(genre: BookGenre, workType: WorkType = "livre"): string {
+export function bodyFormattingRules(
+  genre: BookGenre,
+  workType: WorkType = "livre",
+  searchContext?: string | null
+): string {
   // La FORME (livre / guide / ebook) prime sur la palette de balises : c'est
   // elle qui décide si l'appareil éditorial (encadrés, tableaux, checklists) a
   // sa place. Sans ça, un livre de développement personnel héritait de toute la
@@ -130,13 +137,16 @@ ${formRules}`;
   }
   return `Style d'OUVRAGE PRATIQUE (non-fiction) :
 - Structure claire avec paragraphes <p>, sous-titres <h2>/<h3>, et listes <ul>/<ol> quand c'est pertinent.
-- Données comparatives / critères chiffrés : présente-les dans un tableau HTML (<table>, <thead>, <tbody>, <tr>, <th>, <td>).
+- Comparaison de critères NON chiffrés (avantages/inconvénients, cas d'usage) : un tableau HTML (<table>, <thead>, <tbody>, <tr>, <th>, <td>) est possible. Ne fabrique jamais un tableau de données chiffrées.
 - Points clés : encadrés <div class="callout callout-info">…</div> (info), callout-warning (mise en garde), callout-tip (conseil), callout-example (exemple). 1 à 3 par chapitre maximum, seulement quand ça apporte de la valeur.
-- Chiffre marquant : <div class="key-figure">85% des entreprises…</div> (1-2 max). Citation forte : <div class="pull-quote">…</div> (1-2 max).
+- Citation forte tirée du texte lui-même : <div class="pull-quote">…</div> (1 max).
+${keyFigureRule(searchContext)}
 - Transition : <div class="section-divider section-divider-stars"></div> (ou ornament, line, dots), avec parcimonie.
 - Lettrine possible en ouverture : <p class="drop-cap">…</p> (1 max).
 
-${formRules}`;
+${formRules}
+
+${factualityRules(searchContext)}`;
 }
 
 /**
@@ -146,7 +156,13 @@ ${formRules}`;
  */
 export function continuityDirective(
   genre: BookGenre,
-  chapterNumber: number | string,
+  /**
+   * Titre canonique du chapitre. On ne passe PLUS de numéro : le rang de
+   * stockage valait « chapitre 3 » alors que le titre affiché disait
+   * « Chapitre 2 », et le prompt se contredisait donc lui-même. On désigne
+   * désormais le chapitre par son titre, seule référence non ambiguë.
+   */
+  chapterHeading: string,
   hasPrevious: boolean
 ): string {
   if (!hasPrevious) {
@@ -154,7 +170,7 @@ export function continuityDirective(
       ? `Ceci est le PREMIER chapitre : installe le décor, les personnages et l'accroche, mais laisse des fils narratifs ouverts pour la suite.`
       : `Ceci est le PREMIER chapitre : pose le cadre et la promesse de l'ouvrage.`;
   }
-  const common = `Ceci est le chapitre ${chapterNumber} d'un livre CONTINU. Le lecteur a DÉJÀ lu les chapitres précédents (voir leur résumé ci-dessus).`;
+  const common = `Tu écris « ${chapterHeading} », au sein d'un livre CONTINU. Le lecteur a DÉJÀ lu tout ce qui précède (voir le plan et les résumés ci-dessus).`;
   if (genre === "fiction") {
     return `${common}
 RÈGLE ABSOLUE DE CONTINUITÉ :
@@ -194,6 +210,14 @@ export function buildChapterSystemPrompt(opts: {
    */
   chapterHeading?: string;
   workType?: WorkType;
+  /** Fiche de référence de l'ouvrage, injectée en entier (voir book-bible). */
+  bible?: BookBible | null;
+  /** Titres de TOUS les chapitres, dans l'ordre, pour délimiter le périmètre. */
+  allHeadings?: string[];
+  /** Aperçus correspondants, alignés sur `allHeadings`. */
+  allBriefs?: (string | undefined)[];
+  /** Index 0-based du chapitre en cours dans `allHeadings`. */
+  chapterIndex?: number;
   previousSummary?: string;
   searchContext?: string;
   wordsTarget?: number;
@@ -211,6 +235,10 @@ export function buildChapterSystemPrompt(opts: {
     chapterTitle,
     chapterHeading,
     workType = "livre",
+    bible,
+    allHeadings,
+    allBriefs,
+    chapterIndex,
     previousSummary,
     searchContext,
     wordsTarget,
@@ -218,6 +246,15 @@ export function buildChapterSystemPrompt(opts: {
 
   // Titre définitif : celui calculé en amont, sinon composition de repli.
   const heading = chapterHeading || `Chapitre ${chapterNumber} : ${chapterTitle}`;
+
+  // Mémoire permanente de l'ouvrage + périmètre exact de ce chapitre dans le
+  // plan COMPLET. C'est ce qui remplace l'ancien sommaire tronqué à 2 000
+  // caractères, seule vue d'ensemble dont disposait le rédacteur.
+  const bibleBlock = renderBible(bible);
+  const scopeBlock =
+    allHeadings && allHeadings.length && typeof chapterIndex === "number"
+      ? renderChapterScope(allHeadings, chapterIndex, allBriefs)
+      : "";
 
   const hasPrevious = !!(previousSummary && previousSummary.trim());
   const bibleLabel = genre === "fiction" ? "Bible des personnages / univers" : "Concepts et éléments clés";
@@ -230,11 +267,11 @@ Titre : ${title}
 Synopsis global : ${synopsis || "Non défini"}
 Ton / Style : ${tone || "Professionnel et engageant"}
 
-${characters ? `${bibleLabel} (à respecter scrupuleusement, sans changer les noms ni les faits établis) :\n${characters}\n` : ""}${bookOutline ? `Plan / sommaire du livre (reste dans le périmètre de CE chapitre, sans empiéter sur les autres) :\n${bookOutline}\n` : ""}${hasPrevious ? `Résumé des chapitres précédents (pour la cohérence) :\n${previousSummary}\n` : ""}${chapterBrief ? `Ce chapitre doit couvrir précisément : ${chapterBrief}\n` : ""}${instructions ? `CONSIGNES SPÉCIFIQUES DE L'AUTEUR (priorité maximale) :\n${instructions}\n` : ""}
+${bibleBlock ? `${bibleBlock}\n\n` : ""}${scopeBlock ? `${scopeBlock}\n\n` : ""}${characters ? `${bibleLabel} (à respecter scrupuleusement, sans changer les noms ni les faits établis) :\n${characters}\n` : ""}${!scopeBlock && bookOutline ? `Plan / sommaire du livre (reste dans le périmètre de CE chapitre, sans empiéter sur les autres) :\n${bookOutline}\n` : ""}${hasPrevious ? `Résumé des chapitres précédents (pour la cohérence) :\n${previousSummary}\n` : ""}${chapterBrief ? `Ce chapitre doit couvrir précisément : ${chapterBrief}\n` : ""}${instructions ? `CONSIGNES SPÉCIFIQUES DE L'AUTEUR (priorité maximale) :\n${instructions}\n` : ""}
 Chapitre à rédiger :
 ${heading}
 
-${continuityDirective(genre, chapterNumber, hasPrevious)}
+${continuityDirective(genre, heading, hasPrevious)}
 ${searchContext || ""}
 
 Longueur : ${wordsTarget ? `vise environ ${wordsTarget} mots (±20 %).` : "vise au moins 800 à 1500 mots."}
@@ -242,7 +279,7 @@ Longueur : ${wordsTarget ? `vise environ ${wordsTarget} mots (±20 %).` : "vise 
 Structure du chapitre :
 ${chapterStructureRules(heading)}
 
-${bodyFormattingRules(genre, workType)}`;
+${bodyFormattingRules(genre, workType, searchContext)}`;
 }
 
 /**

@@ -717,8 +717,8 @@ export default function NewBookWizard() {
 
                   {/* Pro Model */}
                   <div 
-                    onClick={() => setSelectedModel("claude-3-5-sonnet-20240620")}
-                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${selectedModel === "claude-3-5-sonnet-20240620" ? "border-orange-500 bg-orange-50/50" : "border-neutral-100 hover:border-orange-300"}`}
+                    onClick={() => setSelectedModel("claude-sonnet-5")}
+                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${selectedModel === "claude-sonnet-5" ? "border-orange-500 bg-orange-50/50" : "border-neutral-100 hover:border-orange-300"}`}
                   >
                     <div className="text-xl mt-0.5">✍️</div>
                     <div className="flex-1">

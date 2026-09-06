@@ -42,7 +42,7 @@ export async function GET() {
   const writableModels = [
     { id: "gemini-2.5-flash", provider: "google", ready: textModels.gemini },
     { id: "gpt-4o", provider: "openai", ready: textModels.openai },
-    { id: "claude-3-5-sonnet-20240620", provider: "anthropic", ready: textModels.anthropic },
+    { id: "claude-sonnet-5", provider: "anthropic", ready: textModels.anthropic },
   ];
 
   return NextResponse.json({

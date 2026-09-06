@@ -7,8 +7,8 @@ import { checkMinimumBalance, deductChapterCost } from "@/lib/ai/cost-engine";
 import {
   getAiModel,
   fetchSearchContext,
-  SEARCH_GROUNDING_INSTRUCTION,
 } from "@/lib/ai/search-context";
+import { factualityRules } from "@/lib/ai/factuality";
 
 export const maxDuration = 60;
 
@@ -119,7 +119,7 @@ IMPORTANT:
 - Quand le contenu contient des données comparatives, des listes de critères chiffrés ou des informations tabulaires, présente-les dans un tableau HTML bien structuré.
 - Ne rajoute aucun commentaire personnel à la fin, donne-moi juste le code HTML pur de la nouvelle version du texte.
 ${searchContext}
-${useWebSearch ? SEARCH_GROUNDING_INSTRUCTION : ""}`,
+${factualityRules(searchContext)}`,
       prompt: prompt,
       onError({ error }) {
         console.error("[rewrite-chapter] Erreur pendant le stream IA:", error);

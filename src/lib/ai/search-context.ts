@@ -31,8 +31,12 @@ export function getAiModel(modelId: string) {
     const mappedOpenAi = modelId.includes("mini") ? "gpt-4o-mini" : "gpt-4o";
     return openai(mappedOpenAi);
   } else if (modelId.startsWith("claude")) {
-    // Si l'identifiant est l'ancien "claude-3-5-sonnet-20240620", router vers le modèle actif le plus puissant
-    const mappedClaude = modelId.includes("haiku") ? "claude-haiku-4-5-20251001" : "claude-sonnet-4-6";
+    // Les anciens identifiants ("claude-3-5-sonnet-20240620", proposés pendant
+    // des mois dans l'éditeur et encore présents en base) sont routés vers la
+    // génération actuelle : un livre écrit avec un modèle de deux générations
+    // de retard explique à lui seul une bonne part de l'écart de qualité
+    // ressenti face à une conversation Claude ou ChatGPT d'aujourd'hui.
+    const mappedClaude = modelId.includes("haiku") ? "claude-haiku-4-5-20251001" : "claude-sonnet-5";
     return anthropic(mappedClaude);
   } else {
     // Par défaut Gemini
@@ -41,13 +45,6 @@ export function getAiModel(modelId: string) {
   }
 }
 
-/**
- * Backward-compatible alias. The grounding is no longer configured on the
- * model itself (see getSearchTools), so this simply returns the plain model.
- */
-export function getAiModelWithSearch(modelId: string, _useWebSearch: boolean) {
-  return getAiModel(modelId);
-}
 
 function isGeminiModel(modelId: string): boolean {
   return !modelId.startsWith("gpt-") && !modelId.startsWith("claude-");
@@ -130,9 +127,3 @@ export async function fetchSearchContext(
   }
 }
 
-export const SEARCH_GROUNDING_INSTRUCTION = `
-IMPORTANT concernant les données factuelles :
-- Si tu as accès à des résultats de recherche web (via Google Search), utilise ces données en priorité.
-- Cite tes sources entre crochets quand tu mentionnes un chiffre, une date ou un fait précis. Exemple : "La capitalisation de la BRVM s'élève à 9 200 milliards FCFA [Source: BRVM.org, 2025]".
-- Si tu n'as pas de données vérifiées sur un point précis, indique-le clairement : "(donnée à vérifier par l'auteur)".
-- Ne jamais inventer de chiffres, de dates ou de noms propres sans source.`;

@@ -12,6 +12,8 @@ import {
 import { sanitizeGeneratedHtml } from "@/lib/ai/sanitize-html";
 import { resolveWorkType, chapterNounFor } from "@/lib/book/work-type";
 import { assignChapterLabels } from "@/lib/book/chapter-heading";
+import type { BookBible } from "@/lib/book/book-bible";
+import { demoteUnsourcedKeyFigures } from "@/lib/ai/factuality";
 
 /**
  * Génération de livre complet — pipeline serveur résilient.
@@ -68,13 +70,23 @@ export function getServiceRoleClient(): SupabaseClient {
   );
 }
 
-const MAX_RECENT_SUMMARIES = 4;
+/**
+ * Nombre de résumés de chapitres précédents transmis au rédacteur.
+ *
+ * C'était 4. Résultat : en écrivant le chapitre 9, le modèle ignorait tout des
+ * chapitres 1 à 4 — d'où les redites, les définitions répétées et les
+ * contradictions. Un résumé pèse 2 à 3 phrases : même un livre de 24 chapitres
+ * tient dans quelques kilo-octets, une fraction négligeable de la fenêtre de
+ * contexte. On garde donc TOUT l'historique, avec une borne haute de sécurité.
+ */
+const MAX_RECENT_SUMMARIES = 24;
 const MAX_ATTEMPTS_PER_CHAPTER = 3;
 
 function buildSystemPrompt(
   settings: BookJobSettings,
   chapter: BookJobChapterPlan,
   chapterHeading: string,
+  job: BookJobRow,
   recentSummaries: { number: number; title: string; summary: string }[],
   searchContext: string,
   wordsTarget: number
@@ -87,8 +99,17 @@ function buildSystemPrompt(
     : "";
 
   const genre = detectGenre(settings.category, settings.tone);
+  // Plan COMPLET du livre : le rédacteur voit ce qui est déjà écrit, ce qui
+  // viendra, et donc ce qu'il doit laisser aux autres chapitres.
+  const allHeadings = job.plan.map((c, i) => c.heading || headingForChapter(job, i));
+  const allBriefs = job.plan.map((c) => c.brief);
+
   return buildChapterSystemPrompt({
     genre,
+    bible: job.bible,
+    allHeadings,
+    allBriefs,
+    chapterIndex: job.current_index,
     workType: resolveWorkType({
       explicit: settings.workType,
       category: settings.category,
@@ -185,6 +206,8 @@ export interface BookJobRow {
   chapter_summaries: { number: number; title: string; summary: string }[];
   attempt_count: number;
   last_error: string | null;
+  /** Fiche de référence de l'ouvrage, produite au démarrage (voir book-bible). */
+  bible?: BookBible | null;
 }
 
 /**
@@ -232,7 +255,7 @@ export async function processNextChapter(
   for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_CHAPTER; attempt++) {
     try {
       const chapterHeading = headingForChapter(job, job.current_index);
-      const system = buildSystemPrompt(settings, chapter, chapterHeading, recentSummaries, searchContext, wordsTarget);
+      const system = buildSystemPrompt(settings, chapter, chapterHeading, job, recentSummaries, searchContext, wordsTarget);
       // REPLI AUTOMATIQUE : si la clé du modèle demandé est morte / en quota /
       // surchargée, on bascule sur un autre fournisseur au lieu de faire échouer
       // tout le livre. On facture ensuite le modèle qui a réellement écrit.
@@ -249,7 +272,12 @@ export async function processNextChapter(
       // résiduel, lettrine cassée, encadré au milieu d'une phrase, titre écrit
       // deux fois. Le titre canonique est réimposé ici, donc le manuscrit
       // stocké est déjà propre pour l'éditeur ET pour tous les exports.
-      const text = sanitizeGeneratedHtml(result.text || "", { expectedHeading: chapterHeading });
+      // Nettoyage puis garde-fou factuel : un chiffre non sourcé mis en exergue
+      // dans un encadré est bien pire qu'un chiffre noyé dans un paragraphe.
+      const text = demoteUnsourcedKeyFigures(
+        sanitizeGeneratedHtml(result.text || "", { expectedHeading: chapterHeading }),
+        searchContext
+      );
       const wordCount = text.replace(/<[^>]*>/g, " ").trim().split(/\s+/).filter(Boolean).length;
 
       const { error: chapterError } = await db

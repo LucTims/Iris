@@ -3,9 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
 import { generateWithFallback } from "@/lib/ai/model-fallback";
-import { getAiModel, fetchSearchContext, SEARCH_GROUNDING_INSTRUCTION } from "@/lib/ai/search-context";
+import { fetchSearchContext } from "@/lib/ai/search-context";
 import { detectGenre, shouldGroundWithWebSearch } from "@/lib/ai/book-style";
 import { resolveWorkType, workTypeOutlineRules, WORK_TYPE_META } from "@/lib/book/work-type";
+import { factualityRules } from "@/lib/ai/factuality";
 
 export const maxDuration = 60;
 
@@ -168,7 +169,7 @@ IMPORTANT:
 - Quand le contenu contient des données comparatives, des listes de critères chiffrés ou des informations tabulaires, présente-les dans un tableau HTML bien structuré.
 - Ne rajoute aucun commentaire personnel à la fin, sois purement factuel et professionnel dans l'exécution de la tâche.${fictionPlanNote}
 ${searchContext}
-${webSearchEnabled ? SEARCH_GROUNDING_INSTRUCTION : ""}`;
+${factualityRules(searchContext)}`;
 
     // Génération AVEC REPLI AUTOMATIQUE entre fournisseurs (voir model-fallback).
     let generated;

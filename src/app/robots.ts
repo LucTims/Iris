@@ -16,7 +16,6 @@ export default function robots(): MetadataRoute.Robots {
         '/billing/',
         '/projects/',
         '/redaction/',
-        '/redaction-beta/',
         '/export/',
         '/api/',
       ],
