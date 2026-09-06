@@ -14,6 +14,7 @@ import { resolveWorkType, chapterNounFor } from "@/lib/book/work-type";
 import { assignChapterLabels } from "@/lib/book/chapter-heading";
 import type { BookBible } from "@/lib/book/book-bible";
 import { demoteUnsourcedKeyFigures } from "@/lib/ai/factuality";
+import { auditChapter, buildRepairPrompt, wordCount as countWords } from "@/lib/book/chapter-audit";
 
 /**
  * Génération de livre complet — pipeline serveur résilient.
@@ -274,11 +275,55 @@ export async function processNextChapter(
       // stocké est déjà propre pour l'éditeur ET pour tous les exports.
       // Nettoyage puis garde-fou factuel : un chiffre non sourcé mis en exergue
       // dans un encadré est bien pire qu'un chiffre noyé dans un paragraphe.
-      const text = demoteUnsourcedKeyFigures(
+      let text = demoteUnsourcedKeyFigures(
         sanitizeGeneratedHtml(result.text || "", { expectedHeading: chapterHeading }),
         searchContext
       );
-      const wordCount = text.replace(/<[^>]*>/g, " ").trim().split(/\s+/).filter(Boolean).length;
+
+      // RELECTURE. L'audit est déterministe et gratuit : il ne détecte que des
+      // défauts vérifiables (chapitre tronqué, coupé en pleine phrase, chiffres
+      // non sourcés, redite d'un chapitre précédent, absence de respiration).
+      // Une reprise IA n'est déclenchée QUE s'il en trouve, et une seule fois —
+      // un chapitre correct, le cas courant, ne coûte pas un jeton de plus.
+      // Le worker dispose de 300 s par chapitre et en consomme une fraction :
+      // il y a largement la place pour cette seconde passe.
+      const defects = auditChapter({
+        html: text,
+        wordsTarget,
+        previousSummaries: recentSummaries.map((s) => s.summary),
+        searchContext,
+        isNarrativeBook: genre === "fiction",
+      });
+
+      if (defects.length > 0) {
+        console.warn(
+          `[book-job] Chapitre « ${chapterHeading} » : ${defects.map((d) => d.kind).join(", ")} → reprise`
+        );
+        try {
+          const repaired = await generateWithFallback({
+            preferred: selectedModelName,
+            system,
+            prompt: buildRepairPrompt(text, defects, chapterHeading),
+          });
+          const cleaned = demoteUnsourcedKeyFigures(
+            sanitizeGeneratedHtml(repaired.text || "", { expectedHeading: chapterHeading }),
+            searchContext
+          );
+          // On ne garde la révision que si elle laisse un chapitre au moins
+          // aussi substantiel : une reprise qui ampute le texte est un recul.
+          if (countWords(cleaned) >= countWords(text) * 0.9) {
+            text = cleaned;
+          } else {
+            console.warn(`[book-job] Reprise écartée (chapitre appauvri) : ${chapterHeading}`);
+          }
+        } catch (repairErr) {
+          // La reprise est un bonus : son échec ne doit jamais perdre le
+          // chapitre déjà écrit ni interrompre le livre.
+          console.warn(`[book-job] Reprise impossible pour « ${chapterHeading} » :`, repairErr);
+        }
+      }
+
+      const wordCount = countWords(text);
 
       const { error: chapterError } = await db
         .from("chapters")
