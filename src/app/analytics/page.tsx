@@ -106,8 +106,8 @@ export default function AnalyticsHubPage() {
                   <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-4">
                     <Coins className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Pièces dépensées</span>
-                  <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">{loading ? "-" : (globalStats?.totalCoins || 0).toLocaleString('fr-FR')} <span className="text-lg">🪙</span></p>
+                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Crédits utilisés</span>
+                  <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">{loading ? "-" : (globalStats?.totalCoins || 0).toLocaleString('fr-FR')}</p>
                 </div>
               </div>
             </div>
@@ -192,7 +192,7 @@ export default function AnalyticsHubPage() {
                         </div>
 
                         <Link href={`/analytics/${project.id}`} className="shrink-0">
-                          <button className="w-full md:w-auto bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2">
+                          <button className="w-full md:w-auto bg-[#C84B31] hover:bg-[#B83E26] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer">
                             <span>Voir détails</span>
                             <ChevronRight className="w-4 h-4" />
                           </button>

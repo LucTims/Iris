@@ -498,7 +498,7 @@ export default function CoverStudioEditorPage() {
                   
                   <button
                     onClick={() => setShowAutoConfirm(true)}
-                    className="w-full bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs py-3.5 rounded-2xl transition-all shadow-sm flex items-center justify-center gap-2"
+                    className="w-full bg-[#C84B31] hover:bg-[#B83E26] text-white font-bold text-xs py-3.5 rounded-2xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
                     <span>Génération Rapide Auto (Données du livre)</span>
@@ -544,7 +544,7 @@ export default function CoverStudioEditorPage() {
                     Importez votre propre image de couverture. L'image sera adaptée automatiquement au format du livre.
                   </p>
                   
-                  <label className="cursor-pointer inline-flex items-center justify-center w-full bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs py-4 rounded-xl transition-all shadow-sm gap-2">
+                  <label className="cursor-pointer inline-flex items-center justify-center w-full bg-[#C84B31] hover:bg-[#B83E26] text-white font-bold text-xs py-4 rounded-xl transition-all shadow-sm gap-2">
                     <span className="material-symbols-outlined text-[18px]">image</span>
                     <span>Choisir une image depuis l'ordinateur</span>
                     <input 

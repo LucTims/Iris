@@ -20,6 +20,7 @@ import {
   X,
   Menu,
   User,
+  BookOpen,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -49,6 +50,7 @@ export default function Sidebar() {
     { id: "couverture", label: "Studio de Couverture", icon: <Palette strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/cover-studio" },
     { id: "ventes", label: "Analytiques", icon: <Users strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/analytics" },
     { id: "facturation", label: "Portefeuille & Pièces", icon: <CreditCard strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/billing" },
+    { id: "guide-livre", label: "Livre offert", badge: "Offert", icon: <BookOpen strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/guide" },
   ];
 
   const bottomNavItems = [
@@ -106,14 +108,23 @@ export default function Sidebar() {
               title={collapsed ? item.label : undefined}
               className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
                 isActive
-                  ? "bg-neutral-100/90 text-neutral-900 font-bold shadow-2xs"
-                  : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
+                  ? "bg-[#C84B31]/10 text-[#C84B31] font-bold shadow-2xs"
+                  : "text-neutral-600 hover:bg-[#C84B31]/5 hover:text-[#C84B31]"
               }`}
             >
               <div className="shrink-0 transition-transform group-hover:scale-110 text-inherit flex items-center justify-center">
                 {item.icon}
               </div>
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && (
+                <div className="flex items-center justify-between flex-1 min-w-0">
+                  <span className="truncate">{item.label}</span>
+                  {(item as any).badge && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#C84B31]/15 text-[#C84B31] shrink-0 ml-1">
+                      {(item as any).badge}
+                    </span>
+                  )}
+                </div>
+              )}
             </Link>
           );
         })}
@@ -130,8 +141,8 @@ export default function Sidebar() {
               title={collapsed ? item.label : undefined}
               className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
                 isActive
-                  ? "bg-neutral-100/90 text-neutral-900 font-bold shadow-2xs"
-                  : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
+                  ? "bg-[#C84B31]/10 text-[#C84B31] font-bold shadow-2xs"
+                  : "text-neutral-600 hover:bg-[#C84B31]/5 hover:text-[#C84B31]"
               }`}
             >
               <div className="shrink-0 transition-transform group-hover:scale-110 text-inherit flex items-center justify-center">
@@ -212,7 +223,7 @@ export default function Sidebar() {
                   onClick={() => setIsMobileDrawerOpen(false)}
                   className={`p-3 rounded-2xl border flex flex-col gap-2 transition-all ${
                     pathname === item.href
-                      ? "bg-orange-50 border-orange-200 text-secondary font-bold"
+                      ? "bg-[#C84B31]/10 border-[#C84B31]/20 text-[#C84B31] font-bold"
                       : "bg-neutral-50 border-neutral-200/80 text-neutral-800 font-semibold hover:bg-neutral-100"
                   }`}
                 >

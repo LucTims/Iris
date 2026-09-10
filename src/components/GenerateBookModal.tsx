@@ -172,15 +172,15 @@ export default function GenerateBookModal({
                       <span className={`font-bold ${active ? "text-secondary" : "text-neutral-700"}`}>{m.label}</span>
                       <span className="text-neutral-400">{m.hint.replace(/^.*—\s*/, "")}</span>
                     </span>
-                    <span className={`text-sm font-extrabold ${active ? "text-neutral-900" : "text-neutral-600"}`}>🪙 {fmt(m.coins)}</span>
+                    <span className={`text-sm font-bold ${active ? "text-neutral-900" : "text-neutral-600"}`}>{fmt(m.coins)} crédits</span>
                   </div>
                 );
               })}
             </div>
             {hasBalance && (
-              <div className={`px-4 py-2.5 text-xs font-bold flex items-center justify-between ${insufficient ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>
-                <span>Votre solde : {fmt(balance as number)} pièces</span>
-                <span>{insufficient ? `Il vous manque ${fmt(selectedCost - (balance as number))}` : "Solde suffisant ✓"}</span>
+              <div className={`px-4 py-2.5 text-xs font-semibold flex items-center justify-between ${insufficient ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>
+                <span>Votre solde : {fmt(balance as number)} crédits</span>
+                <span>{insufficient ? `Il vous manque ${fmt(selectedCost - (balance as number))} crédits` : "Solde suffisant"}</span>
               </div>
             )}
           </div>

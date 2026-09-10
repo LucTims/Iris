@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, X, BookOpen } from "lucide-react";
+import { ArrowRight, X, BookOpen, Sparkles, Coins } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 
 export default function WelcomeModal() {
@@ -82,40 +82,32 @@ export default function WelcomeModal() {
             <X className="w-3.5 h-3.5" />
           </button>
 
-          <div className="p-4 sm:p-5 space-y-4 text-center">
-            {/* Compact Animated Icon Badge */}
-            <div className="relative mx-auto w-12 h-12 flex items-center justify-center pt-1">
-              <motion.div
-                animate={{ rotate: [0, 8, -8, 0], scale: [1, 1.06, 1] }}
-                transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
-                className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 p-[1.5px] shadow-md shadow-orange-500/15"
-              >
-                <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center">
-                  <span className="text-2xl select-none">🎁</span>
-                </div>
-              </motion.div>
+          <div className="p-5 sm:p-6 space-y-4 text-center">
+            {/* Compact Refined Icon Badge */}
+            <div className="mx-auto w-11 h-11 rounded-2xl bg-neutral-100 border border-neutral-200 flex items-center justify-center text-neutral-800">
+              <Sparkles className="w-5 h-5 text-secondary" />
             </div>
 
             {/* Title & Greeting */}
             <div className="space-y-1">
               <h2 className="font-heading text-lg sm:text-xl font-bold tracking-tight text-neutral-900">
-                Bienvenue sur Iris{displayName ? ` ${displayName}` : ""} !
+                Bienvenue sur Iris{displayName ? ` ${displayName}` : ""}
               </h2>
               <p className="text-xs text-neutral-500">
-                Votre studio de création littéraire avec l&apos;IA.
+                Votre studio de création et d&apos;édition littéraire.
               </p>
             </div>
 
-            {/* 500 Coins Gift Highlight Card - Sleek & Compact */}
-            <div className="bg-gradient-to-br from-amber-50/90 to-orange-50/70 border border-amber-200/80 rounded-xl p-3 text-center space-y-1 shadow-2xs">
-              <div className="flex items-center justify-center gap-1.5">
-                <span className="text-xl">🪙</span>
-                <span className="font-heading font-extrabold text-xl text-amber-950 tracking-tight">
-                  +500 Pièces offertes
+            {/* 500 Coins Gift Highlight Card */}
+            <div className="bg-neutral-50 border border-neutral-200/80 rounded-xl p-3.5 text-center space-y-1 shadow-2xs">
+              <div className="flex items-center justify-center gap-2">
+                <Coins className="w-5 h-5 text-secondary" />
+                <span className="font-heading font-bold text-lg text-neutral-900 tracking-tight">
+                  500 crédits offerts
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-amber-800 leading-snug">
-                Créditées sur votre compte pour lancer votre tout premier livre !
+              <p className="text-xs text-neutral-500 leading-snug">
+                Disponibles immédiatement pour démarrer votre premier ouvrage !
               </p>
             </div>
 
@@ -123,7 +115,7 @@ export default function WelcomeModal() {
             <div className="space-y-2 pt-1">
               <button
                 onClick={handleStartAdventure}
-                className="w-full bg-gradient-to-r from-orange-500 to-secondary hover:from-orange-600 hover:to-secondary/90 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-1.5 group text-xs sm:text-sm"
+                className="w-full bg-[#C84B31] hover:bg-[#B83E26] text-white font-semibold py-2.5 px-4 rounded-xl shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-2 group text-xs sm:text-sm cursor-pointer"
               >
                 <BookOpen className="w-4 h-4" />
                 <span>Créer mon premier livre</span>
@@ -132,7 +124,7 @@ export default function WelcomeModal() {
 
               <button
                 onClick={handleClose}
-                className="w-full text-neutral-500 hover:text-neutral-800 font-medium py-1 text-[11px] sm:text-xs transition-colors"
+                className="w-full text-neutral-500 hover:text-neutral-800 font-medium py-1 text-xs transition-colors"
               >
                 Explorer le tableau de bord
               </button>

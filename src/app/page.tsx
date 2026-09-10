@@ -1,15 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import DoodleFeatherMascot from "@/components/DoodleFeatherMascot";
-import HeroProductShowcase from "@/components/HeroProductShowcase";
 import ToolMarquee from "@/components/ToolMarquee";
 import Footer from "@/components/Footer";
 import { useUser } from "@/hooks/useUser";
+import { ArrowRight, Feather, Menu, X } from "lucide-react";
 
 export default function Home() {
   const { user } = useUser();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-white text-neutral-900 font-landing selection:bg-orange-100 flex flex-col justify-between">
       <script
@@ -38,183 +40,235 @@ export default function Home() {
       />
       
       {/* Navigation Bar */}
-      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-neutral-200/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
-          <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2 sm:gap-3 group shrink-0">
-            <img src="/iris-logo.png" alt="Iris" className="w-8 h-8 sm:w-10 sm:h-10 object-contain group-hover:scale-105 transition-transform" />
+      <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-neutral-200/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between">
+          <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group shrink-0">
+            <img src="/iris-logo.png" alt="Iris" className="w-8 h-8 sm:w-9 sm:h-9 object-contain group-hover:scale-105 transition-transform" />
             <span className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-neutral-900">
               Iris
             </span>
           </Link>
 
           {/* Center Links */}
-          <div className="hidden md:flex items-center gap-8 font-semibold text-neutral-600">
+          <div className="hidden md:flex items-center gap-8 font-semibold text-sm text-neutral-700">
+            <Link href="/presentation" className="hover:text-neutral-900 transition-colors flex items-center gap-1.5 text-[#C84B31] font-bold">
+              <span>Découvrir Iris</span>
+              <span className="text-[10px] uppercase tracking-wider bg-[#FDF3F1] border border-[#F4C5BC] px-1.5 py-0.5 rounded-full font-bold">Livre offert</span>
+            </Link>
             <Link href="/features" className="hover:text-neutral-900 transition-colors">Fonctionnalités</Link>
             <Link href="/how-it-works" className="hover:text-neutral-900 transition-colors">Comment ça marche</Link>
             <Link href="/pricing" className="hover:text-neutral-900 transition-colors">Tarifs</Link>
           </div>
 
           {/* Right Action */}
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            <Link href="/login" className="hidden sm:inline-block font-semibold text-neutral-700 hover:text-neutral-900 transition-colors">
+          <div className="hidden md:flex items-center gap-5 shrink-0">
+            <Link href="/login" className="font-semibold text-sm text-neutral-700 hover:text-neutral-900 transition-colors">
               Se connecter
             </Link>
-            <Link href="/register">
-              <button className="bg-secondary hover:bg-[#E0482B] text-white px-4 py-2 sm:px-6 sm:py-2.5 rounded-full text-xs sm:text-base font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1.5 whitespace-nowrap">
-                <span>Commencer <span className="hidden sm:inline">gratuitement</span></span>
-                <span className="material-symbols-outlined text-sm sm:text-lg">arrow_forward</span>
+            <Link href={user ? "/dashboard" : "/register"}>
+              <button className="bg-[#C84B31] hover:bg-[#B83E26] text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all shadow-xs hover:shadow-sm flex items-center gap-1.5 cursor-pointer">
+                <span>Commencer gratuitement</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </Link>
           </div>
+
+          {/* Mobile Hamburger Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-xl text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer"
+            aria-label="Ouvrir le menu"
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
+
+        {/* Mobile Menu Dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-b border-neutral-200 px-5 pt-3 pb-6 space-y-3 shadow-lg animate-in slide-in-from-top-2 duration-150">
+            <Link
+              href="/presentation"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between py-2 text-sm font-bold text-[#C84B31]"
+            >
+              <span>Découvrir Iris & Livre offert</span>
+              <span className="text-[10px] uppercase tracking-wider bg-[#FDF3F1] border border-[#F4C5BC] px-1.5 py-0.5 rounded-full font-bold">Gratuit</span>
+            </Link>
+            <Link
+              href="/features"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block py-2 text-sm font-semibold text-neutral-700 hover:text-neutral-900"
+            >
+              Fonctionnalités
+            </Link>
+            <Link
+              href="/how-it-works"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block py-2 text-sm font-semibold text-neutral-700 hover:text-neutral-900"
+            >
+              Comment ça marche
+            </Link>
+            <Link
+              href="/pricing"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block py-2 text-sm font-semibold text-neutral-700 hover:text-neutral-900"
+            >
+              Tarifs
+            </Link>
+            <div className="pt-3 border-t border-neutral-100 flex flex-col gap-2.5">
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 text-center text-sm font-semibold text-neutral-700 hover:text-neutral-900"
+              >
+                Se connecter
+              </Link>
+              <Link
+                href={user ? "/dashboard" : "/register"}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <button className="w-full bg-[#C84B31] hover:bg-[#B83E26] text-white py-3 rounded-full text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer">
+                  <span>Commencer gratuitement</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </Link>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section with Dot Matrix Grid Background */}
-      <section className="relative pt-24 pb-4 md:pt-32 md:pb-6 overflow-hidden bg-white">
+      <section className="relative pt-28 pb-16 sm:pt-32 sm:pb-20 lg:pt-36 lg:pb-24 overflow-hidden bg-white">
         
         {/* Dot Matrix Canvas Background Grid - DISCREET VISIBILITY & GRADUAL FADE OUT */}
         <div 
-          className="absolute inset-0 opacity-35 pointer-events-none z-0" 
+          className="absolute inset-0 opacity-40 pointer-events-none z-0" 
           style={{
-            backgroundImage: 'radial-gradient(#9ca3af 1.2px, transparent 1.2px)',
-            backgroundSize: '24px 24px',
-            maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 85%)',
-            WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 85%)'
+            backgroundImage: 'radial-gradient(#cbd5e1 1.2px, transparent 1.2px)',
+            backgroundSize: '20px 20px',
+            maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0) 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0) 100%)'
           }}
         />
 
-        {/* Curvilinear Vector Trajectory Lines (connecting elements from inside to outside) */}
-        <svg className="absolute inset-0 w-full h-[600px] pointer-events-none z-0 opacity-30">
-          <path 
-            d="M 50 140 C 250 180, 350 80, 500 120 C 650 160, 800 90, 1100 150" 
-            stroke="#d4d4d8" 
-            strokeWidth="1.5" 
-            fill="none" 
-            strokeDasharray="5 5"
-          />
-          <path 
-            d="M 100 280 C 300 240, 450 320, 600 260 C 750 200, 900 300, 1150 220" 
-            stroke="#F95738" 
-            strokeWidth="1.2" 
-            fill="none" 
-            opacity="0.4"
-          />
-        </svg>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+            
+            {/* Left Column: Hero Content */}
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="lg:col-span-7 flex flex-col items-start text-left"
+            >
+              {/* Badge Pill */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FDF3F1] border border-[#F4C5BC]/70 text-[#C84B31] text-xs font-semibold mb-6 shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C84B31] inline-block shrink-0"></span>
+                <span>La première co-création littéraire assistée par IA</span>
+              </div>
 
-        {/* Floating Green Badge (Left side: 100% straight, zero rotation) */}
-        <motion.div 
-          animate={{ y: [0, -6, 0] }} 
-          transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-          className="absolute top-24 left-[3%] md:left-[8%] z-10 hidden sm:block pointer-events-none"
-        >
-          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-300 px-3.5 py-1.5 rounded-full text-emerald-800 text-xs font-bold shadow-xs">
-            <div className="w-4 h-4 rounded-full bg-emerald-400 flex items-center justify-center text-black font-extrabold text-[9px]">
-              ::
-            </div>
-            <span>Assistant IA Actif</span>
+              {/* Main Title */}
+              <h1 className="font-heading text-4xl sm:text-5xl lg:text-[54px] xl:text-[60px] font-extrabold text-neutral-900 tracking-tight leading-[1.1] mb-6">
+                Votre savoir mérite un livre. <span className="text-[#C84B31]">Iris</span>{" "}l&apos;écrit avec vous.
+              </h1>
+
+              {/* Subtitle */}
+              <p className="text-base sm:text-lg text-neutral-600 leading-relaxed max-w-xl mb-8 font-normal">
+                Transformez votre expertise en un livre prêt à publier. Rédigez et mettez en page chaque chapitre facilement avec votre assistant IA.
+              </p>
+
+              {/* Action Buttons Row */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 mb-5 w-full sm:w-auto">
+                <Link href={user ? "/dashboard" : "/register"} className="w-full sm:w-auto">
+                  <button className="w-full sm:w-auto bg-[#C84B31] hover:bg-[#B83E26] text-white px-7 py-3.5 rounded-full text-sm sm:text-base font-bold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 cursor-pointer">
+                    <span>Commencer gratuitement</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </Link>
+                <Link href="/how-it-works" className="w-full sm:w-auto">
+                  <button className="w-full sm:w-auto bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-800 px-6 py-3.5 rounded-full text-sm sm:text-base font-semibold transition-all shadow-2xs flex items-center justify-center cursor-pointer">
+                    <span>Voir comment ça marche</span>
+                  </button>
+                </Link>
+              </div>
+
+              {/* Micro-copy */}
+              <p className="text-xs sm:text-[13px] text-neutral-400 font-medium">
+                Sans carte bancaire · Export prêt à publier · .docx / .epub
+              </p>
+            </motion.div>
+
+            {/* Right Column: Interactive Editor Mockup Card with Floating Animation */}
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ 
+                opacity: 1, 
+                y: [0, -10, 0],
+              }}
+              transition={{ 
+                opacity: { duration: 0.6, delay: 0.2 },
+                y: { duration: 5, repeat: Infinity, ease: "easeInOut" },
+              }}
+              className="lg:col-span-5 w-full flex justify-center lg:justify-end relative group"
+            >
+              {/* Soft atmospheric background glow */}
+              <div className="absolute -inset-2 bg-gradient-to-tr from-[#C84B31]/15 to-amber-100/30 rounded-3xl blur-2xl opacity-60 pointer-events-none -z-10" />
+
+              <div className="w-full max-w-[480px] bg-white rounded-3xl border border-neutral-200/90 shadow-xl sm:shadow-2xl p-5 sm:p-7 relative overflow-hidden transition-all duration-300 hover:shadow-3xl">
+                
+                {/* Mockup Window Header */}
+                <div className="flex items-center justify-between border-b border-neutral-100 pb-4 mb-6">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-neutral-300 inline-block"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-neutral-300 inline-block"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-neutral-300 inline-block"></span>
+                  </div>
+                  <span className="text-xs font-semibold text-neutral-500 font-heading">
+                    Chapitre 3 — La traversée
+                  </span>
+                  <div className="w-8"></div>
+                </div>
+
+                {/* Skeleton Manuscript Lines with subtle shimmer on highlighted line */}
+                <div className="space-y-3.5 mb-7">
+                  <div className="h-2.5 bg-neutral-200/70 rounded-full w-[85%]"></div>
+                  <div className="h-2.5 bg-neutral-200/70 rounded-full w-full"></div>
+                  <motion.div 
+                    animate={{ opacity: [0.75, 1, 0.75] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                    className="h-2.5 bg-[#F4C5BC] rounded-full w-[65%]"
+                  />
+                  <div className="h-2.5 bg-neutral-200/70 rounded-full w-[92%]"></div>
+                  <div className="h-2.5 bg-neutral-200/70 rounded-full w-[70%]"></div>
+                </div>
+
+                {/* AI Suggestion Box */}
+                <div className="bg-[#FFF5F3] border border-[#F4C5BC]/60 rounded-2xl p-4 sm:p-4.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 shadow-2xs">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <motion.div 
+                      animate={{ rotate: [0, -6, 6, 0] }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      className="w-6 h-6 rounded-full bg-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs border border-[#F4C5BC]/50"
+                    >
+                      <Feather className="w-3.5 h-3.5 text-[#C84B31]" />
+                    </motion.div>
+                    <p className="text-xs sm:text-[13px] text-neutral-800 leading-snug font-medium">
+                      J&apos;ai ajouté plus de suspense au chapitre 3. Voulez-vous que je relise le chapitre suivant ?
+                    </p>
+                  </div>
+
+                  <Link href={user ? "/dashboard" : "/register"} className="shrink-0 w-full sm:w-auto">
+                    <button className="w-full sm:w-auto bg-[#C84B31] hover:bg-[#B83E26] text-white text-[11px] sm:text-xs font-bold px-3.5 py-2 rounded-full whitespace-nowrap transition-all shadow-2xs hover:shadow-xs flex items-center justify-center gap-1 cursor-pointer">
+                      <span>Aller au chapitre</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </Link>
+                </div>
+
+              </div>
+            </motion.div>
+
           </div>
-        </motion.div>
-
-        {/* Floating Orange Badge (Right side: 100% straight, zero rotation) */}
-        <motion.div 
-          animate={{ y: [0, 6, 0] }} 
-          transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut", delay: 1 }}
-          className="absolute top-24 right-[3%] md:right-[8%] z-10 hidden sm:block pointer-events-none"
-        >
-          <div className="flex items-center gap-2 bg-orange-50 border border-orange-300 px-3.5 py-1.5 rounded-full text-orange-800 text-xs font-bold shadow-xs">
-            <span className="text-secondary font-extrabold">✦</span>
-            <span>Co-Création 10x Rapide</span>
-          </div>
-        </motion.div>
-
-        {/* Floating Star & Cross Vector Ornaments */}
-        <motion.div animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }} className="absolute top-44 left-[6%] md:left-[12%] text-neutral-400 text-2xl sm:text-3xl select-none font-mono font-light pointer-events-none z-10">
-          +
-        </motion.div>
-        <motion.div animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }} className="absolute top-52 right-[8%] md:right-[13%] text-secondary/70 text-2xl sm:text-3xl select-none pointer-events-none z-10">
-          ✦
-        </motion.div>
-
-        {/* Decorative background blur shapes */}
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-tr from-orange-200/20 to-amber-200/15 blur-[100px] rounded-full z-0 pointer-events-none" />
-
-        <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
-          
-          {/* Badge */}
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4.5 py-2 rounded-full bg-orange-50 border border-orange-200/80 text-secondary text-xs sm:text-sm font-bold mb-6 shadow-xs"
-          >
-            <span className="material-symbols-outlined text-base">auto_awesome</span>
-            <span>La 1ère plateforme de co-création littéraire assistée par IA</span>
-          </motion.div>
-
-          {/* Main Title */}
-          <motion.h1 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="font-heading text-4xl sm:text-5xl md:text-7xl font-extrabold text-neutral-900 tracking-tight leading-[1.15] mb-6"
-          >
-            Transformez votre expertise en un{" "}
-            <span className="relative inline-block text-secondary">
-              livre numérique
-              <svg 
-                className="absolute -bottom-2 sm:-bottom-3 left-0 w-full h-3 sm:h-5 text-secondary pointer-events-none overflow-visible" 
-                viewBox="0 0 250 20" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path 
-                  d="M 2 12 Q 125 3, 248 10" 
-                  stroke="currentColor" 
-                  strokeWidth="5" 
-                  strokeLinecap="round" 
-                />
-              </svg>
-            </span>
-          </motion.h1>
-
-          {/* Subtitle */}
-          <motion.p 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-base sm:text-lg md:text-2xl text-neutral-600 max-w-3xl mx-auto mb-8 leading-relaxed font-normal"
-          >
-            Vous avez le savoir, Iris a la plume. Discutez simplement avec notre assistant IA pour écrire, structurer et designer votre ouvrage prêt à être publié et vendu.
-          </motion.p>
-
-          {/* Hero Action Buttons */}
-          <motion.div 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-8"
-          >
-            <Link href="/dashboard" className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto bg-neutral-900 hover:bg-black text-white px-7 py-3.5 sm:px-8 sm:py-4 rounded-full text-base sm:text-lg font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-3">
-                <span>Créer mon livre maintenant</span>
-                <span className="material-symbols-outlined text-xl">arrow_forward</span>
-              </button>
-            </Link>
-            <Link href="/login" className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto bg-white border border-neutral-300 hover:bg-neutral-50 text-neutral-800 px-7 py-3.5 sm:px-8 sm:py-4 rounded-full text-base sm:text-lg font-bold transition-all shadow-xs">
-                Accéder à mon espace
-              </button>
-            </Link>
-          </motion.div>
-
-          {/* Interactive Live Product Showcase Animation */}
-          <HeroProductShowcase />
-
-          {/* Mascot Integration */}
-          <div className="flex justify-center mt-4 mb-2">
-            <DoodleFeatherMascot className="w-16 h-16 sm:w-20 sm:h-20" />
-          </div>
-
         </div>
       </section>
 
@@ -268,7 +322,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-neutral-900 text-white relative overflow-hidden">
+      <section className="py-24 bg-gradient-to-br from-[#8C2717] via-[#A8321D] to-[#C84B31] text-white relative overflow-hidden">
         <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
           <h2 className="font-heading text-4xl md:text-6xl font-extrabold mb-6 tracking-tight">
             Prêt à publier votre premier livre ?

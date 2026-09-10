@@ -276,18 +276,16 @@ export default function QuillAnimation() {
 
       {/* Text below animation */}
       <motion.div
-        className="text-center space-y-3 relative z-20"
+        className="text-center space-y-2 relative z-20"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.5 }}
       >
-        <h3 className="font-heading font-extrabold text-xl sm:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500 tracking-tight">
-          Votre histoire commence ici
+        <h3 className="font-heading font-bold text-xl sm:text-2xl text-neutral-900 tracking-tight">
+          Votre premier livre commence ici
         </h3>
-        <p className="text-sm text-neutral-500 max-w-sm mx-auto leading-relaxed">
-          Laissez votre plume créer des œuvres extraordinaires.
-          <br />
-          Iris vous accompagne à chaque mot.
+        <p className="text-xs sm:text-sm text-neutral-500 max-w-sm mx-auto leading-relaxed">
+          Structurez vos idées, laissez votre plume s&apos;exprimer et co-rédigez votre ouvrage chapitre par chapitre.
         </p>
       </motion.div>
 
@@ -295,17 +293,16 @@ export default function QuillAnimation() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.9 }}
-        className="mt-8 relative z-20"
+        transition={{ duration: 0.8, delay: 0.8 }}
+        className="mt-6 relative z-20"
       >
         <Link href="/projects/new" className="group">
-          <button className="relative bg-gradient-to-r from-orange-500 via-secondary to-amber-500 text-white font-bold text-sm px-8 py-4 rounded-2xl shadow-lg shadow-orange-200/50 hover:shadow-xl hover:shadow-orange-300/50 transition-all duration-300 flex items-center gap-3 group-hover:scale-[1.03] active:scale-[0.98] overflow-hidden cursor-pointer">
-            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-            <span className="material-symbols-outlined text-xl relative z-10">
+          <button className="bg-[#C84B31] hover:bg-[#B83E26] text-white font-semibold text-sm px-6 py-3.5 rounded-xl shadow-xs hover:shadow-sm transition-all duration-200 flex items-center gap-2.5 cursor-pointer">
+            <span className="material-symbols-outlined text-lg">
               edit_note
             </span>
-            <span className="relative z-10">Écrire mon livre</span>
-            <span className="material-symbols-outlined text-base relative z-10 group-hover:translate-x-1 transition-transform">
+            <span>Commencer la rédaction</span>
+            <span className="material-symbols-outlined text-sm group-hover:translate-x-0.5 transition-transform">
               arrow_forward
             </span>
           </button>

@@ -45,6 +45,7 @@ export default function FeaturesPage() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-neutral-700">
+            <Link href="/presentation" className="hover:text-secondary transition-colors">Découvrir</Link>
             <Link href="/features" className="text-secondary font-bold">Fonctionnalités</Link>
             <Link href="/how-it-works" className="hover:text-secondary transition-colors">Comment ça marche</Link>
             <Link href="/pricing" className="hover:text-secondary transition-colors">Tarifs</Link>

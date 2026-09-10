@@ -155,7 +155,7 @@ export default function ProjectAnalyticsPage({ params }: { params: Promise<{ id:
                   
                   <div className="pt-4 flex flex-wrap items-center justify-center sm:justify-start gap-4">
                     <Link href={`/redaction?projectId=${project.id}`}>
-                      <button className="bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-2">
+                      <button className="bg-[#C84B31] hover:bg-[#B83E26] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer">
                         <span className="material-symbols-outlined text-sm">edit_document</span>
                         <span>Reprendre la rédaction</span>
                       </button>

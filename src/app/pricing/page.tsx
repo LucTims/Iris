@@ -146,8 +146,8 @@ export default function PricingPage() {
 
           {/* Creator Plan - Highlighted */}
           <div className="bg-white rounded-3xl p-8 border-2 border-primary shadow-[0_0_30px_-10px_rgba(255,165,0,0.3)] hover:shadow-[0_0_40px_-10px_rgba(255,165,0,0.5)] transition-shadow flex flex-col h-full relative transform md:-translate-y-4">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider whitespace-nowrap shadow-md">
-              ✨ Le plus prisé
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#C84B31] text-white text-[11px] font-semibold px-3.5 py-1 rounded-full uppercase tracking-wider whitespace-nowrap shadow-sm">
+              Recommandé
             </div>
             
             <div className="mb-6 mt-2">

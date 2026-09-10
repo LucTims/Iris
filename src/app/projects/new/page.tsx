@@ -9,6 +9,7 @@ import { SIZE_PRESETS, BOOK_MODELS, estimatePagesCoins } from "@/lib/book/genera
 import type { BookSizeKey } from "@/lib/book/generationPresets";
 import { useUser } from "@/hooks/useUser";
 import { WORK_TYPES, WORK_TYPE_META, type WorkType } from "@/lib/book/work-type";
+import { BookOpen, Compass, FileText, Sparkles, Mic, MicOff, Check, ArrowRight, ArrowLeft, Upload, X, Rocket, Layers } from "lucide-react";
 
 // Associe le libellé de longueur du formulaire à une clé de preset.
 const lengthToSizeKey = (length: string): BookSizeKey =>
@@ -243,19 +244,18 @@ export default function NewBookWizard() {
         <div ref={formContainerRef} className="bg-white rounded-t-[32px] sm:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] sm:shadow-xl border-t sm:border border-neutral-100 max-w-2xl w-full p-6 sm:p-10 relative overflow-y-auto flex-1 sm:flex-none flex flex-col">
           
           <div className="mb-6 sm:mb-8 shrink-0">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-secondary font-bold text-[11px] uppercase tracking-wider mb-3">
-              <span className="material-symbols-outlined text-sm">auto_awesome</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FDF3F1] border border-[#F4C5BC]/60 text-[#C84B31] font-bold text-[11px] uppercase tracking-wider mb-2.5">
               <span>Étape {step} sur {totalSteps}</span>
             </span>
-            <h1 className="font-heading font-extrabold text-xl sm:text-3xl text-neutral-900 leading-tight">
+            <h1 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 leading-tight">
               {step === 1 && "Détails du projet"}
-              {step === 2 && "Le cœur du sujet"}
-              {step === 3 && "Structure & Finalisation"}
+              {step === 2 && "Sujet & Direction éditoriale"}
+              {step === 3 && "Format & Paramètres"}
             </h1>
-            <p className="text-xs sm:text-sm text-neutral-500 mt-1.5 sm:mt-2 leading-snug">
-              {step === 1 && "Commençons par les informations de base de votre futur livre."}
-              {step === 2 && "Nourrissez l'IA avec votre vision, vos idées et l'ambiance souhaitée."}
-              {step === 3 && "Définissez les paramètres de génération avant de lancer la rédaction."}
+            <p className="text-xs sm:text-sm text-neutral-500 mt-1 leading-snug">
+              {step === 1 && "Les informations fondamentales pour calibrer votre futur ouvrage."}
+              {step === 2 && "Définissez les thèmes, le ton et le contexte pour guider la rédaction IA."}
+              {step === 3 && "Ajustez le volume et la structure avant de démarrer."}
             </p>
           </div>
 
@@ -272,68 +272,81 @@ export default function NewBookWizard() {
                 {/* STEP 1: Basic Details */}
                 {step === 1 && (
                   <>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-neutral-700">Titre provisoire <span className="text-red-500">*</span></label>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Titre du livre *</label>
                       <input
                         type="text"
                         required
                         value={formData.title}
                         onChange={(e) => updateForm("title", e.target.value)}
-                        placeholder="Ex: Le Guide Complet Facebook Ads 2026"
-                        className="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
+                        placeholder="Ex: Le Guide Complet de la Négociation"
+                        className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
                       />
                     </div>
                     
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-neutral-700">Sous-titre / Slogan</label>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Sous-titre (optionnel)</label>
                       <input
                         type="text"
                         value={formData.subtitle}
                         onChange={(e) => updateForm("subtitle", e.target.value)}
-                        placeholder="Ex: Dominez votre marché en 30 jours"
-                        className="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
+                        placeholder="Ex: Les méthodes éprouvées pour convaincre"
+                        className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-neutral-700">Forme de l&apos;ouvrage <span className="text-red-500">*</span></label>
-                      <p className="text-xs text-neutral-500">
-                        C&apos;est ce qui décide de la structure ET de la mise en page. Un livre se lit d&apos;une traite ;
-                        un guide s&apos;utilise pour faire ; un ebook se parcourt vite.
-                      </p>
+                      <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Format de l&apos;ouvrage *</label>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {WORK_TYPES.map((wt) => {
-                          const meta = WORK_TYPE_META[wt];
-                          const selected = formData.workType === wt;
+                        {[
+                          { id: "livre", label: "Livre", tag: "Roman & Essai", icon: BookOpen },
+                          { id: "guide", label: "Guide pratique", tag: "Méthodes & Étapes", icon: Compass },
+                          { id: "ebook", label: "Ebook", tag: "Court & Direct", icon: FileText },
+                        ].map((item) => {
+                          const selected = formData.workType === item.id;
+                          const IconComp = item.icon;
                           return (
                             <button
                               type="button"
-                              key={wt}
-                              onClick={() => updateForm("workType", wt)}
+                              key={item.id}
+                              onClick={() => updateForm("workType", item.id as WorkType)}
                               aria-pressed={selected}
-                              className={`text-left border rounded-xl p-4 transition-all ${selected ? 'border-orange-500 bg-orange-50/50' : 'border-neutral-200 bg-white hover:bg-neutral-50'}`}
+                              className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between gap-3 cursor-pointer ${
+                                selected 
+                                  ? "border-[#C84B31] bg-[#FDF3F1]/60 shadow-2xs" 
+                                  : "border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50/60"
+                              }`}
                             >
-                              <div className="flex items-center gap-2">
-                                <span className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${selected ? 'border-orange-500' : 'border-neutral-300'}`}>
-                                  {selected && <span className="w-2 h-2 rounded-full bg-orange-500" />}
+                              <div className="flex items-center justify-between">
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${selected ? "bg-[#C84B31] text-white" : "bg-neutral-100 text-neutral-700"}`}>
+                                  <IconComp className="w-4 h-4" />
+                                </div>
+                                <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${selected ? "border-[#C84B31]" : "border-neutral-300"}`}>
+                                  {selected && <span className="w-2 h-2 rounded-full bg-[#C84B31]" />}
                                 </span>
-                                <span className={`text-sm font-bold ${selected ? 'text-orange-700' : 'text-neutral-700'}`}>{meta.label}</span>
                               </div>
-                              <span className="block mt-1.5 text-xs leading-snug text-neutral-500">{meta.hint}</span>
+                              <div>
+                                <span className={`block text-sm font-bold ${selected ? "text-[#C84B31]" : "text-neutral-800"}`}>
+                                  {item.label}
+                                </span>
+                                <span className="text-xs text-neutral-400 font-medium">
+                                  {item.tag}
+                                </span>
+                              </div>
                             </button>
                           );
                         })}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-sm font-bold text-neutral-700">Catégorie <span className="text-red-500">*</span></label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Catégorie *</label>
                         <select
                           required
                           value={formData.category}
                           onChange={(e) => updateForm("category", e.target.value)}
-                          className="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all appearance-none cursor-pointer"
+                          className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all appearance-none cursor-pointer"
                         >
                           <option value="" disabled>Sélectionner...</option>
                           <option value="Roman / Fiction">Roman / Fiction</option>
@@ -344,15 +357,15 @@ export default function NewBookWizard() {
                         </select>
                       </div>
                       
-                      <div className="space-y-2">
-                        <label className="text-sm font-bold text-neutral-700">Public cible <span className="text-red-500">*</span></label>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Public cible *</label>
                         <input
                           type="text"
                           required
                           value={formData.audience}
                           onChange={(e) => updateForm("audience", e.target.value)}
-                          placeholder="Ex: Entrepreneurs débutants"
-                          className="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
+                          placeholder="Ex: Professionnels, grand public..."
+                          className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
                         />
                       </div>
                     </div>
@@ -362,12 +375,12 @@ export default function NewBookWizard() {
                 {/* STEP 2: The Core */}
                 {step === 2 && (
                   <>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <label className="text-sm font-bold text-neutral-700">Synopsis ou Idée principale <span className="text-red-500">*</span></label>
-                        <button type="button" className="text-[10px] flex items-center gap-1 font-bold text-secondary bg-orange-50 px-2 py-1 rounded-lg hover:bg-orange-100 transition-colors">
-                          <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
-                          Assistant IA
+                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Synopsis &amp; Idée principale *</label>
+                        <button type="button" className="text-[11px] flex items-center gap-1 font-semibold text-[#C84B31] bg-[#FDF3F1] px-2.5 py-0.5 rounded-full border border-[#F4C5BC]/60">
+                          <Sparkles className="w-3 h-3 text-[#C84B31]" />
+                          <span>Assistant IA</span>
                         </button>
                       </div>
                       <div className="relative">
@@ -375,66 +388,60 @@ export default function NewBookWizard() {
                           required
                           value={formData.synopsis}
                           onChange={(e) => updateForm("synopsis", e.target.value)}
-                          placeholder="Décrivez de quoi parle votre livre. Plus vous donnerez de détails à l'IA, plus le résultat sera précis et personnalisé..."
-                          rows={6}
-                          className="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 pb-12 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all resize-none"
+                          placeholder="De quoi parle votre livre ? Idée directrice, message clé, thèmes abordés ou résumé de l'intrigue..."
+                          rows={5}
+                          className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 pb-12 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all resize-none"
                         />
                         <button 
                           type="button" 
                           onClick={toggleListening}
-                          className={`absolute bottom-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm ${
+                          className={`absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm ${
                             isListening 
                               ? 'bg-red-500 text-white animate-pulse' 
-                              : 'bg-white border border-neutral-200 text-neutral-500 hover:text-secondary hover:border-orange-200 hover:bg-orange-50'
+                              : 'bg-white border border-neutral-200 text-neutral-500 hover:text-[#C84B31] hover:border-[#F4C5BC] hover:bg-[#FDF3F1]'
                           }`}
-                          title={isListening ? "Arrêter l'enregistrement" : "Dicter (Microphone)"}
+                          title={isListening ? "Arrêter la dictée" : "Dicter vocalement"}
                         >
-                          <span className="material-symbols-outlined text-[20px]">
-                            {isListening ? 'mic' : 'mic_none'}
-                          </span>
+                          {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
                         </button>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-neutral-700">Ton et style d'écriture <span className="text-red-500">*</span></label>
-                      <select
-                        required
-                        value={formData.tone}
-                        onChange={(e) => updateForm("tone", e.target.value)}
-                        className="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all appearance-none cursor-pointer"
-                      >
-                        <option value="" disabled>Sélectionner...</option>
-                        <option value="Sérieux et Didactique">Sérieux et Didactique (Guide, formation)</option>
-                        <option value="Inspirant et Motivationnel">Inspirant et Motivationnel</option>
-                        <option value="Humoristique et Décalé">Humoristique et Décalé</option>
-                        <option value="Épique et Descriptif">Épique et Descriptif (Roman)</option>
-                        <option value="Familier et Accessible">Familier et Accessible</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-neutral-700">Personnages ou Concepts clés (Optionnel)</label>
-                      <input
-                        type="text"
-                        value={formData.characters}
-                        onChange={(e) => updateForm("characters", e.target.value)}
-                        placeholder="Ex: Héros principal : Lucas, Concept clé : ROI marketing"
-                        className="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
-                      />
-                    </div>
-
-                    {/* Document de référence (analyse IA) */}
-                    <div className="space-y-3 pt-4 border-t border-neutral-100 mt-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <label className="text-sm font-bold text-neutral-700">Document de référence (Optionnel)</label>
-                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">🪙 20 pièces / analyse</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Ton &amp; Style *</label>
+                        <select
+                          required
+                          value={formData.tone}
+                          onChange={(e) => updateForm("tone", e.target.value)}
+                          className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="" disabled>Sélectionner...</option>
+                          <option value="Sérieux et Didactique">Sérieux &amp; Pédagogique</option>
+                          <option value="Inspirant et Motivationnel">Inspirant &amp; Motivationnel</option>
+                          <option value="Humoristique et Décalé">Humoristique &amp; Décalé</option>
+                          <option value="Épique et Descriptif">Épique &amp; Descriptif</option>
+                          <option value="Familier et Accessible">Familier &amp; Accessible</option>
+                        </select>
                       </div>
-                      <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-2">
-                        <span className="material-symbols-outlined text-blue-500 text-lg">auto_stories</span>
-                        <p className="text-xs text-blue-800 leading-snug">
-                          Importez un document (.docx, .epub, .txt, .md) : <strong>Iris l'analyse et le comprend</strong> pour écrire votre livre. Choisissez ce que l'IA doit en faire — s'en inspirer, en apprendre le contenu, ou en reproduire le style. L'analyse coûte 20 pièces (PDF, .docx, .epub, .txt, .md).
-                        </p>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Concepts ou Personnages</label>
+                        <input
+                          type="text"
+                          value={formData.characters}
+                          onChange={(e) => updateForm("characters", e.target.value)}
+                          placeholder="Optionnel (ex: Héros, notions clés...)"
+                          className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Document de référence */}
+                    <div className="pt-3 border-t border-neutral-100 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Document source (Optionnel)</label>
+                        <span className="text-[10px] font-medium text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-md">20 crédits / analyse</span>
                       </div>
 
                       {/* Objectif de l'analyse */}
@@ -442,21 +449,21 @@ export default function NewBookWizard() {
                         {[
                           { id: "inspiration", label: "S'inspirer", icon: "lightbulb" },
                           { id: "learn", label: "Apprendre", icon: "school" },
-                          { id: "style", label: "Style/ton", icon: "brush" },
+                          { id: "style", label: "Style / Ton", icon: "brush" },
                           { id: "reference", label: "Référence", icon: "menu_book" },
                         ].map((opt) => (
                           <button
                             key={opt.id}
                             type="button"
                             onClick={() => setRefPurpose(opt.id as typeof refPurpose)}
-                            className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border text-xs font-bold transition-all ${
+                            className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
                               refPurpose === opt.id
-                                ? "border-orange-500 bg-orange-50 text-secondary"
+                                ? "border-[#C84B31] bg-[#FDF3F1] text-[#C84B31]"
                                 : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
                             }`}
                           >
-                            <span className="material-symbols-outlined text-lg">{opt.icon}</span>
-                            {opt.label}
+                            <span className="material-symbols-outlined text-base">{opt.icon}</span>
+                            <span>{opt.label}</span>
                           </button>
                         ))}
                       </div>
@@ -470,14 +477,13 @@ export default function NewBookWizard() {
                       />
 
                       {referenceDoc && refStatus === "done" ? (
-                        <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-xl p-3">
-                          <span className="material-symbols-outlined text-green-600 text-lg mt-0.5">task_alt</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-green-800 truncate">{referenceDoc.name}</p>
-                            <p className="text-[11px] text-green-700">Analysé — Iris l'utilisera pour écrire votre livre.</p>
+                        <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span className="text-xs font-semibold text-emerald-900 truncate">{referenceDoc.name}</span>
                           </div>
-                          <button type="button" onClick={() => { setReferenceDoc(null); setRefStatus("idle"); }} className="p-1 rounded-lg text-neutral-400 hover:text-red-500 transition-colors shrink-0" title="Retirer">
-                            <span className="material-symbols-outlined text-base">close</span>
+                          <button type="button" onClick={() => { setReferenceDoc(null); setRefStatus("idle"); }} className="text-neutral-400 hover:text-red-500 transition-colors p-1" title="Supprimer">
+                            <X className="w-4 h-4" />
                           </button>
                         </div>
                       ) : (
@@ -485,17 +491,17 @@ export default function NewBookWizard() {
                           type="button"
                           onClick={() => referenceInputRef.current?.click()}
                           disabled={refStatus === "working"}
-                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-neutral-300 text-neutral-600 hover:border-orange-400 hover:text-secondary text-sm font-bold transition-all disabled:opacity-60"
+                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-neutral-300 hover:border-[#C84B31]/50 text-neutral-600 hover:text-[#C84B31] text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 bg-neutral-50/50 hover:bg-[#FDF3F1]/40"
                         >
                           {refStatus === "working" ? (
                             <>
-                              <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
-                              <span>Analyse du document en cours…</span>
+                              <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                              <span>Analyse en cours…</span>
                             </>
                           ) : (
                             <>
-                              <span className="material-symbols-outlined text-lg">upload_file</span>
-                              <span>Importer un document à analyser</span>
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Importer un document source (.pdf, .docx, .txt...)</span>
                             </>
                           )}
                         </button>
@@ -510,92 +516,79 @@ export default function NewBookWizard() {
                 {/* STEP 3: Structure */}
                 {step === 3 && (
                   <>
-                    <div className="space-y-3">
-                      <label className="text-sm font-bold text-neutral-700">Longueur estimée du livre</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {["Court (Nouvelle / Lead Magnet)", "Moyen (Roman standard)", "Long (Fresque / Manuel)"].map((opt) => (
-                          <div 
-                            key={opt}
-                            onClick={() => updateForm("length", opt)}
-                            className={`border ${formData.length === opt ? 'border-orange-500 bg-orange-50/50' : 'border-neutral-200 bg-white hover:bg-neutral-50'} rounded-xl p-4 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-2`}
-                          >
-                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${formData.length === opt ? 'border-orange-500' : 'border-neutral-300'}`}>
-                              {formData.length === opt && <div className="w-2 h-2 rounded-full bg-orange-500" />}
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Longueur estimée *</label>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[
+                          { id: "Court (Nouvelle / Lead Magnet)", label: "Court", pages: "~50 pages" },
+                          { id: "Moyen (Roman standard)", label: "Moyen", pages: "~150 pages" },
+                          { id: "Long (Fresque / Manuel)", label: "Long", pages: "~300 pages" },
+                        ].map((opt) => {
+                          const selected = formData.length === opt.id;
+                          return (
+                            <div 
+                              key={opt.id}
+                              onClick={() => updateForm("length", opt.id)}
+                              className={`border rounded-2xl p-4 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 ${
+                                selected 
+                                  ? 'border-[#C84B31] bg-[#FDF3F1]/60 shadow-2xs' 
+                                  : 'border-neutral-200 bg-white hover:bg-neutral-50/60'
+                              }`}
+                            >
+                              <span className={`text-sm font-bold ${selected ? 'text-[#C84B31]' : 'text-neutral-800'}`}>{opt.label}</span>
+                              <span className="text-xs text-neutral-400 font-medium">{opt.pages}</span>
                             </div>
-                            <span className={`text-xs font-bold ${formData.length === opt ? 'text-orange-700' : 'text-neutral-600'}`}>{opt}</span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
 
-                    {/* Devis en direct : coût estimé de la rédaction selon la longueur et le modèle */}
+                    {/* Devis épuré */}
                     {(() => {
                       const preset = SIZE_PRESETS[lengthToSizeKey(formData.length)];
                       const pages = preset.pagesEstimate;
                       return (
-                        <div className="rounded-2xl border border-neutral-200 overflow-hidden mt-1">
-                          <div className="px-4 py-2.5 bg-neutral-50 border-b border-neutral-100 flex items-center justify-between">
-                            <span className="text-xs font-bold text-neutral-700">Coût estimé pour la rédaction totale</span>
-                            <span className="text-[11px] text-neutral-400 font-medium">~ {pages} pages ({preset.pages})</span>
+                        <div className="rounded-2xl border border-neutral-200/80 bg-neutral-50/70 p-4 space-y-2.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-semibold text-neutral-700">Volume estimé</span>
+                            <span className="font-bold text-neutral-900">~{pages} pages ({preset.pages})</span>
                           </div>
-                          <div className="divide-y divide-neutral-50">
-                            {BOOK_MODELS.map((m) => (
-                              <div key={m.id} className="flex items-center justify-between px-4 py-2.5 text-xs">
-                                <span className="text-neutral-700 font-bold">
-                                  {m.label} <span className="text-neutral-400 font-medium">{m.hint.replace(/^.*—\s*/, "")}</span>
-                                </span>
-                                <span className="text-sm font-extrabold text-neutral-900">🪙 {estimatePagesCoins(pages, m.id).toLocaleString("fr-FR")}</span>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="px-4 py-2 bg-neutral-50 border-t border-neutral-100 text-[11px] text-neutral-500 flex items-center justify-between">
-                            <span>Votre solde : <strong className="text-neutral-700">{(walletBalance || 0).toLocaleString("fr-FR")} pièces</strong></span>
-                            <span>Le modèle se choisit à l'étape suivante</span>
+                          <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-200/60">
+                            <span className="font-semibold text-neutral-700">Coût estimé</span>
+                            <span className="font-bold text-[#C84B31] text-sm">
+                              {estimatePagesCoins(pages, "gemini-2.5-flash").toLocaleString("fr-FR")} à {estimatePagesCoins(pages, "claude-sonnet-5").toLocaleString("fr-FR")} crédits
+                            </span>
                           </div>
                         </div>
                       );
                     })()}
 
-                    <div className="space-y-2 pt-2">
-                      <label className="text-sm font-bold text-neutral-700">Consignes spécifiques pour l'IA (Optionnel)</label>
+                    <div className="space-y-1.5 pt-1">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Consignes spécifiques (Optionnel)</label>
                       <textarea
                         value={formData.instructions}
                         onChange={(e) => updateForm("instructions", e.target.value)}
-                        placeholder="Ex: Évite d'utiliser du jargon technique complexe, fais des chapitres de 5 pages maximum, tutoie le lecteur..."
-                        rows={4}
-                        className="w-full bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all resize-none"
+                        placeholder="Ex: Tutoie le lecteur, ajoute des exemples concrets à chaque chapitre..."
+                        rows={3}
+                        className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all resize-none"
                       />
                     </div>
 
-                    <div className="space-y-4 pt-4 border-t border-neutral-100 mt-4">
-                      <label className="text-sm font-bold text-neutral-700">Options de génération initiale</label>
-
-                      <label className="flex items-start gap-3 cursor-pointer group">
-                        <div className="relative flex items-center justify-center mt-0.5">
-                          <input
-                            type="checkbox"
-                            className="sr-only"
-                            checked={formData.includeToc}
-                            onChange={(e) => updateForm("includeToc", e.target.checked)}
-                          />
-                          <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${formData.includeToc ? 'bg-orange-500 border-orange-500' : 'bg-white border-neutral-300 group-hover:border-orange-500'}`}>
-                            {formData.includeToc && <span className="material-symbols-outlined text-white text-[14px] font-bold">check</span>}
-                          </div>
+                    <div className="pt-2">
+                      <label className="flex items-center gap-3 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={formData.includeToc}
+                          onChange={(e) => updateForm("includeToc", e.target.checked)}
+                        />
+                        <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-colors ${formData.includeToc ? 'bg-[#C84B31] border-[#C84B31]' : 'bg-white border-neutral-300'}`}>
+                          {formData.includeToc && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-neutral-800">Générer un Sommaire / Table des matières</span>
-                          <span className="text-xs text-neutral-500">L'IA commence par un sommaire concis (les grands points), puis rédige chaque point sur une nouvelle page.</span>
-                        </div>
+                        <span className="text-xs sm:text-sm font-semibold text-neutral-800">
+                          Générer une table des matières structurée avant la rédaction
+                        </span>
                       </label>
-
-                      {!formData.includeToc && (
-                        <div className="mt-2 p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-3">
-                          <span className="material-symbols-outlined text-blue-500 text-lg">info</span>
-                          <p className="text-xs text-blue-800">
-                            <strong>Génération directe du contenu :</strong> L'IA va directement écrire le texte de votre livre, sans sommaire. Vu que c'est un texte long, l'étape suivante peut prendre un peu plus de temps.
-                          </p>
-                        </div>
-                      )}
                     </div>
                   </>
                 )}
@@ -608,9 +601,10 @@ export default function NewBookWizard() {
                 <button
                   type="button"
                   onClick={prevStep}
-                  className="px-6 py-3 rounded-xl border border-neutral-200 text-neutral-600 font-bold text-sm hover:bg-neutral-50 transition-colors"
+                  className="px-5 py-2.5 rounded-xl border border-neutral-200 text-neutral-600 font-bold text-sm hover:bg-neutral-50 transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
-                  Retour
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Retour</span>
                 </button>
               ) : (
                 <div /> // Spacer
@@ -619,26 +613,24 @@ export default function NewBookWizard() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`bg-secondary hover:bg-orange-600 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-md transition-all flex items-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`bg-[#C84B31] hover:bg-[#B83E26] text-white px-7 py-3 rounded-full font-bold text-sm shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {step === totalSteps ? (
                   isSubmitting ? (
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="flex items-center gap-2">
-                        <span>Création en cours...</span>
-                        <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span>Création en cours...</span>
+                      <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
                     </div>
                   ) : (
                     <>
                       <span>Générer mon livre</span>
-                      <span className="material-symbols-outlined text-base">auto_awesome</span>
+                      <Sparkles className="w-4 h-4" />
                     </>
                   )
                 ) : (
                   <>
                     <span>Continuer</span>
-                    <span className="material-symbols-outlined text-base">arrow_forward</span>
+                    <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
@@ -660,97 +652,97 @@ export default function NewBookWizard() {
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white rounded-3xl shadow-2xl border border-neutral-200 max-w-md w-full max-h-[85vh] overflow-y-auto p-4 sm:p-6 relative"
+                className="bg-white rounded-3xl shadow-2xl border border-neutral-200 max-w-md w-full max-h-[85vh] overflow-y-auto p-5 sm:p-6 relative"
               >
                 <button
                   onClick={() => setShowModelModal(false)}
-                  className="absolute top-3 right-3 sm:top-4 sm:right-4 text-neutral-400 hover:text-neutral-700 bg-neutral-100 hover:bg-neutral-200 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-colors"
+                  className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-700 bg-neutral-100 hover:bg-neutral-200 w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-lg sm:text-xl">close</span>
+                  <X className="w-4 h-4" />
                 </button>
 
-                <div className="text-center mb-4 sm:mb-5">
-                  <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 mb-1">Choisissez votre IA</h2>
-                  <p className="hidden sm:block text-xs sm:text-sm text-neutral-500">
-                    Sélectionnez le modèle d'Intelligence Artificielle qui va rédiger votre projet.
+                <div className="text-center mb-5">
+                  <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 mb-1">Moteur d&apos;Écriture IA</h2>
+                  <p className="text-xs sm:text-sm text-neutral-500">
+                    Sélectionnez l&apos;intelligence artificielle qui rédigera votre ouvrage.
                   </p>
                 </div>
 
-                <div className="space-y-2.5 sm:space-y-3 mb-5">
+                <div className="space-y-2.5 mb-6">
                   {/* Standard Model */}
                   <div 
                     onClick={() => setSelectedModel("gemini-2.5-flash")}
-                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${selectedModel === "gemini-2.5-flash" ? "border-orange-500 bg-orange-50/50" : "border-neutral-100 hover:border-orange-300"}`}
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+                      selectedModel === "gemini-2.5-flash" 
+                        ? "border-[#C84B31] bg-[#FDF3F1]/40 shadow-xs" 
+                        : "border-neutral-200 hover:border-neutral-300 bg-white"
+                    }`}
                   >
-                    <div className="text-xl mt-0.5">⚡</div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm text-neutral-900">Gemini 2.5 Flash</span>
-                        <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center whitespace-nowrap">
-                          ~20 🪙/page
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-neutral-500 leading-tight mt-1">
-                        Rapide et économique. Idéal pour le premier jet.
-                      </p>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-sm text-neutral-900">Gemini 2.5 Flash</span>
+                      <span className="text-[10px] font-semibold text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded-md">
+                        Rapide &amp; Économique
+                      </span>
                     </div>
+                    <p className="text-xs text-neutral-500 leading-snug">
+                      Modèle vif et direct, idéal pour les ébauches et les guides synthétiques.
+                    </p>
                   </div>
 
                   {/* Advanced Model */}
                   <div 
                     onClick={() => setSelectedModel("gpt-4o")}
-                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${selectedModel === "gpt-4o" ? "border-orange-500 bg-orange-50/50" : "border-neutral-100 hover:border-orange-300"}`}
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+                      selectedModel === "gpt-4o" 
+                        ? "border-[#C84B31] bg-[#FDF3F1]/40 shadow-xs" 
+                        : "border-neutral-200 hover:border-neutral-300 bg-white"
+                    }`}
                   >
-                    <div className="text-xl mt-0.5">🧠</div>
-                    <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-sm text-neutral-900">ChatGPT (GPT-4o mini)</span>
-                          <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center whitespace-nowrap">
-                          ~30 🪙/page
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-neutral-500 leading-tight mt-1">
-                        Très intelligent et nuancé.
-                      </p>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-sm text-neutral-900">ChatGPT (GPT-4o mini)</span>
+                      <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                        Équilibré
+                      </span>
                     </div>
+                    <p className="text-xs text-neutral-500 leading-snug">
+                      Excellente nuance d&apos;analyse et logique rigoureuse pour les manuels et essais.
+                    </p>
                   </div>
 
                   {/* Pro Model */}
                   <div 
                     onClick={() => setSelectedModel("claude-sonnet-5")}
-                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${selectedModel === "claude-sonnet-5" ? "border-orange-500 bg-orange-50/50" : "border-neutral-100 hover:border-orange-300"}`}
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+                      selectedModel === "claude-sonnet-5" 
+                        ? "border-[#C84B31] bg-[#FDF3F1]/40 shadow-xs" 
+                        : "border-neutral-200 hover:border-neutral-300 bg-white"
+                    }`}
                   >
-                    <div className="text-xl mt-0.5">✍️</div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                          <span className="font-bold text-sm text-neutral-900 flex items-center gap-1.5">
-                            Claude 3.5 Sonnet
-                            <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider hidden xs:inline-block">Premium</span>
-                        </span>
-                        <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full flex items-center whitespace-nowrap">
-                          ~50 🪙/page
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-neutral-500 leading-tight mt-1">
-                        Excellent style littéraire et créatif.
-                      </p>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-sm text-neutral-900">Claude 3.5 Sonnet</span>
+                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                        Style Littéraire Supérieur
+                      </span>
                     </div>
+                    <p className="text-xs text-neutral-500 leading-snug">
+                      Vocabulaire riche, sens du rythme narratif et élégance d&apos;écriture d&apos;exception.
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowModelModal(false)}
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-neutral-200 text-neutral-600 font-bold text-sm hover:bg-neutral-50 transition-colors"
+                    className="flex-1 px-4 py-3 rounded-xl border border-neutral-200 text-neutral-600 font-bold text-sm hover:bg-neutral-50 transition-colors cursor-pointer"
                   >
                     Annuler
                   </button>
                   <button
                     onClick={handleSubmit}
-                    className="flex-1 bg-secondary hover:bg-orange-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all flex justify-center items-center gap-1.5"
+                    className="flex-1 bg-[#C84B31] hover:bg-[#B83E26] text-white px-5 py-3 rounded-xl font-bold text-sm shadow-sm hover:shadow-md transition-all flex justify-center items-center gap-2 cursor-pointer"
                   >
-                    <span className="truncate">Lancer</span>
-                    <span className="material-symbols-outlined text-[18px] shrink-0">rocket_launch</span>
+                    <span>Lancer la création</span>
+                    <Rocket className="w-4 h-4" />
                   </button>
                 </div>
               </motion.div>

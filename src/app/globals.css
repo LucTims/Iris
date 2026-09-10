@@ -2,37 +2,38 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-body: "Poppins", sans-serif;
-  --font-heading: "Poppins", sans-serif;
-  --font-landing: "Outfit", "DM Sans", sans-serif;
+  --font-body: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading: "Plus Jakarta Sans", -apple-system, sans-serif;
+  --font-editorial: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-landing: "Plus Jakarta Sans", -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
-  /* Iris Color Theme (Asana Coral Orange & Clean Black/Light Gray Theme) */
-  --color-primary: #111827; /* Deep Black */
+  /* Iris Color Theme (Editorial Warm Terracotta Theme) */
+  --color-primary: #c84b31; /* Warm Editorial Terracotta */
   --color-on-primary: #ffffff;
-  --color-primary-container: #1f2937;
-  --color-on-primary-container: #9ca3af;
+  --color-primary-container: #fdf3f1;
+  --color-on-primary-container: #8b2615;
 
-  --color-secondary: #F95738; /* Asana Coral Orange */
+  --color-secondary: #c84b31; /* Warm Editorial Terracotta */
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #FFF0ED;
-  --color-on-secondary-container: #C23018;
+  --color-secondary-container: #fdf3f1;
+  --color-on-secondary-container: #8b2615;
 
   --color-surface: #ffffff;
-  --color-on-surface: #111827;
+  --color-on-surface: #0f172a;
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #fafafa;
-  --color-surface-container: #f3f4f6;
-  --color-surface-container-high: #e5e7eb;
-  --color-surface-container-highest: #d1d5db;
+  --color-surface-container: #f4f4f5;
+  --color-surface-container-high: #e4e4e7;
+  --color-surface-container-highest: #d4d4d8;
 
-  --color-outline: #6b7280;
-  --color-outline-variant: #e5e7eb;
+  --color-outline: #71717a;
+  --color-outline-variant: #e4e4e7;
 
-  --color-warning-amber: #F59E0B;
-  --color-success-teal: #10B981;
-  --color-error: #EF4444;
-  --color-error-container: #FEE2E2;
+  --color-warning-amber: #d97706;
+  --color-success-teal: #059669;
+  --color-error: #dc2626;
+  --color-error-container: #fee2e2;
 }
 
 body {

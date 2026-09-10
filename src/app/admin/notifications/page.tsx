@@ -190,11 +190,11 @@ export default function AdminNotificationsPage() {
                   onChange={(e: any) => setType(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-neutral-200 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all bg-white"
                 >
-                  <option value="announcement">📢 Annonce officielle</option>
-                  <option value="update">🚀 Mise à jour / Nouveauté</option>
-                  <option value="promo">🎁 Offre & Promotion</option>
-                  <option value="info">ℹ️ Information générale</option>
-                  <option value="warning">⚠️ Alerte / Maintenance</option>
+                  <option value="announcement">Annonce officielle</option>
+                  <option value="update">Mise à jour / Nouveauté</option>
+                  <option value="promo">Offre & Promotion</option>
+                  <option value="info">Information générale</option>
+                  <option value="warning">Alerte / Maintenance</option>
                 </select>
               </div>
 

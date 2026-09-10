@@ -27,6 +27,7 @@ import { SIZE_PRESETS } from "@/lib/book/generationPresets";
 import type { BookSizeKey } from "@/lib/book/generationPresets";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import ReactMarkdown from "react-markdown";
+import { Coins } from "lucide-react";
 
 export interface ChapterModificationPayload {
   chapterIndex: number;
@@ -594,7 +595,7 @@ function RedactionContent() {
     const userMsg: Message = {
       id: Date.now(),
       sender: "user",
-      text: `✂️ Sur le passage sélectionné : ${instruction}`,
+      text: `Sur le passage sélectionné : ${instruction}`,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     };
     setMessages(prev => [...prev, userMsg]);
@@ -616,7 +617,7 @@ function RedactionContent() {
         setMessages(prev => [...prev, {
           id: Date.now() + 1,
           sender: "ai",
-          text: "J'ai modifié le passage sélectionné directement dans votre chapitre. ✅",
+          text: "Le passage sélectionné a été mis à jour directement dans votre chapitre.",
           time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           chapterModification: {
             chapterIndex: activeChapterIndex,
@@ -635,7 +636,7 @@ function RedactionContent() {
       setMessages(prev => [...prev, {
         id: Date.now() + 2,
         sender: "ai",
-        text: `⚠️ Je n'ai pas pu modifier ce passage (${detail}). Veuillez réessayer.`,
+        text: `Impossible de modifier ce passage (${detail}). Veuillez réessayer.`,
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       }]);
     }
@@ -778,7 +779,7 @@ function RedactionContent() {
         setMessages(prev => [...prev, {
           id: Date.now() + 2,
           sender: "ai",
-          text: `⚠️ ${error?.message || "Désolé, je rencontre une erreur de communication. Veuillez réessayer."}`,
+          text: error?.message || "Désolé, je rencontre une erreur de communication. Veuillez réessayer.",
           time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
         }]);
       }
@@ -1887,7 +1888,7 @@ function RedactionContent() {
               <button
                 onClick={handleGenerateWholeBook}
                 disabled={isBatchGenerating}
-                className="bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-sm disabled:opacity-60"
+                className="bg-[#C84B31] hover:bg-[#B83E26] text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-sm disabled:opacity-60 cursor-pointer"
                 title="Rédiger automatiquement tous les chapitres à partir du sommaire (un chapitre après l'autre)"
               >
                 <span className="material-symbols-outlined text-sm">auto_stories</span>
@@ -1929,17 +1930,24 @@ function RedactionContent() {
             </Link>
 
             <div className="flex items-center gap-2">
-              <Link href="/pricing" className="flex items-center gap-1.5 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 text-yellow-800 text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs" title="Acheter des pièces">
-                <span className="text-sm">🪙</span>
-                <span>{walletBalance !== null ? walletBalance : "..."}</span>
+              <Link 
+                href="/pricing" 
+                className="flex items-center gap-1.5 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/80 text-neutral-800 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:border-neutral-300 group" 
+                title="Gérer mes crédits d'écriture"
+              >
+                <Coins className="w-3.5 h-3.5 text-secondary transition-transform group-hover:scale-110" />
+                <span className="tabular-nums font-bold text-neutral-900">
+                  {walletBalance !== null ? Number(walletBalance).toLocaleString("fr-FR") : "..."}
+                </span>
+                <span className="text-[11px] text-neutral-400 font-medium hidden sm:inline">crédits</span>
               </Link>
               
               <button
                 onClick={() => setIsExportModalOpen(true)}
-                className="bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-3 sm:px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+                className="bg-[#C84B31] hover:bg-[#B83E26] text-white text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-base">download</span>
-                <span className="hidden sm:inline">Exporter / Télécharger</span>
+                <span className="hidden sm:inline">Exporter</span>
               </button>
             </div>
           </div>
@@ -1949,7 +1957,7 @@ function RedactionContent() {
         <div className="relative shrink-0 pl-2 sm:pl-4 border-l border-neutral-100 ml-2">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm cursor-pointer hover:ring-2 hover:ring-orange-300 transition-all"
+                className="w-8.5 h-8.5 rounded-full bg-neutral-100 hover:bg-neutral-200/80 border border-neutral-200/90 flex items-center justify-center text-neutral-800 font-bold text-xs shadow-2xs cursor-pointer transition-all"
               >
                 {userInitials}
               </button>
@@ -1989,9 +1997,9 @@ function RedactionContent() {
         <div className="lg:hidden flex items-center justify-center p-2 bg-white border-b border-neutral-200 gap-2 shrink-0 z-30">
           <button
             onClick={() => setMobileView("editor")}
-            className={`flex-1 py-2 px-2 sm:px-4 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-2 ${
+            className={`flex-1 py-2 px-2 sm:px-4 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-2 cursor-pointer ${
               mobileView === "editor"
-                ? "bg-neutral-900 text-white shadow-2xs"
+                ? "bg-[#C84B31] text-white shadow-2xs"
                 : "bg-neutral-100 text-neutral-600 hover:text-neutral-900"
             }`}
           >
@@ -2276,21 +2284,21 @@ function RedactionContent() {
               <div className="p-3 bg-neutral-50/50 border-t border-neutral-100 flex flex-wrap gap-1.5 shrink-0">
                 <button
                   onClick={() => handleSendMessage("Proposer un plan en 5 chapitres pour ce livre")}
-                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:border-secondary hover:text-secondary rounded-full text-xs font-semibold text-neutral-700 transition-all shadow-2xs"
+                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900 rounded-full text-xs font-medium text-neutral-700 transition-all shadow-2xs"
                 >
-                  💡 Proposer un plan
+                  Proposer un plan
                 </button>
                 <button
                   onClick={() => handleSendMessage("Développer le paragraphe actuel avec plus de détails")}
-                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:border-secondary hover:text-secondary rounded-full text-xs font-semibold text-neutral-700 transition-all shadow-2xs"
+                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900 rounded-full text-xs font-medium text-neutral-700 transition-all shadow-2xs"
                 >
-                  ✨ Enrichir le texte
+                  Enrichir le texte
                 </button>
                 <button
                   onClick={() => handleSendMessage("Proposer 3 titres accrocheurs pour ce projet")}
-                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:border-secondary hover:text-secondary rounded-full text-xs font-semibold text-neutral-700 transition-all shadow-2xs"
+                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900 rounded-full text-xs font-medium text-neutral-700 transition-all shadow-2xs"
                 >
-                  🎨 Idées de titres
+                  Idées de titres
                 </button>
               </div>
 
@@ -2305,14 +2313,13 @@ function RedactionContent() {
                       <p className="text-[11px] text-neutral-600 line-clamp-2 italic">
                         « {attachedSelection.text.slice(0, 140)}{attachedSelection.text.length > 140 ? "…" : ""} »
                       </p>
-                      <p className="text-[10px] text-neutral-400 mt-0.5">Écrivez ce qu'il faut en faire, Iris ne modifiera que ce passage.</p>
                     </div>
                     <button
+                      type="button"
                       onClick={() => setAttachedSelection(null)}
-                      className="p-1 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-white transition-colors shrink-0"
-                      title="Retirer le passage"
+                      className="text-neutral-400 hover:text-neutral-700 text-xs"
                     >
-                      <span className="material-symbols-outlined text-base">close</span>
+                      ✕
                     </button>
                   </div>
                 )}
@@ -2376,10 +2383,10 @@ function RedactionContent() {
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder={
                       isListening
-                        ? "🎤 Parlez, Iris vous écoute…"
+                        ? "Écoute en cours, dictez votre message…"
                         : attachedSelection
                         ? "Ex: rends ce passage plus percutant..."
-                        : "Discutez, dictez ou demandez à l'IA..."
+                        : "Discutez, dictez ou demandez à l'assistant..."
                     }
                     className="flex-1 min-w-0 bg-transparent border-none outline-none text-xs font-medium text-neutral-900 placeholder:text-neutral-400 py-1 px-1"
                   />

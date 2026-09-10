@@ -292,7 +292,7 @@ export default function ProjectsPage() {
                     <div className="pt-3 border-t border-neutral-100 flex items-center justify-between gap-2">
                       <Link
                         href={`/redaction?projectId=${book.id}`}
-                        className="flex-1 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5"
+                        className="flex-1 bg-[#C84B31] hover:bg-[#B83E26] text-white text-xs font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs hover:shadow-xs"
                       >
                         <span className="material-symbols-outlined text-base">edit_note</span>
                         <span>Ouvrir Studio</span>
@@ -394,7 +394,7 @@ export default function ProjectsPage() {
                   <div className="flex sm:hidden items-center gap-3 w-full justify-end border-t pt-3 mt-2">
                     <Link
                       href={`/redaction?projectId=${book.id}`}
-                      className="bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5"
+                      className="bg-[#C84B31] hover:bg-[#B83E26] text-white text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs hover:shadow-xs"
                     >
                       <span className="material-symbols-outlined text-base">edit_note</span>
                       <span>Studio</span>

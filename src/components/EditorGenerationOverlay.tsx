@@ -54,17 +54,9 @@ export default function EditorGenerationOverlay({
       role="status"
       aria-live="polite"
     >
-      {/* Halos animés en fond */}
-      <div className="pointer-events-none absolute -top-24 -left-16 w-72 h-72 rounded-full bg-orange-200/40 blur-3xl animate-pulse-slow" />
-      <div className="pointer-events-none absolute -bottom-24 -right-10 w-80 h-80 rounded-full bg-amber-200/40 blur-3xl animate-pulse-slower" />
-
-      {/* Particules flottantes */}
-      <div className="pointer-events-none absolute inset-0">
-        <span className="absolute left-[18%] top-[28%] text-secondary/70 text-xl animate-float-sparkle-1">✦</span>
-        <span className="absolute right-[22%] top-[36%] text-amber-400/70 text-base animate-float-sparkle-2">✦</span>
-        <span className="absolute left-[30%] bottom-[26%] text-orange-300/70 text-lg animate-float-sparkle-3">✦</span>
-        <span className="absolute right-[30%] bottom-[32%] text-secondary/60 text-sm animate-float-sparkle-1">✦</span>
-      </div>
+      {/* Halos doux en fond */}
+      <div className="pointer-events-none absolute -top-24 -left-16 w-72 h-72 rounded-full bg-neutral-200/50 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -right-10 w-80 h-80 rounded-full bg-neutral-200/50 blur-3xl" />
 
       {/* Carte centrale */}
       <motion.div

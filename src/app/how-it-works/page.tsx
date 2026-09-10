@@ -39,6 +39,7 @@ export default function HowItWorksPage() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-neutral-700">
+            <Link href="/presentation" className="hover:text-secondary transition-colors">Découvrir</Link>
             <Link href="/features" className="hover:text-secondary transition-colors">Fonctionnalités</Link>
             <Link href="/how-it-works" className="text-secondary font-bold">Comment ça marche</Link>
             <Link href="/pricing" className="hover:text-secondary transition-colors">Tarifs</Link>
@@ -90,11 +91,11 @@ export default function HowItWorksPage() {
         </div>
 
         {/* CTA Box */}
-        <div className="bg-neutral-900 rounded-3xl p-10 md:p-14 text-center text-white max-w-4xl mx-auto shadow-xl">
+        <div className="bg-gradient-to-br from-[#9E3420] via-[#B83E26] to-[#C84B31] rounded-3xl p-10 md:p-14 text-center text-white max-w-4xl mx-auto shadow-xl">
           <h2 className="font-heading text-3xl md:text-4xl font-extrabold mb-4">Prêt à créer votre propre livre numérique ?</h2>
-          <p className="text-neutral-400 max-w-xl mx-auto mb-8 text-base">Rejoignez des centaines d&apos;auteurs qui ont concrétisé leur projet littéraire avec Iris.</p>
+          <p className="text-white/80 max-w-xl mx-auto mb-8 text-base">Rejoignez des centaines d&apos;auteurs qui ont concrétisé leur projet littéraire avec Iris.</p>
           <Link href="/register">
-            <button className="bg-secondary hover:bg-orange-600 text-white font-bold px-8 py-4 rounded-full text-lg transition-all shadow-md">
+            <button className="bg-white hover:bg-neutral-50 text-[#9E3420] font-bold px-8 py-4 rounded-full text-lg transition-all shadow-md cursor-pointer">
               Créer mon premier livre gratuitement
             </button>
           </Link>

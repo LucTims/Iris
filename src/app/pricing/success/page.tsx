@@ -87,7 +87,7 @@ function PaymentPendingContent() {
               className="mb-4 text-xs font-bold px-4 py-2 rounded-xl border border-dashed border-neutral-300 text-neutral-500 hover:text-secondary hover:border-secondary transition-colors disabled:opacity-50"
               title="Confirmer manuellement ce paiement (test — dev/admin uniquement)"
             >
-              {confirming ? "Confirmation…" : "🧪 Simuler la validation du paiement (test)"}
+              {confirming ? "Confirmation…" : "Simuler la validation du paiement (mode test)"}
             </button>
           )}
         </>

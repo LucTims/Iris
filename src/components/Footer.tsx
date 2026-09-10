@@ -20,6 +20,7 @@ export default function Footer() {
             <div className="flex flex-col gap-3">
               <span className="font-medium text-neutral-400 mb-1">Produit</span>
               <Link href="/dashboard" className="text-neutral-800 hover:text-secondary font-medium transition-colors">Plateforme</Link>
+              <Link href="/presentation" className="text-neutral-800 hover:text-secondary font-medium transition-colors">Découvrir Iris</Link>
               <Link href="/features" className="text-neutral-800 hover:text-secondary font-medium transition-colors">Fonctionnalités</Link>
               <Link href="/how-it-works" className="text-neutral-800 hover:text-secondary font-medium transition-colors">Comment ça marche</Link>
             </div>
@@ -27,16 +28,17 @@ export default function Footer() {
             {/* Column 2: Ressources */}
             <div className="flex flex-col gap-3">
               <span className="font-medium text-neutral-400 mb-1">Ressources</span>
+              <Link href="/presentation#livre-offert" className="text-[#C84B31] hover:underline font-semibold transition-colors">Livre offert (PDF)</Link>
               <Link href="/pricing" className="text-neutral-800 hover:text-secondary font-medium transition-colors">Tarifs</Link>
               <Link href="/faq" className="text-neutral-800 hover:text-secondary font-medium transition-colors">Aide & FAQ</Link>
             </div>
           </div>
         </div>
 
-        {/* Giant Antigravity-Style Center Text: Iris BoomAI (Perfectly Centered & Enlarged) */}
-        <div className="w-full my-10 py-6 border-y border-neutral-100 flex items-center justify-center text-center">
-          <span className="font-heading font-medium text-[13.5vw] md:text-[160px] lg:text-[210px] tracking-tighter text-neutral-900 leading-none select-none">
-            Iris BoomAI
+        {/* Editorial Brand Display */}
+        <div className="w-full my-8 py-6 border-y border-neutral-100 flex items-center justify-center text-center">
+          <span className="font-heading font-bold text-[13vw] md:text-[140px] lg:text-[180px] tracking-tighter text-neutral-900 leading-none select-none">
+            Iris
           </span>
         </div>
 

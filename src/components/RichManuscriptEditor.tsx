@@ -43,6 +43,23 @@ import { LineHeight } from './editor/LineHeightExtension';
 import { ResizableImage } from './editor/ResizableImageExtension';
 import { Callout, CalloutType } from './editor/CalloutExtension';
 import { KeyFigure } from './editor/KeyFigureExtension';
+import {
+  FileUp,
+  FilePlus,
+  Image as ImageIcon,
+  Table as TableIcon,
+  Info,
+  AlertTriangle,
+  Lightbulb,
+  Sparkles,
+  Binary,
+  Quote,
+  Type,
+  Link2,
+  Minus,
+  Sparkle,
+  MoreHorizontal,
+} from "lucide-react";
 import { PullQuote } from './editor/PullQuoteExtension';
 import { DropCap } from './editor/DropCapExtension';
 import { SectionDivider, DividerStyle } from './editor/SectionDividerExtension';
@@ -515,38 +532,43 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           },
           {
             id: "insertion", label: "Insertion", items: [
-              { label: "📥 Importer un manuscrit (.docx, .epub)", action: handleImportButtonClick },
-              { label: "📄 Saut de page (Ctrl+Enter)", action: handleAddNewPage },
-              { label: "🖼️ Image...", action: () => setIsImageModalOpen(true) },
-              { label: "📊 Tableau (3 × 3)", action: () => handleInsertTable(3, 3) },
-              { label: "🔵 Encadré Info", action: () => handleInsertCallout("info") },
-              { label: "🟠 Encadré Attention", action: () => handleInsertCallout("warning") },
-              { label: "🟢 Encadré Conseil", action: () => handleInsertCallout("tip") },
-              { label: "🟣 Encadré Exemple", action: () => handleInsertCallout("example") },
-              { label: "🔢 Chiffre clé", action: handleInsertKeyFigure },
-              { label: "💬 Citation en avant", action: handleInsertPullQuote },
-              { label: "🅰️ Lettrine (drop cap)", action: handleInsertDropCap },
-              { label: "✦ Séparateur étoiles", action: () => handleInsertSectionDivider("stars") },
-              { label: "❖ Séparateur ornement", action: () => handleInsertSectionDivider("ornament") },
-              { label: "── Séparateur ligne", action: () => handleInsertSectionDivider("line") },
-              { label: "••• Séparateur points", action: () => handleInsertSectionDivider("dots") },
-              { label: "🔗 Lien hypertexte...", action: () => setIsLinkModalOpen(true) },
-              { label: "➖ Ligne horizontale", action: () => editor.chain().focus().setHorizontalRule().run() }
+              { label: "Importer un manuscrit (.docx, .epub)", icon: <FileUp className="w-3.5 h-3.5 text-neutral-500" />, action: handleImportButtonClick },
+              { label: "Saut de page (Ctrl+Entrée)", icon: <FilePlus className="w-3.5 h-3.5 text-neutral-500" />, action: handleAddNewPage },
+              { label: "Image...", icon: <ImageIcon className="w-3.5 h-3.5 text-neutral-500" />, action: () => setIsImageModalOpen(true) },
+              { label: "Tableau (3 × 3)", icon: <TableIcon className="w-3.5 h-3.5 text-neutral-500" />, action: () => handleInsertTable(3, 3) },
+              { label: "Encadré Information", icon: <Info className="w-3.5 h-3.5 text-blue-500" />, action: () => handleInsertCallout("info") },
+              { label: "Encadré Attention", icon: <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />, action: () => handleInsertCallout("warning") },
+              { label: "Encadré Conseil", icon: <Lightbulb className="w-3.5 h-3.5 text-emerald-500" />, action: () => handleInsertCallout("tip") },
+              { label: "Encadré Exemple", icon: <Sparkles className="w-3.5 h-3.5 text-purple-500" />, action: () => handleInsertCallout("example") },
+              { label: "Chiffre clé mis en valeur", icon: <Binary className="w-3.5 h-3.5 text-neutral-500" />, action: handleInsertKeyFigure },
+              { label: "Citation en exergue", icon: <Quote className="w-3.5 h-3.5 text-neutral-500" />, action: handleInsertPullQuote },
+              { label: "Lettrine éditoriale", icon: <Type className="w-3.5 h-3.5 text-neutral-500" />, action: handleInsertDropCap },
+              { label: "Séparateur étoiles", icon: <Sparkle className="w-3.5 h-3.5 text-neutral-500" />, action: () => handleInsertSectionDivider("stars") },
+              { label: "Séparateur ornement", icon: <Sparkles className="w-3.5 h-3.5 text-neutral-500" />, action: () => handleInsertSectionDivider("ornament") },
+              { label: "Séparateur ligne", icon: <Minus className="w-3.5 h-3.5 text-neutral-500" />, action: () => handleInsertSectionDivider("line") },
+              { label: "Séparateur points", icon: <MoreHorizontal className="w-3.5 h-3.5 text-neutral-500" />, action: () => handleInsertSectionDivider("dots") },
+              { label: "Lien hypertexte...", icon: <Link2 className="w-3.5 h-3.5 text-neutral-500" />, action: () => setIsLinkModalOpen(true) },
+              { label: "Ligne horizontale", icon: <Minus className="w-3.5 h-3.5 text-neutral-500" />, action: () => editor.chain().focus().setHorizontalRule().run() }
             ]
           }
         ].map((menu) => (
           <div key={menu.id} className="relative">
             <button
               onClick={() => setActiveMenu(activeMenu === menu.id ? null : menu.id)}
-              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm text-neutral-800 font-semibold hover:bg-neutral-100 transition-colors whitespace-nowrap ${activeMenu === menu.id ? "bg-neutral-100 font-bold text-neutral-900" : ""}`}
+              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm text-neutral-700 font-medium hover:bg-neutral-100 transition-colors whitespace-nowrap ${activeMenu === menu.id ? "bg-neutral-100 font-bold text-neutral-900" : ""}`}
             >
               {menu.label}
             </button>
             {activeMenu === menu.id && (
-              <div className="absolute left-0 mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50">
-                {menu.items.map((subItem, idx) => (
-                  <button key={idx} onClick={() => { subItem.action(); setActiveMenu(null); }} className="w-full text-left px-4 py-2 text-xs font-bold text-neutral-700 hover:bg-orange-50 hover:text-secondary transition-colors">
-                    {subItem.label}
+              <div className="absolute left-0 mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-neutral-200 py-1.5 z-50">
+                {menu.items.map((subItem: any, idx) => (
+                  <button 
+                    key={idx} 
+                    onClick={() => { subItem.action(); setActiveMenu(null); }} 
+                    className="w-full text-left px-3.5 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 transition-colors flex items-center gap-2.5"
+                  >
+                    {subItem.icon && <span className="shrink-0">{subItem.icon}</span>}
+                    <span className="truncate">{subItem.label}</span>
                   </button>
                 ))}
               </div>
@@ -1058,13 +1080,13 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               margin-bottom: 6px;
             }
             .tiptap .callout-info { background: #eff6ff; border-left-color: #3b82f6; }
-            .tiptap .callout-info::before { content: "ℹ️ Info"; color: #1d4ed8; }
+            .tiptap .callout-info::before { content: "Information"; color: #1d4ed8; }
             .tiptap .callout-warning { background: #fff7ed; border-left-color: #f97316; }
-            .tiptap .callout-warning::before { content: "⚠️ Attention"; color: #c2410c; }
+            .tiptap .callout-warning::before { content: "Attention"; color: #c2410c; }
             .tiptap .callout-tip { background: #f0fdf4; border-left-color: #22c55e; }
-            .tiptap .callout-tip::before { content: "💡 Conseil"; color: #15803d; }
+            .tiptap .callout-tip::before { content: "Conseil"; color: #15803d; }
             .tiptap .callout-example { background: #faf5ff; border-left-color: #a855f7; }
-            .tiptap .callout-example::before { content: "📌 Exemple"; color: #7e22ce; }
+            .tiptap .callout-example::before { content: "Exemple"; color: #7e22ce; }
 
             /* Chiffre clé / Key Figure */
             .tiptap .key-figure {
@@ -1191,7 +1213,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           <button
             onClick={onGenerateWholeBook}
             disabled={isGenerating}
-            className={`bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-4 rounded-2xl transition-all shadow-xl flex items-center gap-2 group cursor-pointer ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`bg-[#C84B31] hover:bg-[#B83E26] text-white font-bold text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-4 rounded-2xl transition-all shadow-xl flex items-center gap-2 group cursor-pointer ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
             title="Rédiger automatiquement tout le livre à partir du sommaire"
           >
             <span className={`material-symbols-outlined text-lg sm:text-xl ${isGenerating ? 'animate-spin' : 'group-hover:scale-110 transition-transform'}`}>

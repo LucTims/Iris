@@ -156,13 +156,7 @@ ${factualityRules(searchContext)}`;
  */
 export function continuityDirective(
   genre: BookGenre,
-  /**
-   * Titre canonique du chapitre. On ne passe PLUS de numéro : le rang de
-   * stockage valait « chapitre 3 » alors que le titre affiché disait
-   * « Chapitre 2 », et le prompt se contredisait donc lui-même. On désigne
-   * désormais le chapitre par son titre, seule référence non ambiguë.
-   */
-  chapterHeading: string,
+  chapterHeading: string | number,
   hasPrevious: boolean
 ): string {
   if (!hasPrevious) {
@@ -170,7 +164,11 @@ export function continuityDirective(
       ? `Ceci est le PREMIER chapitre : installe le décor, les personnages et l'accroche, mais laisse des fils narratifs ouverts pour la suite.`
       : `Ceci est le PREMIER chapitre : pose le cadre et la promesse de l'ouvrage.`;
   }
-  const common = `Tu écris « ${chapterHeading} », au sein d'un livre CONTINU. Le lecteur a DÉJÀ lu tout ce qui précède (voir le plan et les résumés ci-dessus).`;
+  const headingLabel =
+    typeof chapterHeading === "number" || /^\d+$/.test(String(chapterHeading))
+      ? `Chapitre ${chapterHeading}`
+      : chapterHeading;
+  const common = `Tu écris « ${headingLabel} », au sein d'un livre CONTINU. Le lecteur a DÉJÀ lu tout ce qui précède (voir le plan et les résumés ci-dessus).`;
   if (genre === "fiction") {
     return `${common}
 RÈGLE ABSOLUE DE CONTINUITÉ :

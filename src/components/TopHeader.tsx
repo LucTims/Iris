@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useUser } from "@/hooks/useUser";
 import { useNotifications, NotificationItem } from "@/hooks/useNotifications";
+import { Coins, Plus, Bell } from "lucide-react";
 
 export default function TopHeader() {
   const { displayName, displayEmail, signOut, isAdmin, walletBalance } = useUser();
@@ -48,11 +49,11 @@ export default function TopHeader() {
   };
 
   return (
-    <header className="bg-white/80 backdrop-blur-md border-b border-neutral-200/80 sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4 shrink-0">
+    <header className="bg-white/90 backdrop-blur-md border-b border-neutral-200/70 sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4 shrink-0">
       
       {/* Mobile Header Title */}
       <div className="flex items-center gap-2 md:hidden">
-        <Link href="/dashboard" className="font-heading font-extrabold text-2xl text-secondary">
+        <Link href="/dashboard" className="font-heading font-extrabold text-2xl text-neutral-900 tracking-tight">
           Iris
         </Link>
       </div>
@@ -61,27 +62,37 @@ export default function TopHeader() {
       <div className="flex-1"></div>
 
       {/* Right Header Actions */}
-      <div className="flex items-center gap-3 relative">
-        <Link href="/projects/new" className="flex items-center gap-2 bg-secondary hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs">
-          <span className="material-symbols-outlined text-base">add</span>
+      <div className="flex items-center gap-2.5 relative">
+        <Link 
+          href="/projects/new" 
+          className="flex items-center gap-1.5 bg-[#C84B31] hover:bg-[#B83E26] text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition-all shadow-2xs hover:shadow-xs"
+        >
+          <Plus className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Nouveau Livre</span>
         </Link>
         
-        <Link href="/pricing" className="flex items-center gap-1.5 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
-          <span className="text-sm">🪙</span>
-          <span>{walletBalance}</span>
+        <Link 
+          href="/pricing" 
+          className="flex items-center gap-2 bg-neutral-50 hover:bg-neutral-100/80 border border-neutral-200/80 text-neutral-700 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:border-neutral-300 group" 
+          title="Gérer mes crédits d'écriture"
+        >
+          <Coins className="w-3.5 h-3.5 text-secondary transition-transform group-hover:scale-110" />
+          <span className="tabular-nums font-bold text-neutral-900">
+            {walletBalance !== null ? Number(walletBalance).toLocaleString("fr-FR") : "..."}
+          </span>
+          <span className="text-[11px] text-neutral-400 font-medium hidden sm:inline">crédits</span>
         </Link>
 
         {/* Notification Bell Dropdown Button */}
         <div className="relative shrink-0" ref={notifRef}>
           <button 
             onClick={() => setNotifMenuOpen(!notifMenuOpen)}
-            className="w-9 h-9 rounded-xl border border-neutral-200 flex items-center justify-center text-neutral-600 hover:bg-neutral-50 transition-colors shrink-0 relative cursor-pointer"
+            className="w-9 h-9 rounded-xl border border-neutral-200/80 flex items-center justify-center text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors shrink-0 relative cursor-pointer"
             title="Notifications"
           >
-            <span className="material-symbols-outlined text-lg">notifications</span>
+            <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-white animate-pulse">
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-secondary text-white text-[9px] font-bold flex items-center justify-center border-2 border-white">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
@@ -172,7 +183,7 @@ export default function TopHeader() {
         <div className="relative shrink-0" ref={menuRef}>
           <button 
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-secondary font-extrabold font-heading text-sm shadow-2xs hover:ring-2 hover:ring-orange-300 transition-all cursor-pointer"
+            className="w-8.5 h-8.5 rounded-full bg-neutral-100 hover:bg-neutral-200/80 border border-neutral-200/90 flex items-center justify-center text-neutral-800 font-bold text-xs shadow-2xs transition-all cursor-pointer"
             title="Menu Profil"
           >
             {userInitials}
@@ -180,11 +191,11 @@ export default function TopHeader() {
 
           {/* Dropdown Menu */}
           {userMenuOpen && (
-            <div className="fixed top-[72px] left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2 sm:w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="fixed top-[72px] left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2 sm:w-64 bg-white rounded-2xl shadow-xl border border-neutral-200/80 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
               <div className="px-4 py-3 border-b border-neutral-100">
                 <p className="font-heading font-bold text-sm text-neutral-900">{displayName}</p>
                 <p className="text-xs text-neutral-500 truncate">{displayEmail}</p>
-                <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-[10px] font-bold text-secondary">
+                <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-full bg-neutral-100 border border-neutral-200 text-[10px] font-medium text-neutral-600">
                   Plan Gratuit
                 </span>
               </div>

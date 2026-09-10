@@ -87,7 +87,7 @@ function CoverStudioHubContent() {
                   {searchQuery ? "Aucun livre ne correspond à votre recherche." : "Vous n'avez pas encore de livre. Allez dans 'Mes Livres & Projets' pour en créer un."}
                 </p>
                 {!searchQuery && (
-                  <Link href="/projects" className="inline-flex items-center gap-2 bg-neutral-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-neutral-800 transition-colors">
+                  <Link href="/projects" className="inline-flex items-center gap-2 bg-[#C84B31] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#B83E26] transition-colors shadow-2xs">
                     <Plus className="w-4 h-4" /> Créer un projet
                   </Link>
                 )}
