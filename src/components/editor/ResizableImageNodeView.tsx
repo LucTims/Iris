@@ -172,9 +172,16 @@ export function ResizableImageNodeView(props: NodeViewProps) {
 
   const imageRef = useRef<HTMLImageElement>(null);
   const [isResizing, setIsResizing] = useState(false);
-  const [currentWidth, setCurrentWidth] = useState<number | null>(width || null);
+  const [resizeWidth, setResizeWidth] = useState<number | null>(null);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);
+  const [prevSelected, setPrevSelected] = useState(selected);
+  if (!selected && prevSelected) {
+    setPrevSelected(false);
+    setShowMoreMenu(false);
+  } else if (selected && !prevSelected) {
+    setPrevSelected(true);
+  }
 
   // Handle resizing logic. Les 4 coins appellent cette même fonction : seul
   // le signe du delta change selon que le coin tiré est à gauche (tl/bl —
@@ -194,11 +201,12 @@ export function ResizableImageNodeView(props: NodeViewProps) {
       const onMouseMove = (e: MouseEvent) => {
         const deltaX = (e.clientX - startX) * sign;
         const newWidth = Math.max(100, startWidth + deltaX * (align === 'center' ? 2 : 1));
-        setCurrentWidth(newWidth);
+        setResizeWidth(newWidth);
       };
 
       const onMouseUp = () => {
         setIsResizing(false);
+        setResizeWidth(null);
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
 
@@ -212,18 +220,6 @@ export function ResizableImageNodeView(props: NodeViewProps) {
     },
     [updateAttributes, align]
   );
-
-  useEffect(() => {
-    if (!isResizing) {
-      setCurrentWidth(width);
-    }
-  }, [width, isResizing]);
-
-  useEffect(() => {
-    if (!selected) {
-      setShowMoreMenu(false);
-    }
-  }, [selected]);
 
   // Actions
   const handleCopy = () => {
@@ -295,7 +291,7 @@ export function ResizableImageNodeView(props: NodeViewProps) {
     <NodeViewWrapper 
       className={`relative max-w-full transition-all duration-200 clear-none ${alignClasses[align as keyof typeof alignClasses] || 'block mx-auto'} ${selected ? 'ring-1 ring-blue-500 border border-blue-500' : 'border border-transparent'}`}
       style={{ 
-        width: currentWidth ? `${currentWidth}px` : 'auto',
+        width: isResizing && resizeWidth ? `${resizeWidth}px` : (width ? `${width}px` : 'auto'),
       }}
     >
       <img
@@ -312,7 +308,6 @@ export function ResizableImageNodeView(props: NodeViewProps) {
           if (!width && imageRef.current) {
             const naturalWidth = imageRef.current.naturalWidth || 640;
             const defaultWidth = Math.min(naturalWidth, 640);
-            setCurrentWidth(defaultWidth);
             updateAttributes({ width: defaultWidth });
           }
           if (editor.view) {
