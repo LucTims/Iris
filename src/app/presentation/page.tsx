@@ -7,56 +7,44 @@ import { useUser } from "@/hooks/useUser";
 import { 
   BookOpen, 
   Download, 
-  Sparkles, 
   ArrowRight, 
   CheckCircle2, 
   Palette, 
   ExternalLink, 
   ShieldCheck, 
-  FileText,
-  Plus
+  FileText
 } from "lucide-react";
 
 export default function PresentationPage() {
   const { user } = useUser();
 
-
   // Le cœur du contenu partagé (livre, mockup 3D, infos Iris)
   const PresentationBody = (
     <div className="w-full">
-      {/* 1. INTRO IRIS RAPIDE (Vite fait, sans blabla) */}
-      <section className="pt-10 pb-6 sm:pt-14 sm:pb-8 text-center max-w-4xl mx-auto px-4 sm:px-6">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#FDF3F1] border border-[#F4C5BC] text-[#C84B31] text-xs font-bold uppercase tracking-wider mb-4">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Studio d'écriture littéraire par IA</span>
-        </div>
-
-        <h1 className="font-heading font-extrabold text-3xl sm:text-5xl text-neutral-900 tracking-tight leading-[1.15] mb-4">
+      {/* 1. Grand Titre Épuré (Sans badge superflu ni paragraphe long) */}
+      <section className="pt-8 pb-4 sm:pt-12 sm:pb-6 text-center max-w-4xl mx-auto px-4 sm:px-6">
+        <h1 className="font-heading font-extrabold text-2xl sm:text-4xl lg:text-5xl text-neutral-900 tracking-tight leading-tight">
           Donnez vie à vos livres. <br />
           <span className="text-[#C84B31]">De la première idée à la publication.</span>
         </h1>
-
-        <p className="text-base sm:text-lg text-neutral-600 max-w-2xl mx-auto leading-relaxed">
-          Iris est l'atelier assisté par intelligence artificielle qui vous aide à structurer, co-rédiger et exporter des livres professionnels prêts pour Amazon KDP et les liseuses.
-        </p>
       </section>
 
-      {/* 2. LE LIVRE OFFERT AVEC MOCKUP 3D (Cœur de la page & conversion) */}
-      <section className="py-6 sm:py-8 px-4 sm:px-6">
-        <div className="max-w-5xl mx-auto bg-gradient-to-b from-[#FAF7F5] to-white border border-[#F4C5BC]/80 rounded-3xl p-6 sm:p-10 lg:p-12 shadow-sm">
+      {/* 2. LE LIVRE OFFERT AVEC MOCKUP 3D */}
+      <section className="py-4 sm:py-8 px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto bg-gradient-to-b from-[#FAF7F5] to-white border border-[#F4C5BC]/80 rounded-3xl p-5 sm:p-8 lg:p-12 shadow-sm">
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             
-            {/* Mockup 3D du Livre */}
-            <div className="lg:col-span-5 flex justify-center order-2 lg:order-1">
+            {/* Colonne Livre 3D : En premier sur mobile (order-1) et à gauche sur desktop (lg:order-1) */}
+            <div className="lg:col-span-5 flex flex-col items-center justify-center order-1 lg:order-1">
               <div className="relative group cursor-pointer" style={{ perspective: "1000px" }}>
                 
                 {/* Ombre portée réaliste au sol */}
-                <div className="absolute -bottom-6 left-6 right-6 h-6 bg-black/20 blur-xl rounded-full transform group-hover:scale-105 transition-transform" />
+                <div className="absolute -bottom-5 left-4 right-4 h-5 bg-black/20 blur-xl rounded-full transform group-hover:scale-105 transition-transform" />
 
                 {/* Livre 3D Container */}
                 <div 
-                  className="relative w-64 sm:w-72 h-[380px] sm:h-[420px] rounded-r-xl rounded-l-xs shadow-2xl transition-all duration-500 transform group-hover:-translate-y-2 group-hover:rotate-1"
+                  className="relative w-56 sm:w-64 md:w-72 h-[340px] sm:h-[380px] md:h-[420px] rounded-r-xl rounded-l-xs shadow-2xl transition-all duration-500 transform group-hover:-translate-y-2 group-hover:rotate-1"
                   style={{
                     transformStyle: "preserve-3d",
                     boxShadow: "-12px 18px 30px -5px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.1)"
@@ -72,11 +60,11 @@ export default function PresentationPage() {
                   </div>
 
                   {/* Couverture face avant */}
-                  <div className="absolute inset-0 left-5 bg-gradient-to-br from-[#1C1917] via-[#292524] to-[#0C0A09] rounded-r-xl p-6 flex flex-col justify-between text-white border-t border-r border-b border-neutral-700/60">
+                  <div className="absolute inset-0 left-5 bg-gradient-to-br from-[#1C1917] via-[#292524] to-[#0C0A09] rounded-r-xl p-5 sm:p-6 flex flex-col justify-between text-white border-t border-r border-b border-neutral-700/60">
                     
                     {/* Haut de couverture */}
                     <div>
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <img src="/iris-logo.png" alt="Iris" className="w-5 h-5 object-contain" />
                           <span className="text-[10px] font-mono uppercase tracking-widest text-[#F4C5BC]">
@@ -88,23 +76,23 @@ export default function PresentationPage() {
                         </span>
                       </div>
 
-                      <h3 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight leading-tight text-white mt-3">
+                      <h3 className="font-heading font-extrabold text-xl sm:text-2xl md:text-3xl tracking-tight leading-tight text-white mt-2">
                         Iris : Le Guide Complet
                       </h3>
-                      <p className="text-xs text-neutral-400 mt-2 font-serif italic">
+                      <p className="text-[11px] sm:text-xs text-neutral-400 mt-1 font-serif italic">
                         De l'idée à la publication KDP
                       </p>
                     </div>
 
                     {/* Écusson central */}
-                    <div className="my-auto py-4 flex items-center justify-center">
-                      <div className="w-16 h-16 rounded-full border border-amber-500/30 bg-amber-500/10 flex items-center justify-center">
-                        <BookOpen className="w-8 h-8 text-[#C84B31]" />
+                    <div className="my-auto py-2 flex items-center justify-center">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border border-amber-500/30 bg-amber-500/10 flex items-center justify-center">
+                        <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 text-[#C84B31]" />
                       </div>
                     </div>
 
                     {/* Bas de couverture */}
-                    <div className="border-t border-white/15 pt-3 flex items-center justify-between text-[11px] text-neutral-400">
+                    <div className="border-t border-white/15 pt-2.5 flex items-center justify-between text-[10px] sm:text-[11px] text-neutral-400">
                       <span>100% Rédigé avec Iris</span>
                       <span className="text-white font-bold">Format PDF</span>
                     </div>
@@ -119,20 +107,42 @@ export default function PresentationPage() {
                   />
                 </div>
               </div>
+
+              {/* Boutons de téléchargement direct SUR MOBILE (directement sous le livre) */}
+              <div className="w-full lg:hidden mt-8 space-y-3">
+                <a
+                  href="/IrisGuideComplet.pdf"
+                  download="IrisGuideComplet.pdf"
+                  className="w-full inline-flex items-center justify-center gap-3 bg-[#C84B31] hover:bg-[#B83E26] text-white px-6 py-4 rounded-full font-bold text-base shadow-sm active:scale-[0.99] transition-all cursor-pointer"
+                >
+                  <Download className="w-5 h-5" />
+                  <span>Télécharger le livre offert (PDF)</span>
+                </a>
+
+                <a
+                  href="/IrisGuideComplet.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 px-5 py-3.5 rounded-full font-semibold text-sm transition-colors"
+                >
+                  <span>Feuilleter en ligne</span>
+                  <ExternalLink className="w-4 h-4 text-neutral-500" />
+                </a>
+
+                <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-500 pt-1">
+                  <ShieldCheck className="w-4 h-4 text-[#C84B31]" />
+                  <span>PDF Haute Définition (1,3 Mo) • Gratuit & immédiat</span>
+                </div>
+              </div>
             </div>
 
-            {/* Texte de présentation & Bouton de Téléchargement */}
-            <div className="lg:col-span-7 space-y-6 order-1 lg:order-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C84B31] text-white text-xs font-bold uppercase tracking-wider">
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Exemple réel à télécharger gratuitement</span>
-              </div>
-
-              <h2 className="font-heading font-extrabold text-3xl sm:text-4xl text-neutral-900 tracking-tight leading-tight">
+            {/* Informations du livre : Après le livre sur mobile (order-2), à droite sur desktop (lg:order-2) */}
+            <div className="lg:col-span-7 space-y-5 order-2 lg:order-2">
+              <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-neutral-900 tracking-tight leading-tight">
                 Téléchargez « Iris : Le Guide Complet »
               </h2>
 
-              <p className="text-neutral-600 text-base leading-relaxed">
+              <p className="text-neutral-600 text-sm sm:text-base leading-relaxed">
                 Pour vous prouver la qualité de rédaction et de mise en page d'Iris, nous avons rédigé et exporté cet ouvrage intégral à l'aide de notre outil. Obtenez-le en 1 clic pour découvrir la méthode concrète.
               </p>
 
@@ -152,8 +162,8 @@ export default function PresentationPage() {
                 </div>
               </div>
 
-              {/* BOUTON PRINCIPAL DE TÉLÉCHARGEMENT */}
-              <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              {/* Boutons d'action SUR DESKTOP (caché sur mobile car déjà affiché sous le livre) */}
+              <div className="hidden lg:flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
                 <a
                   href="/IrisGuideComplet.pdf"
                   download="IrisGuideComplet.pdf"
@@ -174,7 +184,7 @@ export default function PresentationPage() {
                 </a>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-neutral-500">
+              <div className="hidden lg:flex items-center gap-2 text-xs text-neutral-500">
                 <ShieldCheck className="w-4 h-4 text-[#C84B31]" />
                 <span>PDF Haute Définition (1,3 Mo) • Téléchargement direct sans carte bancaire ni inscription.</span>
               </div>
@@ -186,20 +196,20 @@ export default function PresentationPage() {
       </section>
 
       {/* 3. QUELQUES INFORMATIONS SUR IRIS (Simple, 3 atouts essentiels) */}
-      <section className="py-12 sm:py-16 max-w-5xl mx-auto px-4 sm:px-6">
-        <div className="text-center max-w-xl mx-auto mb-10">
+      <section className="py-10 sm:py-14 max-w-5xl mx-auto px-4 sm:px-6">
+        <div className="text-center max-w-xl mx-auto mb-8">
           <span className="text-xs font-bold uppercase tracking-wider text-[#C84B31]">L'outil en bref</span>
-          <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-neutral-900 tracking-tight mt-1">
+          <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 tracking-tight mt-1">
             Tout ce dont vous avez besoin pour publier
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-xs">
-            <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-4">
+            <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-3">
               <BookOpen className="w-5 h-5" />
             </div>
-            <h3 className="font-heading font-bold text-lg text-neutral-900 mb-2">
+            <h3 className="font-heading font-bold text-base text-neutral-900 mb-1.5">
               1. Co-rédaction IA
             </h3>
             <p className="text-sm text-neutral-600 leading-relaxed">
@@ -208,10 +218,10 @@ export default function PresentationPage() {
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-xs">
-            <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-4">
+            <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-3">
               <Palette className="w-5 h-5" />
             </div>
-            <h3 className="font-heading font-bold text-lg text-neutral-900 mb-2">
+            <h3 className="font-heading font-bold text-base text-neutral-900 mb-1.5">
               2. Studio de Couverture
             </h3>
             <p className="text-sm text-neutral-600 leading-relaxed">
@@ -220,10 +230,10 @@ export default function PresentationPage() {
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-xs">
-            <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-4">
+            <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-3">
               <FileText className="w-5 h-5" />
             </div>
-            <h3 className="font-heading font-bold text-lg text-neutral-900 mb-2">
+            <h3 className="font-heading font-bold text-base text-neutral-900 mb-1.5">
               3. Export PDF & EPUB
             </h3>
             <p className="text-sm text-neutral-600 leading-relaxed">
@@ -234,21 +244,21 @@ export default function PresentationPage() {
       </section>
 
       {/* 4. CALL TO ACTION EN BAS */}
-      <section className="py-12 bg-[#FAF7F5] border-t border-neutral-200/80">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center space-y-5">
-          <h2 className="font-heading font-extrabold text-3xl sm:text-4xl text-neutral-900 tracking-tight">
+      <section className="py-10 bg-[#FAF7F5] border-t border-neutral-200/80">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center space-y-4">
+          <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-neutral-900 tracking-tight">
             Prêt à écrire votre propre livre ?
           </h2>
-          <p className="text-neutral-600 text-sm sm:text-base max-w-xl mx-auto">
+          <p className="text-neutral-600 text-sm max-w-xl mx-auto">
             {user 
               ? "Passez à l'action dès maintenant en lançant votre nouveau manuscrit dans l'atelier."
               : "Rejoignez Iris et donnez vie à vos projets d'écriture. 50 pièces vous sont offertes dès l'inscription pour tester l'outil."
             }
           </p>
           
-          <div className="pt-2">
+          <div className="pt-1">
             <Link href={user ? "/projects/new" : "/register"}>
-              <button className="bg-[#C84B31] hover:bg-[#B83E26] text-white px-8 py-4 rounded-full font-bold text-base shadow-sm hover:shadow transition-all inline-flex items-center gap-2 cursor-pointer">
+              <button className="bg-[#C84B31] hover:bg-[#B83E26] text-white px-8 py-3.5 rounded-full font-bold text-base shadow-sm hover:shadow transition-all inline-flex items-center gap-2 cursor-pointer">
                 <span>{user ? "Créer un nouveau livre" : "Commencer gratuitement"}</span>
                 <ArrowRight className="w-5 h-5" />
               </button>

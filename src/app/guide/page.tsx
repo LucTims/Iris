@@ -5,8 +5,6 @@ import AppLayout from "@/components/AppLayout";
 import { 
   BookOpen, 
   Download, 
-  Sparkles, 
-  ArrowRight, 
   CheckCircle2, 
   Palette, 
   ExternalLink, 
@@ -18,39 +16,30 @@ import {
 export default function GuideDashboardPage() {
   return (
     <AppLayout>
-      <main className="p-4 sm:p-6 md:p-10 max-w-6xl mx-auto w-full space-y-10">
+      <main className="p-4 sm:p-6 md:p-10 max-w-6xl mx-auto w-full space-y-8">
         
-        {/* Intro Rapide */}
-        <div className="text-center max-w-3xl mx-auto pt-2">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#FDF3F1] border border-[#F4C5BC] text-[#C84B31] text-xs font-bold uppercase tracking-wider mb-3">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Votre guide offert & atelier littéraire</span>
-          </div>
-
-          <h1 className="font-heading font-extrabold text-2xl sm:text-4xl text-neutral-900 tracking-tight leading-tight mb-3">
+        {/* Grand Titre Épuré (Sans badge superflu ni paragraphe long) */}
+        <div className="text-center max-w-3xl mx-auto pt-2 pb-1">
+          <h1 className="font-heading font-extrabold text-2xl sm:text-4xl text-neutral-900 tracking-tight leading-tight">
             Donnez vie à vos livres. <br />
             <span className="text-[#C84B31]">De la première idée à la publication.</span>
           </h1>
-
-          <p className="text-sm sm:text-base text-neutral-600 max-w-2xl mx-auto leading-relaxed">
-            Découvrez comment Iris structure, co-rédige et exporte vos ouvrages au format Amazon KDP et liseuses grâce à notre guide complet rédigé avec l'outil.
-          </p>
         </div>
 
         {/* Section Livre Offert avec Mockup 3D */}
-        <section className="bg-gradient-to-b from-[#FAF7F5] to-white border border-[#F4C5BC]/80 rounded-3xl p-6 sm:p-10 lg:p-12 shadow-sm">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+        <section className="bg-gradient-to-b from-[#FAF7F5] to-white border border-[#F4C5BC]/80 rounded-3xl p-5 sm:p-8 lg:p-12 shadow-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             
-            {/* Mockup 3D du Livre */}
-            <div className="lg:col-span-5 flex justify-center order-2 lg:order-1">
+            {/* Colonne Livre 3D : En premier sur mobile (order-1) et à gauche sur desktop (lg:order-1) */}
+            <div className="lg:col-span-5 flex flex-col items-center justify-center order-1 lg:order-1">
               <div className="relative group cursor-pointer" style={{ perspective: "1000px" }}>
                 
                 {/* Ombre portée réaliste */}
-                <div className="absolute -bottom-6 left-6 right-6 h-6 bg-black/20 blur-xl rounded-full transform group-hover:scale-105 transition-transform" />
+                <div className="absolute -bottom-5 left-4 right-4 h-5 bg-black/20 blur-xl rounded-full transform group-hover:scale-105 transition-transform" />
 
                 {/* Livre 3D Container */}
                 <div 
-                  className="relative w-64 sm:w-72 h-[380px] sm:h-[420px] rounded-r-xl rounded-l-xs shadow-2xl transition-all duration-500 transform group-hover:-translate-y-2 group-hover:rotate-1"
+                  className="relative w-56 sm:w-64 md:w-72 h-[340px] sm:h-[380px] md:h-[420px] rounded-r-xl rounded-l-xs shadow-2xl transition-all duration-500 transform group-hover:-translate-y-2 group-hover:rotate-1"
                   style={{
                     transformStyle: "preserve-3d",
                     boxShadow: "-12px 18px 30px -5px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.1)"
@@ -66,11 +55,11 @@ export default function GuideDashboardPage() {
                   </div>
 
                   {/* Couverture face avant */}
-                  <div className="absolute inset-0 left-5 bg-gradient-to-br from-[#1C1917] via-[#292524] to-[#0C0A09] rounded-r-xl p-6 flex flex-col justify-between text-white border-t border-r border-b border-neutral-700/60">
+                  <div className="absolute inset-0 left-5 bg-gradient-to-br from-[#1C1917] via-[#292524] to-[#0C0A09] rounded-r-xl p-5 sm:p-6 flex flex-col justify-between text-white border-t border-r border-b border-neutral-700/60">
                     
                     {/* Haut de couverture */}
                     <div>
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <img src="/iris-logo.png" alt="Iris" className="w-5 h-5 object-contain" />
                           <span className="text-[10px] font-mono uppercase tracking-widest text-[#F4C5BC]">
@@ -82,23 +71,23 @@ export default function GuideDashboardPage() {
                         </span>
                       </div>
 
-                      <h3 className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight leading-tight text-white mt-3">
+                      <h3 className="font-heading font-extrabold text-xl sm:text-2xl md:text-3xl tracking-tight leading-tight text-white mt-2">
                         Iris : Le Guide Complet
                       </h3>
-                      <p className="text-xs text-neutral-400 mt-2 font-serif italic">
+                      <p className="text-[11px] sm:text-xs text-neutral-400 mt-1 font-serif italic">
                         De l'idée à la publication KDP
                       </p>
                     </div>
 
                     {/* Écusson central */}
-                    <div className="my-auto py-4 flex items-center justify-center">
-                      <div className="w-16 h-16 rounded-full border border-amber-500/30 bg-amber-500/10 flex items-center justify-center">
-                        <BookOpen className="w-8 h-8 text-[#C84B31]" />
+                    <div className="my-auto py-2 flex items-center justify-center">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border border-amber-500/30 bg-amber-500/10 flex items-center justify-center">
+                        <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 text-[#C84B31]" />
                       </div>
                     </div>
 
                     {/* Bas de couverture */}
-                    <div className="border-t border-white/15 pt-3 flex items-center justify-between text-[11px] text-neutral-400">
+                    <div className="border-t border-white/15 pt-2.5 flex items-center justify-between text-[10px] sm:text-[11px] text-neutral-400">
                       <span>100% Rédigé avec Iris</span>
                       <span className="text-white font-bold">Format PDF</span>
                     </div>
@@ -113,15 +102,37 @@ export default function GuideDashboardPage() {
                   />
                 </div>
               </div>
+
+              {/* Boutons de téléchargement direct SUR MOBILE (directement sous le livre) */}
+              <div className="w-full lg:hidden mt-8 space-y-3">
+                <a
+                  href="/IrisGuideComplet.pdf"
+                  download="IrisGuideComplet.pdf"
+                  className="w-full inline-flex items-center justify-center gap-3 bg-[#C84B31] hover:bg-[#B83E26] text-white px-6 py-4 rounded-full font-bold text-base shadow-sm active:scale-[0.99] transition-all cursor-pointer"
+                >
+                  <Download className="w-5 h-5" />
+                  <span>Télécharger le livre offert (PDF)</span>
+                </a>
+
+                <a
+                  href="/IrisGuideComplet.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 px-5 py-3.5 rounded-full font-semibold text-sm transition-colors"
+                >
+                  <span>Feuilleter en ligne</span>
+                  <ExternalLink className="w-4 h-4 text-neutral-500" />
+                </a>
+
+                <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-500 pt-1">
+                  <ShieldCheck className="w-4 h-4 text-[#C84B31]" />
+                  <span>PDF Haute Définition (1,3 Mo) • Gratuit & immédiat</span>
+                </div>
+              </div>
             </div>
 
-            {/* Présentation & Téléchargement */}
-            <div className="lg:col-span-7 space-y-5 order-1 lg:order-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C84B31] text-white text-xs font-bold uppercase tracking-wider">
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Exemple réel à télécharger gratuitement</span>
-              </div>
-
+            {/* Informations du livre : Après le livre sur mobile (order-2), à droite sur desktop (lg:order-2) */}
+            <div className="lg:col-span-7 space-y-5 order-2 lg:order-2">
               <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-neutral-900 tracking-tight leading-tight">
                 Téléchargez « Iris : Le Guide Complet »
               </h2>
@@ -146,8 +157,8 @@ export default function GuideDashboardPage() {
                 </div>
               </div>
 
-              {/* Boutons d'action */}
-              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              {/* Boutons d'action SUR DESKTOP (caché sur mobile car déjà affiché sous le livre) */}
+              <div className="hidden lg:flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
                 <a
                   href="/IrisGuideComplet.pdf"
                   download="IrisGuideComplet.pdf"
@@ -168,7 +179,7 @@ export default function GuideDashboardPage() {
                 </a>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-neutral-500">
+              <div className="hidden lg:flex items-center gap-2 text-xs text-neutral-500">
                 <ShieldCheck className="w-4 h-4 text-[#C84B31]" />
                 <span>PDF Haute Définition (1,3 Mo) • Téléchargement direct et immédiat.</span>
               </div>
@@ -178,20 +189,20 @@ export default function GuideDashboardPage() {
         </section>
 
         {/* 3 Atouts Clés */}
-        <section className="pt-2 pb-4">
-          <div className="text-center max-w-xl mx-auto mb-8">
+        <section className="pt-2 pb-2">
+          <div className="text-center max-w-xl mx-auto mb-6">
             <span className="text-xs font-bold uppercase tracking-wider text-[#C84B31]">L'outil en bref</span>
             <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 tracking-tight mt-1">
               Tout ce dont vous avez besoin pour publier
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-xs">
-              <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-3">
                 <BookOpen className="w-5 h-5" />
               </div>
-              <h3 className="font-heading font-bold text-base text-neutral-900 mb-2">
+              <h3 className="font-heading font-bold text-base text-neutral-900 mb-1.5">
                 1. Co-rédaction IA
               </h3>
               <p className="text-sm text-neutral-600 leading-relaxed">
@@ -200,10 +211,10 @@ export default function GuideDashboardPage() {
             </div>
 
             <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-xs">
-              <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-3">
                 <Palette className="w-5 h-5" />
               </div>
-              <h3 className="font-heading font-bold text-base text-neutral-900 mb-2">
+              <h3 className="font-heading font-bold text-base text-neutral-900 mb-1.5">
                 2. Studio de Couverture
               </h3>
               <p className="text-sm text-neutral-600 leading-relaxed">
@@ -212,10 +223,10 @@ export default function GuideDashboardPage() {
             </div>
 
             <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-xs">
-              <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-3">
                 <FileText className="w-5 h-5" />
               </div>
-              <h3 className="font-heading font-bold text-base text-neutral-900 mb-2">
+              <h3 className="font-heading font-bold text-base text-neutral-900 mb-1.5">
                 3. Export PDF & EPUB
               </h3>
               <p className="text-sm text-neutral-600 leading-relaxed">
@@ -226,14 +237,14 @@ export default function GuideDashboardPage() {
         </section>
 
         {/* Action Membre Connecté */}
-        <section className="bg-[#FAF7F5] border border-neutral-200/80 rounded-2xl p-8 text-center space-y-4">
-          <h3 className="font-heading font-extrabold text-2xl text-neutral-900">
+        <section className="bg-[#FAF7F5] border border-neutral-200/80 rounded-2xl p-7 text-center space-y-3">
+          <h3 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900">
             Prêt à lancer votre prochain livre ?
           </h3>
           <p className="text-neutral-600 text-sm max-w-md mx-auto">
             Accédez à l'atelier de création pour générer votre plan, rédiger vos chapitres et concevoir votre couverture.
           </p>
-          <div className="pt-2">
+          <div className="pt-1">
             <Link href="/projects/new">
               <button className="bg-[#C84B31] hover:bg-[#B83E26] text-white px-7 py-3.5 rounded-full font-bold text-sm shadow-xs hover:shadow transition-all inline-flex items-center gap-2 cursor-pointer">
                 <Plus className="w-4 h-4" />
