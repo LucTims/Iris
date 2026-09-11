@@ -121,6 +121,8 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   // Modals & Inserters
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [linkUrlInput, setLinkUrlInput] = useState("");
   const [linkTextInput, setLinkTextInput] = useState("");
@@ -457,17 +459,62 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
     }
     setIsImageModalOpen(false);
     setImageUrlInput("");
+    setImageUploadError(null);
   };
 
-  const handleLocalFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  /**
+   * Redimensionne côté client avant l'envoi : une photo de téléphone (4000px,
+   * plusieurs Mo) n'a aucune raison de peser autant dans un manuscrit lu en
+   * A4. On la ramène à une largeur d'affichage raisonnable et on la
+   * réencode en JPEG (sauf PNG/GIF, gardés pour la transparence/l'animation).
+   */
+  const resizeImageForUpload = async (file: File): Promise<Blob> => {
+    if (file.type === "image/gif") return file;
+    try {
+      const bitmap = await createImageBitmap(file);
+      const maxDim = 1600;
+      const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+      const w = Math.max(1, Math.round(bitmap.width * scale));
+      const h = Math.max(1, Math.round(bitmap.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return file;
+      ctx.drawImage(bitmap, 0, 0, w, h);
+      const outType = file.type === "image/png" ? "image/png" : "image/jpeg";
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, outType, 0.85));
+      return blob || file;
+    } catch {
+      // Redimensionnement indisponible (navigateur ancien, image corrompue) :
+      // on envoie le fichier original plutôt que de bloquer l'insertion.
+      return file;
+    }
+  };
+
+  const handleLocalFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (dataUrl) insertImageIntoDOM(dataUrl);
-    };
-    reader.readAsDataURL(file);
+
+    setImageUploadError(null);
+    setIsUploadingImage(true);
+    try {
+      const optimized = await resizeImageForUpload(file);
+      const ext = optimized.type === "image/png" ? "png" : optimized.type === "image/gif" ? "gif" : "jpg";
+      const form = new FormData();
+      form.append("file", optimized, `image.${ext}`);
+      const res = await fetch("/api/upload-image", { method: "POST", body: form });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Échec de l'envoi de l'image.");
+      }
+      insertImageIntoDOM(data.url);
+    } catch (err) {
+      setImageUploadError(err instanceof Error ? err.message : "Échec de l'envoi de l'image.");
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const getFontSize = () => {
@@ -1247,11 +1294,23 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               </button>
             </div>
             <div className="space-y-2">
-              <label className="w-full border-2 border-dashed border-neutral-300 hover:border-secondary bg-neutral-50 hover:bg-orange-50/50 p-5 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all">
-                <span className="material-symbols-outlined text-3xl text-secondary mb-1">upload_file</span>
-                <span className="text-xs font-bold text-neutral-800">Cliquer pour choisir un fichier image</span>
-                <input type="file" accept="image/*" onChange={handleLocalFileUpload} className="hidden" />
+              <label className={`w-full border-2 border-dashed p-5 rounded-2xl flex flex-col items-center justify-center transition-all ${isUploadingImage ? "border-neutral-200 bg-neutral-50 cursor-wait" : "border-neutral-300 hover:border-secondary bg-neutral-50 hover:bg-orange-50/50 cursor-pointer"}`}>
+                {isUploadingImage ? (
+                  <>
+                    <span className="material-symbols-outlined text-3xl text-secondary mb-1 animate-spin">progress_activity</span>
+                    <span className="text-xs font-bold text-neutral-800">Envoi de l&apos;image…</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-3xl text-secondary mb-1">upload_file</span>
+                    <span className="text-xs font-bold text-neutral-800">Cliquer pour choisir un fichier image</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" onChange={handleLocalFileUpload} disabled={isUploadingImage} className="hidden" />
               </label>
+              {imageUploadError && (
+                <p className="text-xs font-medium text-red-600">{imageUploadError}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="block text-xs font-bold text-neutral-800 uppercase tracking-wider">Lien Web URL</label>
@@ -1259,7 +1318,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
             </div>
             <div className="flex justify-end gap-2 pt-2 border-t border-neutral-100">
               <button onClick={() => setIsImageModalOpen(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-neutral-600 hover:bg-neutral-100">Annuler</button>
-              <button onClick={() => insertImageIntoDOM(imageUrlInput)} className="bg-secondary text-white px-5 py-2 rounded-xl text-xs font-bold hover:bg-orange-600 transition-colors shadow-xs">Insérer l&apos;image</button>
+              <button onClick={() => insertImageIntoDOM(imageUrlInput)} disabled={!imageUrlInput.trim()} className="bg-secondary text-white px-5 py-2 rounded-xl text-xs font-bold hover:bg-orange-600 transition-colors shadow-xs disabled:opacity-40 disabled:cursor-not-allowed">Insérer l&apos;image</button>
             </div>
           </div>
         </div>

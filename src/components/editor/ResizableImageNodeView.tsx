@@ -176,18 +176,23 @@ export function ResizableImageNodeView(props: NodeViewProps) {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);
 
-  // Handle resizing logic
-  const handleMouseDown = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
+  // Handle resizing logic. Les 4 coins appellent cette même fonction : seul
+  // le signe du delta change selon que le coin tiré est à gauche (tl/bl —
+  // s'écarter vers la gauche doit AGRANDIR, pas rétrécir) ou à droite
+  // (tr/br). Avant, seule la poignée bas-droite avait un handler : les 3
+  // autres étaient de simples carrés décoratifs, sans effet au clic.
+  const startResize = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>, corner: 'tl' | 'tr' | 'bl' | 'br') => {
       event.preventDefault();
       event.stopPropagation();
       setIsResizing(true);
-      
+
       const startX = event.clientX;
       const startWidth = imageRef.current?.offsetWidth || 0;
+      const sign = corner === 'tl' || corner === 'bl' ? -1 : 1;
 
       const onMouseMove = (e: MouseEvent) => {
-        const deltaX = e.clientX - startX;
+        const deltaX = (e.clientX - startX) * sign;
         const newWidth = Math.max(100, startWidth + deltaX * (align === 'center' ? 2 : 1));
         setCurrentWidth(newWidth);
       };
@@ -196,7 +201,7 @@ export function ResizableImageNodeView(props: NodeViewProps) {
         setIsResizing(false);
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
-        
+
         if (imageRef.current) {
           updateAttributes({ width: imageRef.current.offsetWidth });
         }
@@ -300,6 +305,16 @@ export function ResizableImageNodeView(props: NodeViewProps) {
         className="w-full h-auto block select-none transition-transform duration-300"
         style={{ transform: `rotate(${rotation}deg)` }}
         onLoad={() => {
+          // Première insertion (pas de largeur enregistrée) : sans ça, l'image
+          // s'affichait à 100% de la largeur de l'éditeur (souvent bien plus
+          // large qu'une page A4) tant qu'on ne la redimensionnait pas à la
+          // main. On la borne d'emblée à une taille d'affichage raisonnable.
+          if (!width && imageRef.current) {
+            const naturalWidth = imageRef.current.naturalWidth || 640;
+            const defaultWidth = Math.min(naturalWidth, 640);
+            setCurrentWidth(defaultWidth);
+            updateAttributes({ width: defaultWidth });
+          }
           if (editor.view) {
             editor.view.dispatch(editor.state.tr);
           }
@@ -309,10 +324,10 @@ export function ResizableImageNodeView(props: NodeViewProps) {
       {/* Resize Handles */}
       {selected && (
         <>
-          <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-se-resize z-10" onMouseDown={handleMouseDown} />
-          <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-sw-resize z-10" />
-          <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-ne-resize z-10" />
-          <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-nw-resize z-10" />
+          <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-se-resize z-10" onMouseDown={(e) => startResize(e, 'br')} />
+          <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-sw-resize z-10" onMouseDown={(e) => startResize(e, 'bl')} />
+          <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-ne-resize z-10" onMouseDown={(e) => startResize(e, 'tr')} />
+          <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-nw-resize z-10" onMouseDown={(e) => startResize(e, 'tl')} />
         </>
       )}
 
