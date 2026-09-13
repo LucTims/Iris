@@ -114,7 +114,7 @@ export default function AdminNotificationsPage() {
       case "warning":
         return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200"><ShieldAlert className="w-3.5 h-3.5" /> Alerte</span>;
       default:
-        return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200"><Info className="w-3.5 h-3.5" /> Info</span>;
+        return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20"><Info className="w-3.5 h-3.5" /> Info</span>;
     }
   };
 
@@ -124,7 +124,7 @@ export default function AdminNotificationsPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
         <div>
           <h1 className="text-2xl font-extrabold text-neutral-900 font-heading flex items-center gap-2.5">
-            <Bell className="w-7 h-7 text-secondary" />
+            <Bell className="w-7 h-7 text-primary" />
             <span>Gestion des Notifications</span>
           </h1>
           <p className="text-sm text-neutral-500 mt-1">
@@ -132,7 +132,7 @@ export default function AdminNotificationsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1.5 rounded-xl bg-orange-50 text-secondary border border-orange-200 text-xs font-bold flex items-center gap-1.5">
+          <span className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary border border-primary/20 text-xs font-bold flex items-center gap-1.5">
             <Users className="w-4 h-4" />
             <span>Diffusion Broadcast</span>
           </span>
@@ -229,7 +229,7 @@ export default function AdminNotificationsPage() {
             <button
               type="submit"
               disabled={publishing}
-              className="w-full bg-secondary hover:bg-orange-600 text-white font-extrabold text-sm py-3.5 px-6 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full bg-primary hover:bg-[#B83E26] text-white font-extrabold text-sm py-3.5 px-6 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
             >
               {publishing ? (
                 <>
@@ -250,7 +250,7 @@ export default function AdminNotificationsPage() {
         <div className="lg:col-span-5 space-y-4">
           <div className="bg-gradient-to-br from-neutral-900 to-neutral-800 text-white rounded-3xl p-6 shadow-md space-y-4">
             <div className="flex items-center justify-between border-b border-neutral-700/60 pb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-orange-400 flex items-center gap-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4" /> Aperçu Cloche Utilisateur
               </span>
               <span className="text-[10px] bg-neutral-700 px-2 py-0.5 rounded-full text-neutral-300">Rendu réel</span>
@@ -259,7 +259,7 @@ export default function AdminNotificationsPage() {
             {/* Simulated Bell Popover item */}
             <div className="bg-white text-neutral-900 rounded-2xl p-4 shadow-lg border border-neutral-200 space-y-2">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center text-secondary shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-0.5">
                   <Bell className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -273,12 +273,12 @@ export default function AdminNotificationsPage() {
                     {message || "Le contenu de votre notification apparaîtra ici de manière claire et élégante."}
                   </p>
                   {link && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-secondary mt-2">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary mt-2">
                       <span>Voir plus ({link})</span>
                     </span>
                   )}
                 </div>
-                <span className="w-2 h-2 rounded-full bg-secondary shrink-0 mt-1.5" />
+                <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />
               </div>
             </div>
 

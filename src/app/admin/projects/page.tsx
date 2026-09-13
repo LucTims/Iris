@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useAdminProjects } from "@/hooks/useAdmin";
@@ -11,7 +11,7 @@ export default function AdminProjects() {
   if (isLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -26,7 +26,7 @@ export default function AdminProjects() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-neutral-900 font-heading">Projets & Livres</h1>
-          <p className="text-sm text-neutral-500">Suivi des {projects.length} livres en cours de rdaction sur la plateforme.</p>
+          <p className="text-sm text-neutral-500">Suivi des {projects.length} livres en cours de rédaction sur la plateforme.</p>
         </div>
         
         <div className="relative w-full sm:w-72">
@@ -36,7 +36,7 @@ export default function AdminProjects() {
             placeholder="Rechercher un livre ou un auteur..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+            className="w-full pl-9 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
         </div>
       </div>
@@ -50,8 +50,8 @@ export default function AdminProjects() {
                 <th className="px-6 py-4">Auteur</th>
                 <th className="px-6 py-4">Statut</th>
                 <th className="px-6 py-4 text-center">Progression</th>
-                <th className="px-6 py-4 text-center">Pices dpenses</th>
-                <th className="px-6 py-4 text-right">Dernire MJ</th>
+                <th className="px-6 py-4 text-center">Pièces dépensées</th>
+                <th className="px-6 py-4 text-right">Dernière MàJ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
@@ -66,7 +66,7 @@ export default function AdminProjects() {
                     <div className="text-xs text-neutral-500">{p.author_email}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-orange-50 text-orange-600 border border-orange-200">
+                    <span className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
                       {p.status || 'En cours'}
                     </span>
                   </td>
@@ -86,7 +86,7 @@ export default function AdminProjects() {
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-neutral-400">
                     <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                    Aucun projet trouv.
+                    Aucun projet trouvé.
                   </td>
                 </tr>
               )}

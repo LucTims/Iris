@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import ToolMarquee from "@/components/ToolMarquee";
+import BookShowcaseMarquee from "@/components/BookShowcaseMarquee";
 import Footer from "@/components/Footer";
 import { useUser } from "@/hooks/useUser";
 import { ArrowRight, Feather, Menu, X } from "lucide-react";
@@ -271,6 +272,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Real Books Showcase Marquee Section */}
+      <BookShowcaseMarquee />
 
       {/* Tools Replacement Marquee Section */}
       <ToolMarquee />

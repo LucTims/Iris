@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useAdminUsers } from "@/hooks/useAdmin";
@@ -35,7 +35,7 @@ export default function AdminUsersPage() {
   if (isLoading && !users?.length) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -60,7 +60,7 @@ export default function AdminUsersPage() {
             placeholder="Rechercher par nom ou email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+            className="w-full pl-9 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
         </div>
       </div>
@@ -84,7 +84,7 @@ export default function AdminUsersPage() {
                 <tr key={u.id} className="hover:bg-neutral-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-xs shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
                         {u.full_name ? u.full_name.charAt(0).toUpperCase() : u.email?.charAt(0).toUpperCase()}
                       </div>
                       <div>
@@ -107,7 +107,7 @@ export default function AdminUsersPage() {
                   <td className="px-6 py-4 text-center">
                     <div className="flex justify-center items-center gap-2">
                       <select
-                        className="border border-neutral-300 rounded-lg px-2 py-1 text-xs outline-none bg-white text-neutral-700 focus:ring-2 focus:ring-orange-500/20"
+                        className="border border-neutral-300 rounded-lg px-2 py-1 text-xs outline-none bg-white text-neutral-700 focus:ring-2 focus:ring-primary/20"
                         value={u.plan || "free"}
                         onChange={(e) => changePlan(u.id, e.target.value)}
                         disabled={loadingId === u.id}

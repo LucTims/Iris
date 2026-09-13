@@ -1,4 +1,4 @@
-﻿import useSWR from 'swr';
+import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then(async (res) => {
   const data = await res.json();
@@ -12,7 +12,7 @@ export function useAdminStats() {
   });
 
   return {
-    stats: data,
+    stats: data?.stats ?? data,
     isLoading,
     error,
     mutate,

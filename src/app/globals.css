@@ -183,3 +183,21 @@ body {
 .animate-float-sparkle-3 {
   animation: float-sparkle-3 6s ease-in-out infinite 0.5s;
 }
+
+/* ===== Infinite Showcase Marquee Scroll ===== */
+@keyframes marquee-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-33.333333%); }
+}
+
+.animate-marquee-scroll {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 42s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-scroll:hover {
+  animation-play-state: paused;
+}
+

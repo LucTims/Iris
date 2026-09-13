@@ -11,7 +11,7 @@ export default function AdminAI() {
   if (isLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -36,7 +36,7 @@ export default function AdminAI() {
             placeholder="Rechercher (email, action)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+            className="w-full pl-9 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
         </div>
       </div>
@@ -65,7 +65,7 @@ export default function AdminAI() {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
-                      l.type === 'credit' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-orange-50 text-secondary border border-orange-200'
+                      l.type === 'credit' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-primary/10 text-primary border border-primary/20'
                     }`}>
                       {l.type === 'credit' ? 'Crédit' : 'Débit'}
                     </span>

@@ -10,7 +10,7 @@ export default function AdminDashboard() {
   if (isLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -19,7 +19,7 @@ export default function AdminDashboard() {
   const metrics = [
     { label: "Utilisateurs Inscrits", value: stats?.users_count || 0, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
     { label: "Projets (Livres)", value: stats?.projects_count || 0, icon: FileText, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { label: "Revenus (FCFA)", value: (stats?.total_revenue || 0).toLocaleString("fr-FR"), icon: Wallet, color: "text-orange-600", bg: "bg-orange-50" },
+    { label: "Revenus (FCFA)", value: (stats?.total_revenue || 0).toLocaleString("fr-FR"), icon: Wallet, color: "text-primary", bg: "bg-primary/10" },
     { label: "Appels IA", value: (stats?.total_ai_actions || 0).toLocaleString("fr-FR"), icon: Activity, color: "text-purple-600", bg: "bg-purple-50" },
   ];
 
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
                   labelFormatter={(v) => new Date(v).toLocaleDateString('fr-FR')}
                   formatter={(val: number) => [val + " FCFA", "Revenus"]}
                 />
-                <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: '#f97316' }} />
+                <Line type="monotone" dataKey="revenue" stroke="#C84B31" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: '#C84B31' }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
