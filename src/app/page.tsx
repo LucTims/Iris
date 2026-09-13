@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import ToolMarquee from "@/components/ToolMarquee";
 import BookShowcaseMarquee from "@/components/BookShowcaseMarquee";
 import GenreCloudSection from "@/components/GenreCloudSection";
+import HeroVideoShowcase from "@/components/HeroVideoShowcase";
 import Footer from "@/components/Footer";
 import { useUser } from "@/hooks/useUser";
 import { ArrowRight, Feather, Menu, X } from "lucide-react";
@@ -271,6 +272,9 @@ export default function Home() {
             </motion.div>
 
           </div>
+
+          {/* Full-width Presentation Video Showcase */}
+          <HeroVideoShowcase />
         </div>
       </section>
 

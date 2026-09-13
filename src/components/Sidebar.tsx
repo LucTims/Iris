@@ -21,6 +21,7 @@ import {
   Menu,
   User,
   BookOpen,
+  Bot,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -50,6 +51,7 @@ export default function Sidebar() {
     { id: "couverture", label: "Studio de Couverture", icon: <Palette strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/cover-studio" },
     { id: "ventes", label: "Analytiques", icon: <Users strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/analytics" },
     { id: "facturation", label: "Portefeuille & Pièces", icon: <CreditCard strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/billing" },
+    { id: "automations", label: "Automatisations (MCP)", icon: <Bot strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/automations" },
     { id: "guide-livre", label: "Livre offert", badge: "Offert", icon: <BookOpen strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/guide" },
   ];
 
