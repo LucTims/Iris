@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import ToolMarquee from "@/components/ToolMarquee";
 import BookShowcaseMarquee from "@/components/BookShowcaseMarquee";
+import GenreCloudSection from "@/components/GenreCloudSection";
 import Footer from "@/components/Footer";
 import { useUser } from "@/hooks/useUser";
 import { ArrowRight, Feather, Menu, X } from "lucide-react";
@@ -276,7 +277,7 @@ export default function Home() {
       {/* Real Books Showcase Marquee Section */}
       <BookShowcaseMarquee />
 
-      {/* Tools Replacement Marquee Section */}
+      {/* Tools Replacement Marquee Section (Services qu'Iris remplace) */}
       <ToolMarquee />
 
       {/* Features Section */}
@@ -324,6 +325,9 @@ export default function Home() {
 
         </div>
       </section>
+
+      {/* Genre Cloud Section ("Écrivez tout ce que vous pouvez imaginer") */}
+      <GenreCloudSection />
 
       {/* CTA Section */}
       <section className="py-24 bg-gradient-to-br from-[#8C2717] via-[#A8321D] to-[#C84B31] text-white relative overflow-hidden">
