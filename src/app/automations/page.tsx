@@ -12,8 +12,16 @@ export default function AutomationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isNameCopied, setIsNameCopied] = useState(false);
   const [isUrlCopied, setIsUrlCopied] = useState(false);
-  
+  // L'URL du serveur MCP est sur le domaine de l'app elle-même (/api/mcp) : on
+  // ne peut connaître l'origine réelle (irisboom.shop, preview Vercel, etc.)
+  // que côté client, d'où ce state rempli après montage plutôt qu'en dur.
+  const [origin, setOrigin] = useState("");
+
   const supabase = createClient();
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -74,10 +82,11 @@ export default function AutomationsPage() {
     setIsLoading(false);
   };
 
-  // Dans la réalité, le nom et l'URL seront dynamiques
   const serverName = `Iris - ${displayName || "Auteur"}`;
   // On remet la clé dans l'URL pour que l'utilisateur n'ait qu'à copier l'URL !
-  const sseUrl = apiKey ? `https://api.irisboom.shop/mcp/sse?key=${apiKey}` : 'Génération en cours...';
+  // (le serveur accepte aussi `Authorization: Bearer <clé>` pour les clients
+  // qui permettent de configurer un en-tête personnalisé.)
+  const mcpUrl = apiKey && origin ? `${origin}/api/mcp?key=${apiKey}` : 'Génération en cours...';
 
   const copyToClipboard = (text: string | null, type: 'name' | 'url' | 'key') => {
     if(!text) return;
@@ -162,14 +171,14 @@ export default function AutomationsPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-neutral-800">URL</label>
               <div className="flex items-center gap-2">
-                <input 
-                  type="text" 
-                  readOnly 
-                  value={sseUrl}
+                <input
+                  type="text"
+                  readOnly
+                  value={mcpUrl}
                   className="w-full bg-white border border-neutral-200 rounded-lg px-4 py-2.5 text-sm font-mono text-neutral-700 focus:outline-none focus:border-neutral-300"
                 />
-                <button 
-                  onClick={() => copyToClipboard(sseUrl, 'url')}
+                <button
+                  onClick={() => copyToClipboard(mcpUrl, 'url')}
                   className="shrink-0 p-2.5 bg-white border border-neutral-200 rounded-lg text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700 transition-colors"
                   title="Copier l'URL"
                 >
@@ -209,16 +218,37 @@ export default function AutomationsPage() {
           <h2 className="font-heading text-xl font-bold text-neutral-900">Guides d'installation</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
+
+            {/* Guide Claude.ai / ChatGPT */}
+            <div className="border border-neutral-200 rounded-xl overflow-hidden bg-white">
+              <button
+                onClick={() => toggleGuide('remote')}
+                className="w-full flex items-center justify-between p-4 hover:bg-neutral-50 transition-colors group"
+              >
+                <div className="flex flex-col items-start">
+                  <span className="font-medium text-neutral-900">Connecter Claude.ai ou ChatGPT</span>
+                  <span className="text-xs text-neutral-500">Connecteur distant, sans installation</span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-neutral-400 group-hover:text-neutral-600 transition-transform ${openGuide === 'remote' ? 'rotate-180' : ''}`} />
+              </button>
+              {openGuide === 'remote' && (
+                <div className="p-4 bg-neutral-50 border-t border-neutral-200 text-sm text-neutral-600 space-y-3">
+                  <p>1. Dans Claude.ai : Réglages &gt; Connecteurs &gt; <strong>Ajouter un connecteur personnalisé</strong>. Dans ChatGPT : Réglages &gt; Connecteurs &gt; <strong>Créer</strong>.</p>
+                  <p>2. Collez l'URL générée ci-dessus dans le champ URL du serveur MCP.</p>
+                  <p>3. Aucun fichier de configuration n'est nécessaire : ces assistants se connectent directement au serveur distant.</p>
+                </div>
+              )}
+            </div>
+
             {/* Guide Cursor */}
             <div className="border border-neutral-200 rounded-xl overflow-hidden bg-white">
-              <button 
+              <button
                 onClick={() => toggleGuide('cursor')}
                 className="w-full flex items-center justify-between p-4 hover:bg-neutral-50 transition-colors group"
               >
                 <div className="flex flex-col items-start">
                   <span className="font-medium text-neutral-900">Connecter Cursor</span>
-                  <span className="text-xs text-neutral-500">Client SSE natif</span>
+                  <span className="text-xs text-neutral-500">Client MCP distant natif</span>
                 </div>
                 <ChevronDown className={`w-4 h-4 text-neutral-400 group-hover:text-neutral-600 transition-transform ${openGuide === 'cursor' ? 'rotate-180' : ''}`} />
               </button>
@@ -226,26 +256,25 @@ export default function AutomationsPage() {
                 <div className="p-4 bg-neutral-50 border-t border-neutral-200 text-sm text-neutral-600 space-y-3">
                   <p>1. Ouvrez les paramètres de Cursor (Cursor Settings &gt; Features &gt; MCP).</p>
                   <p>2. Cliquez sur <strong>+ Add New MCP Server</strong>.</p>
-                  <p>3. Sélectionnez le type <strong>SSE</strong>.</p>
-                  <p>4. Collez l'URL générée ci-dessus (la clé de sécurité y est déjà incluse).</p>
-                  <p>5. Enregistrez et commencez à discuter avec votre projet !</p>
+                  <p>3. Collez l'URL générée ci-dessus (la clé de sécurité y est déjà incluse) ; Cursor détecte automatiquement le transport.</p>
+                  <p>4. Enregistrez et commencez à discuter avec votre projet !</p>
                 </div>
               )}
             </div>
 
-            {/* Guide Claude */}
+            {/* Guide Claude Desktop */}
             <div className="border border-neutral-200 rounded-xl overflow-hidden bg-white">
-              <button 
-                onClick={() => toggleGuide('claude')}
+              <button
+                onClick={() => toggleGuide('claude-desktop')}
                 className="w-full flex items-center justify-between p-4 hover:bg-neutral-50 transition-colors group"
               >
                 <div className="flex flex-col items-start">
                   <span className="font-medium text-neutral-900">Connecter Claude Desktop</span>
-                  <span className="text-xs text-neutral-500">Via proxy local</span>
+                  <span className="text-xs text-neutral-500">Via mcp-remote</span>
                 </div>
-                <ChevronDown className={`w-4 h-4 text-neutral-400 group-hover:text-neutral-600 transition-transform ${openGuide === 'claude' ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-neutral-400 group-hover:text-neutral-600 transition-transform ${openGuide === 'claude-desktop' ? 'rotate-180' : ''}`} />
               </button>
-              {openGuide === 'claude' && (
+              {openGuide === 'claude-desktop' && (
                 <div className="p-4 bg-neutral-50 border-t border-neutral-200 text-sm text-neutral-600 space-y-3">
                   <p>Ajoutez ceci à votre fichier <code className="bg-neutral-200 px-1 rounded text-xs">claude_desktop_config.json</code> :</p>
                   <pre className="bg-[#1E1E1E] text-white p-3 rounded-lg text-xs overflow-x-auto">
@@ -255,9 +284,8 @@ export default function AutomationsPage() {
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/client-sse",
-        "--url",
-        "${sseUrl}"
+        "mcp-remote",
+        "${mcpUrl}"
       ]
     }
   }
