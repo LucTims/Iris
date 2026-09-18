@@ -159,5 +159,27 @@ export function buildMcpServer(userId: string): McpServer {
     }
   );
 
+  server.tool(
+    "get_wallet_balance",
+    "Consulter le solde de crédits (wallet) de l'utilisateur",
+    {},
+    async () => {
+      const { data, error } = await supabase
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) {
+        return { content: [{ type: "text", text: `Erreur : ${error.message}` }], isError: true };
+      }
+      if (!data) {
+        return { content: [{ type: "text", text: "Portefeuille introuvable pour cet utilisateur." }] };
+      }
+
+      return { content: [{ type: "text", text: `Solde actuel : ${data.balance} crédits.` }] };
+    }
+  );
+
   return server;
 }
