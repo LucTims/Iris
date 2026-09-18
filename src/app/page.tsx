@@ -9,7 +9,7 @@ import GenreCloudSection from "@/components/GenreCloudSection";
 import HeroVideoShowcase from "@/components/HeroVideoShowcase";
 import Footer from "@/components/Footer";
 import { useUser } from "@/hooks/useUser";
-import { ArrowRight, Feather, Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 
 export default function Home() {
   const { user } = useUser();
@@ -155,123 +155,51 @@ export default function Home() {
         />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-            
-            {/* Left Column: Hero Content */}
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="lg:col-span-7 flex flex-col items-start text-left"
-            >
-              {/* Badge Pill */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FDF3F1] border border-[#F4C5BC]/70 text-[#C84B31] text-xs font-semibold mb-6 shadow-2xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#C84B31] inline-block shrink-0"></span>
-                <span>La première co-création littéraire assistée par IA</span>
-              </div>
+          
+          {/* Centered Hero Content */}
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="max-w-3xl lg:max-w-4xl mx-auto flex flex-col items-center text-center"
+          >
+            {/* Badge Pill */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FDF3F1] border border-[#F4C5BC]/70 text-[#C84B31] text-xs font-semibold mb-6 shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C84B31] inline-block shrink-0"></span>
+              <span>La première co-création littéraire assistée par IA</span>
+            </div>
 
-              {/* Main Title */}
-              <h1 className="font-heading text-4xl sm:text-5xl lg:text-[54px] xl:text-[60px] font-extrabold text-neutral-900 tracking-tight leading-[1.1] mb-6">
-                Votre savoir mérite un livre. <span className="text-[#C84B31]">Iris</span>{" "}l&apos;écrit avec vous.
-              </h1>
+            {/* Main Title */}
+            <h1 className="font-heading text-4xl sm:text-5xl lg:text-[54px] xl:text-[62px] font-extrabold text-neutral-900 tracking-tight leading-[1.1] mb-6">
+              Votre savoir mérite un livre. <br />
+              <span className="text-[#C84B31]">Iris</span>{" "}l&apos;écrit avec vous.
+            </h1>
 
-              {/* Subtitle */}
-              <p className="text-base sm:text-lg text-neutral-600 leading-relaxed max-w-xl mb-8 font-normal">
-                Transformez votre expertise en un livre prêt à publier. Rédigez et mettez en page chaque chapitre facilement avec votre assistant IA.
-              </p>
+            {/* Subtitle */}
+            <p className="text-base sm:text-lg lg:text-xl text-neutral-600 leading-relaxed max-w-2xl mb-8 font-normal">
+              Transformez votre expertise en un livre prêt à publier. Rédigez et mettez en page chaque chapitre facilement avec votre assistant IA.
+            </p>
 
-              {/* Action Buttons Row */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 mb-5 w-full sm:w-auto">
-                <Link href={user ? "/dashboard" : "/register"} className="w-full sm:w-auto">
-                  <button className="w-full sm:w-auto bg-[#C84B31] hover:bg-[#B83E26] text-white px-7 py-3.5 rounded-full text-sm sm:text-base font-bold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 cursor-pointer">
-                    <span>Commencer gratuitement</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </Link>
-                <Link href="/how-it-works" className="w-full sm:w-auto">
-                  <button className="w-full sm:w-auto bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-800 px-6 py-3.5 rounded-full text-sm sm:text-base font-semibold transition-all shadow-2xs flex items-center justify-center cursor-pointer">
-                    <span>Voir comment ça marche</span>
-                  </button>
-                </Link>
-              </div>
+            {/* Action Buttons Row */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3.5 mb-5 w-full sm:w-auto">
+              <Link href={user ? "/dashboard" : "/register"} className="w-full sm:w-auto">
+                <button className="w-full sm:w-auto bg-[#C84B31] hover:bg-[#B83E26] text-white px-7 py-3.5 rounded-full text-sm sm:text-base font-bold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 cursor-pointer">
+                  <span>Commencer gratuitement</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </Link>
+              <Link href="/how-it-works" className="w-full sm:w-auto">
+                <button className="w-full sm:w-auto bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-800 px-6 py-3.5 rounded-full text-sm sm:text-base font-semibold transition-all shadow-2xs flex items-center justify-center cursor-pointer">
+                  <span>Voir comment ça marche</span>
+                </button>
+              </Link>
+            </div>
 
-              {/* Micro-copy */}
-              <p className="text-xs sm:text-[13px] text-neutral-400 font-medium">
-                Sans carte bancaire · Export prêt à publier · .docx / .epub
-              </p>
-            </motion.div>
-
-            {/* Right Column: Interactive Editor Mockup Card with Floating Animation */}
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ 
-                opacity: 1, 
-                y: [0, -10, 0],
-              }}
-              transition={{ 
-                opacity: { duration: 0.6, delay: 0.2 },
-                y: { duration: 5, repeat: Infinity, ease: "easeInOut" },
-              }}
-              className="lg:col-span-5 w-full flex justify-center lg:justify-end relative group"
-            >
-              {/* Soft atmospheric background glow */}
-              <div className="absolute -inset-2 bg-gradient-to-tr from-[#C84B31]/15 to-amber-100/30 rounded-3xl blur-2xl opacity-60 pointer-events-none -z-10" />
-
-              <div className="w-full max-w-[480px] bg-white rounded-3xl border border-neutral-200/90 shadow-xl sm:shadow-2xl p-5 sm:p-7 relative overflow-hidden transition-all duration-300 hover:shadow-3xl">
-                
-                {/* Mockup Window Header */}
-                <div className="flex items-center justify-between border-b border-neutral-100 pb-4 mb-6">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-neutral-300 inline-block"></span>
-                    <span className="w-2.5 h-2.5 rounded-full bg-neutral-300 inline-block"></span>
-                    <span className="w-2.5 h-2.5 rounded-full bg-neutral-300 inline-block"></span>
-                  </div>
-                  <span className="text-xs font-semibold text-neutral-500 font-heading">
-                    Chapitre 3 — La traversée
-                  </span>
-                  <div className="w-8"></div>
-                </div>
-
-                {/* Skeleton Manuscript Lines with subtle shimmer on highlighted line */}
-                <div className="space-y-3.5 mb-7">
-                  <div className="h-2.5 bg-neutral-200/70 rounded-full w-[85%]"></div>
-                  <div className="h-2.5 bg-neutral-200/70 rounded-full w-full"></div>
-                  <motion.div 
-                    animate={{ opacity: [0.75, 1, 0.75] }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                    className="h-2.5 bg-[#F4C5BC] rounded-full w-[65%]"
-                  />
-                  <div className="h-2.5 bg-neutral-200/70 rounded-full w-[92%]"></div>
-                  <div className="h-2.5 bg-neutral-200/70 rounded-full w-[70%]"></div>
-                </div>
-
-                {/* AI Suggestion Box */}
-                <div className="bg-[#FFF5F3] border border-[#F4C5BC]/60 rounded-2xl p-4 sm:p-4.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 shadow-2xs">
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <motion.div 
-                      animate={{ rotate: [0, -6, 6, 0] }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                      className="w-6 h-6 rounded-full bg-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs border border-[#F4C5BC]/50"
-                    >
-                      <Feather className="w-3.5 h-3.5 text-[#C84B31]" />
-                    </motion.div>
-                    <p className="text-xs sm:text-[13px] text-neutral-800 leading-snug font-medium">
-                      J&apos;ai ajouté plus de suspense au chapitre 3. Voulez-vous que je relise le chapitre suivant ?
-                    </p>
-                  </div>
-
-                  <Link href={user ? "/dashboard" : "/register"} className="shrink-0 w-full sm:w-auto">
-                    <button className="w-full sm:w-auto bg-[#C84B31] hover:bg-[#B83E26] text-white text-[11px] sm:text-xs font-bold px-3.5 py-2 rounded-full whitespace-nowrap transition-all shadow-2xs hover:shadow-xs flex items-center justify-center gap-1 cursor-pointer">
-                      <span>Aller au chapitre</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </button>
-                  </Link>
-                </div>
-
-              </div>
-            </motion.div>
-
-          </div>
+            {/* Micro-copy */}
+            <p className="text-xs sm:text-[13px] text-neutral-400 font-medium">
+              Sans carte bancaire · Export prêt à publier · .docx / .epub
+            </p>
+          </motion.div>
 
           {/* Full-width Presentation Video Showcase */}
           <HeroVideoShowcase />

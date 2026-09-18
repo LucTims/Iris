@@ -72,36 +72,33 @@ export default function BookShowcaseMarquee() {
       <div className="absolute top-1/2 -left-40 -translate-y-1/2 w-96 h-96 bg-[#FDF3F1] rounded-full blur-3xl pointer-events-none -z-10" />
       <div className="absolute top-1/2 -right-40 -translate-y-1/2 w-96 h-96 bg-[#FDF3F1] rounded-full blur-3xl pointer-events-none -z-10" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 md:mb-16">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="max-w-2xl">
-            {/* Pill Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FDF3F1] border border-[#F4C5BC]/70 text-[#C84B31] text-xs font-semibold mb-4">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Des créations réelles d&apos;auteurs</span>
-            </div>
+      <div className="max-w-3xl lg:max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 md:mb-16 text-center flex flex-col items-center">
+        {/* Pill Badge */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FDF3F1] border border-[#F4C5BC]/70 text-[#C84B31] text-xs font-semibold mb-4 shadow-2xs">
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Des créations réelles d&apos;auteurs</span>
+        </div>
 
-            {/* Title */}
-            <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.15]">
-              Quel livre allez-vous{" "}
-              <span className="text-[#C84B31]">donner au monde</span> ?
-            </h2>
+        {/* Title */}
+        <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.15]">
+          Quel livre allez-vous{" "}
+          <span className="text-[#C84B31]">donner au monde</span> ?
+        </h2>
 
-            {/* Subtitle */}
-            <p className="text-base sm:text-lg text-neutral-600 mt-4 font-normal leading-relaxed">
-              Romans, guides pratiques, livres de recettes ou essais professionnels : 
-              Iris s&apos;adapte à chaque genre littéraire avec une mise en page prête pour l&apos;impression et la vente.
-            </p>
-          </div>
+        {/* Subtitle */}
+        <p className="text-base sm:text-lg text-neutral-600 mt-4 font-normal leading-relaxed max-w-2xl">
+          Romans, guides pratiques, livres de recettes ou essais professionnels : 
+          Iris s&apos;adapte à chaque genre littéraire avec une mise en page prête pour l&apos;impression et la vente.
+        </p>
 
-          <div className="flex items-center gap-3 shrink-0">
-            <Link href="/register">
-              <button className="inline-flex items-center gap-2 bg-[#C84B31] hover:bg-[#B83E26] text-white text-sm font-bold px-6 py-3 rounded-full transition-all shadow-sm hover:shadow-md cursor-pointer">
-                <span>Créer mon livre</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </Link>
-          </div>
+        {/* CTA Button */}
+        <div className="mt-7">
+          <Link href="/register">
+            <button className="inline-flex items-center gap-2 bg-[#C84B31] hover:bg-[#B83E26] text-white text-sm font-bold px-7 py-3 rounded-full transition-all shadow-sm hover:shadow-md cursor-pointer">
+              <span>Créer mon livre</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </Link>
         </div>
       </div>
 

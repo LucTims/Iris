@@ -6,7 +6,7 @@ import Link from "next/link";
 import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUser";
 import { useProjects } from "@/hooks/useProjects";
-import { BookOpen, Clock, CheckCircle2, ArrowRight, Plus, Download, Palette, Sparkles, Feather } from "lucide-react";
+import { BookOpen, Clock, CheckCircle2, ArrowRight, Download, Palette, Sparkles } from "lucide-react";
 
 const QuillAnimation = dynamic(() => import("@/components/QuillAnimation"), { ssr: false });
 const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
@@ -31,31 +31,6 @@ export default function DashboardPage() {
       {/* Dashboard Main Container */}
       <main className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto w-full space-y-8">
         
-        {/* 1. EDITORIAL STUDIO BANNER */}
-        <div className="bg-gradient-to-br from-[#9E3420] via-[#B83E26] to-[#C84B31] text-white rounded-2xl p-6 sm:p-8 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-[#B83E26]/40 shadow-sm">
-          {/* Subtle decorative radial glow */}
-          <div className="absolute -right-20 -top-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-          
-          <div className="max-w-2xl space-y-2.5 z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-white/90 text-xs font-medium backdrop-blur-xs">
-              <Feather className="w-3.5 h-3.5 text-white" />
-              <span>Studio d&apos;écriture &amp; d&apos;édition littéraire</span>
-            </div>
-            <h2 className="font-heading text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-white leading-snug">
-              Donnez vie à vos livres, de l&apos;idée à la publication.
-            </h2>
-            <p className="text-xs sm:text-sm text-white/85 leading-relaxed max-w-xl">
-              Structurez vos chapitres avec l&apos;assistance IA, façonnez un style littéraire unique et téléchargez des manuscrits prêts pour l&apos;impression et les liseuses.
-            </p>
-          </div>
-
-          <Link href="/projects/new" className="shrink-0 w-full md:w-auto z-10">
-            <button className="w-full md:w-auto bg-white hover:bg-neutral-50 text-[#9E3420] text-xs sm:text-sm font-semibold px-5 py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer">
-              <Plus className="w-4 h-4" />
-              <span>Créer un nouveau livre</span>
-            </button>
-          </Link>
-        </div>
 
         {/* 2. PERSONALIZED GREETING */}
         <div className="space-y-1">
@@ -221,7 +196,7 @@ export default function DashboardPage() {
                 <h4 className="font-heading font-bold text-sm sm:text-base text-neutral-900 mb-1">Studio de Rédaction</h4>
                 <p className="text-xs text-neutral-500 leading-relaxed">Rédigez, découpez vos chapitres et profitez de l&apos;assistance IA pour enrichir votre texte au fil de l&apos;écriture.</p>
               </div>
-              <Link href="/projects">
+              <Link href={hasProjects ? "/projects" : "/projects/new"}>
                 <button className="w-full bg-neutral-50 hover:bg-neutral-100 text-neutral-800 text-xs font-semibold py-2 rounded-xl border border-neutral-200/80 transition-colors">
                   Ouvrir le studio
                 </button>

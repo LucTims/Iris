@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import AppLayout from "@/components/AppLayout";
 import { useProjects } from "@/hooks/useProjects";
-import { estimateChapterCoins } from "@/lib/ai/pricing";
 
 function getProjectProgress(book: any) {
   let logicalStatus = book.status || "En rédaction";
@@ -49,17 +48,10 @@ export default function ProjectsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("Tous");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedProjectForExport, setSelectedProjectForExport] = useState<any | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // New book form state
-  const [newTitle, setNewTitle] = useState("");
-  const [newSubtitle, setNewSubtitle] = useState("");
-  const [newCategory, setNewCategory] = useState("Business & Entrepreneuriat");
-  const [newLength, setNewLength] = useState("Moyen (~70 pages)");
 
   const { projects, isLoading: loading, mutate: fetchProjects } = useProjects();
 
@@ -71,33 +63,6 @@ export default function ProjectsPage() {
 
     return matchesSearch;
   });
-
-  const handleCreateBook = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTitle.trim()) return;
-
-    try {
-      const res = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: newTitle,
-          subtitle: newSubtitle || "Nouveau projet de livre",
-          category: newCategory,
-          length: newLength
-        })
-      });
-
-      if (res.ok) {
-        fetchProjects();
-        setNewTitle("");
-        setNewSubtitle("");
-        setIsCreateModalOpen(false);
-      }
-    } catch (err) {
-      console.error("Erreur de création de projet:", err);
-    }
-  };
 
   const handleDeleteBook = (id: string) => {
     setProjectToDelete(id);
@@ -173,8 +138,14 @@ export default function ProjectsPage() {
               />
             </div>
 
-            {/* Grid/List View Toggle */}
+            {/* Grid/List View Toggle & New Book Button */}
             <div className="flex items-center justify-between sm:justify-end gap-3">
+              <Link href="/projects/new">
+                <button className="bg-[#C84B31] hover:bg-[#B83E26] text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all shadow-2xs hover:shadow-xs flex items-center gap-1.5 cursor-pointer">
+                  <span className="material-symbols-outlined text-base">add</span>
+                  <span>Nouveau Livre</span>
+                </button>
+              </Link>
 
               <div className="flex items-center bg-neutral-100 p-1 rounded-xl">
                 <button
@@ -209,13 +180,14 @@ export default function ProjectsPage() {
               <p className="text-sm text-neutral-500 max-w-sm mx-auto">
                 Aucun livre ne correspond à vos critères de recherche. Essayez de modifier vos filtres ou créez un nouveau livre dès maintenant.
               </p>
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="bg-secondary text-white font-bold text-xs px-5 py-3 rounded-xl hover:bg-orange-600 transition-all inline-flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-base">add</span>
-                <span>Créer un nouveau livre</span>
-              </button>
+              <Link href="/projects/new">
+                <button
+                  className="bg-[#C84B31] hover:bg-[#B83E26] text-white font-bold text-xs px-5 py-3 rounded-xl transition-all inline-flex items-center gap-2 shadow-2xs hover:shadow-xs cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base">add</span>
+                  <span>Créer un nouveau livre</span>
+                </button>
+              </Link>
             </div>
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -430,141 +402,7 @@ export default function ProjectsPage() {
           )}
         </main>
 
-      {/* CREATE NEW BOOK MODAL WIZARD */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-neutral-200 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-secondary font-bold text-[11px] uppercase tracking-wider">
-                  <span className="material-symbols-outlined text-sm">auto_awesome</span>
-                  <span>Assistant Création Iris</span>
-                </span>
-                <h2 className="font-heading font-extrabold text-2xl text-neutral-900 mt-2">
-                  Créer un nouveau livre
-                </h2>
-              </div>
-              <button
-                onClick={() => setIsCreateModalOpen(false)}
-                className="p-2 text-neutral-400 hover:text-neutral-900 rounded-full hover:bg-neutral-100"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
 
-            <form onSubmit={handleCreateBook} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
-                  Titre du livre *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Ex: Les 7 Clefs du Succès Financier"
-                  className="w-full px-4 py-3 text-sm border border-neutral-200 rounded-xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none font-medium text-neutral-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
-                  Sous-titre (optionnel)
-                </label>
-                <input
-                  type="text"
-                  value={newSubtitle}
-                  onChange={(e) => setNewSubtitle(e.target.value)}
-                  placeholder="Ex: Guide pratique pour entrepreneurs africains"
-                  className="w-full px-4 py-3 text-sm border border-neutral-200 rounded-xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none font-medium text-neutral-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
-                  Catégrie / Thématique
-                </label>
-                <select
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full px-4 py-3 text-sm border border-neutral-200 rounded-xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none font-medium text-neutral-900 bg-white"
-                >
-                  <option>Business & Entrepreneuriat</option>
-                  <option>Développement Personnel & Coaching</option>
-                  <option>Cuisine & Gastronomie</option>
-                  <option>Histoire & Roman</option>
-                  <option>Santé & Bien-être</option>
-                  <option>Technologie & Marketing Digital</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
-                  Taille du livre estimée
-                </label>
-                <select
-                  value={newLength}
-                  onChange={(e) => setNewLength(e.target.value)}
-                  className="w-full px-4 py-3 text-sm border border-neutral-200 rounded-xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none font-medium text-neutral-900 bg-white"
-                >
-                  <option>Court (~20 pages)</option>
-                  <option>Moyen (~70 pages)</option>
-                  <option>Long (~150 pages)</option>
-                </select>
-              </div>
-
-              {/* Estimate Cost Block */}
-              <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4 mt-2">
-                <p className="text-xs font-bold text-neutral-600 mb-2 uppercase tracking-wider">
-                  Coût estimé pour la rédaction totale :
-                </p>
-                <div className="space-y-2 text-sm">
-                  {(() => {
-                    let words = 17500;
-                    let chapters = 20;
-                    if (newLength.includes("Court")) { words = 5000; chapters = 6; }
-                    if (newLength.includes("Long")) { words = 37500; chapters = 45; }
-                    
-                    const wordsPerChapter = Math.round(words / chapters);
-                    const flashCost = estimateChapterCoins(wordsPerChapter, "gemini-2.5-flash") * chapters;
-                    const gptCost = estimateChapterCoins(wordsPerChapter, "gpt-4o") * chapters;
-                    
-                    return (
-                      <>
-                        <div className="flex justify-between items-center">
-                          <span className="text-neutral-600">Modèle basique (Gemini Flash) :</span>
-                          <span className="font-bold text-amber-600">~{flashCost} pièces</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-neutral-600">Modèle premium (GPT-4o / Claude) :</span>
-                          <span className="font-bold text-amber-600">~{gptCost} pièces</span>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-neutral-100">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl font-bold text-xs text-neutral-600 hover:bg-neutral-100"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="bg-secondary hover:bg-orange-600 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-md transition-all flex items-center gap-2"
-                >
-                  <span>Lancer la co-rédaction</span>
-                  <span className="material-symbols-outlined text-base">arrow_forward</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* EXPORT / DOWNLOAD MODAL */}
       <ExportBookModal
