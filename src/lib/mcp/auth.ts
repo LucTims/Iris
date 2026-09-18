@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { sha256Hex } from "./hash";
 
 /**
  * Client admin dédié au serveur MCP : la vérification de clé API doit
@@ -45,16 +46,21 @@ function extractApiKey(request: Request): string | null {
  * l'utilisateur propriétaire. Retourne `null` si la clé est absente,
  * inconnue ou désactivée — c'était un simple TODO jamais implémenté
  * auparavant, ce qui laissait le serveur MCP entièrement ouvert.
+ *
+ * Seul le hash SHA-256 de la clé est stocké en base (voir migration
+ * 20260918120000_hash_api_keys) : on hashe la clé reçue et on compare les
+ * hash, jamais la valeur en clair.
  */
 export async function resolveApiKeyUser(request: Request): Promise<McpAuthContext | null> {
   const key = extractApiKey(request);
   if (!key) return null;
 
+  const keyHash = await sha256Hex(key);
   const supabase = getAdminClient();
   const { data, error } = await supabase
     .from("api_keys")
     .select("id, user_id, is_active")
-    .eq("key", key)
+    .eq("key_hash", keyHash)
     .eq("is_active", true)
     .limit(1)
     .maybeSingle();

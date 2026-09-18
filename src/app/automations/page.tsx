@@ -5,10 +5,27 @@ import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUser";
 import { Copy, CheckCircle2, Info, Users, BookOpen, ChevronDown, RefreshCw } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { sha256Hex } from "@/lib/mcp/hash";
+
+function randomApiKey(): string {
+  const randomPart = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  return "lg_" + randomPart;
+}
+
+function previewOf(key: string): string {
+  return `${key.slice(0, 6)}...${key.slice(-4)}`;
+}
 
 export default function AutomationsPage() {
   const { user, displayName } = useUser();
+  // Clé en clair : connue UNIQUEMENT juste après sa création dans cette
+  // session (seul son hash est persisté en base, voir lib/mcp/hash.ts et la
+  // migration 20260918120000_hash_api_keys). Ré-ouvrir la page plus tard ne
+  // permet plus de la retrouver, par design — comme un token GitHub/Stripe.
   const [apiKey, setApiKey] = useState<string | null>(null);
+  // Aperçu tronqué d'une clé déjà existante (issue de la base), pour
+  // affichage même quand on n'a pas le texte en clair.
+  const [keyPreview, setKeyPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isNameCopied, setIsNameCopied] = useState(false);
   const [isUrlCopied, setIsUrlCopied] = useState(false);
@@ -23,34 +40,48 @@ export default function AutomationsPage() {
     setOrigin(window.location.origin);
   }, []);
 
+  const createAndStoreKey = async (name: string) => {
+    if (!user) return;
+    const newKey = randomApiKey();
+    const keyHash = await sha256Hex(newKey);
+    const preview = previewOf(newKey);
+
+    const { error } = await supabase.from('api_keys').insert({
+      user_id: user.id,
+      key_hash: keyHash,
+      key_preview: preview,
+      name,
+    });
+
+    if (!error) {
+      setApiKey(newKey);
+      setKeyPreview(preview);
+    } else {
+      console.error("Erreur génération clé:", error);
+      alert("Erreur lors de la génération de la clé.");
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
     async function fetchOrGenerateKey() {
-      // Vérifier si une clé existe
+      // Vérifier si une clé existe déjà (on ne peut récupérer que son aperçu,
+      // pas sa valeur en clair : seul le hash est stocké en base).
       const { data, error } = await supabase
         .from('api_keys')
-        .select('key')
-        .eq('user_id', user.id)
+        .select('key_preview')
+        .eq('user_id', user!.id)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
-      
+
       if (data && !error) {
-        setApiKey(data.key);
+        setKeyPreview(data.key_preview);
       } else {
-        // Aucune clé trouvée, on en génère une automatiquement
-        const randomPart = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-        const newKey = "lg_" + randomPart;
-        
-        const { error: insertError } = await supabase.from('api_keys').insert({
-          user_id: user.id,
-          key: newKey,
-          name: 'Clé MCP Automatique'
-        });
-        if (!insertError) {
-          setApiKey(newKey);
-        }
+        // Aucune clé trouvée, on en génère une automatiquement et on
+        // l'affiche cette fois-ci (unique occasion de voir le texte en clair).
+        await createAndStoreKey('Clé MCP Automatique');
       }
       setIsLoading(false);
     }
@@ -62,23 +93,7 @@ export default function AutomationsPage() {
     setIsLoading(true);
     // On invalide les anciennes clés
     await supabase.from('api_keys').update({ is_active: false }).eq('user_id', user.id);
-    
-    // Génère une nouvelle clé
-    const randomPart = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    const newKey = "lg_" + randomPart;
-    
-    const { error } = await supabase.from('api_keys').insert({
-      user_id: user.id,
-      key: newKey,
-      name: 'Clé MCP Primaire'
-    });
-    
-    if (!error) {
-      setApiKey(newKey);
-    } else {
-      console.error("Erreur génération clé:", error);
-      alert("Erreur lors de la génération de la clé.");
-    }
+    await createAndStoreKey('Clé MCP Primaire');
     setIsLoading(false);
   };
 
@@ -86,7 +101,11 @@ export default function AutomationsPage() {
   // On remet la clé dans l'URL pour que l'utilisateur n'ait qu'à copier l'URL !
   // (le serveur accepte aussi `Authorization: Bearer <clé>` pour les clients
   // qui permettent de configurer un en-tête personnalisé.)
-  const mcpUrl = apiKey && origin ? `${origin}/api/mcp?key=${apiKey}` : 'Génération en cours...';
+  // Uniquement disponible juste après une (re)génération : voir le commentaire
+  // sur `apiKey` plus haut.
+  const mcpUrl = apiKey && origin ? `${origin}/api/mcp?key=${apiKey}` : null;
+  const urlFieldValue = mcpUrl
+    ?? (keyPreview ? `${keyPreview} — régénérez pour afficher l'URL complète` : 'Génération en cours...');
 
   const copyToClipboard = (text: string | null, type: 'name' | 'url' | 'key') => {
     if(!text) return;
@@ -174,17 +193,18 @@ export default function AutomationsPage() {
                 <input
                   type="text"
                   readOnly
-                  value={mcpUrl}
+                  value={urlFieldValue}
                   className="w-full bg-white border border-neutral-200 rounded-lg px-4 py-2.5 text-sm font-mono text-neutral-700 focus:outline-none focus:border-neutral-300"
                 />
                 <button
                   onClick={() => copyToClipboard(mcpUrl, 'url')}
-                  className="shrink-0 p-2.5 bg-white border border-neutral-200 rounded-lg text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700 transition-colors"
+                  disabled={!mcpUrl}
+                  className="shrink-0 p-2.5 bg-white border border-neutral-200 rounded-lg text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Copier l'URL"
                 >
                   {isUrlCopied ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                 </button>
-                <button 
+                <button
                   onClick={generateApiKey}
                   disabled={isLoading}
                   className="shrink-0 p-2.5 bg-white border border-neutral-200 rounded-lg text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700 transition-colors disabled:opacity-50"
@@ -194,7 +214,9 @@ export default function AutomationsPage() {
                 </button>
               </div>
               <p className="text-xs text-neutral-500 mt-1">
-                Utilisez cette URL pour connecter n'importe quel client compatible MCP.
+                {mcpUrl
+                  ? "Copiez cette URL maintenant : pour votre sécurité, elle ne sera plus jamais affichée en clair. Régénérez-en une nouvelle si vous la perdez."
+                  : "Cette clé a déjà été affichée une fois par le passé et ne peut plus être récupérée en clair. Cliquez sur régénérer pour en obtenir une nouvelle et copier son URL."}
               </p>
             </div>
           </div>
@@ -285,7 +307,7 @@ export default function AutomationsPage() {
       "args": [
         "-y",
         "mcp-remote",
-        "${mcpUrl}"
+        "${urlFieldValue}"
       ]
     }
   }
