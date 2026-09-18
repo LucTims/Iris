@@ -9,7 +9,7 @@ import GenreCloudSection from "@/components/GenreCloudSection";
 import HeroVideoShowcase from "@/components/HeroVideoShowcase";
 import Footer from "@/components/Footer";
 import { useUser } from "@/hooks/useUser";
-import { ArrowRight, Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X, MessageSquare, Palette, Download } from "lucide-react";
 
 export default function Home() {
   const { user } = useUser();
@@ -228,31 +228,34 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                icon: "chat",
+                icon: MessageSquare,
                 title: "Assistant Co-Rédaction",
                 desc: "Échangez naturellement avec l'IA. Elle pose les bonnes questions et rédige vos chapitres selon votre style."
               },
               {
-                icon: "palette",
+                icon: Palette,
                 title: "Design & Couvertures HD",
                 desc: "Générez des couvertures d'eBooks professionnelles adaptées à Amazon Kindle, Kobo et aux formats papier."
               },
               {
-                icon: "download",
+                icon: Download,
                 title: "Export Multi-Formats",
                 desc: "Téléchargez votre livre prêt à vendre aux formats PDF, EPUB et DOCX en un seul clic."
               }
-            ].map((feat, idx) => (
-              <div key={idx} className="bg-white rounded-3xl p-8 border border-neutral-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
-                <div>
-                  <div className="w-14 h-14 rounded-2xl bg-orange-50 text-secondary border border-orange-100 flex items-center justify-center mb-6">
-                    <span className="material-symbols-outlined text-3xl">{feat.icon}</span>
+            ].map((feat, idx) => {
+              const Icon = feat.icon;
+              return (
+                <div key={idx} className="bg-white rounded-3xl p-8 border border-neutral-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+                  <div>
+                    <div className="w-14 h-14 rounded-2xl bg-[#FDF3F1] text-[#C84B31] border border-[#F4C5BC]/60 flex items-center justify-center mb-6">
+                      <Icon className="w-7 h-7" />
+                    </div>
+                    <h3 className="font-heading text-2xl font-bold text-neutral-900 mb-3">{feat.title}</h3>
+                    <p className="text-base text-neutral-600 leading-relaxed">{feat.desc}</p>
                   </div>
-                  <h3 className="font-heading text-2xl font-bold text-neutral-900 mb-3">{feat.title}</h3>
-                  <p className="text-base text-neutral-600 leading-relaxed">{feat.desc}</p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
         </div>
@@ -271,9 +274,9 @@ export default function Home() {
             Rejoignez des centaines d&apos;auteurs et d&apos;experts qui ont déjà donné vie à leurs ouvrages grâce à Iris.
           </p>
           <Link href="/register">
-            <button className="bg-secondary hover:bg-[#E0482B] text-white px-10 py-5 rounded-full text-xl font-bold transition-all shadow-lg hover:scale-105 inline-flex items-center gap-3">
+            <button className="bg-secondary hover:bg-[#E0482B] text-white px-10 py-5 rounded-full text-xl font-bold transition-all shadow-lg hover:scale-105 inline-flex items-center gap-3 cursor-pointer">
               <span>Démarrer l&apos;expérience Iris</span>
-              <span className="material-symbols-outlined text-2xl">arrow_forward</span>
+              <ArrowRight className="w-6 h-6" />
             </button>
           </Link>
         </div>

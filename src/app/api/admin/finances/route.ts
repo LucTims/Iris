@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { mockAdminTransactions } from "@/lib/admin/mockData";
 import { AdminTransaction } from "@/lib/admin/types";
-import { requireAdmin } from "@/lib/admin/isAdmin";
-
-function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder_service_role_key";
-  return createAdminClient(url, key);
-}
+import { requireAdmin, getAdminClient, getAuthUsersMap } from "@/lib/admin/isAdmin";
 
 export async function GET(req: Request) {
   try {
@@ -17,7 +10,7 @@ export async function GET(req: Request) {
     if (!guard.ok) return guard.response;
 
     let transactions: AdminTransaction[] = [];
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabaseAdmin = getAdminClient();
 
     try {
       // 1. Récupérer les transactions depuis la base de données
@@ -32,15 +25,16 @@ export async function GET(req: Request) {
         let profilesMap: Record<string, { full_name?: string; email?: string }> = {};
 
         if (userIds.length > 0) {
-          const { data: profiles } = await supabaseAdmin
-            .from("profiles")
-            .select("id, full_name, email")
-            .in("id", userIds);
+          const [authMap, profilesRes] = await Promise.all([
+            getAuthUsersMap(supabaseAdmin).catch(() => ({})),
+            supabaseAdmin.from("profiles").select("id, full_name, email").in("id", userIds)
+          ]);
 
-          if (profiles) {
-            profiles.forEach((p) => {
-              profilesMap[p.id] = { full_name: p.full_name, email: p.email };
-            });
+          for (const p of profilesRes.data || []) {
+            profilesMap[p.id] = {
+              full_name: p.full_name,
+              email: p.email || authMap[p.id]?.email || ""
+            };
           }
         }
 

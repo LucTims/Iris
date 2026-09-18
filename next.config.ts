@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  compress: true,
+  poweredByHeader: false,
   // Optimize barrel imports for tree-shaking (reduces bundle size significantly)
   experimental: {
     optimizePackageImports: [
@@ -14,13 +16,28 @@ const nextConfig: NextConfig = {
       'react-markdown',
     ],
   },
-  // Allow next/image optimization for external domains
+  // Allow next/image optimization for external domains and modern formats
   images: {
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: '*.supabase.co' },
       { protocol: 'https', hostname: '*.supabase.in' },
     ],
+  },
+  // Aggressive immutable cache control for static media
+  async headers() {
+    return [
+      {
+        source: '/:all*(svg|jpg|png|webp|mp4|woff2)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
   },
   // pdfmake (+ pdfkit/fontkit) must stay external so its internal font/asset
   // resolution keeps working inside the serverless PDF route.

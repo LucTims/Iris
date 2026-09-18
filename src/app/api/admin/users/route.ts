@@ -1,13 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { requireAdmin } from "@/lib/admin/isAdmin";
-
-function getAdminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { requireAdmin, getAdminClient, getAuthUsersMap } from "@/lib/admin/isAdmin";
 
 // GET /api/admin/users — liste enrichie (solde, pièces dépensées, projets…).
 export async function GET() {
@@ -17,22 +9,31 @@ export async function GET() {
 
     const admin = getAdminClient();
 
-    // 1. Récupérer tous les profils
-    const { data: profiles, error: profilesErr } = await admin
-      .from("profiles")
-      .select("id, full_name, email, role, plan, created_at")
-      .order("created_at", { ascending: false });
+    // 1. Récupérer les profils et les utilisateurs auth en parallèle
+    const [authMap, { data: profiles, error: profilesErr }] = await Promise.all([
+      getAuthUsersMap(admin).catch(() => ({})),
+      admin
+        .from("profiles")
+        .select("id, full_name, email, role, plan, created_at")
+        .order("created_at", { ascending: false })
+    ]);
 
-    if (profilesErr) throw profilesErr;
+    if (profilesErr) {
+      console.warn("Profiles query with email error, falling back without email:", profilesErr);
+    }
 
     // 2. Récupérer les soldes wallet
     const { data: wallets } = await admin
       .from("wallets")
-      .select("user_id, balance");
+      .select("id, user_id, balance");
 
     const walletMap: Record<string, number> = {};
+    const walletIdToUser: Record<string, string> = {};
     for (const w of wallets || []) {
-      walletMap[w.user_id] = Number(w.balance) || 0;
+      if (w.user_id) {
+        walletMap[w.user_id] = Number(w.balance) || 0;
+        walletIdToUser[w.id] = w.user_id;
+      }
     }
 
     // 3. Compter les projets par utilisateur
@@ -42,34 +43,18 @@ export async function GET() {
 
     const projectMap: Record<string, number> = {};
     for (const p of projectCounts || []) {
-      projectMap[p.user_id] = (projectMap[p.user_id] || 0) + 1;
+      if (p.user_id) {
+        projectMap[p.user_id] = (projectMap[p.user_id] || 0) + 1;
+      }
     }
 
     // 4. Calculer les pièces dépensées par utilisateur via coin_transactions
     let spentMap: Record<string, number> = {};
     try {
-      // D'abord récupérer wallet_id -> user_id mapping
-      const walletUserMap: Record<string, string> = {};
-      for (const w of wallets || []) {
-        // wallet id = user_id dans la plupart des configs, sinon on utilise le select
-        walletUserMap[w.user_id] = w.user_id;
-      }
-
       const { data: debits } = await admin
         .from("coin_transactions")
         .select("wallet_id, amount")
         .eq("type", "debit");
-
-      // wallet_id correspond souvent à l'id du wallet qui est lié au user_id
-      // On va mapper via la table wallets
-      const { data: walletsWithId } = await admin
-        .from("wallets")
-        .select("id, user_id");
-
-      const walletIdToUser: Record<string, string> = {};
-      for (const w of walletsWithId || []) {
-        walletIdToUser[w.id] = w.user_id;
-      }
 
       for (const d of debits || []) {
         const uid = walletIdToUser[d.wallet_id] || d.wallet_id;
@@ -80,17 +65,41 @@ export async function GET() {
     }
 
     // 5. Assembler les données enrichies
-    const users = (profiles || []).map((p) => ({
-      id: p.id,
-      full_name: p.full_name,
-      email: p.email,
-      role: p.role || "user",
-      plan: p.plan || "free",
-      balance: walletMap[p.id] || 0,
-      coins_spent: spentMap[p.id] || 0,
-      projects: projectMap[p.id] || 0,
-      created_at: p.created_at
-    }));
+    const profilesList = profiles || [];
+    const knownProfileIds = new Set(profilesList.map((p) => p.id));
+
+    const users = profilesList.map((p) => {
+      const email = p.email || authMap[p.id]?.email || "";
+      const fullName = p.full_name || (email ? email.split("@")[0] : "Auteur");
+      return {
+        id: p.id,
+        full_name: fullName,
+        email: email,
+        role: p.role || "user",
+        plan: p.plan || "free",
+        balance: walletMap[p.id] || 0,
+        coins_spent: spentMap[p.id] || 0,
+        projects: projectMap[p.id] || 0,
+        created_at: p.created_at || authMap[p.id]?.created_at || new Date().toISOString()
+      };
+    });
+
+    // Ajouter d'éventuels utilisateurs d'auth qui n'ont pas encore de profil
+    for (const [authId, authUser] of Object.entries(authMap)) {
+      if (!knownProfileIds.has(authId)) {
+        users.push({
+          id: authId,
+          full_name: authUser.email ? authUser.email.split("@")[0] : "Auteur",
+          email: authUser.email || "",
+          role: "user",
+          plan: "free",
+          balance: walletMap[authId] || 0,
+          coins_spent: spentMap[authId] || 0,
+          projects: projectMap[authId] || 0,
+          created_at: authUser.created_at || new Date().toISOString()
+        });
+      }
+    }
 
     return NextResponse.json({ users });
   } catch (e: any) {
@@ -98,6 +107,7 @@ export async function GET() {
     return NextResponse.json({ error: "Erreur de chargement." }, { status: 500 });
   }
 }
+
 
 export async function PATCH(req: Request) {
   try {

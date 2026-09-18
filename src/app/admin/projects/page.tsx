@@ -5,13 +5,28 @@ import { useAdminProjects } from "@/hooks/useAdmin";
 import { BookOpen, Search, Loader2 } from "lucide-react";
 
 export default function AdminProjects() {
-  const { projects, isLoading } = useAdminProjects();
+  const { projects, isLoading, error, mutate } = useAdminProjects();
   const [search, setSearch] = useState("");
 
   if (isLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error && !projects?.length) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-white border border-red-200 rounded-2xl text-center space-y-3">
+        <p className="font-semibold text-neutral-900">Impossible de charger les projets</p>
+        <p className="text-sm text-neutral-500">{error.message || "Une erreur est survenue lors de la récupération des données."}</p>
+        <button
+          onClick={() => mutate()}
+          className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-[#B83E26] transition-colors"
+        >
+          Réessayer
+        </button>
       </div>
     );
   }

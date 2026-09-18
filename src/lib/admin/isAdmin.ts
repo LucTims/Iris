@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { createClient as createSupabaseAdmin, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -38,4 +38,32 @@ export async function requireAdmin(): Promise<
   }
 
   return { ok: true, user, supabase };
+}
+
+export function getAdminClient(): SupabaseClient {
+  return createSupabaseAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+export async function getAuthUsersMap(
+  adminClient?: SupabaseClient
+): Promise<Record<string, { email: string; created_at?: string }>> {
+  const admin = adminClient || getAdminClient();
+  const map: Record<string, { email: string; created_at?: string }> = {};
+  let page = 1;
+  while (true) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error || !data?.users || data.users.length === 0) break;
+    for (const u of data.users) {
+      map[u.id] = {
+        email: u.email || "",
+        created_at: u.created_at,
+      };
+    }
+    if (data.users.length < 1000) break;
+    page++;
+  }
+  return map;
 }

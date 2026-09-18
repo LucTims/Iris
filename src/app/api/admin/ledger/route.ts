@@ -1,13 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { requireAdmin } from "@/lib/admin/isAdmin";
-
-function getAdminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { requireAdmin, getAdminClient, getAuthUsersMap } from "@/lib/admin/isAdmin";
 
 export async function GET() {
   try {
@@ -43,14 +35,25 @@ export async function GET() {
         }
 
         const userIds = [...new Set(Object.values(walletToUser))];
-        if (userIds.length > 0) {
-          const { data: profiles } = await admin
-            .from("profiles")
-            .select("id, full_name, email")
-            .in("id", userIds);
+        const [authMap, profilesRes] = await Promise.all([
+          getAuthUsersMap(admin).catch(() => ({})),
+          userIds.length > 0
+            ? admin.from("profiles").select("id, full_name, email").in("id", userIds)
+            : Promise.resolve({ data: [] })
+        ]);
 
-          for (const p of profiles || []) {
-            profilesMap[p.id] = { full_name: p.full_name, email: p.email };
+        for (const p of profilesRes.data || []) {
+          profilesMap[p.id] = {
+            full_name: p.full_name,
+            email: p.email || authMap[p.id]?.email || ""
+          };
+        }
+        for (const uid of userIds) {
+          if (!profilesMap[uid]) {
+            profilesMap[uid] = {
+              full_name: authMap[uid]?.email?.split("@")[0] || "Auteur",
+              email: authMap[uid]?.email || ""
+            };
           }
         }
       }
@@ -68,7 +71,6 @@ export async function GET() {
         };
       });
     } catch (tableErr) {
-      // Si coin_transactions n'existe pas, retourner un tableau vide
       console.warn("coin_transactions non accessible:", tableErr);
     }
 
@@ -78,3 +80,4 @@ export async function GET() {
     return NextResponse.json({ error: "Erreur de chargement." }, { status: 500 });
   }
 }
+

@@ -15,17 +15,33 @@ export default function HeroVideoShowcase() {
     const video = videoRef.current;
     if (!video) return;
 
-    // Handle initial autoplay attempt
-    const playPromise = video.play();
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          setIsPlaying(true);
-        })
-        .catch(() => {
-          // Autoplay was prevented by browser policy
-          setIsPlaying(false);
-        });
+    // Play only when in viewport to save bandwidth and CPU
+    let observer: IntersectionObserver | null = null;
+    if ("IntersectionObserver" in window && containerRef.current) {
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => setIsPlaying(true))
+                .catch(() => setIsPlaying(false));
+            }
+          } else {
+            video.pause();
+            setIsPlaying(false);
+          }
+        },
+        { threshold: 0.2 }
+      );
+      observer.observe(containerRef.current);
+    } else {
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => setIsPlaying(true))
+          .catch(() => setIsPlaying(false));
+      }
     }
 
     const updateProgress = () => {
@@ -36,6 +52,7 @@ export default function HeroVideoShowcase() {
 
     video.addEventListener("timeupdate", updateProgress);
     return () => {
+      if (observer) observer.disconnect();
       video.removeEventListener("timeupdate", updateProgress);
     };
   }, []);
@@ -105,11 +122,11 @@ export default function HeroVideoShowcase() {
           <video
             ref={videoRef}
             src="/iris-motion-ad.mp4"
+            poster="/iris-video-poster.webp"
             playsInline
-            autoPlay
             muted
             loop
-            preload="auto"
+            preload="metadata"
             className="w-full h-full object-cover"
           />
 

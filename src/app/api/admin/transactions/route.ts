@@ -1,13 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { requireAdmin } from "@/lib/admin/isAdmin";
-
-function getAdminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { requireAdmin, getAdminClient, getAuthUsersMap } from "@/lib/admin/isAdmin";
 
 export async function GET() {
   try {
@@ -24,32 +16,35 @@ export async function GET() {
 
     if (error) throw error;
 
-    // Joindre les profils
+    // Joindre les profils et emails
     const userIds = [...new Set((rawTx || []).map((t) => t.user_id).filter(Boolean))];
-    let profilesMap: Record<string, { full_name?: string; email?: string }> = {};
+    const [authMap, profilesRes] = await Promise.all([
+      getAuthUsersMap(admin).catch(() => ({})),
+      userIds.length > 0
+        ? admin.from("profiles").select("id, full_name, email").in("id", userIds)
+        : Promise.resolve({ data: [] })
+    ]);
 
-    if (userIds.length > 0) {
-      const { data: profiles } = await admin
-        .from("profiles")
-        .select("id, full_name, email")
-        .in("id", userIds);
-
-      for (const p of profiles || []) {
-        profilesMap[p.id] = { full_name: p.full_name, email: p.email };
-      }
+    const profilesMap: Record<string, { full_name?: string; email?: string }> = {};
+    for (const p of profilesRes.data || []) {
+      profilesMap[p.id] = { full_name: p.full_name, email: p.email };
     }
 
-    const transactions = (rawTx || []).map((t) => ({
-      id: t.id,
-      name: profilesMap[t.user_id]?.full_name || "Auteur",
-      email: profilesMap[t.user_id]?.email || "",
-      plan_id: t.plan_id || "pack",
-      amount: Number(t.amount) || 0,
-      currency: t.currency || "XOF",
-      status: t.status || "pending",
-      provider_reference: t.provider_reference || null,
-      created_at: t.created_at
-    }));
+    const transactions = (rawTx || []).map((t) => {
+      const email = profilesMap[t.user_id]?.email || authMap[t.user_id]?.email || "";
+      const name = profilesMap[t.user_id]?.full_name || (email ? email.split("@")[0] : "Auteur");
+      return {
+        id: t.id,
+        name,
+        email,
+        plan_id: t.plan_id || "pack",
+        amount: Number(t.amount) || 0,
+        currency: t.currency || "XOF",
+        status: t.status || "pending",
+        provider_reference: t.provider_reference || null,
+        created_at: t.created_at
+      };
+    });
 
     return NextResponse.json({ transactions });
   } catch (e: any) {
@@ -57,3 +52,4 @@ export async function GET() {
     return NextResponse.json({ error: "Erreur de chargement." }, { status: 500 });
   }
 }
+

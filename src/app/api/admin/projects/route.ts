@@ -1,13 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { requireAdmin } from "@/lib/admin/isAdmin";
-
-function getAdminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { requireAdmin, getAdminClient, getAuthUsersMap } from "@/lib/admin/isAdmin";
 
 export async function GET() {
   try {
@@ -16,31 +8,30 @@ export async function GET() {
 
     const admin = getAdminClient();
 
-    // Récupérer tous les projets avec le nombre de chapitres
+    // 1. Récupérer tous les projets avec les chapitres (comptage et mots dynamiques)
     const { data: rawProjects, error } = await admin
       .from("projects")
-      .select("id, user_id, title, status, word_count, updated_at, created_at, chapters(count)")
+      .select("id, user_id, title, status, word_count, updated_at, created_at, chapters(id, word_count)")
       .order("updated_at", { ascending: false })
       .limit(500);
 
     if (error) throw error;
 
-    // Récupérer les profils pour joindre le nom/email de l'auteur
+    // 2. Récupérer les profils et les emails auth pour joindre l'auteur
     const userIds = [...new Set((rawProjects || []).map((p) => p.user_id).filter(Boolean))];
-    let profilesMap: Record<string, { full_name?: string; email?: string }> = {};
+    const [authMap, profilesRes] = await Promise.all([
+      getAuthUsersMap(admin).catch(() => ({})),
+      userIds.length > 0
+        ? admin.from("profiles").select("id, full_name, email").in("id", userIds)
+        : Promise.resolve({ data: [] })
+    ]);
 
-    if (userIds.length > 0) {
-      const { data: profiles } = await admin
-        .from("profiles")
-        .select("id, full_name, email")
-        .in("id", userIds);
-
-      for (const p of profiles || []) {
-        profilesMap[p.id] = { full_name: p.full_name, email: p.email };
-      }
+    const profilesMap: Record<string, { full_name?: string; email?: string }> = {};
+    for (const p of profilesRes.data || []) {
+      profilesMap[p.id] = { full_name: p.full_name, email: p.email };
     }
 
-    // Calculer les pièces dépensées par projet via coin_transactions
+    // 3. Calculer les pièces dépensées par projet via coin_transactions
     let projectCoinsMap: Record<string, number> = {};
     try {
       const { data: wallets } = await admin.from("wallets").select("id, user_id");
@@ -64,20 +55,24 @@ export async function GET() {
       // coin_transactions peut ne pas exister
     }
 
-    const projects = (rawProjects || []).map((p) => {
-      const chaptersArr = p.chapters as any;
-      const chaptersCount = Array.isArray(chaptersArr) && chaptersArr.length > 0
-        ? chaptersArr[0]?.count || 0
-        : 0;
+    // 4. Formatter la liste des projets
+    const projects = (rawProjects || []).map((p: any) => {
+      const chaptersArr = Array.isArray(p.chapters) ? p.chapters : [];
+      const chaptersCount = chaptersArr.length;
+      const computedWords = chaptersArr.reduce((sum: number, ch: any) => sum + (Number(ch.word_count) || 0), 0);
+      const totalWords = computedWords > 0 ? computedWords : (Number(p.word_count) || 0);
+
+      const authorEmail = profilesMap[p.user_id]?.email || authMap[p.user_id]?.email || "";
+      const authorName = profilesMap[p.user_id]?.full_name || (authorEmail ? authorEmail.split("@")[0] : "Auteur");
 
       return {
         id: p.id,
         title: p.title || "Sans titre",
-        author_name: profilesMap[p.user_id]?.full_name || "Auteur",
-        author_email: profilesMap[p.user_id]?.email || "",
+        author_name: authorName,
+        author_email: authorEmail,
         status: p.status || "en_cours",
         chapters: chaptersCount,
-        words: Number(p.word_count) || 0,
+        words: totalWords,
         coins_spent: projectCoinsMap[p.id] || 0,
         updated_at: p.updated_at || p.created_at
       };
@@ -89,3 +84,4 @@ export async function GET() {
     return NextResponse.json({ error: "Erreur de chargement." }, { status: 500 });
   }
 }
+

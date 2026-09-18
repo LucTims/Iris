@@ -21,7 +21,7 @@ const BOOKS: ShowcaseBook[] = [
     subtitle: "100 recettes faciles & modernes pour toute la famille",
     category: "Guide Pratique & Gastronomie",
     badge: "Livre de recettes",
-    image: "/showcase/cuisine-africaine.jpg",
+    image: "/showcase/cuisine-africaine.webp",
     format: "Mise en page illustrée · PDF & Imprimable",
   },
   {
@@ -30,7 +30,7 @@ const BOOKS: ShowcaseBook[] = [
     subtitle: "Comment se créer une vie de succès durable",
     category: "Développement Personnel",
     badge: "Méthode & Essai",
-    image: "/showcase/developpement-personnel.jpg",
+    image: "/showcase/developpement-personnel.webp",
     format: "Format broché · KDP & EPUB",
   },
   {
@@ -39,7 +39,7 @@ const BOOKS: ShowcaseBook[] = [
     subtitle: "Essential frameworks for sustainable business growth",
     category: "Business & Management",
     badge: "Manuel professionnel",
-    image: "/showcase/business-strategie.jpg",
+    image: "/showcase/business-strategie.webp",
     format: "Édition reliée · EPUB, PDF & DOCX",
   },
   {
@@ -48,7 +48,7 @@ const BOOKS: ShowcaseBook[] = [
     subtitle: "Recueil de poèmes & réflexions intimistes",
     category: "Poésie & Littérature",
     badge: "Édition d'art",
-    image: "/showcase/poesie-echos-du-coeur.jpg",
+    image: "/showcase/poesie-echos-du-coeur.webp",
     format: "Typographie soignée · Couverture mate",
   },
   {
@@ -57,7 +57,7 @@ const BOOKS: ShowcaseBook[] = [
     subtitle: "Une fresque romanesque captivante chapitre par chapitre",
     category: "Roman & Fiction",
     badge: "Roman d'époque",
-    image: "/showcase/roman-litteraire.jpg",
+    image: "/showcase/roman-litteraire.webp",
     format: "Standard KDP · 300+ pages",
   },
 ];
@@ -123,7 +123,7 @@ export default function BookShowcaseMarquee() {
                   fill
                   sizes="(max-width: 768px) 280px, 340px"
                   className="object-cover object-center transition-transform duration-700 hover:scale-105"
-                  priority={idx < 4}
+                  loading="lazy"
                 />
                 
                 {/* Subtle top-left badge */}
