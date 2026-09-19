@@ -68,9 +68,44 @@ export async function deductFixedCoins(
 
   if (rpcError) {
     console.error("Error deducting fixed coins:", rpcError);
+    await traceBillingFailure(supabase, userId, p_amount, description, rpcError.message, metadata);
     return false;
   }
   return true;
+}
+
+/**
+ * Journalise un débit qui a ÉCHOUÉ, dans `ai_usage`.
+ *
+ * Un échec de facturation signifie qu'un contenu a été produit — et donc payé
+ * à un fournisseur d'IA — sans être facturé à l'auteur. C'est une fuite de
+ * revenu directe. Elle n'apparaissait jusqu'ici que dans les journaux de la
+ * plateforme d'hébergement, qui expirent au bout de quelques jours et que
+ * personne ne relit. En la traçant en base, elle devient auditable
+ * (`select * from ai_usage where action = 'billing_failed'`) et le solde
+ * concerné peut être régularisé.
+ *
+ * Volontairement tolérante aux erreurs : l'échec de la trace ne doit jamais
+ * masquer l'échec de facturation qu'elle documente.
+ */
+async function traceBillingFailure(
+  supabase: SupabaseClient,
+  userId: string,
+  amount: number,
+  description: string,
+  reason: string,
+  metadata: Record<string, unknown>
+): Promise<void> {
+  try {
+    await supabase.from("ai_usage").insert({
+      user_id: userId,
+      project_id: (metadata.project_id as string) || null,
+      action: "billing_failed",
+      model: `${amount} pièces | ${description} | ${reason}`.slice(0, 300),
+    });
+  } catch {
+    /* best-effort */
+  }
 }
 
 /**
@@ -222,6 +257,9 @@ export async function deductCost(
 
   if (rpcError) {
     console.error("Error deducting cost:", rpcError);
+    await traceBillingFailure(supabase, userId, costInCoins, description, rpcError.message, {
+      project_id: projectId,
+    });
     return false;
   }
 

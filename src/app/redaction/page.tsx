@@ -146,7 +146,13 @@ function RedactionContent() {
   const [chatAttachments, setChatAttachments] = useState<{ name: string; purpose: string; analysis: string }[]>([]);
   const [isAnalyzingChatFile, setIsAnalyzingChatFile] = useState(false);
   const [chatAnalyzeError, setChatAnalyzeError] = useState("");
-  const { isListening, isSupported: micSupported, toggle: toggleMic } = useSpeechToText((t) =>
+  const {
+    isListening,
+    isSupported: micSupported,
+    error: micError,
+    interimTranscript: micInterim,
+    toggle: toggleMic,
+  } = useSpeechToText((t) =>
     setChatInput((prev) => (prev ? prev + (prev.endsWith(" ") ? "" : " ") : "") + t)
   );
 
@@ -2463,6 +2469,20 @@ function RedactionContent() {
                     <span className="material-symbols-outlined text-base">send</span>
                   </button>
                 </form>
+
+                {/* Retour de dictée. Sans cela, un micro refusé ou une coupure
+                    du moteur ne produisait aucun signal : le bouton cessait
+                    simplement de clignoter. */}
+                {isListening && (
+                  <p className="text-[11px] text-neutral-500 italic px-2 pt-1.5" aria-live="polite">
+                    {micInterim ? `« ${micInterim} »` : "Parlez, j'écoute…"}
+                  </p>
+                )}
+                {micError && (
+                  <p className="text-[11px] font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5 mt-1.5">
+                    {micError}
+                  </p>
+                )}
               </div>
             </aside>
           )}

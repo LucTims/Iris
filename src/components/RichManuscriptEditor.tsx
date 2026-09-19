@@ -149,6 +149,8 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   const [wordCount, setWordCount] = useState(0);
   const [, forceUpdate] = useState(0);
   const toolbarSignatureRef = useRef<string>("");
+  /** Hauteur réelle (non mise à l'échelle) du manuscrit, pour compenser le zoom. */
+  const [contentHeight, setContentHeight] = useState(0);
 
   // Modals & Inserters
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -314,6 +316,24 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
     const count = (editor.storage.pages as any)?.getPageCount?.() || 1;
     setPageCount(count);
   }, [editor, initialContent]);
+
+  // Mesure de la hauteur réelle du manuscrit, pour que l'enveloppe de zoom
+  // réserve exactement la place occupée après mise à l'échelle (voir le
+  // commentaire sur l'enveloppe, plus bas dans le rendu).
+  useEffect(() => {
+    const node = editorContainerRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => {
+      // `offsetHeight` est la hauteur de mise en page, non affectée par le
+      // `transform: scale()` — c'est exactement ce qu'on veut mesurer.
+      setContentHeight(node.offsetHeight);
+    });
+    observer.observe(node);
+    setContentHeight(node.offsetHeight);
+
+    return () => observer.disconnect();
+  }, [editor]);
 
   // En-tête de page : uniquement le titre du chapitre (aucune marque de
   // fabrique). Le titre est échappé car il est injecté en HTML brut.
@@ -916,13 +936,31 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       {/* ================= 4. EDITOR CANVAS WITH TIPTAP PRO PAGES ================= */}
       <div className="editor-scroll-container relative flex-1 overflow-y-auto overflow-x-auto flex flex-col items-center bg-[#F3F4F6] p-2 sm:p-8">
         
-        <div 
+        {/* Enveloppe de compensation du zoom.
+         *
+         * `transform: scale()` ne change PAS la boîte de mise en page : à 50 %,
+         * le manuscrit s'affichait deux fois plus petit mais continuait de
+         * réserver toute sa hauteur d'origine, laissant un immense vide gris
+         * sous le texte — précisément le zoom appliqué par défaut sur mobile.
+         * À l'inverse, au-delà de 100 %, la compensation reposait sur une
+         * constante magique (1123 px, la hauteur d'UNE page A4), donc fausse
+         * dès le deuxième chapitre.
+         *
+         * On mesure ici la hauteur réelle du contenu et on donne à
+         * l'enveloppe la hauteur effectivement occupée après mise à
+         * l'échelle. Le défilement devient exact à tous les niveaux de zoom. */}
+        <div
+          style={{
+            height: contentHeight ? `${contentHeight * (zoomLevel / 100)}px` : undefined,
+            width: "100%",
+          }}
+        >
+        <div
           className="relative z-10 w-full transition-transform duration-150 flex flex-col items-center"
           ref={editorContainerRef}
-          style={{ 
-            transform: `scale(${zoomLevel / 100})`, 
+          style={{
+            transform: `scale(${zoomLevel / 100})`,
             transformOrigin: "top center",
-            marginBottom: zoomLevel > 100 ? `${((zoomLevel - 100) / 100) * 1123}px` : undefined,
           }}
         >
           {/* Contextual AI BubbleMenu */}
@@ -1311,6 +1349,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               font-weight: bold;
             }
           ` }} />
+        </div>
         </div>
       </div>
 

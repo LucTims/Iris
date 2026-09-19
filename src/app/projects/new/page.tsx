@@ -8,6 +8,7 @@ import Sidebar from "@/components/Sidebar";
 import { SIZE_PRESETS, BOOK_MODELS, estimatePagesCoins } from "@/lib/book/generationPresets";
 import type { BookSizeKey } from "@/lib/book/generationPresets";
 import { useUser } from "@/hooks/useUser";
+import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { WORK_TYPES, WORK_TYPE_META, type WorkType } from "@/lib/book/work-type";
 import { BookOpen, Compass, FileText, Sparkles, Mic, MicOff, Check, ArrowRight, ArrowLeft, Upload, X, Rocket, Layers } from "lucide-react";
 
@@ -22,9 +23,6 @@ export default function NewBookWizard() {
   const totalSteps = 3;
   const formContainerRef = useRef<HTMLDivElement>(null);
   
-  const recognitionRef = useRef<any>(null);
-  const [isListening, setIsListening] = useState(false);
-
   const [formData, setFormData] = useState({
     title: "",
     subtitle: "",
@@ -67,57 +65,22 @@ export default function NewBookWizard() {
     }
   };
 
-  const toggleListening = () => {
-    if (isListening) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      setIsListening(false);
-    } else {
-      // @ts-ignore
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        alert("Votre navigateur ne supporte pas la reconnaissance vocale.");
-        return;
-      }
-      
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'fr-FR';
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      
-      recognition.onstart = () => {
-        setIsListening(true);
-      };
-      
-      recognition.onresult = (event: any) => {
-        let finalTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          }
-        }
-        if (finalTranscript) {
-          setFormData(prev => ({ 
-            ...prev, 
-            synopsis: prev.synopsis + (prev.synopsis && !prev.synopsis.endsWith(' ') ? ' ' : '') + finalTranscript 
-          }));
-        }
-      };
-      
-      recognition.onerror = (event: any) => {
-        console.error("Erreur de reconnaissance vocale:", event.error);
-        setIsListening(false);
-      };
-      
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-      
-      recognitionRef.current = recognition;
-      recognition.start();
-    }
-  };
+  // Dictée : on réutilise le hook partagé plutôt qu'une seconde
+  // implémentation. Celle qui vivait ici reproduisait les défauts corrigés
+  // dans le hook — arrêt silencieux au premier silence, erreurs invisibles —
+  // et il fallait corriger les deux copies à chaque fois.
+  const {
+    isListening,
+    isSupported: isSpeechSupported,
+    error: speechError,
+    interimTranscript,
+    toggle: toggleListening,
+  } = useSpeechToText((finalText) => {
+    setFormData((prev) => ({
+      ...prev,
+      synopsis: prev.synopsis + (prev.synopsis && !prev.synopsis.endsWith(" ") ? " " : "") + finalText,
+    }));
+  });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModelModal, setShowModelModal] = useState(false);
@@ -153,7 +116,6 @@ export default function NewBookWizard() {
     }
   };
 
-  // Intercept the final submit to show the modal first
   /* ------------------------------------------------------------------ *
    * FLUX « VISION-TO-STORY » — images importées par l'auteur.
    *
@@ -627,11 +589,37 @@ export default function NewBookWizard() {
                               ? 'bg-red-500 text-white animate-pulse' 
                               : 'bg-white border border-neutral-200 text-neutral-500 hover:text-[#C84B31] hover:border-[#F4C5BC] hover:bg-[#FDF3F1]'
                           }`}
-                          title={isListening ? "Arrêter la dictée" : "Dicter vocalement"}
+                          disabled={!isSpeechSupported}
+                          aria-pressed={isListening}
+                          title={
+                            !isSpeechSupported
+                              ? "Votre navigateur ne gère pas la dictée vocale."
+                              : isListening
+                                ? "Arrêter la dictée"
+                                : "Dicter vocalement"
+                          }
                         >
                           {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
                         </button>
                       </div>
+
+                      {/* Retour de dictée : le texte en cours de reconnaissance
+                          et les erreurs étaient jusqu'ici totalement invisibles. */}
+                      {isListening && (
+                        <p className="text-[11px] text-neutral-500 italic min-h-[16px]" aria-live="polite">
+                          {interimTranscript ? `« ${interimTranscript} »` : "Parlez, j'écoute…"}
+                        </p>
+                      )}
+                      {speechError && (
+                        <p className="text-[11px] font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5">
+                          {speechError}
+                        </p>
+                      )}
+                      {!isSpeechSupported && (
+                        <p className="text-[11px] text-neutral-500">
+                          La dictée vocale n&apos;est pas disponible dans ce navigateur (essayez Chrome, Edge ou Safari).
+                        </p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
