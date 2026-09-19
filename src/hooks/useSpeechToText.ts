@@ -65,13 +65,25 @@ export function useSpeechToText(
 
   const recognitionRef = useRef<any>(null);
   const callbackRef = useRef(onTranscript);
-  callbackRef.current = onTranscript;
+  // Écrire dans une ref PENDANT le rendu est une violation des règles de React
+  // (le rendu doit rester pur, et React peut le rejouer). On synchronise la
+  // callback dans un effet : elle reste toujours à jour sans effet de bord au
+  // rendu.
+  useEffect(() => {
+    callbackRef.current = onTranscript;
+  }, [onTranscript]);
 
   /** Vrai tant que l'AUTEUR veut dicter — distingue un arrêt volontaire d'une coupure du moteur. */
   const wantsToListenRef = useRef(false);
   /** Vrai si le dernier segment finalisé se terminait par une ponctuation forte. */
   const sentenceStartRef = useRef(true);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Référence vers la dernière version de `launch`, pour que le gestionnaire
+   * `onend` puisse relancer la reconnaissance sans se référer à la constante
+   * `launch` avant sa propre initialisation (zone morte temporelle).
+   */
+  const launchRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -157,7 +169,7 @@ export function useSpeechToText(
           recognition.start();
         } catch {
           // Déjà redémarré entre-temps : on repart d'une instance neuve.
-          launch();
+          launchRef.current();
         }
       }, 250);
     };
@@ -190,6 +202,10 @@ export function useSpeechToText(
       /* start() lève si déjà démarré : on ignore */
     }
   }, [lang]);
+
+  useEffect(() => {
+    launchRef.current = launch;
+  }, [launch]);
 
   const start = useCallback(() => {
     if (typeof window === "undefined") return;

@@ -139,5 +139,5 @@ CREATE INDEX IF NOT EXISTS idx_user_notifications_read_notification_id
 
 -- Index de charge : lectures les plus fréquentes de l'application.
 CREATE INDEX IF NOT EXISTS idx_ai_usage_user_created ON public.ai_usage (user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_coin_transactions_wallet_created
-  ON public.coin_transactions (wallet_id, created_at DESC);
+-- NB : `coin_transactions` possède déjà `idx_coin_transactions_wallet` sur
+-- (wallet_id, created_at DESC) — inutile d'en ajouter un second identique.
