@@ -63,6 +63,7 @@ import {
 import { PullQuote } from './editor/PullQuoteExtension';
 import { DropCap } from './editor/DropCapExtension';
 import { SectionDivider, DividerStyle } from './editor/SectionDividerExtension';
+import { StoryPage } from './editor/StoryPageExtension';
 import { RichManuscriptEditorHandle, RichManuscriptEditorProps, PageFormatType } from './editor/types';
 import { AnimatePresence } from 'framer-motion';
 import EditorGenerationOverlay from './EditorGenerationOverlay';
@@ -193,6 +194,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       PullQuote,
       DropCap,
       SectionDivider,
+      StoryPage,
       Link.configure({ openOnClick: true, HTMLAttributes: { class: 'text-secondary underline cursor-pointer' } }),
       ResizableImage,
       TextStyle,
@@ -1148,6 +1150,38 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               font-style: italic;
               color: #475569;
             }
+
+            /* Page de storybook : l'illustration porte la page, le texte la
+               légende. Centré et aéré, jamais justifié (des phrases de huit
+               mots justifiées créent d'énormes lézardes). */
+            .tiptap .story-page {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 14px;
+              margin: 1.75rem 0;
+              padding: 18px;
+              border-radius: 16px;
+              background: #fffdf8;
+              border: 1px solid #f0e6d2;
+              break-inside: avoid;
+              page-break-inside: avoid;
+            }
+            .tiptap .story-page img {
+              max-width: 100%;
+              max-height: 62vh;
+              object-fit: contain;
+              border-radius: 12px;
+            }
+            .tiptap .story-page p {
+              text-align: center;
+              text-indent: 0;
+              font-size: 1.15em;
+              line-height: 1.7;
+              margin: 0;
+              max-width: 46ch;
+            }
+            .tiptap .story-page > *:last-child { margin-bottom: 0; }
 
             /* Encadrés / Callouts */
             .tiptap .callout {

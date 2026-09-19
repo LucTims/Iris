@@ -10,7 +10,8 @@ import {
   buildChapterSystemPrompt,
 } from "@/lib/ai/book-style";
 import { sanitizeGeneratedHtml } from "@/lib/ai/sanitize-html";
-import { resolveWorkType, chapterNounFor } from "@/lib/book/work-type";
+import { resolveWorkType, chapterNounFor, isImageDrivenWorkType } from "@/lib/book/work-type";
+import { visionInstruction } from "@/lib/book/book-blueprint";
 import { assignChapterLabels } from "@/lib/book/chapter-heading";
 import type { BookBible } from "@/lib/book/book-bible";
 import { demoteUnsourcedKeyFigures } from "@/lib/ai/factuality";
@@ -60,8 +61,39 @@ export interface BookJobSettings {
   model: string;
   targetWords?: number;
   useWebSearch?: boolean;
-  /** Forme de l'ouvrage choisie par l'auteur : "livre" | "guide" | "ebook". */
+  /** Forme de l'ouvrage : "livre" | "guide" | "ebook" | "storybook". */
   workType?: string;
+  /**
+   * Visuels importés par l'auteur (flux « Vision-to-Story » du blueprint
+   * Storybook), dans l'ordre de l'histoire. Ils sont RÉPARTIS entre les
+   * chapitres : chaque chapitre ne reçoit que ses propres images, sinon le
+   * modèle réutiliserait les mêmes visuels d'un chapitre à l'autre.
+   */
+  imageUrls?: string[];
+}
+
+/**
+ * Part d'images revenant au chapitre d'indice `chapterIndex`, en répartissant
+ * `imageUrls` aussi équitablement que possible entre `totalChapters`.
+ * Les images restantes sont distribuées aux premiers chapitres.
+ */
+export function imagesForChapter(
+  imageUrls: string[] | undefined,
+  chapterIndex: number,
+  totalChapters: number
+): string[] {
+  const urls = (imageUrls || []).filter(Boolean);
+  if (urls.length === 0 || totalChapters <= 0) return [];
+
+  const base = Math.floor(urls.length / totalChapters);
+  const remainder = urls.length % totalChapters;
+
+  // Les `remainder` premiers chapitres reçoivent une image de plus.
+  const start =
+    chapterIndex * base + Math.min(chapterIndex, remainder);
+  const count = base + (chapterIndex < remainder ? 1 : 0);
+
+  return urls.slice(start, start + count);
 }
 
 export function getServiceRoleClient(): SupabaseClient {
@@ -246,6 +278,19 @@ export async function processNextChapter(
   const recentSummaries = job.chapter_summaries.slice(-MAX_RECENT_SUMMARIES);
   // Pas de recherche web en fiction (les sources n'ont rien à faire dans un roman).
   const genre = detectGenre(settings.category, settings.tone);
+
+  // Part d'images revenant à CE chapitre (flux « Vision-to-Story »). Sans cette
+  // répartition, chaque chapitre recevrait toutes les images et les
+  // réutiliserait toutes : le conte tournerait en boucle sur les mêmes visuels.
+  const workType = resolveWorkType({
+    explicit: settings.workType,
+    category: settings.category,
+    title: settings.title,
+  });
+  const chapterImages = isImageDrivenWorkType(workType)
+    ? imagesForChapter(settings.imageUrls, job.current_index, job.total)
+    : [];
+
   const searchContext = await fetchSearchContext(
     selectedModelName,
     shouldGroundWithWebSearch(genre, settings.useWebSearch),
@@ -263,7 +308,14 @@ export async function processNextChapter(
       const result = await generateWithFallback({
         preferred: selectedModelName,
         system,
-        prompt: "Rédige ce chapitre maintenant en HTML en respectant scrupuleusement les consignes et le style.",
+        prompt:
+          "Rédige ce chapitre maintenant en HTML en respectant scrupuleusement les consignes et le style." +
+          (chapterImages.length
+            ? `${visionInstruction(workType, chapterImages.length)}\n\nURL des images de ce chapitre, dans l'ordre — réutilise-les EXACTEMENT, une par page :\n${chapterImages
+                .map((u, i) => `${i + 1}. ${u}`)
+                .join("\n")}`
+            : ""),
+        images: chapterImages,
       });
       if (result.fellBack) {
         console.warn(`[book-job] Repli sur ${result.modelUsed} (chapitre ${chapter.number}) :`, result.errors.join(" | "));

@@ -7,7 +7,8 @@ import { estimateChapterCoins } from "@/lib/ai/pricing";
 import { fetchSearchContext } from "@/lib/ai/search-context";
 import { detectGenre, shouldGroundWithWebSearch, buildChapterSystemPrompt } from "@/lib/ai/book-style";
 import { sanitizeGeneratedHtml } from "@/lib/ai/sanitize-html";
-import { resolveWorkType, chapterNounFor } from "@/lib/book/work-type";
+import { resolveWorkType, chapterNounFor, isImageDrivenWorkType } from "@/lib/book/work-type";
+import { visionInstruction } from "@/lib/book/book-blueprint";
 import { assignChapterLabels } from "@/lib/book/chapter-heading";
 import { demoteUnsourcedKeyFigures } from "@/lib/ai/factuality";
 
@@ -53,13 +54,28 @@ export async function POST(req: Request) {
       chapterHeading: providedHeading,
       allHeadings,
       chapterIndex,
+      blueprintId,
+      imageUrls,
     } = await req.json();
 
     // Genre (fiction vs non-fiction) : conditionne la mise en forme (pas
     // d'encadrés ni de sources en fiction) et l'usage de la recherche web.
     const genre = detectGenre(category, tone);
     const webSearchEnabled = shouldGroundWithWebSearch(genre, useWebSearch);
-    const workType = resolveWorkType({ explicit: requestedWorkType, category, title });
+    const workType = resolveWorkType({
+      explicit: requestedWorkType || blueprintId,
+      category,
+      title,
+    });
+
+    // Flux « Vision-to-Story » : les images de CE chapitre sont jointes au
+    // prompt multimodal. Le modèle rédige à partir de ce qu'il voit, et
+    // réutilise les URL exactes pour construire les pages du conte.
+    const visionImages: string[] = isImageDrivenWorkType(workType)
+      ? (Array.isArray(imageUrls) ? imageUrls : [])
+          .filter((u: unknown): u is string => typeof u === "string" && /^https?:\/\//.test(u))
+          .slice(0, 12)
+      : [];
 
     // Titre canonique du chapitre. Le client peut l'imposer (il connaît la
     // position réelle du chapitre dans le livre) ; sinon on le recompose ici en
@@ -139,7 +155,14 @@ export async function POST(req: Request) {
       generated = await generateWithFallback({
         preferred: selectedModelName,
         system: systemPrompt,
-        prompt: "Rédige ce chapitre maintenant en HTML en respectant scrupuleusement les consignes et le style.",
+        prompt:
+          "Rédige ce chapitre maintenant en HTML en respectant scrupuleusement les consignes et le style." +
+          (visionImages.length
+            ? `${visionInstruction(workType, visionImages.length)}\n\nURL des images de ce chapitre, dans l'ordre — réutilise-les EXACTEMENT, une par page :\n${visionImages
+                .map((u, i) => `${i + 1}. ${u}`)
+                .join("\n")}`
+            : ""),
+        images: visionImages,
       });
     } catch (genErr) {
       const msg = genErr instanceof Error ? genErr.message : String(genErr);

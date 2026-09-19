@@ -58,6 +58,12 @@ export async function generateWithFallback(opts: {
    * ont pas besoin et tout mettent dans le prompt. */
   system?: string;
   prompt: string;
+  /**
+   * URL d'images à joindre au prompt (flux multimodal « Vision-to-Story »).
+   * Les trois fournisseurs de la chaîne de repli acceptent les images, donc le
+   * repli reste valable : une panne Gemini ne fait pas perdre les visuels.
+   */
+  images?: string[];
   /** Nombre maximum de fournisseurs essayés (défaut 3). */
   maxAttempts?: number;
 }): Promise<FallbackResult> {
@@ -70,6 +76,23 @@ export async function generateWithFallback(opts: {
 
   const chain = fallbackChain(opts.preferred).slice(0, Math.max(1, opts.maxAttempts ?? 3));
   const errors: string[] = [];
+  const images = (opts.images || []).filter(Boolean);
+
+  // Avec des images, on passe par `messages` (seule forme acceptant des parts
+  // multimodales) ; sans image, on garde `prompt`, plus simple et inchangé.
+  const payload = images.length
+    ? {
+        messages: [
+          {
+            role: "user" as const,
+            content: [
+              { type: "text" as const, text: opts.prompt },
+              ...images.map((url) => ({ type: "image" as const, image: new URL(url) })),
+            ],
+          },
+        ],
+      }
+    : { prompt: opts.prompt };
 
   for (let i = 0; i < chain.length; i++) {
     const modelId = chain[i];
@@ -77,8 +100,8 @@ export async function generateWithFallback(opts: {
       const res = await generateText({
         model: getAiModel(modelId),
         system: opts.system,
-        prompt: opts.prompt,
-      });
+        ...payload,
+      } as Parameters<typeof generateText>[0]);
       const text = (res.text || "").trim();
       // Un texte vide est un échec déguisé (quota/refus) : on tente le suivant.
       if (!text) {

@@ -5,7 +5,13 @@ import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine"
 import { generateWithFallback } from "@/lib/ai/model-fallback";
 import { fetchSearchContext } from "@/lib/ai/search-context";
 import { detectGenre, shouldGroundWithWebSearch } from "@/lib/ai/book-style";
-import { resolveWorkType, workTypeOutlineRules, WORK_TYPE_META } from "@/lib/book/work-type";
+import {
+  resolveWorkType,
+  workTypeOutlineRules,
+  isImageDrivenWorkType,
+  WORK_TYPE_META,
+} from "@/lib/book/work-type";
+import { visionInstruction } from "@/lib/book/book-blueprint";
 import { factualityRules } from "@/lib/ai/factuality";
 
 export const maxDuration = 60;
@@ -48,6 +54,8 @@ export async function POST(req: Request) {
       referenceName,
       projectId,
       workType: requestedWorkType,
+      blueprintId,
+      imageUrls,
     } = await req.json();
 
     const selectedModelName = chosenModel || "gemini-2.5-flash";
@@ -58,8 +66,24 @@ export async function POST(req: Request) {
     // parties courtes). Sans cet axe, tout ouvrage non-fictionnel était
     // structuré comme une formation, y compris un livre de développement
     // personnel.
-    const workType = resolveWorkType({ explicit: requestedWorkType, category, title, length });
+    const workType = resolveWorkType({
+      explicit: requestedWorkType || blueprintId,
+      category,
+      title,
+      length,
+    });
     const outlineRules = workTypeOutlineRules(workType, genre);
+
+    // Flux « Vision-to-Story » : pour un blueprint piloté par l'image
+    // (storybook), la structure du livre se déduit des visuels importés par
+    // l'auteur, pas du seul synopsis. Les URL sont jointes au prompt
+    // multimodal ; le modèle REGARDE les images avant de découper l'histoire.
+    const visionImages: string[] = isImageDrivenWorkType(workType)
+      ? (Array.isArray(imageUrls) ? imageUrls : [])
+          .filter((u: unknown): u is string => typeof u === "string" && /^https?:\/\//.test(u))
+          .slice(0, 24)
+      : [];
+    const visionBlock = visionInstruction(workType, visionImages.length);
 
     // Check coins
     const hasEnoughCoins = await checkMinimumBalance(user.id, 50);
@@ -155,7 +179,7 @@ ${synopsis}
 
 Consignes supplémentaires :
 ${instructions || "Aucune consigne spécifique"}
-${referenceBlock}
+${referenceBlock}${visionBlock}
 
 ${missionText}`;
 
@@ -178,6 +202,7 @@ ${factualityRules(searchContext)}`;
         preferred: selectedModelName,
         system: systemPrompt,
         prompt,
+        images: visionImages,
       });
     } catch (genErr) {
       const msg = genErr instanceof Error ? genErr.message : String(genErr);

@@ -261,6 +261,56 @@ function parseKeyFigure(html: string): PdfNode {
   };
 }
 
+/**
+ * Page de STORYBOOK : l'illustration en haut, quelques phrases centrées
+ * dessous. La page entière est rendue comme un bloc INSÉCABLE — c'est tout
+ * l'intérêt du format : une image ne doit jamais être séparée de son texte par
+ * un saut de page.
+ *
+ * Les images externes ont déjà été converties en base64 en amont
+ * (`embedExternalImages` dans la route d'export), donc `isEmbeddableImage`
+ * accepte ici les visuels importés par l'auteur.
+ */
+function parseStoryPage(html: string): PdfNode {
+  const inner = html.replace(/^<div[^>]*>/i, "").replace(/<\/div>\s*$/i, "");
+
+  const imgMatch = inner.match(/<img[^>]*src=["']([^"']+)["'][^>]*>/i);
+  const text = decodeEntities(
+    inner.replace(/<img[^>]*>/gi, "").replace(/<[^>]*>/g, " ")
+  )
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const stack: PdfNode[] = [];
+
+  if (imgMatch && isEmbeddableImage(imgMatch[1])) {
+    stack.push({
+      image: imgMatch[1],
+      // `fit` (et non `width`) préserve le rapport hauteur/largeur et garantit
+      // que le visuel tient dans la page quelle que soit son orientation.
+      fit: [400, 330],
+      alignment: "center",
+      margin: [0, 6, 0, 14],
+    });
+  }
+
+  if (text) {
+    stack.push({
+      text,
+      alignment: "center",
+      fontSize: 13,
+      lineHeight: 1.6,
+      margin: [40, 0, 40, 6],
+    });
+  }
+
+  return {
+    stack: stack.length ? stack : [{ text: "" }],
+    unbreakable: true,
+    margin: [0, 10, 0, 18],
+  };
+}
+
 function parsePullQuote(html: string): PdfNode {
   const inner = html.replace(/^<div[^>]*>/i, "").replace(/<\/div>\s*$/i, "");
   const text = decodeEntities(inner.replace(/<[^>]*>/g, "")).trim();
@@ -327,11 +377,15 @@ export function htmlToPdfmakeContent(html: string): PdfNode[] {
     out.push(node);
   };
 
-  const specialDivRe = /(<div[^>]*class="[^"]*\b(?:callout|key-figure|pull-quote|section-divider)\b[^"]*"[^>]*>[\s\S]*?<\/div>)/gi;
+  const specialDivRe = /(<div[^>]*class="[^"]*\b(?:callout|key-figure|pull-quote|section-divider|story-page)\b[^"]*"[^>]*>[\s\S]*?<\/div>)/gi;
   const calloutParts = source.split(specialDivRe);
 
   for (const cpart of calloutParts) {
     if (!cpart.trim()) continue;
+    if (/^<div[^>]*class="[^"]*\bstory-page\b/i.test(cpart.trim())) {
+      push(parseStoryPage(cpart));
+      continue;
+    }
     if (/^<div[^>]*class="[^"]*\bcallout\b/i.test(cpart.trim())) {
       push(parseCallout(cpart));
       continue;

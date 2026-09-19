@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { WORK_TYPES } from "@/lib/book/work-type";
+
+/** Valeurs acceptées par les contraintes CHECK de `projects`. */
+const VALID_WORK_TYPES: string[] = WORK_TYPES;
 
 // GET /api/projects - List user projects
 export async function GET() {
@@ -37,11 +41,15 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { title, subtitle, category, audience, synopsis, tone, characters, length, instructions, referenceDocument, workType } = body;
+    const { title, subtitle, category, audience, synopsis, tone, characters, length, instructions, referenceDocument, workType, blueprintId } = body;
 
     if (!title) {
       return NextResponse.json({ error: "Le titre du projet est requis" }, { status: 400 });
     }
+
+    // `blueprintId` et `workType` désignent la même chose ; l'assistant envoie
+    // les deux, les clients plus anciens seulement `workType`.
+    const resolvedBlueprint = String(blueprintId || workType || "");
 
     // Document de référence analysé (facultatif) : persisté pour que la
     // génération reste possible depuis n'importe quel appareil/session.
@@ -67,10 +75,12 @@ export async function POST(req: Request) {
         characters,
         length,
         instructions,
-        // Forme de l'ouvrage (livre / guide / ebook). Contrainte en base ; on
-        // n'enregistre que les valeurs valides et on laisse NULL sinon, la
-        // forme étant alors déduite par heuristique à la génération.
-        work_type: ["livre", "guide", "ebook"].includes(workType) ? workType : null,
+        // Forme de l'ouvrage / blueprint (livre, guide, ebook, storybook).
+        // Contrainte en base ; on n'enregistre que les valeurs valides et on
+        // laisse NULL sinon, la forme étant alors déduite par heuristique à la
+        // génération.
+        work_type: VALID_WORK_TYPES.includes(resolvedBlueprint) ? resolvedBlueprint : null,
+        blueprint_id: VALID_WORK_TYPES.includes(resolvedBlueprint) ? resolvedBlueprint : "livre",
         reference_analysis: refAnalysis,
         reference_meta: refMeta,
         status: "En cours"

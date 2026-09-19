@@ -154,8 +154,105 @@ export default function NewBookWizard() {
   };
 
   // Intercept the final submit to show the modal first
+  /* ------------------------------------------------------------------ *
+   * FLUX « VISION-TO-STORY » — images importées par l'auteur.
+   *
+   * Les visuels sont compressés DANS LE NAVIGATEUR avant l'envoi : une photo
+   * de smartphone pèse 5 à 10 Mo, et en envoyer une douzaine telles quelles
+   * saturerait la bande passante Supabase, ralentirait l'analyse du modèle de
+   * vision, et ferait échouer l'import sur une connexion mobile. Réduites à
+   * 1600 px de côté en JPEG qualité 0,82, elles tombent autour de 300 Ko sans
+   * perte visible pour l'illustration d'un conte.
+   * ------------------------------------------------------------------ */
+  const MAX_ASSETS = 24;
+  const assetsInputRef = useRef<HTMLInputElement>(null);
+  const [assets, setAssets] = useState<Array<{ url: string; path: string; name: string }>>([]);
+  const [assetsBusy, setAssetsBusy] = useState(false);
+  const [assetsError, setAssetsError] = useState("");
+  const [isDraggingAssets, setIsDraggingAssets] = useState(false);
+
+  const isStorybook = formData.workType === "storybook";
+
+  const compressImage = (file: File): Promise<Blob> =>
+    new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new window.Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const MAX_SIDE = 1600;
+        const scale = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("Canvas indisponible"));
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error("Compression impossible"))),
+          "image/jpeg",
+          0.82
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Image illisible"));
+      };
+      img.src = url;
+    });
+
+  const handleAssetFiles = async (fileList: FileList | File[] | null) => {
+    if (!fileList) return;
+    const files = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
+    if (files.length === 0) return;
+
+    const room = MAX_ASSETS - assets.length;
+    if (room <= 0) {
+      setAssetsError(`${MAX_ASSETS} images maximum.`);
+      return;
+    }
+
+    setAssetsBusy(true);
+    setAssetsError("");
+    try {
+      const body = new FormData();
+      for (const file of files.slice(0, room)) {
+        const compressed = await compressImage(file);
+        body.append("files", new File([compressed], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" }));
+      }
+
+      const res = await fetch("/api/project-assets", { method: "POST", body });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Échec de l'envoi des images.");
+      setAssets((prev) => [...prev, ...(data.assets || [])]);
+    } catch (err) {
+      setAssetsError(err instanceof Error ? err.message : "Échec de l'envoi des images.");
+    } finally {
+      setAssetsBusy(false);
+    }
+  };
+
+  const removeAsset = (url: string) => setAssets((prev) => prev.filter((a) => a.url !== url));
+
+  const moveAsset = (index: number, direction: -1 | 1) => {
+    setAssets((prev) => {
+      const next = [...prev];
+      const target = index + direction;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  // Intercept the final submit to show the modal first
   const handlePreSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Un storybook se construit À PARTIR des images : sans visuel, la
+    // génération n'aurait rien à regarder.
+    if (isStorybook && assets.length < 2) {
+      setAssetsError("Importez au moins 2 images pour construire votre conte.");
+      setStep(2);
+      return;
+    }
     setShowModelModal(true);
   };
 
@@ -164,11 +261,17 @@ export default function NewBookWizard() {
     setIsSubmitting(true);
 
     try {
+      const imageUrls = assets.map((a) => a.url);
+
       const projectContext = {
         ...formData,
         model: selectedModel, // Pass selected model
         // Document de référence analysé : consommé par /redaction → generate-plan
         referenceDocument: referenceDoc || undefined,
+        // Blueprint + visuels : consommés par /redaction → generate-plan et
+        // generate-chapter pour le flux multimodal « Vision-to-Story ».
+        blueprintId: formData.workType,
+        imageUrls,
         createdAt: new Date().toISOString()
       };
       localStorage.setItem("iris_current_project", JSON.stringify(projectContext));
@@ -176,7 +279,11 @@ export default function NewBookWizard() {
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, referenceDocument: referenceDoc || undefined })
+        body: JSON.stringify({
+          ...formData,
+          blueprintId: formData.workType,
+          referenceDocument: referenceDoc || undefined,
+        })
       });
 
       if (!res.ok) {
@@ -187,6 +294,22 @@ export default function NewBookWizard() {
       const data = await res.json();
       if (data.project?.id) {
         localStorage.setItem("iris_current_project_id", data.project.id);
+
+        // Les images ont été téléversées avant que le projet n'existe (on ne
+        // connaissait pas encore son ID) : on les rattache maintenant, dans
+        // l'ordre choisi par l'auteur — cet ordre EST la chronologie du conte.
+        if (assets.length > 0) {
+          try {
+            await fetch("/api/project-assets", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ projectId: data.project.id, assets }),
+            });
+          } catch (attachErr) {
+            console.warn("Rattachement des images au projet impossible:", attachErr);
+          }
+        }
+
         // We can pass the model in the URL or let it be picked up from localStorage in /redaction
         router.push(`/redaction?projectId=${data.project.id}&new=true`);
         return;
@@ -297,11 +420,12 @@ export default function NewBookWizard() {
 
                     <div className="space-y-2">
                       <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Format de l&apos;ouvrage *</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
                           { id: "livre", label: "Livre", tag: "Roman & Essai", icon: BookOpen },
                           { id: "guide", label: "Guide pratique", tag: "Méthodes & Étapes", icon: Compass },
                           { id: "ebook", label: "Ebook", tag: "Court & Direct", icon: FileText },
+                          { id: "storybook", label: "Storybook", tag: "Conte illustré à partir de vos images", icon: Sparkles },
                         ].map((item) => {
                           const selected = formData.workType === item.id;
                           const IconComp = item.icon;
@@ -375,9 +499,108 @@ export default function NewBookWizard() {
                 {/* STEP 2: The Core */}
                 {step === 2 && (
                   <>
+                    {/* ÉTAPE ADAPTATIVE — un storybook part des IMAGES de
+                        l'auteur : l'IA les regarde et en tire l'histoire. Les
+                        autres formats gardent le formulaire classique. */}
+                    {isStorybook && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                            Vos dessins &amp; photos * ({assets.length}/{MAX_ASSETS})
+                          </label>
+                          <p className="text-xs text-neutral-500 mt-1 leading-snug">
+                            Importez les images dans l&apos;ordre de l&apos;histoire. L&apos;IA les analyse une par une
+                            et écrit un conte qui les relie — une image par page.
+                          </p>
+                        </div>
+
+                        <div
+                          onDragOver={(e) => { e.preventDefault(); setIsDraggingAssets(true); }}
+                          onDragLeave={() => setIsDraggingAssets(false)}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setIsDraggingAssets(false);
+                            handleAssetFiles(e.dataTransfer.files);
+                          }}
+                          onClick={() => assetsInputRef.current?.click()}
+                          className={`rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition-all ${
+                            isDraggingAssets
+                              ? "border-[#C84B31] bg-[#FDF3F1]"
+                              : "border-neutral-300 bg-neutral-50/70 hover:border-[#C84B31]/60 hover:bg-[#FDF3F1]/40"
+                          }`}
+                        >
+                          <Upload className="w-7 h-7 mx-auto text-[#C84B31] mb-2" />
+                          <p className="text-sm font-bold text-neutral-800">
+                            {assetsBusy ? "Envoi en cours…" : "Glissez vos images ici"}
+                          </p>
+                          <p className="text-[11px] text-neutral-500 mt-1">
+                            ou cliquez pour parcourir · JPG, PNG, WEBP · compressées automatiquement
+                          </p>
+                          <input
+                            ref={assetsInputRef}
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => { handleAssetFiles(e.target.files); e.target.value = ""; }}
+                          />
+                        </div>
+
+                        {assetsError && (
+                          <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+                            {assetsError}
+                          </p>
+                        )}
+
+                        {assets.length > 0 && (
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                            {assets.map((asset, index) => (
+                              <div key={asset.url} className="relative group rounded-xl overflow-hidden border border-neutral-200 bg-neutral-100 aspect-square">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={asset.url} alt={asset.name} className="w-full h-full object-cover" />
+                                <span className="absolute top-1 left-1 w-5 h-5 rounded-full bg-[#C84B31] text-white text-[10px] font-bold flex items-center justify-center">
+                                  {index + 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeAsset(asset.url)}
+                                  aria-label={`Retirer ${asset.name}`}
+                                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                                <div className="absolute bottom-1 inset-x-1 flex justify-between opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                                  <button
+                                    type="button"
+                                    onClick={() => moveAsset(index, -1)}
+                                    disabled={index === 0}
+                                    aria-label="Déplacer vers la gauche"
+                                    className="w-5 h-5 rounded bg-black/60 text-white text-xs disabled:opacity-30"
+                                  >
+                                    ‹
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => moveAsset(index, 1)}
+                                    disabled={index === assets.length - 1}
+                                    aria-label="Déplacer vers la droite"
+                                    className="w-5 h-5 rounded bg-black/60 text-white text-xs disabled:opacity-30"
+                                  >
+                                    ›
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Synopsis &amp; Idée principale *</label>
+                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                          {isStorybook ? "L'histoire en quelques mots *" : "Synopsis & Idée principale *"}
+                        </label>
                         <button type="button" className="text-[11px] flex items-center gap-1 font-semibold text-[#C84B31] bg-[#FDF3F1] px-2.5 py-0.5 rounded-full border border-[#F4C5BC]/60">
                           <Sparkles className="w-3 h-3 text-[#C84B31]" />
                           <span>Assistant IA</span>
@@ -388,7 +611,11 @@ export default function NewBookWizard() {
                           required
                           value={formData.synopsis}
                           onChange={(e) => updateForm("synopsis", e.target.value)}
-                          placeholder="De quoi parle votre livre ? Idée directrice, message clé, thèmes abordés ou résumé de l'intrigue..."
+                          placeholder={
+                            isStorybook
+                              ? "Qui sont les personnages ? Que voulez-vous raconter ? (L'IA s'appuiera surtout sur vos images.)"
+                              : "De quoi parle votre livre ? Idée directrice, message clé, thèmes abordés ou résumé de l'intrigue..."
+                          }
                           rows={5}
                           className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 pb-12 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all resize-none"
                         />

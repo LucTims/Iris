@@ -29,9 +29,9 @@
 import type { BookGenre } from "@/lib/ai/book-style";
 import type { ChapterNoun } from "@/lib/book/chapter-heading";
 
-export type WorkType = "livre" | "guide" | "ebook";
+export type WorkType = "livre" | "guide" | "ebook" | "storybook";
 
-export const WORK_TYPES: WorkType[] = ["livre", "guide", "ebook"];
+export const WORK_TYPES: WorkType[] = ["livre", "guide", "ebook", "storybook"];
 
 export interface WorkTypeMeta {
   value: WorkType;
@@ -61,6 +61,12 @@ export const WORK_TYPE_META: Record<WorkType, WorkTypeMeta> = {
     hint: "Format court et direct. Sous-titres fréquents, une action à la fin de chaque partie.",
     chapterNoun: "Chapitre",
   },
+  storybook: {
+    value: "storybook",
+    label: "Storybook / Conte illustré",
+    hint: "Une image par page, quelques phrases dessous. L'histoire naît de vos dessins ou photos.",
+    chapterNoun: "Chapitre",
+  },
 };
 
 /**
@@ -81,7 +87,7 @@ export function resolveWorkType(input: {
   length?: string | null;
 }): WorkType {
   const explicit = (input.explicit || "").toLowerCase().trim();
-  if (explicit === "livre" || explicit === "guide" || explicit === "ebook") {
+  if ((WORK_TYPES as string[]).includes(explicit)) {
     return explicit as WorkType;
   }
 
@@ -105,6 +111,22 @@ export function resolveWorkType(input: {
  * livre : un roman n'a ni étapes ni checklist, quel que soit le sélecteur.
  */
 export function workTypeWritingRules(workType: WorkType, genre: BookGenre): string {
+  // Le storybook est testé AVANT la branche fiction : un conte illustré EST de
+  // la fiction, mais sa forme (une image par page, texte très court) n'a rien à
+  // voir avec celle d'un roman. Sans ce test prioritaire, la règle « récit »
+  // ci-dessous l'aurait absorbé et produit des chapitres de roman.
+  if (workType === "storybook") {
+    return `FORME : STORYBOOK (conte illustré). Chaque PAGE est une image accompagnée de quelques phrases seulement.
+- Écris pour être LU À VOIX HAUTE à un enfant : phrases courtes, rythme régulier, vocabulaire simple et imagé.
+- 40 à 80 MOTS MAXIMUM par page. C'est une contrainte absolue : au-delà, le texte ne tient plus sous l'illustration.
+- Structure chaque page ainsi, et uniquement ainsi :
+  <div class="story-page"><img src="URL_DE_L_IMAGE" alt="description"/><p>Le texte de la page.</p></div>
+- Une page = une image + un moment de l'histoire. N'accumule jamais deux scènes sur la même page.
+- Utilise EXACTEMENT les URL d'images fournies, dans l'ordre où elles te sont données, sans en inventer ni en omettre.
+- AUCUN encadré, AUCUN tableau, AUCUNE liste à puces, AUCUN sous-titre <h2> : rien d'autre que des pages d'histoire.
+- Les répétitions et les formules qui reviennent (« Et alors… », « Mais soudain… ») sont les bienvenues : elles font le charme du conte.`;
+  }
+
   if (genre === "fiction") {
     return `FORME : LIVRE (récit). Le texte se lit d'une traite, du début à la fin. Aucune étape numérotée, aucune checklist, aucun encadré : la narration porte tout.`;
   }
@@ -144,11 +166,23 @@ export function chapterNounFor(workType: WorkType, genre: BookGenre): ChapterNou
 }
 
 /**
+ * Le storybook est le seul type d'ouvrage bâti À PARTIR des images de l'auteur
+ * (flux « Vision-to-Story ») : l'IA regarde les dessins/photos importés et en
+ * tire l'histoire, au lieu d'illustrer un texte déjà écrit.
+ */
+export function isImageDrivenWorkType(workType: WorkType): boolean {
+  return workType === "storybook";
+}
+
+/**
  * Consigne donnée au générateur de SOMMAIRE, pour que la structure elle-même
  * corresponde à la forme voulue (un guide se découpe en étapes, un livre en
  * chapitres thématiques, un ebook en parties courtes).
  */
 export function workTypeOutlineRules(workType: WorkType, genre: BookGenre): string {
+  if (workType === "storybook") {
+    return `Structure de STORYBOOK : un conte court qui tient en 3 à 6 chapitres, chacun regroupant quelques pages illustrées. Les titres sont des moments de l'histoire (« Le départ », « La rencontre »), courts et évocateurs — jamais des rubriques.`;
+  }
   if (genre === "fiction") {
     return `Structure de RÉCIT : des chapitres qui font progresser l'intrigue. Pas de partie « méthode » ni d'annexe.`;
   }
@@ -189,6 +223,23 @@ export interface WorkTypeLayout {
 }
 
 export function workTypeLayout(workType: WorkType, genre: BookGenre): WorkTypeLayout {
+  // Storybook : la page est portée par l'image. Pas de lettrine (elle
+  // entrerait en concurrence avec l'illustration), pas de titre courant, texte
+  // centré et aéré, et surtout pas de justification (des phrases de 8 mots
+  // justifiées produisent des lézardes énormes).
+  if (workType === "storybook") {
+    return {
+      ornaments: false,
+      dropCaps: false,
+      bodyAlignment: "left",
+      chapterTitleAlignment: "center",
+      chapterTitleTopMargin: 40,
+      copyrightPage: true,
+      runningHead: false,
+      endPage: true,
+      lineHeight: 1.6,
+    };
+  }
   if (genre === "fiction" || workType === "livre") {
     return {
       ornaments: true,

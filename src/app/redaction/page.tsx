@@ -22,6 +22,38 @@ const ChapterGenerateModal = dynamic(() => import("@/components/ChapterGenerateM
 
 // Lazy-load parsers only when needed (mammoth ~600KB, jszip ~140KB)
 const loadParser = () => import("@/lib/parser");
+
+/**
+ * URL des visuels importés par l'auteur pour ce projet (blueprint Storybook),
+ * dans l'ordre choisi — cet ordre EST la chronologie du conte.
+ *
+ * La base fait foi : le manuscrit doit rester générable depuis n'importe quel
+ * appareil. Le contexte localStorage ne sert que de repli pour la toute
+ * première génération, déclenchée juste après la création du projet.
+ */
+async function loadProjectImageUrls(
+  projectId: string,
+  fallbackContext?: { imageUrls?: unknown } | null
+): Promise<string[]> {
+  const isHttpUrl = (u: unknown): u is string =>
+    typeof u === "string" && /^https?:\/\//.test(u);
+
+  try {
+    const res = await fetch(`/api/project-assets?projectId=${encodeURIComponent(projectId)}`);
+    if (res.ok) {
+      const data = await res.json();
+      const urls = (data?.assets || [])
+        .map((a: { file_url?: string }) => a?.file_url)
+        .filter(isHttpUrl);
+      if (urls.length > 0) return urls;
+    }
+  } catch (err) {
+    console.warn("Lecture des images du projet impossible:", err);
+  }
+
+  const fallback = fallbackContext?.imageUrls;
+  return Array.isArray(fallback) ? fallback.filter(isHttpUrl) : [];
+}
 import { splitHtmlIntoChapters } from "@/lib/parser/splitChapters";
 import { SIZE_PRESETS } from "@/lib/book/generationPresets";
 import type { BookSizeKey } from "@/lib/book/generationPresets";
@@ -280,6 +312,11 @@ function RedactionContent() {
             }
           } catch(e) {}
 
+          // Visuels importés (blueprint Storybook) : la base fait foi — le
+          // localStorage n'est qu'un repli pour la toute première génération,
+          // juste après la création du projet.
+          const planImageUrls = await loadProjectImageUrls(project.id, ctx);
+
           const response = await fetch("/api/generate-plan", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -297,6 +334,10 @@ function RedactionContent() {
               // Forme de l'ouvrage : elle décide du découpage du sommaire
               // (étapes pour un guide, chapitres thématiques pour un livre).
               workType: (project as any)?.work_type || undefined,
+              blueprintId: (project as any)?.blueprint_id || undefined,
+              // Flux « Vision-to-Story » : le découpage du conte se déduit des
+              // images de l'auteur, pas seulement du synopsis.
+              imageUrls: planImageUrls,
               projectId: project.id,
               model: project.model || ctx?.model || "gemini-2.5-flash",
               useWebSearch,
@@ -1118,6 +1159,9 @@ function RedactionContent() {
             targetWords: preset.wordsPerChapter,
             useWebSearch,
             workType: bookWorkType,
+            // Visuels du projet (blueprint Storybook) : le job les répartit
+            // ensuite entre les chapitres.
+            imageUrls: await loadProjectImageUrls(pId),
           },
         }),
       });
@@ -1323,6 +1367,9 @@ function RedactionContent() {
             model,
             useWebSearch,
             workType: bookWorkType,
+            // Visuels du projet (blueprint Storybook) : le job les répartit
+            // ensuite entre les chapitres.
+            imageUrls: await loadProjectImageUrls(pId),
           },
         }),
       });
@@ -1480,6 +1527,8 @@ function RedactionContent() {
             projectId: pId,
             useWebSearch,
             workType: bookWorkType,
+            blueprintId: (projectData as any)?.blueprint_id || undefined,
+            imageUrls: pId ? await loadProjectImageUrls(pId) : [],
             // Plan complet + position réelle : le chapitre régénéré seul doit
             // connaître le reste du livre, sans quoi il redit ce qui a déjà
             // été écrit ailleurs.

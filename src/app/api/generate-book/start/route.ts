@@ -90,6 +90,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Paramètres de génération invalides." }, { status: 400 });
     }
 
+    // `settings` est persisté tel quel dans la ligne du job : on borne la liste
+    // d'images pour qu'un client modifié ne puisse pas y écrire n'importe quoi
+    // (URL arbitraires envoyées au modèle, ou charge utile démesurée).
+    settings.imageUrls = (Array.isArray(settings.imageUrls) ? settings.imageUrls : [])
+      .filter((u: unknown): u is string => typeof u === "string" && /^https:\/\//.test(u))
+      .slice(0, 24);
+
     const { data: project, error: projectError } = await supabase
       .from("projects")
       .select("id")
