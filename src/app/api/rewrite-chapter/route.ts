@@ -54,9 +54,9 @@ export async function POST(req: Request) {
     const userPlan = profile?.plan || "free";
     const userRole = profile?.role || "user";
 
-    let selectedModelName = model || "gemini-2.5-flash";
+    let selectedModelName = model || "gemini-3.6-flash";
     if (selectedModelName === "gemini-2.5-pro" && userPlan === "free" && userRole !== "admin") {
-      selectedModelName = "gemini-2.5-flash";
+      selectedModelName = "gemini-3.6-flash";
     }
 
     const quota = await checkMonthlyQuota(supabase, user.id, userPlan, userRole);

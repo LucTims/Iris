@@ -30,7 +30,7 @@ if (typeof (globalThis as any).describe === 'undefined') {
 describe('Repli automatique entre fournisseurs IA', () => {
   describe('providerOf', () => {
     test('reconnaît Gemini, OpenAI et Anthropic', () => {
-      expect(providerOf('gemini-2.5-flash')).toBe('google');
+      expect(providerOf('gemini-3.6-flash')).toBe('google');
       expect(providerOf('gpt-4o-mini')).toBe('openai');
       expect(providerOf('claude-3-5-sonnet-20241022')).toBe('anthropic');
     });
@@ -43,11 +43,11 @@ describe('Repli automatique entre fournisseurs IA', () => {
   describe('fallbackChain', () => {
     test('garde le modèle demandé en premier', () => {
       expect(fallbackChain('gpt-4o-mini')[0]).toBe('gpt-4o-mini');
-      expect(fallbackChain('gemini-2.5-flash')[0]).toBe('gemini-2.5-flash');
+      expect(fallbackChain('gemini-3.6-flash')[0]).toBe('gemini-3.6-flash');
     });
 
     test('couvre les TROIS fournisseurs (une clé morte n\'en touche qu\'un)', () => {
-      for (const model of ['gemini-2.5-flash', 'gpt-4o-mini', 'claude-3-5-sonnet-20241022']) {
+      for (const model of ['gemini-3.6-flash', 'gpt-4o-mini', 'claude-3-5-sonnet-20241022']) {
         const providers = fallbackChain(model).map(providerOf);
         expect(providers.length).toBe(3);
         expect([...new Set(providers)].sort().join(',')).toBe('anthropic,google,openai');
@@ -55,7 +55,7 @@ describe('Repli automatique entre fournisseurs IA', () => {
     });
 
     test('ne répète jamais deux fois le même modèle', () => {
-      const chain = fallbackChain('gemini-2.5-flash');
+      const chain = fallbackChain('gemini-3.6-flash');
       expect(chain.length).toBe(new Set(chain).size);
     });
   });

@@ -59,7 +59,7 @@ export async function POST(req: Request) {
       imageUrls,
     } = await req.json();
 
-    const selectedModelName = chosenModel || "gemini-2.5-flash";
+    const selectedModelName = chosenModel || "gemini-3.6-flash";
     const genre = detectGenre(category, tone);
     const webSearchEnabled = shouldGroundWithWebSearch(genre, useWebSearch);
     // Forme de l'ouvrage : elle décide du DÉCOUPAGE (un guide se découpe en

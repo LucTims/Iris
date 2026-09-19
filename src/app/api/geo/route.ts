@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     }
 
     const { title, content, projectId } = await req.json();
-    const modelId = "gemini-2.5-flash";
+    const modelId = "gemini-3.6-flash";
 
     if (!(await checkMinimumBalance(user.id, 5))) {
       return NextResponse.json({ error: "Fonds insuffisants (pièces)." }, { status: 402 });

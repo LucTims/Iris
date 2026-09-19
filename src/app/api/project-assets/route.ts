@@ -12,7 +12,7 @@ export const maxDuration = 120;
 const BUCKET = "project-assets";
 
 /** Modèle de vision utilisé pour décrire les images importées. */
-const VISION_MODEL = "gemini-2.5-flash";
+const VISION_MODEL = "gemini-3.6-flash";
 
 /**
  * Décrit une image pour le flux « Vision-to-Story ».

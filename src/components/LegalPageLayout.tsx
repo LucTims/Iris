@@ -30,17 +30,17 @@ export default function LegalPageLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950 font-body text-neutral-900 dark:text-neutral-100 flex flex-col justify-between">
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-neutral-950/90 backdrop-blur-md border-b border-neutral-200/80 dark:border-neutral-800">
+    <div className="min-h-screen bg-white font-body text-neutral-900 flex flex-col justify-between">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-neutral-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4">
           <Link
             href="/"
-            className="font-heading font-extrabold text-2xl sm:text-3xl md:text-4xl text-neutral-900 dark:text-neutral-100 tracking-tight shrink-0"
+            className="font-heading font-extrabold text-2xl sm:text-3xl md:text-4xl text-neutral-900 tracking-tight shrink-0"
           >
             Iris
           </Link>
 
-          <div className="hidden lg:flex items-center gap-7 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+          <div className="hidden lg:flex items-center gap-7 text-sm font-semibold text-neutral-700">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -59,7 +59,7 @@ export default function LegalPageLayout({
           <div className="flex items-center gap-3 sm:gap-4 shrink-0">
             <Link
               href="/login"
-              className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hidden sm:block"
+              className="text-sm font-semibold text-neutral-700 hover:text-neutral-900 hidden sm:block"
             >
               Se connecter
             </Link>
@@ -74,18 +74,18 @@ export default function LegalPageLayout({
 
       <main className="pt-28 sm:pt-36 pb-20 max-w-4xl mx-auto px-4 sm:px-6 w-full">
         <header className="mb-8">
-          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-extrabold text-neutral-900 dark:text-neutral-100 tracking-tight">
+          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-extrabold text-neutral-900 tracking-tight">
             {title}
           </h1>
-          <p className="text-neutral-600 dark:text-neutral-400 mt-3 text-sm sm:text-base leading-relaxed">
+          <p className="text-neutral-600 mt-3 text-sm sm:text-base leading-relaxed">
             {subtitle}
           </p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-4 font-semibold">
+          <p className="text-xs text-neutral-500 mt-4 font-semibold">
             Dernière mise à jour : {updatedAt}
           </p>
         </header>
 
-        <div className="bg-neutral-50 dark:bg-neutral-900 rounded-3xl p-5 sm:p-8 md:p-12 border border-neutral-200/80 dark:border-neutral-800 space-y-8 text-neutral-700 dark:text-neutral-300 text-sm leading-relaxed">
+        <div className="bg-neutral-50 rounded-3xl p-5 sm:p-8 md:p-12 border border-neutral-200/80 space-y-8 text-neutral-700 text-sm leading-relaxed">
           {children}
         </div>
       </main>
@@ -107,7 +107,7 @@ export function LegalSection({
 }) {
   return (
     <section className="space-y-3 scroll-mt-28" id={`section-${number}`}>
-      <h2 className="font-heading text-lg sm:text-xl font-bold text-neutral-900 dark:text-neutral-100 flex gap-2.5">
+      <h2 className="font-heading text-lg sm:text-xl font-bold text-neutral-900 flex gap-2.5">
         <span className="text-secondary shrink-0">{number}.</span>
         <span>{title}</span>
       </h2>

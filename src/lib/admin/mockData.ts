@@ -315,7 +315,7 @@ export const mockActivity90d: ActivityDataPoint[] = [
 
 export const mockAIModelUsage: AIModelUsage[] = [
   {
-    model_id: 'gemini-2.5-flash',
+    model_id: 'gemini-3.6-flash',
     model_name: 'Gemini 2.5 Flash',
     provider: 'Google AI Studio / Vertex',
     requests_count: 48200,
@@ -366,7 +366,7 @@ export const mockAdminLogs: AdminLogEntry[] = [
     user_email: 'fatou.ndiaye@dakar-tech.sn',
     ip_address: '154.124.72.10',
     message: 'Génération de chapitre réussie (Gemini 2.5 Flash, 1,420 tokens)',
-    payload: { model: 'gemini-2.5-flash', tokens: 1420, latency_ms: 480, chapter_id: 'chap_14' },
+    payload: { model: 'gemini-3.6-flash', tokens: 1420, latency_ms: 480, chapter_id: 'chap_14' },
   },
   {
     id: 'log_002',
@@ -522,7 +522,7 @@ export const mockAdminSettings: AdminSettingsState = {
     strict_rate_limiting: true,
   },
   ai_safety: {
-    default_fallback_model: 'gemini-2.5-flash',
+    default_fallback_model: 'gemini-3.6-flash',
     max_tokens_per_request: 8192,
     daily_spend_cap_usd: 50.0,
     user_daily_quota_free: 10000,

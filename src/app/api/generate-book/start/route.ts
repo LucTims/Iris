@@ -43,7 +43,7 @@ async function buildBibleSafely(
     });
 
     const { text } = await Promise.race([
-      generateWithFallback({ preferred: settings.model || "gemini-2.5-flash", prompt }),
+      generateWithFallback({ preferred: settings.model || "gemini-3.6-flash", prompt }),
       new Promise<{ text: string }>((_, reject) => {
         timer = setTimeout(() => reject(new Error("timeout fiche de référence")), BIBLE_TIMEOUT_MS);
       }),
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
     }
 
     const wordsTarget = Math.max(400, Math.min(4000, Number(settings.targetWords) || 800));
-    const requiredCoins = estimateChapterCoins(wordsTarget, settings.model || "gemini-2.5-flash");
+    const requiredCoins = estimateChapterCoins(wordsTarget, settings.model || "gemini-3.6-flash");
     const hasEnoughCoins = await checkMinimumBalance(user.id, requiredCoins);
     if (!hasEnoughCoins) {
       return NextResponse.json(

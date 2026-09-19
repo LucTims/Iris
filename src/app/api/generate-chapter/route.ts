@@ -123,7 +123,7 @@ export async function POST(req: Request) {
     // des chapitres démesurés qui dépasseraient la limite de temps de 60 s.
     const wordsTarget = Math.max(400, Math.min(4000, Number(targetWords) || 0));
 
-    const selectedModelName = chosenModel || "gemini-2.5-flash";
+    const selectedModelName = chosenModel || "gemini-3.6-flash";
 
     // Garde-fou : on exige le coût ESTIMÉ du chapitre (pages × tarif/page) AVANT
     // de générer, pour s'arrêter proprement quand les pièces manquent — sans

@@ -113,7 +113,7 @@ function RedactionContent() {
   const [chatWidth, setChatWidth] = useState(420); // Default 420px
   const [isResizing, setIsResizing] = useState(false);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
-  const [selectedAiModel, setSelectedAiModel] = useState("gemini-2.5-flash");
+  const [selectedAiModel, setSelectedAiModel] = useState("gemini-3.6-flash");
   const [useWebSearch, setUseWebSearch] = useState(() => {
     if (typeof window === "undefined") return true;
     const saved = localStorage.getItem(`iris_web_search_${urlProjectId}`);
@@ -345,7 +345,7 @@ function RedactionContent() {
               // images de l'auteur, pas seulement du synopsis.
               imageUrls: planImageUrls,
               projectId: project.id,
-              model: project.model || ctx?.model || "gemini-2.5-flash",
+              model: project.model || ctx?.model || "gemini-3.6-flash",
               useWebSearch,
               // Document de référence analysé : priorité à la version persistée
               // en base (project.reference_*), sinon repli sur le localStorage.
@@ -2176,7 +2176,7 @@ function RedactionContent() {
                     className="bg-white border border-neutral-200 text-neutral-800 text-[11px] font-bold px-2 py-1 rounded-lg outline-none cursor-pointer hover:border-secondary transition-all"
                     title="Choisir le modèle d'IA"
                   >
-                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gemini-3.6-flash">Gemini 2.5 Flash</option>
                     <option value="gpt-4o">ChatGPT (GPT-4o)</option>
                     <option value="claude-sonnet-5">Claude Sonnet</option>
                   </select>

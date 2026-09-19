@@ -53,7 +53,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-body antialiased selection:bg-neutral-200 dark:selection:bg-neutral-800 transition-colors duration-300">
+      <body className="bg-white text-neutral-900 font-body antialiased selection:bg-neutral-200 transition-colors duration-300">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           {children}
         </ThemeProvider>

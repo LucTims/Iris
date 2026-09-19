@@ -129,7 +129,7 @@ export async function deductChapterCost(
   // lecture BDD. Avec nos modèles, le prix à la page domine toujours.
   const { input, output } = readUsageTokens(usage);
   const effOutput = output > 0 ? output : estimateTokensFromText(opts.outputText);
-  const rate = MODEL_RATES_USD[modelId] || MODEL_RATES_USD["gemini-2.5-flash"];
+  const rate = MODEL_RATES_USD[modelId] || MODEL_RATES_USD["gemini-3.6-flash"];
   const tokenUsd = (input * rate.in + effOutput * rate.out) / 1_000_000;
   const tokenCoins = usdToCoins(tokenUsd);
 

@@ -40,7 +40,7 @@ export async function GET() {
 
   // Modèles d'écriture proposés dans l'éditeur → clé requise pour chacun.
   const writableModels = [
-    { id: "gemini-2.5-flash", provider: "google", ready: textModels.gemini },
+    { id: "gemini-3.6-flash", provider: "google", ready: textModels.gemini },
     { id: "gpt-4o", provider: "openai", ready: textModels.openai },
     { id: "claude-sonnet-5", provider: "anthropic", ready: textModels.anthropic },
   ];

@@ -40,7 +40,7 @@ export function getAiModel(modelId: string) {
     return anthropic(mappedClaude);
   } else {
     // Par défaut Gemini
-    const mappedGemini = modelId.includes("pro") ? "gemini-2.5-pro" : "gemini-2.5-flash";
+    const mappedGemini = modelId.includes("pro") ? "gemini-2.5-pro" : "gemini-3.6-flash";
     return google(mappedGemini);
   }
 }
@@ -89,7 +89,7 @@ export async function fetchSearchContext(
   if (!useWebSearch) return "";
   if (!searchQuery || !searchQuery.trim()) return "";
 
-  const tools = getSearchTools("gemini-2.5-flash", true);
+  const tools = getSearchTools("gemini-3.6-flash", true);
   // Grounding tool not available in this SDK build: skip silently, the
   // model will answer from its own knowledge.
   if (!tools) return "";
@@ -109,7 +109,7 @@ export async function fetchSearchContext(
 
   try {
     const { text } = await generateText({
-      model: google("gemini-2.5-flash"),
+      model: google("gemini-3.6-flash"),
       tools,
       abortSignal: controller.signal,
       prompt: `Recherche des données factuelles récentes et vérifiées sur le sujet suivant. Retourne UNIQUEMENT une liste de faits clés avec leurs sources (URLs). Pas de commentaire, pas d'introduction. Maximum 10 faits.\n\nSujet : ${searchQuery}`,

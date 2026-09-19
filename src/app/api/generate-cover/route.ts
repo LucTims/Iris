@@ -360,7 +360,7 @@ export async function POST(req: Request) {
       const controller = new AbortController();
       const t = setTimeout(() => controller.abort(), 9000);
       const { text, usage } = await generateText({
-        model: google("gemini-2.5-flash"),
+        model: google("gemini-3.6-flash"),
         abortSignal: controller.signal,
         prompt: `You are a world-renowned visual art director and master concept artist creating multimillion-dollar bestseller book covers and cinematic movie posters.
 
@@ -450,7 +450,7 @@ Essential Requirements:
       if (artDirectionText) {
         await deductGenerationCost(
           user.id,
-          "gemini-2.5-flash",
+          "gemini-3.6-flash",
           artDirectionUsage,
           "Direction artistique de couverture",
           { projectId: projectId || null, outputText: artDirectionText, inputText: basePrompt }
