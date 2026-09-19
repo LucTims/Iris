@@ -6,36 +6,51 @@ import Link from "next/link";
 import AppLayout from "@/components/AppLayout";
 import { useProjects } from "@/hooks/useProjects";
 
+/**
+ * Avancement affiché d'un livre.
+ *
+ * L'API renvoie désormais un rapport `completion` calculé sur le contenu RÉEL
+ * des chapitres (voir `@/lib/book/completion`). On l'utilise tel quel.
+ *
+ * L'ancienne version estimait le pourcentage à partir d'un nombre de chapitres
+ * « attendu » deviné depuis le libellé de longueur (5, 15 ou 30), puis le
+ * bornait à 85 % : un livre entièrement rédigé ne dépassait jamais 85 %, et un
+ * livre de 6 chapitres tous écrits affichait 40 %. Le résultat n'était de
+ * toute façon pas branché — la barre était codée en dur à 50 %.
+ */
 function getProjectProgress(book: any) {
-  let logicalStatus = book.status || "En rédaction";
-  if (logicalStatus === "En cours" || logicalStatus === "Brouillon") logicalStatus = "En rédaction";
-  
-  const count = book.chapters?.[0]?.count || 0;
-  let expected = 15;
-  if (book.length?.includes("Court")) expected = 5;
-  if (book.length?.includes("Long")) expected = 30;
+  const completion = book.completion as
+    | { percent: number; written: number; total: number; isComplete: boolean }
+    | undefined;
 
-  let percent = 0;
-  let colorClass = "bg-secondary";
-  let textClass = "text-secondary";
-  let bgClass = "bg-orange-100/90 border-orange-200/50";
+  const status = book.status || "En rédaction";
+  const isComplete = status === "Terminé" || completion?.isComplete === true;
 
-  if (logicalStatus === "En rédaction") {
-    const rawPercent = count === 0 ? 5 : Math.round((count / expected) * 100);
-    percent = Math.min(85, Math.max(5, rawPercent));
-  } else if (logicalStatus === "Mise en page") {
-    percent = 90;
-    colorClass = "bg-amber-500";
-    textClass = "text-amber-600";
-    bgClass = "bg-amber-100/90 border-amber-200/50";
-  } else if (logicalStatus === "Terminé") {
-    percent = 100;
-    colorClass = "bg-emerald-500";
-    textClass = "text-emerald-600";
-    bgClass = "bg-emerald-100/90 border-emerald-200/50";
+  const percent = isComplete ? 100 : Math.max(0, Math.min(100, completion?.percent ?? 0));
+
+  if (isComplete) {
+    return {
+      logicalStatus: "Terminé",
+      percent: 100,
+      written: completion?.written ?? 0,
+      total: completion?.total ?? 0,
+      colorClass: "bg-emerald-500",
+      textClass: "text-emerald-600",
+      bgClass: "bg-emerald-100/90 border-emerald-200/50 text-emerald-700",
+    };
   }
 
-  return { logicalStatus, percent, colorClass, textClass, bgClass };
+  const logicalStatus = percent === 0 ? "Brouillon" : "En rédaction";
+
+  return {
+    logicalStatus,
+    percent,
+    written: completion?.written ?? 0,
+    total: completion?.total ?? 0,
+    colorClass: "bg-secondary",
+    textClass: "text-secondary",
+    bgClass: "bg-orange-100/90 border-orange-200/50 text-secondary",
+  };
 }
 import { useUser } from "@/hooks/useUser";
 
@@ -55,14 +70,26 @@ export default function ProjectsPage() {
 
   const { projects, isLoading: loading, mutate: fetchProjects } = useProjects();
 
-  const filteredProjects = projects.filter((project) => {
+  // `activeFilter` existait déjà mais n'était branché nulle part : la liste
+  // ignorait purement et simplement le filtre choisi. Il pilote désormais un
+  // vrai tri par état d'avancement.
+  const filteredProjects = projects.filter((project: any) => {
+    const needle = searchQuery.toLowerCase();
     const matchesSearch =
-      (project.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (project.subtitle || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (project.category || "").toLowerCase().includes(searchQuery.toLowerCase());
+      (project.title || "").toLowerCase().includes(needle) ||
+      (project.subtitle || "").toLowerCase().includes(needle) ||
+      (project.category || "").toLowerCase().includes(needle);
 
-    return matchesSearch;
+    if (!matchesSearch) return false;
+    if (activeFilter === "Tous") return true;
+
+    const { logicalStatus } = getProjectProgress(project);
+    return logicalStatus === activeFilter;
   });
+
+  const finishedCount = projects.filter(
+    (p: any) => getProjectProgress(p).logicalStatus === "Terminé"
+  ).length;
 
   const handleDeleteBook = (id: string) => {
     setProjectToDelete(id);
@@ -134,8 +161,31 @@ export default function ProjectsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Rechercher par titre, sujet ou catégorie..."
-                className="w-full bg-neutral-100/80 border border-transparent rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-neutral-800 focus:bg-white focus:border-neutral-300 outline-none transition-all"
+                className="w-full bg-neutral-100/80 dark:bg-neutral-800/80 border border-transparent rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-neutral-800 dark:text-neutral-100 focus:bg-white dark:focus:bg-neutral-900 focus:border-neutral-300 dark:focus:border-neutral-700 outline-none transition-all"
               />
+            </div>
+
+            {/* Filtre par état d'avancement */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+              {[
+                { key: "Tous", label: `Tous (${projects.length})` },
+                { key: "En rédaction", label: "En rédaction" },
+                { key: "Terminé", label: `Terminés (${finishedCount})` },
+              ].map((chip) => (
+                <button
+                  key={chip.key}
+                  type="button"
+                  onClick={() => setActiveFilter(chip.key)}
+                  aria-pressed={activeFilter === chip.key}
+                  className={`shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full border transition-all ${
+                    activeFilter === chip.key
+                      ? "bg-[#C84B31] text-white border-[#C84B31]"
+                      : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:border-neutral-300"
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
             </div>
 
             {/* Grid/List View Toggle & New Book Button */}
@@ -226,8 +276,11 @@ export default function ProjectsPage() {
                     <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-md border border-neutral-200/50 px-2.5 py-1 rounded-full text-[9px] font-extrabold text-neutral-700 uppercase tracking-wider shadow-2xs z-20">
                       {book.category}
                     </span>
-                    <span className="absolute top-4 right-4 bg-orange-100/90 backdrop-blur-md text-secondary border border-orange-200/50 px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-wider shadow-2xs z-20">
-                      {book.status}
+                    <span className={`absolute top-4 right-4 backdrop-blur-md border px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-wider shadow-2xs z-20 inline-flex items-center gap-1 ${progress.bgClass}`}>
+                      {progress.logicalStatus === "Terminé" && (
+                        <span className="material-symbols-outlined text-[11px] leading-none">check_circle</span>
+                      )}
+                      {progress.logicalStatus === "Terminé" ? "Livre terminé" : progress.logicalStatus}
                     </span>
                   </div>
 
@@ -246,16 +299,20 @@ export default function ProjectsPage() {
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs font-semibold text-neutral-600">
                         <span>Progression</span>
-                        <span className="text-secondary font-bold">En cours</span>
+                        <span className={`font-bold ${progress.textClass}`}>{progress.percent}%</span>
                       </div>
                       <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-secondary rounded-full transition-all duration-300"
-                          style={{ width: "50%" }}
+                          className={`h-full rounded-full transition-all duration-300 ${progress.colorClass}`}
+                          style={{ width: `${progress.percent}%` }}
                         ></div>
                       </div>
                       <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono pt-1">
-                        <span>{book.chapters?.[0]?.count || 0} chapitres</span>
+                        <span>
+                          {progress.total > 0
+                            ? `${progress.written}/${progress.total} chapitres rédigés`
+                            : `${book.chapters?.[0]?.count || 0} chapitres`}
+                        </span>
                         <span>{new Date(book.updated_at).toLocaleDateString()}</span>
                       </div>
                     </div>

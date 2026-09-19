@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { WORK_TYPES } from "@/lib/book/work-type";
+import { evaluateCompletion, resolveBookStatus } from "@/lib/book/completion";
 
 /** Valeurs acceptées par les contraintes CHECK de `projects`. */
 const VALID_WORK_TYPES: string[] = WORK_TYPES;
@@ -15,15 +16,28 @@ export async function GET() {
       return NextResponse.json({ error: "Accès non autorisé" }, { status: 401 });
     }
 
+    // On lit le titre et le compteur de mots de chaque chapitre (pas leur
+    // contenu : ce serait des mégaoctets pour rien) afin de calculer
+    // l'avancement réel du livre et l'état « Terminé ».
     const { data: projects, error } = await supabase
       .from("projects")
-      .select("*, chapters(count)")
+      .select("*, chapters(count), chapter_list:chapters(title, word_count)")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
 
     if (error) throw error;
 
-    return NextResponse.json({ projects });
+    const enriched = (projects || []).map((project) => {
+      const completion = evaluateCompletion(project.chapter_list || []);
+      const { chapter_list: _chapterList, ...rest } = project;
+      return {
+        ...rest,
+        completion,
+        status: resolveBookStatus(project.status, completion),
+      };
+    });
+
+    return NextResponse.json({ projects: enriched });
   } catch (error: any) {
     console.error("GET /api/projects error:", error);
     return NextResponse.json({ error: error.message || "Erreur serveur" }, { status: 500 });

@@ -73,8 +73,13 @@ export default function AnalyticsHubPage() {
                   <div className="w-10 h-10 bg-orange-100 text-secondary rounded-xl flex items-center justify-center mb-4">
                     <BookOpen className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Total Projets</span>
-                  <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">{loading ? "-" : projects.length}</p>
+                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Livres terminés</span>
+                  <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">
+                    {loading ? "-" : `${globalStats?.finishedBooks ?? 0}/${globalStats?.booksTotal ?? projects.length}`}
+                  </p>
+                  <p className="text-[11px] text-neutral-500 font-semibold mt-1">
+                    {loading ? " " : `${globalStats?.inProgressBooks ?? 0} en rédaction`}
+                  </p>
                 </div>
               </div>
 
@@ -86,6 +91,9 @@ export default function AnalyticsHubPage() {
                   </div>
                   <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Mots Rédigés</span>
                   <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">{loading ? "-" : globalStats?.totalWords?.toLocaleString('fr-FR') || 0}</p>
+                  <p className="text-[11px] text-neutral-500 font-semibold mt-1">
+                    {loading ? " " : `${(globalStats?.averageWordsPerBook ?? 0).toLocaleString('fr-FR')} mots / livre en moyenne`}
+                  </p>
                 </div>
               </div>
 
@@ -97,6 +105,9 @@ export default function AnalyticsHubPage() {
                   </div>
                   <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Pages Estimées</span>
                   <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">{loading ? "-" : globalStats?.totalPages?.toLocaleString('fr-FR') || 0}</p>
+                  <p className="text-[11px] text-neutral-500 font-semibold mt-1">
+                    {loading ? " " : `${globalStats?.totalReadingTime ?? "0 min"} de lecture`}
+                  </p>
                 </div>
               </div>
 
@@ -150,10 +161,16 @@ export default function AnalyticsHubPage() {
               ) : (
                 <div className="divide-y divide-neutral-100">
                   {filteredProjects.map((project) => {
-                    const stats = projectStats[project.id] || { words: 0, chaptersCount: 0, coins: 0 };
-                    const pages = Math.ceil(stats.words / 250);
-                    const coins = (stats as any).coins || 0;
-                    
+                    const stats = projectStats[project.id] || {
+                      words: 0, chaptersCount: 0, coins: 0, pages: 0,
+                      percent: 0, written: 0, total: 0, status: "Brouillon", readingTime: "0 min",
+                    };
+                    // Les pages et la durée de lecture sont désormais calculées
+                    // côté serveur, à partir des mêmes constantes que l'export.
+                    const pages = stats.pages ?? 0;
+                    const coins = stats.coins || 0;
+                    const isFinished = stats.status === "Terminé";
+
                     return (
                       <div key={project.id} className="p-6 hover:bg-neutral-50/50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-6 group">
                         
@@ -168,9 +185,35 @@ export default function AnalyticsHubPage() {
                             </div>
                           )}
                           
-                          <div>
-                            <h3 className="font-heading font-bold text-base text-neutral-900 group-hover:text-secondary transition-colors line-clamp-1">{project.title}</h3>
-                            <p className="text-xs text-neutral-500 mt-1">{stats.chaptersCount} chapitre(s) • Dernière modif. {new Date(project.updated_at).toLocaleDateString('fr-FR')}</p>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-heading font-bold text-base text-neutral-900 group-hover:text-secondary transition-colors line-clamp-1">{project.title}</h3>
+                              <span
+                                className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider border ${
+                                  isFinished
+                                    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                    : "bg-orange-100 text-secondary border-orange-200"
+                                }`}
+                              >
+                                {isFinished && <span className="material-symbols-outlined text-[11px] leading-none">check_circle</span>}
+                                {isFinished ? "Livre terminé" : stats.status}
+                              </span>
+                            </div>
+                            <p className="text-xs text-neutral-500 mt-1">
+                              {stats.total > 0
+                                ? `${stats.written}/${stats.total} chapitres rédigés`
+                                : `${stats.chaptersCount} chapitre(s)`}
+                              {" • "}{stats.readingTime} de lecture
+                              {" • "}Dernière modif. {new Date(project.updated_at).toLocaleDateString('fr-FR')}
+                            </p>
+                            {/* Barre d'avancement : l'information la plus
+                                utile à l'auteur, absente jusqu'ici. */}
+                            <div className="w-full max-w-[220px] h-1.5 bg-neutral-100 rounded-full overflow-hidden mt-2">
+                              <div
+                                className={`h-full rounded-full transition-all duration-300 ${isFinished ? "bg-emerald-500" : "bg-secondary"}`}
+                                style={{ width: `${Math.max(0, Math.min(100, stats.percent))}%` }}
+                              />
+                            </div>
                           </div>
                         </div>
 
