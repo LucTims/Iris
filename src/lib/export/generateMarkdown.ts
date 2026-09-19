@@ -75,7 +75,5 @@ export function generateMarkdown(
     content += "\n\n---\n\n";
   }
 
-  content += "\n*Généré avec Iris*\n";
-
   return new Blob([content], { type: "text/markdown;charset=utf-8" });
 }

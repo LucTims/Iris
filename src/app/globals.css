@@ -36,10 +36,45 @@
   --color-error-container: #fee2e2;
 }
 
+/* ---------------------------------------------------------------------
+ * Jetons de surface — pilotés par la classe `.dark` posée sur <html> par
+ * next-themes. Toutes les règles CSS brutes ci-dessous consomment ces
+ * variables au lieu de couleurs claires en dur.
+ *
+ * ATTENTION (cause du bug historique du mode sombre) : les utilitaires
+ * Tailwind v4 vivent dans `@layer utilities`, alors que les règles CSS
+ * écrites ici sont HORS layer. Dans la cascade CSS, une règle hors layer
+ * l'emporte TOUJOURS sur une règle en layer, quelle que soit la
+ * spécificité. Un `body { background-color: #ffffff }` écrasait donc
+ * `dark:bg-neutral-950` sur toutes les pages du SaaS : le thème sombre
+ * n'était appliqué qu'aux éléments enfants, jamais au fond de page.
+ * ------------------------------------------------------------------- */
+:root {
+  --app-bg: #ffffff;
+  --app-fg: #111827;
+  --app-muted-fg: #1f2937;
+  --app-scrollbar-thumb: #d1d5db;
+  --app-scrollbar-thumb-hover: #9ca3af;
+  color-scheme: light;
+}
+
+.dark {
+  --app-bg: #0a0a0a;
+  --app-fg: #f5f5f5;
+  --app-muted-fg: #d4d4d4;
+  --app-scrollbar-thumb: #3f3f46;
+  --app-scrollbar-thumb-hover: #52525b;
+  color-scheme: dark;
+}
+
+html {
+  background-color: var(--app-bg);
+}
+
 body {
   font-family: var(--font-body);
-  background-color: #ffffff;
-  color: #111827;
+  background-color: var(--app-bg);
+  color: var(--app-fg);
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -50,7 +85,7 @@ body {
 .chat-bubble-text {
   font-size: 1.05rem; /* ~17px */
   line-height: 1.65;
-  color: #1f2937;
+  color: var(--app-muted-fg);
 }
 
 .chat-bubble-user {
@@ -61,7 +96,7 @@ body {
 .manuscript-text {
   font-size: 1.15rem; /* ~18.5px */
   line-height: 1.75;
-  color: #111827;
+  color: var(--app-fg);
 }
 
 /* Material Symbols configuration (Thinner and Rounded for elegant look) */
@@ -78,11 +113,14 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: var(--app-scrollbar-thumb);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: var(--app-scrollbar-thumb-hover);
+}
+* {
+  scrollbar-color: var(--app-scrollbar-thumb) transparent;
 }
 
 /* ===== Quill Animation Keyframes ===== */

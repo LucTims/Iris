@@ -243,17 +243,19 @@ export function ResizableImageNodeView(props: NodeViewProps) {
     deleteNode();
   };
 
-  const increaseSize = () => {
-    const newW = (currentWidth || imageRef.current?.offsetWidth || 200) * 1.1;
-    setCurrentWidth(newW);
+  // La largeur courante vient de l'attribut du nœud (`width`), pas d'un état
+  // local : l'état `currentWidth`/`setCurrentWidth` a été supprimé lors d'un
+  // correctif antérieur, mais ces deux fonctions y faisaient toujours
+  // référence — cliquer sur « agrandir » ou « réduire » levait donc un
+  // ReferenceError et bloquait le redimensionnement d'image dans l'éditeur.
+  const resizeBy = (factor: number) => {
+    const base = Number(width) || imageRef.current?.offsetWidth || 200;
+    const newW = Math.max(100, Math.round(base * factor));
     updateAttributes({ width: newW });
   };
 
-  const decreaseSize = () => {
-    const newW = Math.max(100, (currentWidth || imageRef.current?.offsetWidth || 200) * 0.9);
-    setCurrentWidth(newW);
-    updateAttributes({ width: newW });
-  };
+  const increaseSize = () => resizeBy(1.1);
+  const decreaseSize = () => resizeBy(0.9);
 
   const rotateLeft = () => updateAttributes({ rotation: (rotation - 90) % 360 });
   const rotateRight = () => updateAttributes({ rotation: (rotation + 90) % 360 });

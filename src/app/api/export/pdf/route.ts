@@ -172,12 +172,15 @@ function buildDocDefinition(
   const year = new Date().getFullYear();
   if (layout.copyrightPage) {
     content.push({ text: title || "Sans titre", style: "copyrightTitle", margin: [0, 320, 0, 0] });
+    // Le livre exporté ne porte AUCUNE marque de fabrique : il appartient
+    // entièrement à son auteur. Le saut de page qui suivait la ligne de
+    // branding est reporté ici pour conserver la pagination d'origine.
     content.push({
       text: `© ${year}. Tous droits réservés.\n\nAucune partie de cet ouvrage ne peut être reproduite ou transmise sous quelque forme que ce soit sans l'autorisation écrite de l'auteur.`,
       style: "copyright",
       margin: [0, 12, 0, 0],
+      pageBreak: "after",
     });
-    content.push({ text: "Composé avec Iris", style: "copyright", italics: true, margin: [0, 24, 0, 0], pageBreak: "after" });
   }
 
   // Détecte si l'auteur a demandé un sommaire : en mode « avec sommaire »,
@@ -260,7 +263,8 @@ function buildDocDefinition(
   return {
     pageSize,
     pageMargins,
-    info: { title, subject: `Livre composé avec Iris - ${title}` },
+    // Métadonnées du PDF : rien qui trahisse l'outil de composition.
+    info: { title, subject: title },
     content,
     // En-tête courant : titre du livre en petites capitales grises, sur les
     // pages de contenu uniquement (ni sur le front matter, ni sur la page de fin).
@@ -354,7 +358,7 @@ export async function POST(req: Request) {
     const coverImage = await inlineCover(coverUrl);
 
     const printer = await getPrinter();
-    const docDefinition = buildDocDefinition(title || "Mon Livre Iris", subtitle, preparedChapters, coverImage, category, exportFormat, workType);
+    const docDefinition = buildDocDefinition(title || "Mon Livre", subtitle, preparedChapters, coverImage, category, exportFormat, workType);
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
     const buffer = await streamToBuffer(pdfDoc);
 

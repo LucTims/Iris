@@ -87,7 +87,7 @@ export async function generateEpub(
     <dc:title>${escapeXml(title)}</dc:title>
     <dc:creator>${escapeXml(author)}</dc:creator>
     <dc:language>fr</dc:language>
-    <dc:publisher>Iris</dc:publisher>
+    <dc:publisher>${escapeXml(author)}</dc:publisher>
 ${coverMeta}    <meta property="dcterms:modified">${new Date().toISOString().replace(/\.\d+Z$/, "Z")}</meta>
   </metadata>
   <manifest>
@@ -233,7 +233,6 @@ blockquote {
     <h1>${escapeXml(title)}</h1>
     ${subtitle ? `<p class="subtitle">${escapeXml(subtitle)}</p>` : ""}
     <p class="separator">───────────────</p>
-    <p class="branding">Généré avec Iris</p>
   </div>
 </body>
 </html>`

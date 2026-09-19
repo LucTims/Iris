@@ -662,6 +662,8 @@ export async function generateDocx(
     );
   }
 
+  // Filet décoratif seul : la page de titre ne porte aucune marque de
+  // fabrique, le document exporté appartient entièrement à son auteur.
   titlePageChildren.push(
     new Paragraph({
       children: [
@@ -674,18 +676,6 @@ export async function generateDocx(
       ],
       alignment: AlignmentType.CENTER,
       spacing: { after: 600 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: "Généré avec Iris",
-          italics: true,
-          font: "Outfit",
-          size: 20,
-          color: "999999",
-        }),
-      ],
-      alignment: AlignmentType.CENTER,
     })
   );
 
@@ -750,7 +740,7 @@ export async function generateDocx(
 
   const doc = new Document({
     title: title,
-    description: `Livre généré avec Iris - ${title}`,
+    description: title,
     sections,
   });
 

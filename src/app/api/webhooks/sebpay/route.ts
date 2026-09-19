@@ -188,15 +188,45 @@ export async function POST(req: Request) {
         transaction.provider_reference ||
         txRef;
 
-      // A. Mettre à jour la transaction
-      await supabaseAdmin
+      // A. RÉSERVATION ATOMIQUE de la transaction.
+      //
+      // Le simple test `if (transaction.status === 'paid')` plus haut ne suffit
+      // pas : c'est un lire-puis-écrire. Les fournisseurs de paiement rejouent
+      // agressivement leurs webhooks, et deux livraisons simultanées lisaient
+      // toutes les deux `status = 'pending'`, passaient toutes les deux le test,
+      // puis créditaient toutes les deux le wallet — l'acheteur recevait le
+      // double de pièces.
+      //
+      // Le `.neq("status", "paid")` transforme la transition en opération
+      // atomique : Postgres ne laisse qu'un seul UPDATE trouver la ligne encore
+      // non payée. Celui qui ne récupère aucune ligne a perdu la course et ne
+      // doit surtout pas créditer.
+      const { data: claimed, error: claimError } = await supabaseAdmin
         .from("transactions")
         .update({
           status: "paid",
           provider_reference: providerRef,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", transaction.id);
+        .eq("id", transaction.id)
+        .neq("status", "paid")
+        .select("id")
+        .maybeSingle();
+
+      if (claimError) {
+        console.error("[Webhook Sebpay] Échec de la réservation de la transaction:", claimError);
+        // On renvoie 500 pour que SEBPay réessaie : mieux vaut un réessai
+        // qu'un paiement encaissé sans pièces créditées.
+        return NextResponse.json({ error: "Réservation de la transaction impossible" }, { status: 500 });
+      }
+
+      if (!claimed) {
+        // Une autre livraison du même webhook a déjà crédité ce paiement.
+        return NextResponse.json(
+          { received: true, status: "already_processed", message: "Transaction déjà validée" },
+          { status: 200 }
+        );
+      }
 
       // B. Créditer le wallet de l'utilisateur (par id de pack, repli par montant)
       const planKey =

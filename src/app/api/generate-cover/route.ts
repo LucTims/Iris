@@ -4,13 +4,14 @@ import { google } from "@ai-sdk/google";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { checkMinimumBalance, deductFixedCoins } from "@/lib/ai/cost-engine";
+import { checkMinimumBalance, deductFixedCoins, deductGenerationCost } from "@/lib/ai/cost-engine";
 import { COVER_IMAGE_COINS } from "@/lib/ai/pricing";
 import {
   buildCoverPrompt,
   pollinationsUrl,
   COVER_WIDTH,
   COVER_HEIGHT,
+  IMAGEN_MODEL,
   type CoverEngine,
 } from "@/lib/ai/cover";
 
@@ -131,68 +132,180 @@ async function fetchImageBytes(url: string): Promise<{ bytes: Buffer; contentTyp
   return { bytes, contentType: ct };
 }
 
-/** Pipeline de génération multi-moteurs avec tolérance de panne complète */
+/** Clé Google — le SDK accepte deux noms de variable selon les déploiements. */
+function googleKey(): string | undefined {
+  return process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY;
+}
+
+/**
+ * Google Imagen via l'API REST Generative Language. C'est le moteur premium
+ * le plus souvent disponible ici, puisque la clé Google sert déjà à toute la
+ * rédaction (Gemini) — alors que `OPENAI_API_KEY` est souvent absente.
+ *
+ * Le module `@/lib/ai/cover` documentait Imagen comme moteur premium mais la
+ * route ne l'appelait jamais : le mode premium se rabattait systématiquement
+ * sur Hugging Face puis Pollinations. C'est la cause du « premium qui rend la
+ * même image que le gratuit ».
+ */
+async function generateWithImagen(prompt: string): Promise<{ bytes: Buffer; contentType: string }> {
+  const key = googleKey();
+  if (!key) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY manquante côté serveur.");
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45000);
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${IMAGEN_MODEL}:predict`,
+      {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          instances: [{ prompt }],
+          parameters: {
+            sampleCount: 1,
+            aspectRatio: "9:16",
+            personGeneration: "allow_adult",
+          },
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(`Imagen ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    }
+
+    const data = await res.json();
+    const b64 = data?.predictions?.[0]?.bytesBase64Encoded;
+    if (!b64) throw new Error("Réponse Imagen sans image exploitable.");
+
+    const bytes = Buffer.from(b64, "base64");
+    if (bytes.length < 500) throw new Error("Image Imagen vide ou invalide.");
+    return { bytes, contentType: data?.predictions?.[0]?.mimeType || "image/png" };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/** OpenAI Images — `gpt-image-1` d'abord, repli `dall-e-3`. */
+async function generateWithOpenAI(prompt: string): Promise<{ bytes: Buffer; contentType: string; usedModel: string }> {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) throw new Error("OPENAI_API_KEY manquante côté serveur.");
+
+  // `gpt-image-1` renvoie toujours du base64 (pas de response_format) ;
+  // `dall-e-3` exige response_format pour éviter une URL éphémère.
+  const attempts: Array<Record<string, unknown>> = [
+    { model: "gpt-image-1", prompt, n: 1, size: "1024x1536", quality: "high" },
+    { model: "dall-e-3", prompt, n: 1, size: "1024x1792", quality: "hd", style: "vivid", response_format: "b64_json" },
+  ];
+
+  let lastErr = "";
+  for (const body of attempts) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
+    try {
+      const res = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        signal: controller.signal,
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const b64 = data?.data?.[0]?.b64_json;
+        if (b64) {
+          return {
+            bytes: Buffer.from(b64, "base64"),
+            contentType: "image/png",
+            usedModel: `openai/${body.model}`,
+          };
+        }
+        lastErr = "réponse OpenAI sans image";
+      } else {
+        lastErr = `${res.status} ${(await res.text()).slice(0, 200)}`;
+      }
+    } catch (err) {
+      lastErr = err instanceof Error ? err.message : String(err);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  throw new Error(`OpenAI Images indisponible: ${lastErr}`);
+}
+
+/**
+ * Pipeline de génération multi-moteurs, tolérant à la panne.
+ *
+ * En mode premium on essaie, dans l'ordre : Imagen (Google) → OpenAI →
+ * Hugging Face FLUX. Le repli Pollinations reste garanti pour que l'auteur
+ * obtienne TOUJOURS une image, mais il est signalé comme NON premium
+ * (`premium: false`) afin de ne pas facturer 200 pièces pour une image
+ * gratuite — c'était le cas avant ce correctif.
+ */
 async function executeImagePipeline(
   prompt: string,
   engine: CoverEngine
-): Promise<{ bytes: Buffer; contentType: string; usedModel: string }> {
-  // 1. Tenter DALL-E 3 si mode premium et clé configurée
-  if (engine === "premium" && process.env.OPENAI_API_KEY) {
-    try {
-      console.log("[generate-cover] Tentative de génération DALL-E 3...");
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 40000);
+): Promise<{ bytes: Buffer; contentType: string; usedModel: string; premium: boolean; failures: string[] }> {
+  const failures: string[] = [];
 
-      const openaiRes = await fetch("https://api.openai.com/v1/images/generations", {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "dall-e-3",
-          prompt,
-          n: 1,
-          size: "1024x1792",
-          quality: "hd",
-          style: "vivid",
-          response_format: "b64_json",
-        }),
-      });
-      clearTimeout(timeout);
-
-      if (openaiRes.ok) {
-        const data = await openaiRes.json();
-        if (data.data?.[0]?.b64_json) {
-          const bytes = Buffer.from(data.data[0].b64_json, "base64");
-          return { bytes, contentType: "image/png", usedModel: "openai/dall-e-3-hd" };
-        }
-      } else {
-        const errText = await openaiRes.text();
-        console.warn("[generate-cover] DALL-E 3 non disponible sur ce compte, repli sur FLUX:", errText.slice(0, 200));
+  if (engine === "premium") {
+    if (googleKey()) {
+      try {
+        const img = await generateWithImagen(prompt);
+        return { ...img, usedModel: `google/${IMAGEN_MODEL}`, premium: true, failures };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        failures.push(`imagen: ${msg}`);
+        console.warn("[generate-cover] Imagen indisponible:", msg);
       }
-    } catch (openAiErr) {
-      console.warn("[generate-cover] Erreur appel DALL-E 3 (repli sur FLUX):", openAiErr);
+    } else {
+      failures.push("imagen: clé Google absente");
+    }
+
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        const img = await generateWithOpenAI(prompt);
+        return { ...img, premium: true, failures };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        failures.push(`openai: ${msg}`);
+        console.warn("[generate-cover] OpenAI Images indisponible:", msg);
+      }
+    } else {
+      failures.push("openai: clé absente");
+    }
+
+    if (hfToken()) {
+      try {
+        const hf = await generateWithHuggingFace(prompt);
+        return {
+          bytes: hf.bytes,
+          contentType: hf.contentType,
+          usedModel: `huggingface/${HF_IMAGE_MODEL}`,
+          premium: true,
+          failures,
+        };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        failures.push(`huggingface: ${msg}`);
+        console.warn("[generate-cover] HF indisponible:", msg);
+      }
+    } else {
+      failures.push("huggingface: clé absente");
     }
   }
 
-  // 2. Tenter Hugging Face FLUX.1 (si clé disponible)
-  if (hfToken()) {
-    try {
-      console.log("[generate-cover] Tentative Hugging Face FLUX.1...");
-      const hf = await generateWithHuggingFace(prompt);
-      return { bytes: hf.bytes, contentType: hf.contentType, usedModel: `huggingface/${HF_IMAGE_MODEL}` };
-    } catch (hfErr) {
-      console.warn("[generate-cover] HF indisponible, bascule sur Pollinations FLUX:", hfErr);
-    }
-  }
-
-  // 3. Repli ultime garanti : Pollinations FLUX
-  console.log("[generate-cover] Utilisation du moteur Pollinations FLUX HD...");
+  // Repli ultime garanti : Pollinations FLUX (gratuit, sans clé).
   const seed = Math.floor(Math.random() * 1_000_000);
   const fallback = await fetchImageBytes(pollinationsUrl(prompt, seed));
-  return { bytes: fallback.bytes, contentType: fallback.contentType, usedModel: "pollinations/flux" };
+  return {
+    bytes: fallback.bytes,
+    contentType: fallback.contentType,
+    usedModel: "pollinations/flux",
+    premium: false,
+    failures,
+  };
 }
 
 export async function POST(req: Request) {
@@ -241,10 +354,12 @@ export async function POST(req: Request) {
     // Direction artistique IA via Gemini 2.5 Flash :
     // Traduit et enrichit le prompt en anglais professionnel ultra-détaillé pour FLUX / DALL-E
     let finalPrompt = basePrompt;
+    let artDirectionUsage: unknown = undefined;
+    let artDirectionText = "";
     try {
       const controller = new AbortController();
       const t = setTimeout(() => controller.abort(), 9000);
-      const { text } = await generateText({
+      const { text, usage } = await generateText({
         model: google("gemini-2.5-flash"),
         abortSignal: controller.signal,
         prompt: `You are a world-renowned visual art director and master concept artist creating multimillion-dollar bestseller book covers and cinematic movie posters.
@@ -262,13 +377,17 @@ Essential Requirements:
 7. Return strictly the prompt text only, without quotes or preface.`,
       });
       clearTimeout(t);
-      if (text.trim()) finalPrompt = text.trim();
+      if (text.trim()) {
+        finalPrompt = text.trim();
+        artDirectionUsage = usage;
+        artDirectionText = text;
+      }
     } catch (e) {
       console.warn("[generate-cover] enrichissement prompt ignoré:", e);
     }
 
     // 1) Génération d'image via le pipeline résilient
-    let generated: { bytes: Buffer; contentType: string; usedModel: string };
+    let generated: { bytes: Buffer; contentType: string; usedModel: string; premium: boolean; failures: string[] };
     try {
       generated = await executeImagePipeline(finalPrompt, engine);
     } catch (genErr) {
@@ -301,12 +420,42 @@ Essential Requirements:
       url = `data:${generated.contentType};base64,${generated.bytes.toString("base64")}`;
     }
 
-    // 3) Débit des pièces uniquement en mode premium et après succès
-    if (engine === "premium") {
+    // 3) Débit des pièces : UNIQUEMENT si un moteur réellement premium a produit
+    //    l'image. Auparavant, quand aucune clé premium n'était configurée (ou
+    //    que tous les moteurs échouaient), le pipeline retombait en silence sur
+    //    Pollinations — gratuit — mais facturait quand même 200 pièces. L'auteur
+    //    payait le prix premium pour l'image du mode gratuit.
+    const billedPremium = engine === "premium" && generated.premium;
+    if (billedPremium) {
       await deductFixedCoins(user.id, COVER_IMAGE_COINS, `Couverture premium (${generated.usedModel})`, {
         project_id: projectId || null,
         engine: generated.usedModel,
       });
+    } else {
+      if (engine === "premium") {
+        // Diagnostic explicite dans les logs : sans cela, une clé premium
+        // manquante restait totalement invisible côté exploitation.
+        console.error(
+          "[generate-cover] Mode premium demandé mais AUCUN moteur premium disponible — " +
+            "image gratuite servie, aucune pièce débitée. Causes :",
+          generated.failures.join(" | ") || "inconnue"
+        );
+      }
+
+      // Même une couverture « gratuite » consomme un appel IA réel : la
+      // direction artistique Gemini qui traduit et enrichit le prompt. Elle
+      // n'était facturée nulle part. On la débite ici au coût token réel
+      // (quelques pièces) pour qu'AUCUN appel IA ne reste gratuit.
+      // En premium, ce coût est déjà couvert par le forfait de 200 pièces.
+      if (artDirectionText) {
+        await deductGenerationCost(
+          user.id,
+          "gemini-2.5-flash",
+          artDirectionUsage,
+          "Direction artistique de couverture",
+          { projectId: projectId || null, outputText: artDirectionText, inputText: basePrompt }
+        );
+      }
     }
 
     // Traçabilité best-effort
@@ -314,12 +463,22 @@ Essential Requirements:
       await supabase.from("ai_usage").insert({
         user_id: user.id,
         project_id: projectId || null,
-        action: `generate_cover_${engine}`,
+        action: `generate_cover_${billedPremium ? "premium" : "free"}`,
         model: generated.usedModel,
       });
     } catch { /* non bloquant */ }
 
-    return NextResponse.json({ url, engine, width: COVER_WIDTH, height: COVER_HEIGHT, model: generated.usedModel });
+    return NextResponse.json({
+      url,
+      // `engine` reflète ce qui a RÉELLEMENT été produit, pas ce qui a été demandé.
+      engine: billedPremium ? "premium" : "free",
+      requestedEngine: engine,
+      downgraded: engine === "premium" && !billedPremium,
+      charged: billedPremium ? COVER_IMAGE_COINS : 0,
+      width: COVER_WIDTH,
+      height: COVER_HEIGHT,
+      model: generated.usedModel,
+    });
   } catch (error) {
     console.error("Erreur serveur génération couverture:", error);
     return NextResponse.json({ error: "Erreur serveur lors de la génération de la couverture." }, { status: 500 });

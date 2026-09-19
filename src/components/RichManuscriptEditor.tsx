@@ -69,6 +69,39 @@ import EditorGenerationOverlay from './EditorGenerationOverlay';
 
 export type { RichManuscriptEditorHandle, RichManuscriptEditorProps };
 
+/**
+ * Signature compacte de l'état de formatage affiché par la barre d'outils.
+ * Sert à ne déclencher un re-rendu React que lorsque l'un de ces états change
+ * vraiment — taper du texte sans changer de style ne re-rend donc plus rien.
+ */
+function toolbarSignature(editor: Editor): string {
+  return [
+    editor.isActive('bold') ? 'b' : '',
+    editor.isActive('italic') ? 'i' : '',
+    editor.isActive('underline') ? 'u' : '',
+    editor.isActive('strike') ? 's' : '',
+    editor.isActive('bulletList') ? 'ul' : '',
+    editor.isActive('orderedList') ? 'ol' : '',
+    editor.isActive('blockquote') ? 'bq' : '',
+    editor.isActive('heading', { level: 1 }) ? 'h1' : '',
+    editor.isActive('heading', { level: 2 }) ? 'h2' : '',
+    editor.isActive('heading', { level: 3 }) ? 'h3' : '',
+    editor.state.selection.empty ? '' : 'sel',
+    editor.can().undo() ? 'z' : '',
+    editor.can().redo() ? 'y' : '',
+  ].join('|');
+}
+
+/** Échappe une chaîne destinée à être injectée dans du HTML brut. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscriptEditorProps>(
   function RichManuscriptEditor(
     {
@@ -100,23 +133,21 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   const bookBodyFont = cssFamilyForPdfKey(bodyPdfKey);
   const bookDisplayFont = cssFamilyForPdfKey(displayPdfKey);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
-  const [zoomLevel, setZoomLevel] = useState(100);
-  
-  // Set default zoom on small screens to prevent overflow
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (window.innerWidth < 640) {
-        setZoomLevel(50);
-      } else if (window.innerWidth < 1024) {
-        setZoomLevel(75);
-      }
-    }
-  }, []);
+  // Zoom initial calculé à l'initialisation de l'état (et non dans un effet) :
+  // la page s'affiche directement à la bonne échelle sur mobile, sans le
+  // « saut » visuel d'un premier rendu à 100 % suivi d'une réduction.
+  const [zoomLevel, setZoomLevel] = useState(() => {
+    if (typeof window === "undefined") return 100;
+    if (window.innerWidth < 640) return 50;
+    if (window.innerWidth < 1024) return 75;
+    return 100;
+  });
   const [pageFormat, setPageFormat] = useState<PageFormatType>("A4");
   const [showRuler, setShowRuler] = useState(true);
   const [pageCount, setPageCount] = useState(1);
   const [wordCount, setWordCount] = useState(0);
   const [, forceUpdate] = useState(0);
+  const toolbarSignatureRef = useRef<string>("");
 
   // Modals & Inserters
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -177,7 +208,9 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       TableKit,
       Pages.configure({
         pageFormat: 'A4',
-        header: `<span style="font-size: 10px; font-weight: bold; color: #9ca3af;">IRIS MANUSCRIT</span>`,
+        // Aucune marque de fabrique dans l'en-tête : le manuscrit appartient à
+        // l'auteur, l'aperçu doit être identique au livre imprimé.
+        header: '',
         footer: `<span style="font-size: 10px; font-weight: bold; color: #9ca3af;">Page {page} sur {total}</span>`,
       }),
     ],
@@ -192,8 +225,19 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       const count = (editor.storage.pages as any)?.getPageCount?.() || 1;
       setPageCount(count);
     },
-    onTransaction: () => {
-      forceUpdate(n => n + 1);
+    // PERFORMANCE : on ne re-rend PAS la barre d'outils à chaque transaction.
+    // Tiptap émet une transaction par frappe, par déplacement de curseur et par
+    // recalcul de pagination ; un `forceUpdate` inconditionnel re-rendait donc
+    // l'intégralité de la barre d'outils (des dizaines de boutons, chacun
+    // interrogeant `editor.isActive(...)`) plusieurs fois par caractère tapé.
+    // C'est la principale cause de la saisie saccadée, surtout sur mobile.
+    // On ne re-rend que lorsque l'état de FORMATAGE visible change réellement.
+    onTransaction: ({ editor }) => {
+      const signature = toolbarSignature(editor);
+      if (signature !== toolbarSignatureRef.current) {
+        toolbarSignatureRef.current = signature;
+        forceUpdate(n => n + 1);
+      }
     },
   });
 
@@ -250,19 +294,15 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
     }
   }, [initialContent, editor]);
 
-  // Zoom initial adapté à l'écran : la page A4 (~794px) déborde d'un mobile, on
-  // réduit donc le zoom au tout premier rendu pour qu'elle tienne à l'écran.
-  // On ne le fait qu'une fois — l'utilisateur reste libre d'ajuster ensuite.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const w = window.innerWidth;
-    // Valeurs alignées sur les options du sélecteur de zoom (50 / 75 / 100…).
-    if (w < 640) setZoomLevel(50);
-    else if (w < 1024) setZoomLevel(75);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Update dynamic word count and page count
+  // Compteurs mots/pages : recalculés à la CRÉATION de l'éditeur et à chaque
+  // changement de chapitre uniquement. Pendant la frappe, `onUpdate` s'en
+  // charge déjà.
+  //
+  // PERFORMANCE : la version précédente utilisait `[editor?.getText()]` comme
+  // tableau de dépendances. Une dépendance est évaluée à CHAQUE rendu React —
+  // `getText()` sérialise donc tout le document à chaque rendu, y compris ceux
+  // provoqués par un simple survol de bouton. Sur un chapitre long, ce seul
+  // appel dominait le coût de la frappe.
   useEffect(() => {
     if (!editor) return;
     const text = editor.getText();
@@ -271,14 +311,15 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
 
     const count = (editor.storage.pages as any)?.getPageCount?.() || 1;
     setPageCount(count);
-  }, [editor?.getText()]);
+  }, [editor, initialContent]);
 
-  // Update header content with chapter title
+  // En-tête de page : uniquement le titre du chapitre (aucune marque de
+  // fabrique). Le titre est échappé car il est injecté en HTML brut.
   useEffect(() => {
     if (!editor) return;
     if ((editor.commands as any).setHeader) {
       (editor.commands as any).setHeader(
-        `<div style="display: flex; justify-content: space-between; width: 100%; font-size: 10px; font-weight: bold; color: #9ca3af;"><span>IRIS MANUSCRIT</span><span>${chapterTitle || "Chapitre"}</span></div>`
+        `<div style="display: flex; justify-content: flex-end; width: 100%; font-size: 10px; font-weight: bold; color: #9ca3af;"><span>${escapeHtml(chapterTitle || "Chapitre")}</span></div>`
       );
     }
   }, [editor, chapterTitle]);

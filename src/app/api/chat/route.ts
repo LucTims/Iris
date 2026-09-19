@@ -174,14 +174,19 @@ export async function POST(req: Request) {
     }).join('\n\n');
 
     // Track usage in Supabase ai_usage table (fire-and-forget, don't await)
+    // Le builder Supabase est un « thenable », pas une vraie Promise : chaîner
+    // `.catch()` dessus n'est pas garanti. On utilise la forme à deux
+    // arguments de `then`, supportée par tout PromiseLike, pour que l'échec du
+    // traçage reste silencieux au lieu de produire un rejet non capturé.
     supabase.from("ai_usage").insert({
       user_id: user.id,
       project_id: projectId || null,
       action: intent === "MODIFY_CHAPTER" ? "chat_modify_chapter" : "chat_assistant",
       model: selectedModelName
-    }).then(() => {}).catch((trackErr: any) => {
-      console.warn("Usage tracking error:", trackErr);
-    });
+    }).then(
+      () => {},
+      (trackErr: unknown) => console.warn("Usage tracking error:", trackErr)
+    );
 
     // Branch A: MODIFY_CHAPTER
     if (intent === "MODIFY_CHAPTER") {

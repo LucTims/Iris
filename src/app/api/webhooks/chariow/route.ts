@@ -110,9 +110,23 @@ export async function POST(req: NextRequest) {
 
     const customerEmail: string | undefined = customer?.email;
     if (!userId && customerEmail) {
-      const { data: users, error: userError } = await supabase.auth.admin.listUsers();
-      if (!userError && users?.users) {
-        userId = users.users.find((u) => u.email === customerEmail)?.id;
+      // Recherche directe par e-mail dans `profiles` (colonne `email`
+      // alimentée par le trigger handle_new_user).
+      //
+      // AVANT : `auth.admin.listUsers()` sans pagination ne renvoie que la
+      // PREMIÈRE page (50 comptes par défaut). Au-delà de 50 inscrits, un
+      // acheteur payant qui n'était pas dans cette première page n'était tout
+      // simplement pas trouvé — paiement encaissé, aucune pièce créditée.
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .ilike("email", customerEmail)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("Recherche du profil par e-mail impossible:", profileError);
+      } else if (profile?.id) {
+        userId = profile.id;
       }
     }
 

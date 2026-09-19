@@ -63,4 +63,17 @@ export function pollinationsUrl(prompt: string, seed?: number): string {
 }
 
 /** Modèle Imagen par défaut (rapide/bon marché) pour le premium. */
-export const IMAGEN_MODEL = "imagen-3.0-fast-generate-001";
+export const IMAGEN_MODEL = process.env.IMAGEN_MODEL || "imagen-3.0-fast-generate-001";
+
+/**
+ * Moteurs considérés comme réellement PREMIUM. Si le pipeline retombe sur un
+ * moteur hors de cette liste (Pollinations, gratuit et sans clé), l'auteur ne
+ * doit PAS être facturé au tarif premium : il n'a pas obtenu ce qu'il a payé.
+ */
+export function isPremiumProvider(usedModel: string): boolean {
+  return (
+    usedModel.startsWith("google/") ||
+    usedModel.startsWith("openai/") ||
+    usedModel.startsWith("huggingface/")
+  );
+}
