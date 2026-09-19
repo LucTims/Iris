@@ -20,31 +20,39 @@ export function useNotifications() {
     revalidateOnFocus: true,
   });
 
-  const markAsRead = async (notificationId: string) => {
+  /**
+   * Un `fetch` ne lève PAS sur une réponse 4xx/5xx : le `try/catch` seul ne
+   * couvrait que les pannes réseau. Un refus serveur (RLS, session expirée)
+   * passait donc pour un succès, et seul le `mutate()` suivant — qui
+   * réaffichait les mêmes non-lus — trahissait le problème.
+   */
+  const postRead = async (payload: Record<string, unknown>, label: string): Promise<boolean> => {
     try {
-      await fetch("/api/notifications", {
+      const res = await fetch("/api/notifications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notification_id: notificationId }),
+        body: JSON.stringify(payload),
       });
-      mutate();
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        console.error(`${label} : le serveur a refusé la requête`, data?.error || res.status);
+        return false;
+      }
+
+      await mutate();
+      return true;
     } catch (e) {
-      console.error("Erreur lors du marquage comme lu:", e);
+      console.error(`${label} :`, e);
+      return false;
     }
   };
 
-  const markAllAsRead = async () => {
-    try {
-      await fetch("/api/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mark_all_read: true }),
-      });
-      mutate();
-    } catch (e) {
-      console.error("Erreur lors du marquage de tout comme lu:", e);
-    }
-  };
+  const markAsRead = (notificationId: string) =>
+    postRead({ notification_id: notificationId }, "Marquage comme lu");
+
+  const markAllAsRead = () =>
+    postRead({ mark_all_read: true }, "Marquage de toutes les notifications comme lues");
 
   return {
     notifications: (data?.notifications || []) as NotificationItem[],

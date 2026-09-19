@@ -61,12 +61,22 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { notification_id, mark_all_read } = body;
 
+    // `ignoreDuplicates: true` transforme l'upsert en INSERT ... ON CONFLICT DO
+    // NOTHING. Une notification déjà lue n'a aucune raison de voir son
+    // `read_at` réécrit, et surtout : la variante DO UPDATE exigeait un droit
+    // UPDATE que la policy RLS des utilisateurs n'accordait pas — « tout
+    // marquer comme lu » échouait donc pour tout le monde sauf les
+    // administrateurs. La policy manquante a été ajoutée, et cette option rend
+    // l'opération correcte quoi qu'il arrive.
+    const upsertOptions = { onConflict: "user_id,notification_id", ignoreDuplicates: true };
+
     if (mark_all_read) {
-      // Récupérer toutes les notifications non lues
-      const { data: notifications } = await supabase
+      const { data: notifications, error: listError } = await supabase
         .from("notifications")
         .select("id")
         .or(`target_user_id.is.null,target_user_id.eq.${user.id}`);
+
+      if (listError) throw listError;
 
       if (notifications && notifications.length > 0) {
         const rowsToInsert = notifications.map((n) => ({
@@ -74,21 +84,25 @@ export async function POST(req: Request) {
           notification_id: n.id,
         }));
 
-        await supabase
+        // L'erreur était ignorée : l'échec RLS ci-dessus était donc totalement
+        // invisible, la route répondant « success » alors que rien n'avait été
+        // écrit et que la pastille de non-lus ne bougeait pas.
+        const { error: markError } = await supabase
           .from("user_notifications_read")
-          .upsert(rowsToInsert, { onConflict: "user_id,notification_id" });
+          .upsert(rowsToInsert, upsertOptions);
+
+        if (markError) throw markError;
       }
 
       return NextResponse.json({ success: true, message: "Toutes les notifications ont été marquées comme lues." });
     }
 
     if (notification_id) {
-      await supabase
+      const { error: markError } = await supabase
         .from("user_notifications_read")
-        .upsert(
-          { user_id: user.id, notification_id },
-          { onConflict: "user_id,notification_id" }
-        );
+        .upsert({ user_id: user.id, notification_id }, upsertOptions);
+
+      if (markError) throw markError;
 
       return NextResponse.json({ success: true });
     }

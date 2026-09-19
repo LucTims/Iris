@@ -34,13 +34,18 @@ export function useUser() {
           .single();
         
         if (profileData) {
+          // La table `profiles` est la SOURCE DE VÉRITÉ ; les métadonnées Auth
+          // ne servent que de repli pour les comptes dont le profil n'a pas
+          // encore été réenregistré depuis la correction de la page Profil
+          // (qui écrivait bio et liens uniquement dans les métadonnées).
           const meta = user.user_metadata || {};
           setProfile({
             ...profileData,
-            bio: meta.bio || profileData.bio,
-            website_url: meta.website_url || profileData.website_url,
-            twitter_url: meta.twitter_url || profileData.twitter_url,
-            amazon_url: meta.amazon_url || profileData.amazon_url
+            bio: profileData.bio ?? meta.bio,
+            website_url: profileData.website_url ?? meta.website_url,
+            twitter_url: profileData.twitter_url ?? meta.twitter_url,
+            amazon_url: profileData.amazon_url ?? meta.amazon_url,
+            avatar_url: profileData.avatar_url ?? meta.avatar_url,
           });
         }
 
