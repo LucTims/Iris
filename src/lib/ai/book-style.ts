@@ -19,6 +19,7 @@ import { workTypeWritingRules } from "@/lib/book/work-type";
 import { factualityRules, keyFigureRule } from "@/lib/ai/factuality";
 import type { BookBible } from "@/lib/book/book-bible";
 import { renderBible, renderChapterScope } from "@/lib/book/book-bible";
+import { buildStorybookChapterPrompt } from "@/lib/ai/storybook-prompts";
 
 export type BookGenre = "fiction" | "nonfiction";
 
@@ -219,6 +220,14 @@ export function buildChapterSystemPrompt(opts: {
   previousSummary?: string;
   searchContext?: string;
   wordsTarget?: number;
+  /**
+   * Visuels de CE chapitre, avec leur description mise en cache à l'import
+   * (blueprint Storybook). Leur présence bascule le prompt sur le persona
+   * « album jeunesse » : voir la note dans le corps de la fonction.
+   */
+  storybookAssets?: Array<{ file_url: string; ai_analysis?: string | null }>;
+  /** Public visé — pilote la tranche d'âge de l'album. */
+  audience?: string;
 }): string {
   const {
     genre,
@@ -240,10 +249,32 @@ export function buildChapterSystemPrompt(opts: {
     previousSummary,
     searchContext,
     wordsTarget,
+    storybookAssets,
+    audience,
   } = opts;
 
   // Titre définitif : celui calculé en amont, sinon composition de repli.
   const heading = chapterHeading || `Chapitre ${chapterNumber} : ${chapterTitle}`;
+
+  // ALBUM ILLUSTRÉ — on REMPLACE le prompt, on ne l'enrichit pas.
+  //
+  // Le prompt générique ci-dessous s'ouvre sur « auteur professionnel de
+  // best-sellers », demande un chapitre « COMPLET » et fixe une longueur de
+  // 800 à 1500 mots. Pour un album, ces trois consignes sont fausses et
+  // contredisent frontalement la règle des 40 à 80 mots par page. Empilées,
+  // c'est le modèle qui arbitre — et il suit la consigne la plus longue et la
+  // plus insistante, donc celle du roman. D'où un retour en arrière.
+  if (workType === "storybook" && storybookAssets && storybookAssets.length > 0) {
+    return `${buildStorybookChapterPrompt({ audience, assets: storybookAssets })}
+
+Album : ${title}
+Intention de l'auteur : ${synopsis || "à déduire des images"}
+${characters ? `Personnages établis (mêmes noms, mêmes apparences) :\n${characters}\n` : ""}${previousSummary && previousSummary.trim() ? `Ce qui s'est passé dans les chapitres précédents :\n${previousSummary}\n` : ""}${chapterBrief ? `Ce chapitre couvre : ${chapterBrief}\n` : ""}${instructions ? `CONSIGNES DE L'AUTEUR (priorité maximale) :\n${instructions}\n` : ""}
+Chapitre à écrire :
+${heading}
+
+Commence par <h1>${heading}</h1>, puis enchaîne directement les blocs <div class="story-page">. Rien d'autre : pas de salutation, pas de Markdown, pas de commentaire final.`;
+  }
 
   // Mémoire permanente de l'ouvrage + périmètre exact de ce chapitre dans le
   // plan COMPLET. C'est ce qui remplace l'ancien sommaire tronqué à 2 000

@@ -63,6 +63,8 @@ export interface BookJobSettings {
   useWebSearch?: boolean;
   /** Forme de l'ouvrage : "livre" | "guide" | "ebook" | "storybook". */
   workType?: string;
+  /** Public vise — pilote la tranche d'age d'un album illustre. */
+  audience?: string;
   /**
    * Visuels importés par l'auteur (flux « Vision-to-Story » du blueprint
    * Storybook), dans l'ordre de l'histoire. Ils sont RÉPARTIS entre les
@@ -122,7 +124,9 @@ function buildSystemPrompt(
   job: BookJobRow,
   recentSummaries: { number: number; title: string; summary: string }[],
   searchContext: string,
-  wordsTarget: number
+  wordsTarget: number,
+  /** Visuels analyses revenant a CE chapitre (blueprint Storybook). */
+  storybookAssets?: Array<{ file_url: string; ai_analysis?: string | null }>
 ): string {
   // Les résumés de continuité sont référencés par leur TITRE, jamais par un
   // numéro de stockage : c'est ce numéro décalé qui faisait dire au modèle
@@ -161,6 +165,8 @@ function buildSystemPrompt(
     previousSummary,
     searchContext,
     wordsTarget: wordsTarget || undefined,
+    storybookAssets: storybookAssets && storybookAssets.length ? storybookAssets : undefined,
+    audience: settings.audience,
   });
 }
 
@@ -291,6 +297,29 @@ export async function processNextChapter(
     ? imagesForChapter(settings.imageUrls, job.current_index, job.total)
     : [];
 
+  // Descriptions mises en cache à l'import, pour les images de CE chapitre.
+  // Quand elles existent, le chapitre s'écrit à partir du texte plutôt que des
+  // images : pas de re-téléversement, et un modèle non multimodal suffit.
+  let chapterAssets: Array<{ file_url: string; ai_analysis?: string | null }> = [];
+  if (chapterImages.length > 0) {
+    const { data: assetRows } = await db
+      .from("project_assets")
+      .select("file_url, ai_analysis")
+      .eq("project_id", job.project_id)
+      .in("file_url", chapterImages);
+    // On réordonne selon `chapterImages` : c'est cet ordre qui porte la
+    // chronologie du conte, pas celui que renvoie la base.
+    const rows = (assetRows || []) as Array<{ file_url: string; ai_analysis: string | null }>;
+    chapterAssets = chapterImages.flatMap((url) => {
+      const row = rows.find((a) => a.file_url === url);
+      return row ? [{ file_url: row.file_url, ai_analysis: row.ai_analysis }] : [];
+    });
+  }
+
+  const hasCachedAnalyses = chapterAssets.some((a) => (a.ai_analysis || "").trim().length > 0);
+  // Les images ne repartent en pièce jointe que si aucune analyse n'existe.
+  const visionImages = hasCachedAnalyses ? [] : chapterImages;
+
   const searchContext = await fetchSearchContext(
     selectedModelName,
     shouldGroundWithWebSearch(genre, settings.useWebSearch),
@@ -301,7 +330,7 @@ export async function processNextChapter(
   for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_CHAPTER; attempt++) {
     try {
       const chapterHeading = headingForChapter(job, job.current_index);
-      const system = buildSystemPrompt(settings, chapter, chapterHeading, job, recentSummaries, searchContext, wordsTarget);
+      const system = buildSystemPrompt(settings, chapter, chapterHeading, job, recentSummaries, searchContext, wordsTarget, chapterAssets);
       // REPLI AUTOMATIQUE : si la clé du modèle demandé est morte / en quota /
       // surchargée, on bascule sur un autre fournisseur au lieu de faire échouer
       // tout le livre. On facture ensuite le modèle qui a réellement écrit.
@@ -310,12 +339,14 @@ export async function processNextChapter(
         system,
         prompt:
           "Rédige ce chapitre maintenant en HTML en respectant scrupuleusement les consignes et le style." +
-          (chapterImages.length
-            ? `${visionInstruction(workType, chapterImages.length)}\n\nURL des images de ce chapitre, dans l'ordre — réutilise-les EXACTEMENT, une par page :\n${chapterImages
+          // Avec des analyses en cache, le prompt systeme porte deja les
+          // images et leurs descriptions : on ne les repete pas ici.
+          (visionImages.length
+            ? `${visionInstruction(workType, visionImages.length)}\n\nURL des images de ce chapitre, dans l'ordre — réutilise-les EXACTEMENT, une par page :\n${visionImages
                 .map((u, i) => `${i + 1}. ${u}`)
                 .join("\n")}`
             : ""),
-        images: chapterImages,
+        images: visionImages,
       });
       if (result.fellBack) {
         console.warn(`[book-job] Repli sur ${result.modelUsed} (chapitre ${chapter.number}) :`, result.errors.join(" | "));

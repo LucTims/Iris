@@ -236,7 +236,10 @@ function buildDocDefinition(
         margin: [0, 6, 0, 20],
       });
     }
-    content.push(...htmlToPdfmakeContent(rest));
+    // Album illustré : une page du livre = une page imprimée. Deux
+    // illustrations sur la même feuille casseraient le rythme de lecture à
+    // voix haute et rendraient l'album inutilisable à l'impression.
+    content.push(...htmlToPdfmakeContent(rest, { onePageEach: workType === "storybook" }));
   });
 
   // Page de FIN — clôt un livre comme un ouvrage édité. Un guide se termine

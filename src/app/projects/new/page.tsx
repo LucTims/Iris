@@ -128,7 +128,7 @@ export default function NewBookWizard() {
    * ------------------------------------------------------------------ */
   const MAX_ASSETS = 24;
   const assetsInputRef = useRef<HTMLInputElement>(null);
-  const [assets, setAssets] = useState<Array<{ url: string; path: string; name: string }>>([]);
+  const [assets, setAssets] = useState<Array<{ url: string; path: string; name: string; analysis?: string | null; analysisStatus?: string }>>([]);
   const [assetsBusy, setAssetsBusy] = useState(false);
   const [assetsError, setAssetsError] = useState("");
   const [isDraggingAssets, setIsDraggingAssets] = useState(false);
@@ -177,6 +177,10 @@ export default function NewBookWizard() {
     setAssetsError("");
     try {
       const body = new FormData();
+      // Le blueprint Storybook fait analyser chaque image a l'import : la
+      // description est mise en cache et sert ensuite a toutes les
+      // generations, au lieu de renvoyer les images a chaque appel.
+      if (isStorybook) body.append("analyze", "1");
       for (const file of files.slice(0, room)) {
         const compressed = await compressImage(file);
         body.append("files", new File([compressed], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" }));
