@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUser";
 import { Copy, CheckCircle2, Info, Users, BookOpen, ChevronDown, RefreshCw } from "lucide-react";
@@ -136,9 +137,18 @@ export default function AutomationsPage() {
           </h1>
           <p className="text-neutral-600 text-sm md:text-base leading-relaxed">
             Le protocole MCP (Model Context Protocol) permet à vos assistants IA d'accéder directement à vos 
-            données Iris. Fini le copier-coller : vos outils IA peuvent consulter et générer vos histoires en 
+            données Iris. Fini le copier-coller : vos outils IA peuvent consulter et générer vos histoires en
             temps réel. Voici ce que vous pouvez faire avec MCP :
           </p>
+          <div>
+            <Link
+              href="/automations/documentation"
+              className="inline-flex items-center gap-2 text-xs font-bold text-secondary bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/40 border border-orange-100 dark:border-orange-900 px-4 py-2.5 rounded-xl transition-colors"
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Documentation complète : outils, sécurité, dépannage</span>
+            </Link>
+          </div>
         </div>
 
         {/* Features Row */}
