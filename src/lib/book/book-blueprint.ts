@@ -1,133 +1,237 @@
 /**
- * BOOK BLUEPRINTS — modèles de livre présentés dans l'assistant de création.
+ * REGISTRE DES BLUEPRINTS DE LIVRES — Iris Book Creation Platform.
  *
- * Un blueprint décrit, pour un type d'ouvrage donné : comment l'assistant de
- * création se comporte (formulaire classique ou import d'images), quels blocs
- * l'éditeur autorise, et d'où viennent les illustrations.
+ * Ce module constitue le registre central définissant le comportement et les
+ * caractéristiques des différents types d'ouvrages supportés dans Iris.
  *
- * ARCHITECTURE — ce module est volontairement une COUCHE MINCE au-dessus de
- * `@/lib/book/work-type`, qui reste la source unique des consignes de
- * rédaction et de la mise en page. Le plan d'implémentation prévoyait un
- * registre autonome dupliquant ces règles ; ç'aurait été un second système de
- * prompts à maintenir en parallèle, avec la dérive garantie entre les deux.
- * Ici, `blueprintId` et `WorkType` sont une seule et même valeur : ajouter un
- * blueprint revient à ajouter un type d'ouvrage, et tout le pipeline existant
- * (plan, chapitre, export PDF/DOCX/EPUB) en hérite sans modification.
+ * Un blueprint associe :
+ *   - L'identité visuelle et descriptive pour l'assistant de création (label, icône, tag, description) ;
+ *   - Le rattachement aux systèmes existants : genre littéraire (`BookGenre`) et type d'ouvrage (`WorkType`) ;
+ *   - La stratégie visuelle (support des illustrations et source des images) ;
+ *   - Le calibrage éditorial : terme de division (chapitre, page, étape), densité de mots cible, et pagination par défaut ;
+ *   - Les champs du formulaire de création à afficher dans le wizard.
  *
- * Seul le blueprint « storybook » est nouveau pour l'instant : les formats
- * recette et documentaire viendront s'ajouter ici quand ils seront ouverts.
+ * Formats actuellement disponibles :
+ *   - `roman` : Ouvrage narratif classique (fiction ou non-fiction continue), sans images.
+ *   - `guide` : Guide pratique ou méthodologique, découpé en étapes avec encadrés.
+ *   - `ebook` : Format numérique court et direct, structuré pour une lecture rapide.
+ *   - `storybook` : Conte illustré pour enfants basé sur des visuels (vision-to-story).
  */
 
-import { WORK_TYPE_META, type WorkType } from "@/lib/book/work-type";
+import type { WorkType } from "@/lib/book/work-type";
+import type { BookGenre } from "@/lib/ai/book-style";
 
-export type BlueprintId = WorkType;
+/**
+ * Identifiants uniques des blueprints supportés dans Iris.
+ */
+export type BlueprintId = "roman" | "guide" | "ebook" | "storybook";
 
-/** D'où viennent les illustrations d'un ouvrage bâti sur ce blueprint. */
+/**
+ * Stratégie de gestion des images pour un blueprint donné.
+ * - 'none' : aucune illustration.
+ * - 'user-upload' : images fournies par l'utilisateur lors de la création.
+ * - 'ai-generated' : images générées automatiquement par l'IA.
+ */
 export type ImageStrategy = "none" | "user-upload" | "ai-generated";
 
+/**
+ * Spécification complète d'un blueprint de livre.
+ */
 export interface BookBlueprint {
+  /** Identifiant unique du blueprint */
   id: BlueprintId;
+  /** Libellé affiché dans l'interface utilisateur */
   label: string;
-  /** Une ligne affichée sous le libellé, dans la carte de l'assistant. */
-  description: string;
-  /** Nom d'icône lucide-react utilisé par la carte. */
+  /** Nom de l'icône Lucide React associée */
   icon: string;
-  /**
-   * Étape 2 de l'assistant : formulaire classique (synopsis, ton, personnages)
-   * ou zone d'import d'images.
-   */
-  creationFlow: "form" | "image-first";
+  /** Description synthétique affichée sur la carte de sélection du wizard */
+  description: string;
+  /** Étiquette courte ou badge pour catégoriser le blueprint */
+  tag: string;
+  /** Genre éditorial associé (fiction ou non-fiction) */
+  genre: BookGenre;
+  /** Type d'ouvrage dans le système historique de rédaction et d'export */
+  workType: WorkType;
+  /** Indique si le format intègre des visuels / illustrations */
+  supportsImages: boolean;
+  /** Stratégie d'approvisionnement des images */
   imageStrategy: ImageStrategy;
-  /** Blocs autorisés dans l'éditeur pour ce type d'ouvrage. */
-  allowedBlocks: string[];
-  /** Nombre d'images conseillé quand le flux est piloté par l'image. */
-  recommendedAssets?: { min: number; max: number };
+  /** Dénomination d'une division de l'ouvrage ('Chapitre', 'Page', 'Étape', etc.) */
+  chapterNoun: string;
+  /** Fourchette cible de mots par division (page ou chapitre) */
+  wordsPerPage: {
+    min: number;
+    max: number;
+  };
+  /** Nombre conseillé ou par défaut de pages / chapitres */
+  defaultPageCount: number;
+  /** Liste des identifiants de champs à afficher dans le formulaire de création */
+  creationFields: string[];
 }
 
-const EDITORIAL_BLOCKS = [
-  "paragraph",
-  "heading",
-  "bulletList",
-  "orderedList",
-  "blockquote",
-  "table",
-  "callout",
-  "keyFigure",
-  "pullQuote",
-  "dropCap",
-  "sectionDivider",
-  "image",
-];
-
+/**
+ * Registre de tous les blueprints disponibles dans Iris.
+ */
 export const BLUEPRINTS: Record<BlueprintId, BookBlueprint> = {
-  livre: {
-    id: "livre",
-    label: WORK_TYPE_META.livre.label,
-    description: WORK_TYPE_META.livre.hint,
+  roman: {
+    id: "roman",
+    label: "Roman",
     icon: "BookOpen",
-    creationFlow: "form",
+    description: "Roman, récit ou essai littéraire composé de chapitres continus et immersifs.",
+    tag: "Roman & Essai",
+    genre: "fiction",
+    workType: "livre",
+    supportsImages: false,
     imageStrategy: "none",
-    allowedBlocks: EDITORIAL_BLOCKS,
+    chapterNoun: "Chapitre",
+    wordsPerPage: { min: 800, max: 2000 },
+    defaultPageCount: 50,
+    creationFields: [
+      "title",
+      "subtitle",
+      "category",
+      "audience",
+      "synopsis",
+      "tone",
+      "characters",
+      "length",
+      "instructions",
+    ],
   },
   guide: {
     id: "guide",
-    label: WORK_TYPE_META.guide.label,
-    description: WORK_TYPE_META.guide.hint,
+    label: "Guide pratique",
     icon: "Compass",
-    creationFlow: "form",
+    description: "Manuel méthodologique axé sur la pratique, structuré en étapes concrètes et encadrés.",
+    tag: "Méthodes & Étapes",
+    genre: "nonfiction",
+    workType: "guide",
+    supportsImages: false,
     imageStrategy: "none",
-    allowedBlocks: EDITORIAL_BLOCKS,
+    chapterNoun: "Étape",
+    wordsPerPage: { min: 600, max: 1500 },
+    defaultPageCount: 30,
+    creationFields: [
+      "title",
+      "subtitle",
+      "category",
+      "audience",
+      "synopsis",
+      "tone",
+      "length",
+      "instructions",
+    ],
   },
   ebook: {
     id: "ebook",
-    label: WORK_TYPE_META.ebook.label,
-    description: WORK_TYPE_META.ebook.hint,
+    label: "Ebook",
     icon: "FileText",
-    creationFlow: "form",
+    description: "Format court, direct et condensé, idéal pour une lecture rapide et scannable sur écran.",
+    tag: "Court & Direct",
+    genre: "nonfiction",
+    workType: "ebook",
+    supportsImages: false,
     imageStrategy: "none",
-    allowedBlocks: EDITORIAL_BLOCKS,
+    chapterNoun: "Chapitre",
+    wordsPerPage: { min: 400, max: 800 },
+    defaultPageCount: 15,
+    creationFields: [
+      "title",
+      "subtitle",
+      "category",
+      "audience",
+      "synopsis",
+      "tone",
+      "length",
+      "instructions",
+    ],
   },
   storybook: {
     id: "storybook",
-    label: WORK_TYPE_META.storybook.label,
-    description: WORK_TYPE_META.storybook.hint,
+    label: "Conte illustré",
     icon: "Sparkles",
-    creationFlow: "image-first",
+    description: "Créez un conte pour enfants magnifiquement illustré, page par page.",
+    tag: "Conte illustré",
+    genre: "fiction",
+    workType: "livre",
+    supportsImages: true,
     imageStrategy: "user-upload",
-    // Un conte illustré n'a ni tableau, ni encadré, ni chiffre-clé : la page
-    // est une image et quelques phrases.
-    allowedBlocks: ["paragraph", "heading", "image", "storyPage", "sectionDivider"],
-    recommendedAssets: { min: 2, max: 24 },
+    chapterNoun: "Page",
+    wordsPerPage: { min: 30, max: 150 },
+    defaultPageCount: 12,
+    creationFields: [
+      "title",
+      "audience",
+      "synopsis",
+      "characters",
+      "storybook_images",
+    ],
   },
 };
 
+/**
+ * Liste ordonnée de tous les blueprints pour l'affichage dans l'interface utilisateur.
+ */
 export const BLUEPRINT_LIST: BookBlueprint[] = [
-  BLUEPRINTS.livre,
+  BLUEPRINTS.roman,
   BLUEPRINTS.guide,
   BLUEPRINTS.ebook,
   BLUEPRINTS.storybook,
 ];
 
-/** Blueprint correspondant à un identifiant, avec repli sur « livre ». */
-export function getBlueprint(id: string | null | undefined): BookBlueprint {
-  if (id && id in BLUEPRINTS) return BLUEPRINTS[id as BlueprintId];
-  return BLUEPRINTS.livre;
-}
-
-/** Vrai si l'assistant doit demander des images avant de générer le livre. */
-export function requiresUserImages(id: string | null | undefined): boolean {
-  return getBlueprint(id).creationFlow === "image-first";
+/**
+ * Résout le blueprint correspondant à un identifiant donné.
+ * Si l'identifiant est indéfini, nul ou non répertorié, se replie sur le blueprint par défaut 'roman'.
+ * Assure également la compatibilité avec l'identifiant historique 'livre'.
+ *
+ * @param id Identifiant du blueprint recherché (ex: 'roman', 'storybook', 'guide', 'ebook')
+ * @returns Le blueprint correspondant ou 'roman' par défaut
+ */
+export function resolveBlueprint(id?: string | null): BookBlueprint {
+  if (!id) return BLUEPRINTS.roman;
+  const normalized = id.toLowerCase().trim();
+  if (normalized === "livre") return BLUEPRINTS.roman;
+  if (normalized in BLUEPRINTS) {
+    return BLUEPRINTS[normalized as BlueprintId];
+  }
+  return BLUEPRINTS.roman;
 }
 
 /**
- * Consigne d'analyse des images, injectée dans le prompt quand l'auteur a
- * importé des visuels. C'est le cœur du flux « Vision-to-Story » : le modèle
- * REGARDE les images et en tire l'histoire, au lieu d'illustrer un texte.
+ * Détermine si un blueprint prend en charge les images / illustrations.
+ *
+ * @param id Identifiant du blueprint
+ * @returns true si le blueprint supporte les images, false sinon
+ */
+export function isVisualBlueprint(id: BlueprintId): boolean {
+  return BLUEPRINTS[id]?.supportsImages ?? false;
+}
+
+/**
+ * Alias de compatibilité pour `resolveBlueprint`.
+ */
+export function getBlueprint(id?: string | null): BookBlueprint {
+  return resolveBlueprint(id);
+}
+
+/**
+ * Indique si le blueprint requiert des images fournies par l'utilisateur lors de la création.
+ */
+export function requiresUserImages(id?: string | null): boolean {
+  const bp = resolveBlueprint(id);
+  return bp.supportsImages && bp.imageStrategy === "user-upload";
+}
+
+/**
+ * Consigne d'analyse des images, injectée dans le prompt IA quand l'auteur a
+ * fourni des visuels. Au cœur du flux « Vision-to-Story », le modèle analyse
+ * le contenu visuel pour en déduire et articuler la narration.
  */
 export function visionInstruction(id: string | null | undefined, imageCount: number): string {
   if (imageCount <= 0) return "";
 
-  if (getBlueprint(id).id === "storybook") {
+  const bp = resolveBlueprint(id);
+  if (bp.id === "storybook" || id === "storybook") {
     return `\n\n--- IMAGES FOURNIES PAR L'AUTEUR (${imageCount}) ---
 L'auteur a importé ${imageCount} image${imageCount > 1 ? "s" : ""} (dessins d'enfant, photos, illustrations). Elles te sont jointes dans l'ordre exact du livre.
 

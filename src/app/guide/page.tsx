@@ -20,7 +20,7 @@ export default function GuideDashboardPage() {
         
         {/* Grand Titre Épuré (Sans badge superflu ni paragraphe long) */}
         <div className="text-center max-w-3xl mx-auto pt-2 pb-1">
-          <h1 className="font-heading font-extrabold text-2xl sm:text-4xl text-neutral-900 tracking-tight leading-tight">
+          <h1 className="font-heading font-extrabold text-2xl sm:text-4xl text-neutral-900 dark:text-neutral-100 tracking-tight leading-tight">
             Donnez vie à vos livres. <br />
             <span className="text-[#C84B31]">De la première idée à la publication.</span>
           </h1>
@@ -118,13 +118,13 @@ export default function GuideDashboardPage() {
                   href="/IrisGuideComplet.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2 bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 px-5 py-3.5 rounded-full font-semibold text-sm transition-colors"
+                  className="w-full inline-flex items-center justify-center gap-2 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:bg-neutral-800/50 text-neutral-800 dark:text-neutral-200 border border-neutral-300 px-5 py-3.5 rounded-full font-semibold text-sm transition-colors"
                 >
                   <span>Feuilleter en ligne</span>
-                  <ExternalLink className="w-4 h-4 text-neutral-500" />
+                  <ExternalLink className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
                 </a>
 
-                <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-500 pt-1">
+                <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 pt-1">
                   <ShieldCheck className="w-4 h-4 text-[#C84B31]" />
                   <span>PDF Haute Définition (1,3 Mo) • Gratuit & immédiat</span>
                 </div>
@@ -133,25 +133,25 @@ export default function GuideDashboardPage() {
 
             {/* Informations du livre : Après le livre sur mobile (order-2), à droite sur desktop (lg:order-2) */}
             <div className="lg:col-span-7 space-y-5 order-2 lg:order-2">
-              <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-neutral-900 tracking-tight leading-tight">
+              <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-neutral-900 dark:text-neutral-100 tracking-tight leading-tight">
                 Téléchargez « Iris : Le Guide Complet »
               </h2>
 
-              <p className="text-neutral-600 text-sm sm:text-base leading-relaxed">
+              <p className="text-neutral-600 dark:text-neutral-400 text-sm sm:text-base leading-relaxed">
                 Découvrez le niveau d'exigence éditoriale, la finesse de rédaction et la mise en page produite par Iris. Cet ouvrage complet de 5 chapitres a été rédigé et exporté à 100% avec notre plateforme.
               </p>
 
               {/* 3 points clés */}
               <div className="space-y-2.5 pt-1">
-                <div className="flex items-center gap-3 text-sm text-neutral-800 font-medium">
+                <div className="flex items-center gap-3 text-sm text-neutral-800 dark:text-neutral-200 font-medium">
                   <CheckCircle2 className="w-5 h-5 text-[#C84B31] shrink-0" />
                   <span>La méthode étape par étape pour concevoir un livre avec l'IA</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-neutral-800 font-medium">
+                <div className="flex items-center gap-3 text-sm text-neutral-800 dark:text-neutral-200 font-medium">
                   <CheckCircle2 className="w-5 h-5 text-[#C84B31] shrink-0" />
                   <span>Les secrets pour préserver votre voix et un style d'auteur unique</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-neutral-800 font-medium">
+                <div className="flex items-center gap-3 text-sm text-neutral-800 dark:text-neutral-200 font-medium">
                   <CheckCircle2 className="w-5 h-5 text-[#C84B31] shrink-0" />
                   <span>Les règles de mise en page et de publication sur Amazon KDP</span>
                 </div>
@@ -172,14 +172,14 @@ export default function GuideDashboardPage() {
                   href="/IrisGuideComplet.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 px-5 py-3.5 rounded-full font-semibold text-sm transition-colors"
+                  className="inline-flex items-center justify-center gap-2 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:bg-neutral-800/50 text-neutral-800 dark:text-neutral-200 border border-neutral-300 px-5 py-3.5 rounded-full font-semibold text-sm transition-colors"
                 >
                   <span>Feuilleter en ligne</span>
-                  <ExternalLink className="w-4 h-4 text-neutral-500" />
+                  <ExternalLink className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
                 </a>
               </div>
 
-              <div className="hidden lg:flex items-center gap-2 text-xs text-neutral-500">
+              <div className="hidden lg:flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
                 <ShieldCheck className="w-4 h-4 text-[#C84B31]" />
                 <span>PDF Haute Définition (1,3 Mo) • Téléchargement direct et immédiat.</span>
               </div>
@@ -192,44 +192,44 @@ export default function GuideDashboardPage() {
         <section className="pt-2 pb-2">
           <div className="text-center max-w-xl mx-auto mb-6">
             <span className="text-xs font-bold uppercase tracking-wider text-[#C84B31]">L'outil en bref</span>
-            <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 tracking-tight mt-1">
+            <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 dark:text-neutral-100 tracking-tight mt-1">
               Tout ce dont vous avez besoin pour publier
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-xs">
+            <div className="bg-white dark:bg-neutral-900 p-6 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 shadow-xs">
               <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-3">
                 <BookOpen className="w-5 h-5" />
               </div>
-              <h3 className="font-heading font-bold text-base text-neutral-900 mb-1.5">
+              <h3 className="font-heading font-bold text-base text-neutral-900 dark:text-neutral-100 mb-1.5">
                 1. Co-rédaction IA
               </h3>
-              <p className="text-sm text-neutral-600 leading-relaxed">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
                 Structurez vos chapitres et développez vos arguments avec une IA qui respecte votre style et élimine le syndrome de la page blanche.
               </p>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-xs">
+            <div className="bg-white dark:bg-neutral-900 p-6 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 shadow-xs">
               <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-3">
                 <Palette className="w-5 h-5" />
               </div>
-              <h3 className="font-heading font-bold text-base text-neutral-900 mb-1.5">
+              <h3 className="font-heading font-bold text-base text-neutral-900 dark:text-neutral-100 mb-1.5">
                 2. Studio de Couverture
               </h3>
-              <p className="text-sm text-neutral-600 leading-relaxed">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
                 Générez des visuels haute résolution aux dimensions standards pour capter l'attention sur Amazon KDP ou votre propre boutique.
               </p>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-xs">
+            <div className="bg-white dark:bg-neutral-900 p-6 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 shadow-xs">
               <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-3">
                 <FileText className="w-5 h-5" />
               </div>
-              <h3 className="font-heading font-bold text-base text-neutral-900 mb-1.5">
+              <h3 className="font-heading font-bold text-base text-neutral-900 dark:text-neutral-100 mb-1.5">
                 3. Export PDF & EPUB
               </h3>
-              <p className="text-sm text-neutral-600 leading-relaxed">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
                 Téléchargez instantanément votre livre mis en page, prêt pour l'impression papier ou la lecture sur Kindle et smartphones.
               </p>
             </div>
@@ -237,11 +237,11 @@ export default function GuideDashboardPage() {
         </section>
 
         {/* Action Membre Connecté */}
-        <section className="bg-[#FAF7F5] border border-neutral-200/80 rounded-2xl p-7 text-center space-y-3">
-          <h3 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900">
+        <section className="bg-[#FAF7F5] border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-7 text-center space-y-3">
+          <h3 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 dark:text-neutral-100">
             Prêt à lancer votre prochain livre ?
           </h3>
-          <p className="text-neutral-600 text-sm max-w-md mx-auto">
+          <p className="text-neutral-600 dark:text-neutral-400 text-sm max-w-md mx-auto">
             Accédez à l'atelier de création pour générer votre plan, rédiger vos chapitres et concevoir votre couverture.
           </p>
           <div className="pt-1">

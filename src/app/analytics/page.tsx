@@ -61,64 +61,64 @@ export default function AnalyticsHubPage() {
           
           {/* Global Stats Overview */}
           <div>
-            <h2 className="font-heading font-extrabold text-xl text-neutral-900 mb-6 flex items-center gap-2">
+            <h2 className="font-heading font-extrabold text-xl text-neutral-900 dark:text-neutral-100 mb-6 flex items-center gap-2">
               <TrendingUp className="w-6 h-6 text-neutral-400" />
               Vue d'Ensemble
             </h2>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-6 rounded-3xl border border-neutral-200/80 shadow-2xs space-y-3 relative overflow-hidden group">
+              <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-neutral-200/80 dark:border-neutral-800 shadow-2xs space-y-3 relative overflow-hidden group">
                 <div className="absolute -right-4 -top-4 w-20 h-20 bg-orange-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
                 <div className="relative z-10">
                   <div className="w-10 h-10 bg-orange-100 text-secondary rounded-xl flex items-center justify-center mb-4">
                     <BookOpen className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Livres terminés</span>
-                  <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">
+                  <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block">Livres terminés</span>
+                  <p className="font-heading font-extrabold text-3xl text-neutral-900 dark:text-neutral-100 mt-1">
                     {loading ? "-" : `${globalStats?.finishedBooks ?? 0}/${globalStats?.booksTotal ?? projects.length}`}
                   </p>
-                  <p className="text-[11px] text-neutral-500 font-semibold mt-1">
+                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400 font-semibold mt-1">
                     {loading ? " " : `${globalStats?.inProgressBooks ?? 0} en rédaction`}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-3xl border border-neutral-200/80 shadow-2xs space-y-3 relative overflow-hidden group">
+              <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-neutral-200/80 dark:border-neutral-800 shadow-2xs space-y-3 relative overflow-hidden group">
                 <div className="absolute -right-4 -top-4 w-20 h-20 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
                 <div className="relative z-10">
                   <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4">
                     <FileText className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Mots Rédigés</span>
-                  <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">{loading ? "-" : globalStats?.totalWords?.toLocaleString('fr-FR') || 0}</p>
-                  <p className="text-[11px] text-neutral-500 font-semibold mt-1">
+                  <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block">Mots Rédigés</span>
+                  <p className="font-heading font-extrabold text-3xl text-neutral-900 dark:text-neutral-100 mt-1">{loading ? "-" : globalStats?.totalWords?.toLocaleString('fr-FR') || 0}</p>
+                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400 font-semibold mt-1">
                     {loading ? " " : `${(globalStats?.averageWordsPerBook ?? 0).toLocaleString('fr-FR')} mots / livre en moyenne`}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-3xl border border-neutral-200/80 shadow-2xs space-y-3 relative overflow-hidden group">
+              <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-neutral-200/80 dark:border-neutral-800 shadow-2xs space-y-3 relative overflow-hidden group">
                 <div className="absolute -right-4 -top-4 w-20 h-20 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
                 <div className="relative z-10">
                   <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
                     <span className="material-symbols-outlined">menu_book</span>
                   </div>
-                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Pages Estimées</span>
-                  <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">{loading ? "-" : globalStats?.totalPages?.toLocaleString('fr-FR') || 0}</p>
-                  <p className="text-[11px] text-neutral-500 font-semibold mt-1">
+                  <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block">Pages Estimées</span>
+                  <p className="font-heading font-extrabold text-3xl text-neutral-900 dark:text-neutral-100 mt-1">{loading ? "-" : globalStats?.totalPages?.toLocaleString('fr-FR') || 0}</p>
+                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400 font-semibold mt-1">
                     {loading ? " " : `${globalStats?.totalReadingTime ?? "0 min"} de lecture`}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-3xl border border-neutral-200/80 shadow-2xs space-y-3 relative overflow-hidden group">
+              <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-neutral-200/80 dark:border-neutral-800 shadow-2xs space-y-3 relative overflow-hidden group">
                 <div className="absolute -right-4 -top-4 w-20 h-20 bg-purple-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
                 <div className="relative z-10">
                   <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-4">
                     <Coins className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">Crédits utilisés</span>
-                  <p className="font-heading font-extrabold text-3xl text-neutral-900 mt-1">{loading ? "-" : (globalStats?.totalCoins || 0).toLocaleString('fr-FR')}</p>
+                  <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block">Crédits utilisés</span>
+                  <p className="font-heading font-extrabold text-3xl text-neutral-900 dark:text-neutral-100 mt-1">{loading ? "-" : (globalStats?.totalCoins || 0).toLocaleString('fr-FR')}</p>
                 </div>
               </div>
             </div>
@@ -127,7 +127,7 @@ export default function AnalyticsHubPage() {
           {/* Project List */}
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h2 className="font-heading font-extrabold text-xl text-neutral-900">
+              <h2 className="font-heading font-extrabold text-xl text-neutral-900 dark:text-neutral-100">
                 Statistiques par Projet
               </h2>
               
@@ -140,23 +140,23 @@ export default function AnalyticsHubPage() {
                   placeholder="Rechercher un livre..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:border-secondary outline-none transition-colors"
+                  className="w-full pl-10 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl text-sm focus:border-secondary outline-none transition-colors"
                 />
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl border border-neutral-200/80 shadow-2xs overflow-hidden">
+            <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200/80 dark:border-neutral-800 shadow-2xs overflow-hidden">
               {loading ? (
                 <div className="flex flex-col justify-center items-center h-48">
                   <span className="material-symbols-outlined animate-spin text-secondary text-3xl">progress_activity</span>
-                  <p className="text-sm font-semibold text-neutral-500 mt-3">Calcul de vos statistiques...</p>
+                  <p className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mt-3">Calcul de vos statistiques...</p>
                 </div>
               ) : filteredProjects.length === 0 ? (
-                <div className="p-12 text-center text-neutral-500">
-                  <div className="w-16 h-16 bg-neutral-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <div className="p-12 text-center text-neutral-500 dark:text-neutral-400">
+                  <div className="w-16 h-16 bg-neutral-50 dark:bg-neutral-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <BarChart3 className="w-8 h-8 text-neutral-400" />
                   </div>
-                  <p className="font-bold text-neutral-800">Aucun projet trouvé</p>
+                  <p className="font-bold text-neutral-800 dark:text-neutral-200">Aucun projet trouvé</p>
                 </div>
               ) : (
                 <div className="divide-y divide-neutral-100">
@@ -176,18 +176,18 @@ export default function AnalyticsHubPage() {
                         
                         <div className="flex items-center gap-4 flex-1">
                           {project.cover_url ? (
-                            <div className="w-14 h-20 rounded shadow-sm overflow-hidden shrink-0 bg-neutral-100 border border-neutral-200">
+                            <div className="w-14 h-20 rounded shadow-sm overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-800">
                               <img src={project.cover_url} alt="Cover" className="w-full h-full object-cover" />
                             </div>
                           ) : (
-                            <div className="w-14 h-20 rounded shadow-sm bg-neutral-100 border border-neutral-200 shrink-0 flex items-center justify-center">
+                            <div className="w-14 h-20 rounded shadow-sm bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 shrink-0 flex items-center justify-center">
                               <BookOpen className="w-6 h-6 text-neutral-300" />
                             </div>
                           )}
                           
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-heading font-bold text-base text-neutral-900 group-hover:text-secondary transition-colors line-clamp-1">{project.title}</h3>
+                              <h3 className="font-heading font-bold text-base text-neutral-900 dark:text-neutral-100 group-hover:text-secondary transition-colors line-clamp-1">{project.title}</h3>
                               <span
                                 className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider border ${
                                   isFinished
@@ -199,7 +199,7 @@ export default function AnalyticsHubPage() {
                                 {isFinished ? "Livre terminé" : stats.status}
                               </span>
                             </div>
-                            <p className="text-xs text-neutral-500 mt-1">
+                            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                               {stats.total > 0
                                 ? `${stats.written}/${stats.total} chapitres rédigés`
                                 : `${stats.chaptersCount} chapitre(s)`}
@@ -208,7 +208,7 @@ export default function AnalyticsHubPage() {
                             </p>
                             {/* Barre d'avancement : l'information la plus
                                 utile à l'auteur, absente jusqu'ici. */}
-                            <div className="w-full max-w-[220px] h-1.5 bg-neutral-100 rounded-full overflow-hidden mt-2">
+                            <div className="w-full max-w-[220px] h-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden mt-2">
                               <div
                                 className={`h-full rounded-full transition-all duration-300 ${isFinished ? "bg-emerald-500" : "bg-secondary"}`}
                                 style={{ width: `${Math.max(0, Math.min(100, stats.percent))}%` }}
@@ -217,15 +217,15 @@ export default function AnalyticsHubPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-8 px-4 py-3 bg-white border border-neutral-100 rounded-2xl md:bg-transparent md:border-transparent md:p-0">
+                        <div className="flex items-center gap-8 px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl md:bg-transparent md:border-transparent md:p-0">
                           <div className="text-center">
                             <span className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Mots</span>
-                            <span className="font-bold text-neutral-800">{stats.words.toLocaleString('fr-FR')}</span>
+                            <span className="font-bold text-neutral-800 dark:text-neutral-200">{stats.words.toLocaleString('fr-FR')}</span>
                           </div>
                           <div className="w-px h-8 bg-neutral-200"></div>
                           <div className="text-center">
                             <span className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Pages</span>
-                            <span className="font-bold text-neutral-800">{pages}</span>
+                            <span className="font-bold text-neutral-800 dark:text-neutral-200">{pages}</span>
                           </div>
                           <div className="w-px h-8 bg-neutral-200"></div>
                           <div className="text-center">

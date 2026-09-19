@@ -82,7 +82,7 @@ function MarqueeRow({ items, direction = "left" }: { items: TagItem[]; direction
             className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-semibold tracking-normal whitespace-nowrap transition-all duration-200 select-none shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-default ${
               item.featured
                 ? "bg-[#FDF3F1] border border-[#F4C5BC] text-[#C84B31] font-bold"
-                : "bg-white border border-neutral-200/90 text-neutral-800 hover:border-[#F4C5BC] hover:text-[#C84B31]"
+                : "bg-white dark:bg-neutral-900 border border-neutral-200/90 text-neutral-800 dark:text-neutral-200 hover:border-[#F4C5BC] hover:text-[#C84B31]"
             }`}
           >
             {item.featured && (
@@ -98,25 +98,25 @@ function MarqueeRow({ items, direction = "left" }: { items: TagItem[]; direction
 
 export default function GenreCloudSection() {
   return (
-    <section className="py-20 md:py-28 bg-neutral-50/70 border-b border-neutral-200/80 relative overflow-hidden">
+    <section className="py-20 md:py-28 bg-neutral-50/70 border-b border-neutral-200/80 dark:border-neutral-800 relative overflow-hidden">
       {/* Background radial glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-gradient-to-tr from-[#C84B31]/10 via-[#FDF3F1]/80 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
 
       {/* Header */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center mb-12 sm:mb-14">
         {/* Pill Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-neutral-200 text-neutral-800 text-xs font-semibold mb-5 shadow-2xs">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 text-xs font-semibold mb-5 shadow-2xs">
           <span className="w-1.5 h-1.5 rounded-full bg-[#C84B31]" />
           <span>Flexibilité littéraire totale</span>
         </div>
 
         {/* Main Heading */}
-        <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.15]">
+        <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-extrabold text-neutral-900 dark:text-neutral-100 tracking-tight leading-[1.15]">
           Écrivez tout ce que vous pouvez <span className="text-[#C84B31]">imaginer</span>
         </h2>
 
         {/* Subtitle */}
-        <p className="text-base sm:text-lg text-neutral-600 mt-5 font-normal leading-relaxed max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg text-neutral-600 dark:text-neutral-400 mt-5 font-normal leading-relaxed max-w-2xl mx-auto">
           Iris vous offre la structure et la liberté nécessaires pour rédiger, illustrer et exporter tous les types de livres que vous souhaitez publier.
         </p>
       </div>

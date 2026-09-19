@@ -237,7 +237,7 @@ export default function CoverStudioEditorPage() {
   };
 
   return (
-    <div className="bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row h-screen overflow-hidden">
+    <div className="bg-[#F9FAFB] font-body text-neutral-900 dark:text-neutral-100 flex flex-col md:flex-row h-screen overflow-hidden">
       {/* GLOBAL REUSABLE SIDEBAR */}
       <Sidebar />
 
@@ -245,11 +245,11 @@ export default function CoverStudioEditorPage() {
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <header className="bg-[#F9FAFB] sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
-            <Link href="/cover-studio" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all">
+            <Link href="/cover-studio" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 bg-neutral-100 dark:bg-neutral-800 px-3 py-2 rounded-xl transition-all">
               <span className="material-symbols-outlined text-base">arrow_back</span>
               <span>Hub Studio</span>
             </Link>
-            <h1 className="font-heading font-extrabold text-xl text-neutral-900 flex items-center gap-2">
+            <h1 className="font-heading font-extrabold text-xl text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
               <span className="material-symbols-outlined text-secondary">palette</span>
               <span>Éditeur de Couverture</span>
             </h1>
@@ -274,26 +274,26 @@ export default function CoverStudioEditorPage() {
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50">
-                  <div className="px-4 py-3 border-b border-neutral-100">
-                    <p className="font-heading font-bold text-sm text-neutral-900">{displayName}</p>
-                    <p className="text-xs text-neutral-500 truncate">{displayEmail}</p>
+                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800 py-2 z-50">
+                  <div className="px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
+                    <p className="font-heading font-bold text-sm text-neutral-900 dark:text-neutral-100">{displayName}</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">{displayEmail}</p>
                   </div>
                   <div className="py-1">
-                    <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
+                    <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800/50">
                       <span className="material-symbols-outlined text-base text-neutral-400">dashboard</span>
                       <span>Tableau de bord</span>
                     </Link>
-                    <Link href="/profile" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
+                    <Link href="/profile" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800/50">
                       <span className="material-symbols-outlined text-base text-neutral-400">person</span>
                       <span>Mon Profil</span>
                     </Link>
-                    <Link href="/settings" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
+                    <Link href="/settings" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800/50">
                       <span className="material-symbols-outlined text-base text-neutral-400">settings</span>
                       <span>Paramètres</span>
                     </Link>
                   </div>
-                  <div className="pt-1 border-t border-neutral-100">
+                  <div className="pt-1 border-t border-neutral-100 dark:border-neutral-800">
                     <button onClick={signOut} className="w-full text-left flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50">
                       <span className="material-symbols-outlined text-base text-red-500">logout</span>
                       <span>Se déconnecter</span>
@@ -312,7 +312,7 @@ export default function CoverStudioEditorPage() {
             className="lg:col-span-7 flex flex-col items-center justify-center bg-neutral-900/90 backdrop-blur-md rounded-3xl p-8 lg:p-12 border border-neutral-800 relative min-h-[600px] overflow-hidden"
             style={{ perspective: "1500px" }}
           >
-            <span className="absolute top-4 left-4 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-mono font-bold text-white uppercase tracking-wider z-20">
+            <span className="absolute top-4 left-4 bg-white dark:bg-neutral-900/10 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-mono font-bold text-white uppercase tracking-wider z-20">
               Aperçu Haute Définition HD
             </span>
 
@@ -403,24 +403,24 @@ export default function CoverStudioEditorPage() {
           <div className="lg:col-span-5 flex flex-col space-y-6">
             
             {/* Mode Navigation */}
-            <div className="flex items-center gap-2 bg-neutral-100 p-1.5 rounded-2xl border border-neutral-200">
+            <div className="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 p-1.5 rounded-2xl border border-neutral-200 dark:border-neutral-800">
               <button 
                 onClick={() => setCoverMode("ai")}
-                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${coverMode === 'ai' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${coverMode === 'ai' ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:text-neutral-300'}`}
               >
                 <span className="material-symbols-outlined text-[18px]">smart_toy</span>
                 IA & Chat
               </button>
               <button 
                 onClick={() => setCoverMode("upload")}
-                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${coverMode === 'upload' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${coverMode === 'upload' ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:text-neutral-300'}`}
               >
                 <span className="material-symbols-outlined text-[18px]">upload</span>
                 Upload
               </button>
               <button 
                 onClick={() => setCoverMode("styles")}
-                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${coverMode === 'styles' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${coverMode === 'styles' ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 shadow-sm' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:text-neutral-300'}`}
               >
                 <span className="material-symbols-outlined text-[18px]">style</span>
                 Styles & 3D
@@ -429,22 +429,22 @@ export default function CoverStudioEditorPage() {
 
             {/* Mode: AI & Chat */}
             {coverMode === "ai" && (
-              <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-sm flex-1 flex flex-col relative min-h-[400px]">
+              <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm flex-1 flex flex-col relative min-h-[400px]">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="font-heading font-extrabold text-base text-neutral-900 flex items-center gap-2">
+                  <h2 className="font-heading font-extrabold text-base text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
                     <span className="material-symbols-outlined text-amber-500">forum</span>
                     Assistant IA
                   </h2>
-                  <div className="flex items-center bg-neutral-100 rounded-lg p-0.5">
+                  <div className="flex items-center bg-neutral-100 dark:bg-neutral-800 rounded-lg p-0.5">
                     <button
                       onClick={() => setCoverEngine("free")}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-md transition-all ${coverEngine === "free" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500"}`}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-md transition-all ${coverEngine === "free" ? "bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 shadow-sm" : "text-neutral-500 dark:text-neutral-400"}`}
                     >
                       Gratuit
                     </button>
                     <button
                       onClick={() => setCoverEngine("premium")}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-md transition-all flex items-center gap-1 ${coverEngine === "premium" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500"}`}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-md transition-all flex items-center gap-1 ${coverEngine === "premium" ? "bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 shadow-sm" : "text-neutral-500 dark:text-neutral-400"}`}
                     >
                       <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
                       Premium · 200
@@ -452,7 +452,7 @@ export default function CoverStudioEditorPage() {
                   </div>
                 </div>
 
-                <div className="flex-1 mb-4 bg-neutral-50 rounded-2xl p-4 border border-neutral-100 flex flex-col overflow-y-auto">
+                <div className="flex-1 mb-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-2xl p-4 border border-neutral-100 dark:border-neutral-800 flex flex-col overflow-y-auto">
                    {isGenerating ? (
                      <div className="m-auto flex flex-col items-center gap-4 text-center">
                        <div className="flex items-end gap-1.5 h-8">
@@ -461,7 +461,7 @@ export default function CoverStudioEditorPage() {
                          <span className="w-2 h-2 rounded-full bg-secondary animate-bounce"></span>
                        </div>
                        <div>
-                         <p className="text-xs font-bold text-neutral-700">
+                         <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
                            {coverEngine === "premium" ? "Génération premium en cours…" : "Génération en cours…"}
                          </p>
                          <p className="text-[11px] text-neutral-400 mt-1">
@@ -481,7 +481,7 @@ export default function CoverStudioEditorPage() {
                       value={promptText}
                       onChange={(e) => setPromptText(e.target.value)}
                       placeholder="Décrivez votre image (ex: un dragon sur une montagne...)"
-                      className="w-full bg-neutral-50 p-4 pr-14 border border-neutral-200 rounded-2xl text-xs font-medium focus:border-secondary focus:ring-2 focus:ring-orange-100 outline-none resize-none"
+                      className="w-full bg-neutral-50 dark:bg-neutral-800/50 p-4 pr-14 border border-neutral-200 dark:border-neutral-800 rounded-2xl text-xs font-medium focus:border-secondary focus:ring-2 focus:ring-orange-100 outline-none resize-none"
                     />
                     <button
                       onClick={handleGenerateAI}
@@ -507,16 +507,16 @@ export default function CoverStudioEditorPage() {
 
                 {/* Auto Confirm Modal */}
                 {showAutoConfirm && (
-                  <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-10 rounded-3xl p-6 flex flex-col items-center justify-center text-center border border-neutral-200 animate-fadeIn">
+                  <div className="absolute inset-0 bg-white dark:bg-neutral-900/95 backdrop-blur-sm z-10 rounded-3xl p-6 flex flex-col items-center justify-center text-center border border-neutral-200 dark:border-neutral-800 animate-fadeIn">
                     <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-4">
                       <span className="material-symbols-outlined text-secondary text-2xl">info</span>
                     </div>
-                    <h3 className="font-heading font-extrabold text-lg text-neutral-900 mb-2">Génération Automatique</h3>
-                    <p className="text-xs text-neutral-600 mb-6">
+                    <h3 className="font-heading font-extrabold text-lg text-neutral-900 dark:text-neutral-100 mb-2">Génération Automatique</h3>
+                    <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-6">
                       L'image sera créée automatiquement en se basant sur le titre, le sous-titre et le synopsis de votre livre. Voulez-vous continuer ?
                     </p>
                     <div className="flex items-center gap-3 w-full">
-                      <button onClick={() => setShowAutoConfirm(false)} className="flex-1 py-3 text-xs font-bold bg-neutral-100 text-neutral-700 rounded-xl hover:bg-neutral-200 transition-colors">Annuler</button>
+                      <button onClick={() => setShowAutoConfirm(false)} className="flex-1 py-3 text-xs font-bold bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-xl hover:bg-neutral-200 transition-colors">Annuler</button>
                       <button 
                         onClick={() => {
                           setShowAutoConfirm(false);
@@ -534,13 +534,13 @@ export default function CoverStudioEditorPage() {
 
             {/* Mode: Upload */}
             {coverMode === "upload" && (
-              <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-sm flex-1 flex flex-col justify-center items-center min-h-[400px]">
+              <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm flex-1 flex flex-col justify-center items-center min-h-[400px]">
                 <div className="text-center w-full max-w-sm">
                   <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
                     <span className="material-symbols-outlined text-3xl">cloud_upload</span>
                   </div>
-                  <h2 className="font-heading font-extrabold text-lg text-neutral-900 mb-2">Importer votre couverture</h2>
-                  <p className="text-xs text-neutral-500 mb-8 leading-relaxed">
+                  <h2 className="font-heading font-extrabold text-lg text-neutral-900 dark:text-neutral-100 mb-2">Importer votre couverture</h2>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-8 leading-relaxed">
                     Importez votre propre image de couverture. L'image sera adaptée automatiquement au format du livre.
                   </p>
                   
@@ -578,24 +578,24 @@ export default function CoverStudioEditorPage() {
 
             {/* Mode: Styles & 3D Angles */}
             {coverMode === "styles" && (
-              <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-sm flex-1 overflow-y-auto space-y-8 min-h-[400px]">
+              <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm flex-1 overflow-y-auto space-y-8 min-h-[400px]">
                 
                 {/* 3D Angles */}
                 <div className="space-y-4">
-                  <h2 className="font-heading font-extrabold text-base text-neutral-900 flex items-center gap-2">
+                  <h2 className="font-heading font-extrabold text-base text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
                     <span className="material-symbols-outlined text-purple-500 text-lg">3d_rotation</span>
                     <span>Angles de Vue 3D</span>
                   </h2>
                   <div className="grid grid-cols-3 gap-3">
-                    <button onClick={() => setPreviewAngle("face")} className={`py-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${previewAngle === 'face' ? 'border-secondary bg-orange-50 text-secondary shadow-sm' : 'border-neutral-200 hover:bg-neutral-50 text-neutral-600'}`}>
+                    <button onClick={() => setPreviewAngle("face")} className={`py-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${previewAngle === 'face' ? 'border-secondary bg-orange-50 text-secondary shadow-sm' : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400'}`}>
                       <span className="material-symbols-outlined">menu_book</span>
                       <span className="text-[10px] font-bold uppercase tracking-wider">Face</span>
                     </button>
-                    <button onClick={() => setPreviewAngle("iso-left")} className={`py-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${previewAngle === 'iso-left' ? 'border-secondary bg-orange-50 text-secondary shadow-sm' : 'border-neutral-200 hover:bg-neutral-50 text-neutral-600'}`}>
+                    <button onClick={() => setPreviewAngle("iso-left")} className={`py-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${previewAngle === 'iso-left' ? 'border-secondary bg-orange-50 text-secondary shadow-sm' : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400'}`}>
                       <span className="material-symbols-outlined" style={{ transform: 'rotate(-15deg) skewY(-10deg)' }}>book_4</span>
                       <span className="text-[10px] font-bold uppercase tracking-wider">Iso Gauche</span>
                     </button>
-                    <button onClick={() => setPreviewAngle("iso-right")} className={`py-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${previewAngle === 'iso-right' ? 'border-secondary bg-orange-50 text-secondary shadow-sm' : 'border-neutral-200 hover:bg-neutral-50 text-neutral-600'}`}>
+                    <button onClick={() => setPreviewAngle("iso-right")} className={`py-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${previewAngle === 'iso-right' ? 'border-secondary bg-orange-50 text-secondary shadow-sm' : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400'}`}>
                       <span className="material-symbols-outlined" style={{ transform: 'rotate(15deg) skewY(10deg)' }}>book_4</span>
                       <span className="text-[10px] font-bold uppercase tracking-wider">Iso Droit</span>
                     </button>
@@ -603,24 +603,24 @@ export default function CoverStudioEditorPage() {
                 </div>
 
                 {/* Typography Form */}
-                <div className="space-y-4 pt-6 border-t border-neutral-100">
-                  <h2 className="font-heading font-extrabold text-base text-neutral-900">Textes de la Couverture</h2>
+                <div className="space-y-4 pt-6 border-t border-neutral-100 dark:border-neutral-800">
+                  <h2 className="font-heading font-extrabold text-base text-neutral-900 dark:text-neutral-100">Textes de la Couverture</h2>
                   <div className="space-y-3">
                     <div>
-                      <input type="text" placeholder="Titre principal" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl text-xs font-semibold focus:border-secondary outline-none transition-colors" />
+                      <input type="text" placeholder="Titre principal" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-3.5 py-2.5 border border-neutral-200 dark:border-neutral-800 rounded-xl text-xs font-semibold focus:border-secondary outline-none transition-colors" />
                     </div>
                     <div>
-                      <input type="text" placeholder="Sous-titre" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} className="w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl text-xs font-medium focus:border-secondary outline-none transition-colors" />
+                      <input type="text" placeholder="Sous-titre" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} className="w-full px-3.5 py-2.5 border border-neutral-200 dark:border-neutral-800 rounded-xl text-xs font-medium focus:border-secondary outline-none transition-colors" />
                     </div>
                     <div>
-                      <input type="text" placeholder="Nom d'Auteur" value={author} onChange={(e) => setAuthor(e.target.value)} className="w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl text-xs font-semibold focus:border-secondary outline-none transition-colors" />
+                      <input type="text" placeholder="Nom d'Auteur" value={author} onChange={(e) => setAuthor(e.target.value)} className="w-full px-3.5 py-2.5 border border-neutral-200 dark:border-neutral-800 rounded-xl text-xs font-semibold focus:border-secondary outline-none transition-colors" />
                     </div>
                   </div>
                 </div>
 
                 {/* Themes */}
-                <div className="space-y-4 pt-6 border-t border-neutral-100">
-                  <h2 className="font-heading font-extrabold text-base text-neutral-900 flex items-center justify-between">
+                <div className="space-y-4 pt-6 border-t border-neutral-100 dark:border-neutral-800">
+                  <h2 className="font-heading font-extrabold text-base text-neutral-900 dark:text-neutral-100 flex items-center justify-between">
                     <span>Thèmes & Couleurs</span>
                     {!coverImage && <span className="text-[10px] font-normal text-neutral-400">Fond visible</span>}
                   </h2>
@@ -629,7 +629,7 @@ export default function CoverStudioEditorPage() {
                       <button
                         key={preset.name}
                         onClick={() => { setSelectedTheme(preset.name); setBgColor(preset.bg); setAccentColor(preset.accent); setCoverImage(null); }}
-                        className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all ${selectedTheme === preset.name && !coverImage ? "border-secondary bg-orange-50/60 text-neutral-900 shadow-sm" : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"}`}
+                        className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all ${selectedTheme === preset.name && !coverImage ? "border-secondary bg-orange-50/60 text-neutral-900 dark:text-neutral-100 shadow-sm" : "border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:bg-neutral-800/50"}`}
                       >
                         <span>{preset.name}</span>
                         <div className="flex items-center gap-1.5">
@@ -651,8 +651,8 @@ export default function CoverStudioEditorPage() {
       {/* Download Choice Modal */}
       {downloadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-body animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl max-h-[90dvh] overflow-y-auto flex flex-col relative border border-neutral-100">
-            <button onClick={() => setDownloadModalOpen(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-full text-neutral-600 transition-colors z-10">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl max-w-lg w-full shadow-2xl max-h-[90dvh] overflow-y-auto flex flex-col relative border border-neutral-100 dark:border-neutral-800">
+            <button onClick={() => setDownloadModalOpen(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 rounded-full text-neutral-600 dark:text-neutral-400 transition-colors z-10">
               <span className="material-symbols-outlined text-lg">close</span>
             </button>
             
@@ -662,8 +662,8 @@ export default function CoverStudioEditorPage() {
               </div>
               
               <div className="space-y-2">
-                <h2 className="font-heading font-extrabold text-2xl text-neutral-900">Que voulez-vous télécharger ?</h2>
-                <p className="text-sm text-neutral-500 max-w-sm mx-auto leading-relaxed">
+                <h2 className="font-heading font-extrabold text-2xl text-neutral-900 dark:text-neutral-100">Que voulez-vous télécharger ?</h2>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-sm mx-auto leading-relaxed">
                   Souhaitez-vous télécharger uniquement cette image de couverture ou bien exporter le livre complet avec sa mise en page ?
                 </p>
               </div>
@@ -674,7 +674,7 @@ export default function CoverStudioEditorPage() {
                     handleDownloadHD();
                     setDownloadModalOpen(false);
                   }}
-                  className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-sm py-4 rounded-xl transition-all flex items-center justify-center gap-3"
+                  className="w-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-neutral-800 dark:text-neutral-200 font-bold text-sm py-4 rounded-xl transition-all flex items-center justify-center gap-3"
                 >
                   <span className="material-symbols-outlined">image</span>
                   <span>Télécharger l'image seule (PNG)</span>
@@ -696,8 +696,8 @@ export default function CoverStudioEditorPage() {
       {/* Unapplied Cover Modal */}
       {unappliedCoverModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-body animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl flex flex-col relative border border-neutral-100">
-            <button onClick={() => setUnappliedCoverModalOpen(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-full text-neutral-600 transition-colors z-10">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl max-w-xl w-full shadow-2xl flex flex-col relative border border-neutral-100 dark:border-neutral-800">
+            <button onClick={() => setUnappliedCoverModalOpen(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 rounded-full text-neutral-600 dark:text-neutral-400 transition-colors z-10">
               <span className="material-symbols-outlined text-lg">close</span>
             </button>
             
@@ -707,8 +707,8 @@ export default function CoverStudioEditorPage() {
               </div>
               
               <div className="space-y-2">
-                <h2 className="font-heading font-extrabold text-2xl text-neutral-900">Couverture non appliquée</h2>
-                <p className="text-sm text-neutral-500 max-w-sm mx-auto leading-relaxed">
+                <h2 className="font-heading font-extrabold text-2xl text-neutral-900 dark:text-neutral-100">Couverture non appliquée</h2>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-sm mx-auto leading-relaxed">
                   Vous n'avez pas encore appliqué cette couverture à votre livre. Voulez-vous l'appliquer maintenant avant le téléchargement ?
                 </p>
                 <p className="text-xs text-neutral-400 italic mt-1">(Sinon le livre sera exporté sans cette couverture.)</p>
@@ -734,7 +734,7 @@ export default function CoverStudioEditorPage() {
                     setUnappliedCoverModalOpen(false);
                     setExportOpen(true);
                   }}
-                  className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-sm py-3.5 rounded-xl transition-all"
+                  className="w-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-neutral-700 dark:text-neutral-300 font-bold text-sm py-3.5 rounded-xl transition-all"
                 >
                   Passer
                 </button>

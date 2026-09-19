@@ -16,7 +16,7 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900 font-landing selection:bg-orange-100 flex flex-col justify-between">
+    <div className="min-h-screen bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-landing selection:bg-orange-100 flex flex-col justify-between">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -43,29 +43,29 @@ export default function Home() {
       />
       
       {/* Navigation Bar */}
-      <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-neutral-200/80">
+      <nav className="fixed top-0 w-full z-50 bg-white dark:bg-neutral-900/95 backdrop-blur-md border-b border-neutral-200/80 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between">
           <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group shrink-0">
             <img src="/iris-logo.png" alt="Iris" className="w-8 h-8 sm:w-9 sm:h-9 object-contain group-hover:scale-105 transition-transform" />
-            <span className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-neutral-900">
+            <span className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-neutral-900 dark:text-neutral-100">
               Iris
             </span>
           </Link>
 
           {/* Center Links */}
-          <div className="hidden md:flex items-center gap-8 font-semibold text-sm text-neutral-700">
-            <Link href="/presentation" className="hover:text-neutral-900 transition-colors flex items-center gap-1.5 text-[#C84B31] font-bold">
+          <div className="hidden md:flex items-center gap-8 font-semibold text-sm text-neutral-700 dark:text-neutral-300">
+            <Link href="/presentation" className="hover:text-neutral-900 dark:text-neutral-100 transition-colors flex items-center gap-1.5 text-[#C84B31] font-bold">
               <span>Découvrir Iris</span>
               <span className="text-[10px] uppercase tracking-wider bg-[#FDF3F1] border border-[#F4C5BC] px-1.5 py-0.5 rounded-full font-bold">Livre offert</span>
             </Link>
-            <Link href="/features" className="hover:text-neutral-900 transition-colors">Fonctionnalités</Link>
-            <Link href="/how-it-works" className="hover:text-neutral-900 transition-colors">Comment ça marche</Link>
-            <Link href="/pricing" className="hover:text-neutral-900 transition-colors">Tarifs</Link>
+            <Link href="/features" className="hover:text-neutral-900 dark:text-neutral-100 transition-colors">Fonctionnalités</Link>
+            <Link href="/how-it-works" className="hover:text-neutral-900 dark:text-neutral-100 transition-colors">Comment ça marche</Link>
+            <Link href="/pricing" className="hover:text-neutral-900 dark:text-neutral-100 transition-colors">Tarifs</Link>
           </div>
 
           {/* Right Action */}
           <div className="hidden md:flex items-center gap-5 shrink-0">
-            <Link href="/login" className="font-semibold text-sm text-neutral-700 hover:text-neutral-900 transition-colors">
+            <Link href="/login" className="font-semibold text-sm text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:text-neutral-100 transition-colors">
               Se connecter
             </Link>
             <Link href={user ? "/dashboard" : "/register"}>
@@ -79,7 +79,7 @@ export default function Home() {
           {/* Mobile Hamburger Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-xl text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer"
+            className="md:hidden p-2 rounded-xl text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:text-neutral-100 hover:bg-neutral-100 dark:bg-neutral-800 transition-colors cursor-pointer"
             aria-label="Ouvrir le menu"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -88,7 +88,7 @@ export default function Home() {
 
         {/* Mobile Menu Dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-b border-neutral-200 px-5 pt-3 pb-6 space-y-3 shadow-lg animate-in slide-in-from-top-2 duration-150">
+          <div className="md:hidden bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-5 pt-3 pb-6 space-y-3 shadow-lg animate-in slide-in-from-top-2 duration-150">
             <Link
               href="/presentation"
               onClick={() => setMobileMenuOpen(false)}
@@ -100,29 +100,29 @@ export default function Home() {
             <Link
               href="/features"
               onClick={() => setMobileMenuOpen(false)}
-              className="block py-2 text-sm font-semibold text-neutral-700 hover:text-neutral-900"
+              className="block py-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:text-neutral-100"
             >
               Fonctionnalités
             </Link>
             <Link
               href="/how-it-works"
               onClick={() => setMobileMenuOpen(false)}
-              className="block py-2 text-sm font-semibold text-neutral-700 hover:text-neutral-900"
+              className="block py-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:text-neutral-100"
             >
               Comment ça marche
             </Link>
             <Link
               href="/pricing"
               onClick={() => setMobileMenuOpen(false)}
-              className="block py-2 text-sm font-semibold text-neutral-700 hover:text-neutral-900"
+              className="block py-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:text-neutral-100"
             >
               Tarifs
             </Link>
-            <div className="pt-3 border-t border-neutral-100 flex flex-col gap-2.5">
+            <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 flex flex-col gap-2.5">
               <Link
                 href="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-2 text-center text-sm font-semibold text-neutral-700 hover:text-neutral-900"
+                className="py-2 text-center text-sm font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:text-neutral-100"
               >
                 Se connecter
               </Link>
@@ -141,7 +141,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section with Dot Matrix Grid Background */}
-      <section className="relative pt-28 pb-16 sm:pt-32 sm:pb-20 lg:pt-36 lg:pb-24 overflow-hidden bg-white">
+      <section className="relative pt-28 pb-16 sm:pt-32 sm:pb-20 lg:pt-36 lg:pb-24 overflow-hidden bg-white dark:bg-neutral-900">
         
         {/* Dot Matrix Canvas Background Grid - DISCREET VISIBILITY & GRADUAL FADE OUT */}
         <div 
@@ -170,13 +170,13 @@ export default function Home() {
             </div>
 
             {/* Main Title */}
-            <h1 className="font-heading text-4xl sm:text-5xl lg:text-[54px] xl:text-[62px] font-extrabold text-neutral-900 tracking-tight leading-[1.1] mb-6">
+            <h1 className="font-heading text-4xl sm:text-5xl lg:text-[54px] xl:text-[62px] font-extrabold text-neutral-900 dark:text-neutral-100 tracking-tight leading-[1.1] mb-6">
               Votre savoir mérite un livre. <br />
               <span className="text-[#C84B31]">Iris</span>{" "}l&apos;écrit avec vous.
             </h1>
 
             {/* Subtitle */}
-            <p className="text-base sm:text-lg lg:text-xl text-neutral-600 leading-relaxed max-w-2xl mb-8 font-normal">
+            <p className="text-base sm:text-lg lg:text-xl text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-2xl mb-8 font-normal">
               Transformez votre expertise en un livre prêt à publier. Rédigez et mettez en page chaque chapitre facilement avec votre assistant IA.
             </p>
 
@@ -189,7 +189,7 @@ export default function Home() {
                 </button>
               </Link>
               <Link href="/how-it-works" className="w-full sm:w-auto">
-                <button className="w-full sm:w-auto bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-800 px-6 py-3.5 rounded-full text-sm sm:text-base font-semibold transition-all shadow-2xs flex items-center justify-center cursor-pointer">
+                <button className="w-full sm:w-auto bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800/50 text-neutral-800 dark:text-neutral-200 px-6 py-3.5 rounded-full text-sm sm:text-base font-semibold transition-all shadow-2xs flex items-center justify-center cursor-pointer">
                   <span>Voir comment ça marche</span>
                 </button>
               </Link>
@@ -217,10 +217,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6">
           
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="font-heading text-3xl md:text-5xl font-extrabold text-neutral-900 mb-4 tracking-tight">
+            <h2 className="font-heading text-3xl md:text-5xl font-extrabold text-neutral-900 dark:text-neutral-100 mb-4 tracking-tight">
               Une expérience de création sans effort
             </h2>
-            <p className="text-lg md:text-xl text-neutral-600">
+            <p className="text-lg md:text-xl text-neutral-600 dark:text-neutral-400">
               Iris s&apos;occupe de la structure, de la rédaction et de la mise en forme pour que vous puissiez vous concentrer sur vos idées.
             </p>
           </div>
@@ -245,13 +245,13 @@ export default function Home() {
             ].map((feat, idx) => {
               const Icon = feat.icon;
               return (
-                <div key={idx} className="bg-white rounded-3xl p-8 border border-neutral-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+                <div key={idx} className="bg-white dark:bg-neutral-900 rounded-3xl p-8 border border-neutral-200/80 dark:border-neutral-800 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
                   <div>
                     <div className="w-14 h-14 rounded-2xl bg-[#FDF3F1] text-[#C84B31] border border-[#F4C5BC]/60 flex items-center justify-center mb-6">
                       <Icon className="w-7 h-7" />
                     </div>
-                    <h3 className="font-heading text-2xl font-bold text-neutral-900 mb-3">{feat.title}</h3>
-                    <p className="text-base text-neutral-600 leading-relaxed">{feat.desc}</p>
+                    <h3 className="font-heading text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">{feat.title}</h3>
+                    <p className="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed">{feat.desc}</p>
                   </div>
                 </div>
               );

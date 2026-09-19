@@ -146,11 +146,11 @@ export default function McpDocumentationPage() {
 
   return (
     <AppLayout>
-      <header className="bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md border-b border-neutral-100 dark:border-neutral-800 sticky top-0 z-20 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
+      <header className="bg-white dark:bg-neutral-900/80 dark:bg-neutral-950/80 backdrop-blur-md border-b border-neutral-100 dark:border-neutral-800 sticky top-0 z-20 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/automations"
-            className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white bg-neutral-100 dark:bg-neutral-800 px-3 py-2 rounded-xl transition-all"
+            className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-white bg-neutral-100 dark:bg-neutral-800 px-3 py-2 rounded-xl transition-all"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Automatisations</span>

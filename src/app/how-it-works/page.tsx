@@ -30,15 +30,15 @@ export default function HowItWorksPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white font-body text-neutral-900 flex flex-col justify-between">
+    <div className="min-h-screen bg-white dark:bg-neutral-900 font-body text-neutral-900 dark:text-neutral-100 flex flex-col justify-between">
       {/* Header / Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-neutral-200/80">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-neutral-900/90 backdrop-blur-md border-b border-neutral-200/80 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" className="font-heading font-extrabold text-3xl md:text-4xl text-neutral-900 tracking-tight">
+          <Link href="/" className="font-heading font-extrabold text-3xl md:text-4xl text-neutral-900 dark:text-neutral-100 tracking-tight">
             Iris
           </Link>
 
-          <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-neutral-700">
+          <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
             <Link href="/presentation" className="hover:text-secondary transition-colors">Découvrir</Link>
             <Link href="/features" className="hover:text-secondary transition-colors">Fonctionnalités</Link>
             <Link href="/how-it-works" className="text-secondary font-bold">Comment ça marche</Link>
@@ -46,7 +46,7 @@ export default function HowItWorksPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-semibold text-neutral-700 hover:text-neutral-900 hidden sm:block">
+            <Link href="/login" className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:text-neutral-100 hidden sm:block">
               Se connecter
             </Link>
             <Link href="/register">
@@ -64,10 +64,10 @@ export default function HowItWorksPage() {
           <span className="inline-block py-1.5 px-4 rounded-full bg-orange-50 border border-orange-200 text-secondary font-bold text-xs uppercase tracking-widest mb-4">
             PROCESSUS ÉTAPES PAR ÉTAPES
           </span>
-          <h1 className="font-heading text-4xl sm:text-6xl font-extrabold text-neutral-900 tracking-tight mb-6">
+          <h1 className="font-heading text-4xl sm:text-6xl font-extrabold text-neutral-900 dark:text-neutral-100 tracking-tight mb-6">
             De l&apos;idée à l&apos;eBook publié en 4 étapes simples
           </h1>
-          <p className="text-lg text-neutral-600 leading-relaxed">
+          <p className="text-lg text-neutral-600 dark:text-neutral-400 leading-relaxed">
             Iris élimine le syndrome de la page blanche et automatise le travail technique pour vous laisser vous concentrer sur ce qui compte vraiment : transmettre votre savoir.
           </p>
         </div>
@@ -75,7 +75,7 @@ export default function HowItWorksPage() {
         {/* Steps Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-20">
           {steps.map((step) => (
-            <div key={step.number} className="bg-neutral-50 rounded-3xl p-8 border border-neutral-200/80 flex flex-col justify-between hover:border-orange-200 transition-colors">
+            <div key={step.number} className="bg-neutral-50 dark:bg-neutral-800/50 rounded-3xl p-8 border border-neutral-200/80 dark:border-neutral-800 flex flex-col justify-between hover:border-orange-200 transition-colors">
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <span className="font-heading font-extrabold text-4xl text-secondary">{step.number}</span>
@@ -83,8 +83,8 @@ export default function HowItWorksPage() {
                     <span className="material-symbols-outlined text-2xl">{step.icon}</span>
                   </div>
                 </div>
-                <h3 className="font-heading text-xl font-bold text-neutral-900 mb-3">{step.title}</h3>
-                <p className="text-sm text-neutral-600 leading-relaxed">{step.description}</p>
+                <h3 className="font-heading text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">{step.title}</h3>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">{step.description}</p>
               </div>
             </div>
           ))}
@@ -95,7 +95,7 @@ export default function HowItWorksPage() {
           <h2 className="font-heading text-3xl md:text-4xl font-extrabold mb-4">Prêt à créer votre propre livre numérique ?</h2>
           <p className="text-white/80 max-w-xl mx-auto mb-8 text-base">Rejoignez des centaines d&apos;auteurs qui ont concrétisé leur projet littéraire avec Iris.</p>
           <Link href="/register">
-            <button className="bg-white hover:bg-neutral-50 text-[#9E3420] font-bold px-8 py-4 rounded-full text-lg transition-all shadow-md cursor-pointer">
+            <button className="bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:bg-neutral-800/50 text-[#9E3420] font-bold px-8 py-4 rounded-full text-lg transition-all shadow-md cursor-pointer">
               Créer mon premier livre gratuitement
             </button>
           </Link>

@@ -117,6 +117,7 @@ export async function POST(req: Request) {
 
     const form = await req.formData();
     const projectId = (form.get("projectId") as string | null) || null;
+    const blueprintId = (form.get("blueprintId") as string | null) || null;
     const files = form.getAll("files").filter((f): f is File => f instanceof File);
 
     if (files.length === 0) {
@@ -189,24 +190,70 @@ export async function POST(req: Request) {
     // Référencement en base (uniquement si le projet existe déjà : dans
     // l'assistant, les images sont envoyées AVANT la création du projet, et
     // rattachées juste après via PATCH).
+    let finalAssets: any[] = [];
     if (projectId) {
-      const { error: insertErr } = await db.from("project_assets").insert(
-        uploaded.map((u) => ({
+      const { google } = await import("@ai-sdk/google");
+      const { generateText } = await import("ai");
+      
+      let buildImageAnalysisPrompt = () => "Analysez cette image.";
+      try {
+        const prompts = await import("@/lib/ai/storybook-prompts");
+        if (prompts.buildImageAnalysisPrompt) buildImageAnalysisPrompt = prompts.buildImageAnalysisPrompt;
+      } catch (e) {}
+
+      const rows = [];
+      for (const u of uploaded) {
+        let aiAnalysis = null;
+        if (blueprintId === "storybook") {
+          try {
+            const analysisPrompt = (typeof buildImageAnalysisPrompt === "function")
+              ? buildImageAnalysisPrompt({
+                  title: "Album illustré",
+                  audience: "Enfants",
+                  imageIndex: u.position + 1,
+                  totalImages: uploaded.length,
+                })
+              : "Analyse cette image en détail pour un album illustré pour enfants.";
+            const { text } = await generateText({
+              model: google("gemini-2.5-flash"),
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: analysisPrompt },
+                    { type: "image", image: new URL(u.url) },
+                  ],
+                },
+              ],
+            });
+            aiAnalysis = text;
+          } catch (aiError) {
+            console.error("[project-assets] Erreur d'analyse AI:", aiError);
+          }
+        }
+        
+        rows.push({
           project_id: projectId,
           user_id: user.id,
           file_url: u.url,
+          file_name: u.name,
           storage_path: u.path,
           asset_type: "user-upload",
           position: u.position,
+          ai_analysis: aiAnalysis,
           metadata: { original_name: u.name },
-        }))
-      );
+        });
+      }
+
+      const { data, error: insertErr } = await db.from("project_assets").insert(rows).select();
       if (insertErr) {
         console.error("[project-assets] Référencement en base échoué:", insertErr.message);
+      } else if (data) {
+        finalAssets = data;
       }
     }
 
-    return NextResponse.json({ assets: uploaded });
+    return NextResponse.json({ assets: finalAssets.length > 0 ? finalAssets : uploaded });
   } catch (error) {
     console.error("[project-assets] Erreur inattendue:", error);
     return NextResponse.json({ error: "Erreur lors de l'envoi des images." }, { status: 500 });
@@ -269,5 +316,78 @@ export async function PATCH(req: Request) {
   } catch (error) {
     console.error("[project-assets] PATCH erreur:", error);
     return NextResponse.json({ error: "Erreur serveur." }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/project-assets
+ * Supprime une image d'un projet.
+ */
+export async function DELETE(req: Request) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: "Accès non autorisé" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "Identifiant de l'asset manquant" }, { status: 400 });
+    }
+
+    // Verify ownership of the asset
+    const { data: asset, error: assetError } = await supabase
+      .from("project_assets")
+      .select("user_id, storage_path, file_url")
+      .eq("id", id)
+      .single();
+
+    if (assetError || !asset || asset.user_id !== user.id) {
+      return NextResponse.json({ error: "Asset introuvable ou accès non autorisé" }, { status: 403 });
+    }
+
+    const db = admin();
+
+    // Delete from DB first
+    const { error: deleteDbError } = await db
+      .from("project_assets")
+      .delete()
+      .eq("id", id);
+
+    if (deleteDbError) {
+      console.error("[project-assets] Erreur suppression base:", deleteDbError.message);
+      return NextResponse.json({ error: "Erreur lors de la suppression de l'image" }, { status: 500 });
+    }
+
+    // Delete from storage
+    if (asset.storage_path) {
+      const { error: storageError } = await db.storage
+        .from(BUCKET)
+        .remove([asset.storage_path]);
+
+      if (storageError) {
+        console.error("[project-assets] Erreur suppression Storage:", storageError.message);
+      }
+    } else {
+      const urlParts = asset.file_url.split(`/${BUCKET}/`);
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1]; 
+        const { error: storageError } = await db.storage
+          .from(BUCKET)
+          .remove([filePath]);
+        if (storageError) {
+          console.error("[project-assets] Erreur suppression Storage (URL):", storageError.message);
+        }
+      }
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[project-assets] DELETE erreur:", error);
+    return NextResponse.json({ error: "Erreur serveur lors de la suppression" }, { status: 500 });
   }
 }

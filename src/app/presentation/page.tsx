@@ -23,7 +23,7 @@ export default function PresentationPage() {
     <div className="w-full">
       {/* 1. Grand Titre Épuré (Sans badge superflu ni paragraphe long) */}
       <section className="pt-8 pb-4 sm:pt-12 sm:pb-6 text-center max-w-4xl mx-auto px-4 sm:px-6">
-        <h1 className="font-heading font-extrabold text-2xl sm:text-4xl lg:text-5xl text-neutral-900 tracking-tight leading-tight">
+        <h1 className="font-heading font-extrabold text-2xl sm:text-4xl lg:text-5xl text-neutral-900 dark:text-neutral-100 tracking-tight leading-tight">
           Donnez vie à vos livres. <br />
           <span className="text-[#C84B31]">De la première idée à la publication.</span>
         </h1>
@@ -123,13 +123,13 @@ export default function PresentationPage() {
                   href="/IrisGuideComplet.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2 bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 px-5 py-3.5 rounded-full font-semibold text-sm transition-colors"
+                  className="w-full inline-flex items-center justify-center gap-2 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:bg-neutral-800/50 text-neutral-800 dark:text-neutral-200 border border-neutral-300 px-5 py-3.5 rounded-full font-semibold text-sm transition-colors"
                 >
                   <span>Feuilleter en ligne</span>
-                  <ExternalLink className="w-4 h-4 text-neutral-500" />
+                  <ExternalLink className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
                 </a>
 
-                <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-500 pt-1">
+                <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 pt-1">
                   <ShieldCheck className="w-4 h-4 text-[#C84B31]" />
                   <span>PDF Haute Définition (1,3 Mo) • Gratuit & immédiat</span>
                 </div>
@@ -138,25 +138,25 @@ export default function PresentationPage() {
 
             {/* Informations du livre : Après le livre sur mobile (order-2), à droite sur desktop (lg:order-2) */}
             <div className="lg:col-span-7 space-y-5 order-2 lg:order-2">
-              <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-neutral-900 tracking-tight leading-tight">
+              <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-neutral-900 dark:text-neutral-100 tracking-tight leading-tight">
                 Téléchargez « Iris : Le Guide Complet »
               </h2>
 
-              <p className="text-neutral-600 text-sm sm:text-base leading-relaxed">
+              <p className="text-neutral-600 dark:text-neutral-400 text-sm sm:text-base leading-relaxed">
                 Pour vous prouver la qualité de rédaction et de mise en page d'Iris, nous avons rédigé et exporté cet ouvrage intégral à l'aide de notre outil. Obtenez-le en 1 clic pour découvrir la méthode concrète.
               </p>
 
               {/* 3 points clés simples */}
               <div className="space-y-2.5 pt-1">
-                <div className="flex items-center gap-3 text-sm text-neutral-800 font-medium">
+                <div className="flex items-center gap-3 text-sm text-neutral-800 dark:text-neutral-200 font-medium">
                   <CheckCircle2 className="w-5 h-5 text-[#C84B31] shrink-0" />
                   <span>La méthode étape par étape pour concevoir un livre avec l'IA</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-neutral-800 font-medium">
+                <div className="flex items-center gap-3 text-sm text-neutral-800 dark:text-neutral-200 font-medium">
                   <CheckCircle2 className="w-5 h-5 text-[#C84B31] shrink-0" />
                   <span>Les secrets pour préserver votre voix et un style d'auteur unique</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-neutral-800 font-medium">
+                <div className="flex items-center gap-3 text-sm text-neutral-800 dark:text-neutral-200 font-medium">
                   <CheckCircle2 className="w-5 h-5 text-[#C84B31] shrink-0" />
                   <span>Les règles de mise en page et de publication sur Amazon KDP</span>
                 </div>
@@ -177,14 +177,14 @@ export default function PresentationPage() {
                   href="/IrisGuideComplet.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 px-5 py-4 rounded-full font-semibold text-sm transition-colors"
+                  className="inline-flex items-center justify-center gap-2 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:bg-neutral-800/50 text-neutral-800 dark:text-neutral-200 border border-neutral-300 px-5 py-4 rounded-full font-semibold text-sm transition-colors"
                 >
                   <span>Feuilleter en ligne</span>
-                  <ExternalLink className="w-4 h-4 text-neutral-500" />
+                  <ExternalLink className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
                 </a>
               </div>
 
-              <div className="hidden lg:flex items-center gap-2 text-xs text-neutral-500">
+              <div className="hidden lg:flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
                 <ShieldCheck className="w-4 h-4 text-[#C84B31]" />
                 <span>PDF Haute Définition (1,3 Mo) • Téléchargement direct sans carte bancaire ni inscription.</span>
               </div>
@@ -199,44 +199,44 @@ export default function PresentationPage() {
       <section className="py-10 sm:py-14 max-w-5xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-xl mx-auto mb-8">
           <span className="text-xs font-bold uppercase tracking-wider text-[#C84B31]">L'outil en bref</span>
-          <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 tracking-tight mt-1">
+          <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 dark:text-neutral-100 tracking-tight mt-1">
             Tout ce dont vous avez besoin pour publier
           </h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-xs">
+          <div className="bg-white dark:bg-neutral-900 p-6 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 shadow-xs">
             <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-3">
               <BookOpen className="w-5 h-5" />
             </div>
-            <h3 className="font-heading font-bold text-base text-neutral-900 mb-1.5">
+            <h3 className="font-heading font-bold text-base text-neutral-900 dark:text-neutral-100 mb-1.5">
               1. Co-rédaction IA
             </h3>
-            <p className="text-sm text-neutral-600 leading-relaxed">
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
               Structurez vos chapitres et développez vos arguments avec une IA qui respecte votre style et élimine le syndrome de la page blanche.
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-xs">
+          <div className="bg-white dark:bg-neutral-900 p-6 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 shadow-xs">
             <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-3">
               <Palette className="w-5 h-5" />
             </div>
-            <h3 className="font-heading font-bold text-base text-neutral-900 mb-1.5">
+            <h3 className="font-heading font-bold text-base text-neutral-900 dark:text-neutral-100 mb-1.5">
               2. Studio de Couverture
             </h3>
-            <p className="text-sm text-neutral-600 leading-relaxed">
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
               Générez des visuels haute résolution aux dimensions standards pour capter l'attention sur Amazon KDP ou votre propre boutique.
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-xs">
+          <div className="bg-white dark:bg-neutral-900 p-6 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 shadow-xs">
             <div className="w-10 h-10 rounded-xl bg-[#FDF3F1] text-[#C84B31] flex items-center justify-center mb-3">
               <FileText className="w-5 h-5" />
             </div>
-            <h3 className="font-heading font-bold text-base text-neutral-900 mb-1.5">
+            <h3 className="font-heading font-bold text-base text-neutral-900 dark:text-neutral-100 mb-1.5">
               3. Export PDF & EPUB
             </h3>
-            <p className="text-sm text-neutral-600 leading-relaxed">
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
               Téléchargez instantanément votre livre mis en page, prêt pour l'impression papier ou la lecture sur Kindle et smartphones.
             </p>
           </div>
@@ -244,12 +244,12 @@ export default function PresentationPage() {
       </section>
 
       {/* 4. CALL TO ACTION EN BAS */}
-      <section className="py-10 bg-[#FAF7F5] border-t border-neutral-200/80">
+      <section className="py-10 bg-[#FAF7F5] border-t border-neutral-200/80 dark:border-neutral-800">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center space-y-4">
-          <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-neutral-900 tracking-tight">
+          <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-neutral-900 dark:text-neutral-100 tracking-tight">
             Prêt à écrire votre propre livre ?
           </h2>
-          <p className="text-neutral-600 text-sm max-w-xl mx-auto">
+          <p className="text-neutral-600 dark:text-neutral-400 text-sm max-w-xl mx-auto">
             {user 
               ? "Passez à l'action dès maintenant en lançant votre nouveau manuscrit dans l'atelier."
               : "Rejoignez Iris et donnez vie à vos projets d'écriture. 50 pièces vous sont offertes dès l'inscription pour tester l'outil."
@@ -265,7 +265,7 @@ export default function PresentationPage() {
             </Link>
           </div>
 
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
             {user ? "Accès instantané à votre studio" : "Sans carte bancaire • Prise en main en 2 minutes"}
           </p>
         </div>
@@ -277,7 +277,7 @@ export default function PresentationPage() {
   if (user) {
     return (
       <AppLayout>
-        <div className="bg-white min-h-full pb-16">
+        <div className="bg-white dark:bg-neutral-900 min-h-full pb-16">
           {PresentationBody}
         </div>
       </AppLayout>
@@ -286,9 +286,9 @@ export default function PresentationPage() {
 
   // SI NON CONNECTÉ : Vue pleine page d'acquisition / publication avec navigation publique et footer
   return (
-    <div className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-[#FDF3F1] selection:text-[#C84B31] flex flex-col justify-between">
+    <div className="min-h-screen bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-sans selection:bg-[#FDF3F1] selection:text-[#C84B31] flex flex-col justify-between">
       {/* Navigation Header Publique */}
-      <header className="sticky top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-neutral-200/80">
+      <header className="sticky top-0 w-full z-50 bg-white dark:bg-neutral-900/95 backdrop-blur-md border-b border-neutral-200/80 dark:border-neutral-800">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
             <img 
@@ -296,7 +296,7 @@ export default function PresentationPage() {
               alt="Iris Logo" 
               className="w-8 h-8 object-contain group-hover:scale-105 transition-transform" 
             />
-            <span className="font-heading font-extrabold text-2xl tracking-tight text-neutral-900">
+            <span className="font-heading font-extrabold text-2xl tracking-tight text-neutral-900 dark:text-neutral-100">
               Iris
             </span>
           </Link>
@@ -304,7 +304,7 @@ export default function PresentationPage() {
           <div className="flex items-center gap-4">
             <Link 
               href="/login" 
-              className="hidden sm:inline-block text-sm font-semibold text-neutral-700 hover:text-neutral-900 transition-colors"
+              className="hidden sm:inline-block text-sm font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:text-neutral-100 transition-colors"
             >
               Se connecter
             </Link>

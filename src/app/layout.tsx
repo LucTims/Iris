@@ -54,7 +54,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-body antialiased selection:bg-neutral-200 dark:selection:bg-neutral-800 transition-colors duration-300">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" disableTransitionOnChange>
           {children}
         </ThemeProvider>
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || "G-5WW5K8J3D5"} />

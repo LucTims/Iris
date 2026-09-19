@@ -75,8 +75,8 @@ function PaymentPendingContent() {
       {status === "pending" && (
         <>
           <span className="material-symbols-outlined text-secondary text-6xl animate-spin mb-6">hourglass_top</span>
-          <h1 className="font-heading text-3xl font-extrabold text-neutral-900 mb-4">En attente de paiement...</h1>
-          <p className="text-neutral-600 mb-8 max-w-md">
+          <h1 className="font-heading text-3xl font-extrabold text-neutral-900 dark:text-neutral-100 mb-4">En attente de paiement...</h1>
+          <p className="text-neutral-600 dark:text-neutral-400 mb-8 max-w-md">
             Veuillez valider le paiement sur votre téléphone (Mobile Money) ou finaliser la transaction sur la page Sebpay.
             Cette page s'actualisera automatiquement une fois le paiement confirmé.
           </p>
@@ -84,7 +84,7 @@ function PaymentPendingContent() {
             <button
               onClick={handleTestConfirm}
               disabled={confirming}
-              className="mb-4 text-xs font-bold px-4 py-2 rounded-xl border border-dashed border-neutral-300 text-neutral-500 hover:text-secondary hover:border-secondary transition-colors disabled:opacity-50"
+              className="mb-4 text-xs font-bold px-4 py-2 rounded-xl border border-dashed border-neutral-300 text-neutral-500 dark:text-neutral-400 hover:text-secondary hover:border-secondary transition-colors disabled:opacity-50"
               title="Confirmer manuellement ce paiement (test — dev/admin uniquement)"
             >
               {confirming ? "Confirmation…" : "Simuler la validation du paiement (mode test)"}
@@ -96,8 +96,8 @@ function PaymentPendingContent() {
       {status === "paid" && (
         <>
           <span className="material-symbols-outlined text-emerald-500 text-6xl mb-6">check_circle</span>
-          <h1 className="font-heading text-3xl font-extrabold text-neutral-900 mb-4">Paiement Réussi !</h1>
-          <p className="text-neutral-600 mb-8 max-w-md">
+          <h1 className="font-heading text-3xl font-extrabold text-neutral-900 dark:text-neutral-100 mb-4">Paiement Réussi !</h1>
+          <p className="text-neutral-600 dark:text-neutral-400 mb-8 max-w-md">
             Vos pièces ont été créditées sur votre portefeuille. Vous allez être redirigé vers le tableau de bord...
           </p>
         </>
@@ -106,8 +106,8 @@ function PaymentPendingContent() {
       {status === "failed" && (
         <>
           <span className="material-symbols-outlined text-red-500 text-6xl mb-6">cancel</span>
-          <h1 className="font-heading text-3xl font-extrabold text-neutral-900 mb-4">Paiement Échoué</h1>
-          <p className="text-neutral-600 mb-8 max-w-md">
+          <h1 className="font-heading text-3xl font-extrabold text-neutral-900 dark:text-neutral-100 mb-4">Paiement Échoué</h1>
+          <p className="text-neutral-600 dark:text-neutral-400 mb-8 max-w-md">
             La transaction a été annulée ou a échoué. Veuillez réessayer.
           </p>
           <Link href="/pricing" className="bg-secondary text-white px-6 py-3 rounded-xl font-bold">Retour aux offres</Link>
@@ -121,7 +121,7 @@ export default function PricingSuccessPage() {
   const { user, isLoading } = useUser();
 
   if (isLoading) {
-    return <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+    return <div className="min-h-screen bg-neutral-50 dark:bg-neutral-800/50 flex items-center justify-center">
       <span className="material-symbols-outlined animate-spin text-4xl text-secondary">progress_activity</span>
     </div>;
   }
@@ -134,5 +134,5 @@ export default function PricingSuccessPage() {
     </main>
   );
 
-  return user ? <AppLayout>{content}</AppLayout> : <div className="min-h-screen bg-white font-body text-neutral-900 flex flex-col">{content}</div>;
+  return user ? <AppLayout>{content}</AppLayout> : <div className="min-h-screen bg-white dark:bg-neutral-900 font-body text-neutral-900 dark:text-neutral-100 flex flex-col">{content}</div>;
 }

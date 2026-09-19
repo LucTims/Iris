@@ -39,10 +39,10 @@ export default function ImportManuscriptModal({
 
   return (
     <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 select-none">
-      <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 border border-neutral-100 max-h-[85dvh] overflow-y-auto">
+      <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 border border-neutral-100 dark:border-neutral-800 max-h-[85dvh] overflow-y-auto">
         {/* Header */}
-        <div className="flex justify-between items-center border-b border-neutral-100 pb-3">
-          <h3 className="font-heading font-extrabold text-lg text-neutral-900 flex items-center gap-2">
+        <div className="flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 pb-3">
+          <h3 className="font-heading font-extrabold text-lg text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
             <span className="material-symbols-outlined text-secondary">file_upload</span>
             <span>Importer un manuscrit</span>
           </h3>
@@ -50,23 +50,23 @@ export default function ImportManuscriptModal({
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="text-neutral-400 hover:text-neutral-800 transition-colors disabled:opacity-50 cursor-pointer"
+            className="text-neutral-400 hover:text-neutral-800 dark:text-neutral-200 transition-colors disabled:opacity-50 cursor-pointer"
           >
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
         {/* Selected File Details Box */}
-        <div className="bg-neutral-50 border border-neutral-200/80 rounded-2xl p-4 flex items-center justify-between gap-3">
+        <div className="bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-orange-100 text-secondary flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-xl">description</span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-neutral-900 truncate" title={file.name}>
+              <p className="text-xs font-bold text-neutral-900 dark:text-neutral-100 truncate" title={file.name}>
                 {file.name}
               </p>
-              <p className="text-[11px] font-medium text-neutral-500">
+              <p className="text-[11px] font-medium text-neutral-500 dark:text-neutral-400">
                 {(file.size / 1024).toFixed(1)} KB
               </p>
             </div>
@@ -77,7 +77,7 @@ export default function ImportManuscriptModal({
                 ? "bg-blue-100 text-blue-700 border border-blue-200"
                 : isEpub
                 ? "bg-purple-100 text-purple-700 border border-purple-200"
-                : "bg-neutral-200 text-neutral-700"
+                : "bg-neutral-200 text-neutral-700 dark:text-neutral-300"
             }`}
           >
             {fileExt}
@@ -90,13 +90,13 @@ export default function ImportManuscriptModal({
             <span className="material-symbols-outlined text-3xl text-secondary animate-spin">
               progress_activity
             </span>
-            <p className="text-xs font-bold text-neutral-700 text-center animate-pulse">
+            <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300 text-center animate-pulse">
               Extraction et analyse du manuscrit en cours...
             </p>
           </div>
         ) : (
           <div className="space-y-3">
-            <label className="block text-xs font-extrabold text-neutral-800 uppercase tracking-wider">
+            <label className="block text-xs font-extrabold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
               Choix de structuration
             </label>
 
@@ -106,7 +106,7 @@ export default function ImportManuscriptModal({
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
                 splitByChapter
                   ? "border-secondary bg-orange-50/50 shadow-xs"
-                  : "border-neutral-200 bg-white hover:border-neutral-300"
+                  : "border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-300"
               }`}
             >
               <input
@@ -117,10 +117,10 @@ export default function ImportManuscriptModal({
                 className="mt-0.5 accent-secondary cursor-pointer"
               />
               <div className="space-y-1">
-                <p className="text-xs font-bold text-neutral-900">
+                <p className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
                   Diviser par chapitre (via les grands titres H1/H2)
                 </p>
-                <p className="text-[11px] text-neutral-500 leading-snug">
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
                   Découpe automatiquement le manuscrit en plusieurs chapitres basés sur les titres H1 et H2.
                 </p>
               </div>
@@ -132,7 +132,7 @@ export default function ImportManuscriptModal({
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
                 !splitByChapter
                   ? "border-secondary bg-orange-50/50 shadow-xs"
-                  : "border-neutral-200 bg-white hover:border-neutral-300"
+                  : "border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-300"
               }`}
             >
               <input
@@ -143,10 +143,10 @@ export default function ImportManuscriptModal({
                 className="mt-0.5 accent-secondary cursor-pointer"
               />
               <div className="space-y-1">
-                <p className="text-xs font-bold text-neutral-900">
+                <p className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
                   Tout garder en un seul bloc
                 </p>
-                <p className="text-[11px] text-neutral-500 leading-snug">
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
                   Insère l&apos;intégralité du manuscrit directement dans le chapitre actif.
                 </p>
               </div>
@@ -155,12 +155,12 @@ export default function ImportManuscriptModal({
         )}
 
         {/* Buttons */}
-        <div className="flex justify-end gap-2 pt-3 border-t border-neutral-100">
+        <div className="flex justify-end gap-2 pt-3 border-t border-neutral-100 dark:border-neutral-800">
           <button
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold text-neutral-600 hover:bg-neutral-100 transition-colors disabled:opacity-50 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:bg-neutral-800 transition-colors disabled:opacity-50 cursor-pointer"
           >
             Annuler
           </button>

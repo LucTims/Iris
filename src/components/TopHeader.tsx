@@ -49,11 +49,11 @@ export default function TopHeader() {
   };
 
   return (
-    <header className="bg-white/90 backdrop-blur-md border-b border-neutral-200/70 sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4 shrink-0">
+    <header className="bg-white dark:bg-neutral-900/90 dark:bg-neutral-950/90 backdrop-blur-md border-b border-neutral-200/70 dark:border-neutral-800 sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4 shrink-0">
       
       {/* Mobile Header Title */}
       <div className="flex items-center gap-2 md:hidden">
-        <Link href="/dashboard" className="font-heading font-extrabold text-2xl text-neutral-900 tracking-tight">
+        <Link href="/dashboard" className="font-heading font-extrabold text-2xl text-neutral-900 dark:text-neutral-100 tracking-tight">
           Iris
         </Link>
       </div>
@@ -73,11 +73,11 @@ export default function TopHeader() {
         
         <Link 
           href="/pricing" 
-          className="flex items-center gap-2 bg-neutral-50 hover:bg-neutral-100/80 border border-neutral-200/80 text-neutral-700 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:border-neutral-300 group" 
+          className="flex items-center gap-2 bg-neutral-50 dark:bg-neutral-900 hover:bg-neutral-100/80 dark:hover:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:border-neutral-300 dark:hover:border-neutral-600 group" 
           title="Gérer mes crédits d'écriture"
         >
           <Coins className="w-3.5 h-3.5 text-secondary transition-transform group-hover:scale-110" />
-          <span className="tabular-nums font-bold text-neutral-900">
+          <span className="tabular-nums font-bold text-neutral-900 dark:text-neutral-100">
             {walletBalance !== null ? Number(walletBalance).toLocaleString("fr-FR") : "..."}
           </span>
           <span className="text-[11px] text-neutral-400 font-medium hidden sm:inline">crédits</span>
@@ -87,7 +87,7 @@ export default function TopHeader() {
         <div className="relative shrink-0" ref={notifRef}>
           <button 
             onClick={() => setNotifMenuOpen(!notifMenuOpen)}
-            className="w-9 h-9 rounded-xl border border-neutral-200/80 flex items-center justify-center text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors shrink-0 relative cursor-pointer"
+            className="w-9 h-9 rounded-xl border border-neutral-200/80 dark:border-neutral-800 flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:bg-neutral-800/50 dark:hover:bg-neutral-900 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100 transition-colors shrink-0 relative cursor-pointer"
             title="Notifications"
           >
             <Bell className="w-4 h-4" />
@@ -100,10 +100,10 @@ export default function TopHeader() {
 
           {/* Notifications Dropdown Panel */}
           {notifMenuOpen && (
-            <div className="fixed top-[72px] left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2 sm:w-96 bg-white rounded-2xl shadow-xl border border-neutral-200 py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-              <div className="px-4 pb-3 border-b border-neutral-100 flex items-center justify-between">
+            <div className="fixed top-[72px] left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2 sm:w-96 bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800 py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="px-4 pb-3 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-heading font-extrabold text-sm text-neutral-900">Notifications</span>
+                  <span className="font-heading font-extrabold text-sm text-neutral-900 dark:text-neutral-100">Notifications</span>
                   {unreadCount > 0 && (
                     <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-bold border border-red-100">
                       {unreadCount} nouvelle{unreadCount > 1 ? "s" : ""}
@@ -120,11 +120,11 @@ export default function TopHeader() {
                 )}
               </div>
 
-              <div className="max-h-80 overflow-y-auto divide-y divide-neutral-100">
+              <div className="max-h-80 overflow-y-auto divide-y divide-neutral-100 dark:divide-neutral-800">
                 {notifications.length === 0 ? (
                   <div className="py-8 text-center px-4">
                     <span className="material-symbols-outlined text-3xl text-neutral-300 mb-1">notifications_off</span>
-                    <p className="text-xs font-semibold text-neutral-500">Aucune notification pour le moment</p>
+                    <p className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">Aucune notification pour le moment</p>
                   </div>
                 ) : (
                   notifications.map((notif: NotificationItem) => {
@@ -135,8 +135,8 @@ export default function TopHeader() {
                         onClick={() => {
                           if (!notif.is_read) markAsRead(notif.id);
                         }}
-                        className={`p-3.5 hover:bg-neutral-50 transition-colors cursor-pointer flex items-start gap-3 relative ${
-                          !notif.is_read ? "bg-orange-50/30" : ""
+                        className={`p-3.5 hover:bg-neutral-50 dark:bg-neutral-800/50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer flex items-start gap-3 relative ${
+                          !notif.is_read ? "bg-orange-50/30 dark:bg-orange-950/20" : ""
                         }`}
                       >
                         <div className={`w-8 h-8 rounded-xl ${iconConfig.bg} flex items-center justify-center shrink-0 mt-0.5`}>
@@ -146,14 +146,14 @@ export default function TopHeader() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-0.5">
-                            <h4 className={`text-xs font-bold truncate ${!notif.is_read ? "text-neutral-900 font-extrabold" : "text-neutral-700"}`}>
+                            <h4 className={`text-xs font-bold truncate ${!notif.is_read ? "text-neutral-900 dark:text-neutral-100 font-extrabold" : "text-neutral-700 dark:text-neutral-400"}`}>
                               {notif.title}
                             </h4>
                             <span className="text-[10px] text-neutral-400 shrink-0">
                               {new Date(notif.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
                             </span>
                           </div>
-                          <p className="text-xs text-neutral-600 line-clamp-2 leading-relaxed">
+                          <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-relaxed">
                             {notif.message}
                           </p>
                           {notif.link && (
@@ -183,7 +183,7 @@ export default function TopHeader() {
         <div className="relative shrink-0" ref={menuRef}>
           <button 
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="w-8.5 h-8.5 rounded-full bg-neutral-100 hover:bg-neutral-200/80 border border-neutral-200/90 flex items-center justify-center text-neutral-800 font-bold text-xs shadow-2xs transition-all cursor-pointer"
+            className="w-8.5 h-8.5 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200/80 dark:hover:bg-neutral-700 border border-neutral-200/90 dark:border-neutral-700 flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold text-xs shadow-2xs transition-all cursor-pointer"
             title="Menu Profil"
           >
             {userInitials}
@@ -191,11 +191,11 @@ export default function TopHeader() {
 
           {/* Dropdown Menu */}
           {userMenuOpen && (
-            <div className="fixed top-[72px] left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2 sm:w-64 bg-white rounded-2xl shadow-xl border border-neutral-200/80 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-              <div className="px-4 py-3 border-b border-neutral-100">
-                <p className="font-heading font-bold text-sm text-neutral-900">{displayName}</p>
-                <p className="text-xs text-neutral-500 truncate">{displayEmail}</p>
-                <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-full bg-neutral-100 border border-neutral-200 text-[10px] font-medium text-neutral-600">
+            <div className="fixed top-[72px] left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2 sm:w-64 bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200/80 dark:border-neutral-800 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
+                <p className="font-heading font-bold text-sm text-neutral-900 dark:text-neutral-100">{displayName}</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">{displayEmail}</p>
+                <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-[10px] font-medium text-neutral-600 dark:text-neutral-400">
                   Plan Gratuit
                 </span>
               </div>
@@ -204,7 +204,7 @@ export default function TopHeader() {
                 <Link 
                   href="/profile" 
                   onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+                  className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800/50 dark:hover:bg-neutral-800/50 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100"
                 >
                   <span className="material-symbols-outlined text-base text-neutral-400">person</span>
                   <span>Mon profil</span>
@@ -212,7 +212,7 @@ export default function TopHeader() {
                 <Link 
                   href="/dashboard" 
                   onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+                  className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800/50 dark:hover:bg-neutral-800/50 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100"
                 >
                   <span className="material-symbols-outlined text-base text-neutral-400">dashboard</span>
                   <span>Tableau de bord</span>
@@ -220,7 +220,7 @@ export default function TopHeader() {
                 <Link 
                   href="/projects" 
                   onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+                  className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800/50 dark:hover:bg-neutral-800/50 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100"
                 >
                   <span className="material-symbols-outlined text-base text-neutral-400">menu_book</span>
                   <span>Mes Livres & Projets</span>
@@ -228,7 +228,7 @@ export default function TopHeader() {
                 <Link 
                   href="/settings" 
                   onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+                  className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800/50 dark:hover:bg-neutral-800/50 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100"
                 >
                   <span className="material-symbols-outlined text-base text-neutral-400">settings</span>
                   <span>Paramètres du compte</span>
@@ -238,18 +238,18 @@ export default function TopHeader() {
                   <Link 
                     href="/admin" 
                     onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                    className="flex items-center gap-3 px-4 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
                   >
-                    <span className="material-symbols-outlined text-base text-emerald-600">admin_panel_settings</span>
+                    <span className="material-symbols-outlined text-base text-emerald-600 dark:text-emerald-500">admin_panel_settings</span>
                     <span>Espace Administration</span>
                   </Link>
                 )}
               </div>
 
-              <div className="pt-1 border-t border-neutral-100">
+              <div className="pt-1 border-t border-neutral-100 dark:border-neutral-800">
                 <button 
                   onClick={() => { setUserMenuOpen(false); signOut(); }}
-                  className="w-full text-left flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                  className="w-full text-left flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                 >
                   <span className="material-symbols-outlined text-base text-red-500">logout</span>
                   <span>Se déconnecter</span>

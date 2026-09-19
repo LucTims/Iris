@@ -73,7 +73,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col lg:flex-row font-body bg-white text-neutral-900">
+    <div className="min-h-screen w-full flex flex-col lg:flex-row font-body bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
       
       {/* ================= LEFT PANEL (DARK BRAND BRANDING) ================= */}
       <div className="hidden lg:flex lg:w-[45%] bg-[#0D0D0E] text-white p-8 md:p-16 flex-col justify-between relative overflow-hidden shrink-0">
@@ -106,13 +106,13 @@ export default function LoginPage() {
         </div>
 
         {/* Footer Note */}
-        <div className="relative z-10 text-xs text-neutral-500 font-medium">
+        <div className="relative z-10 text-xs text-neutral-500 dark:text-neutral-400 font-medium">
           © {new Date().getFullYear()} Boom. Tous droits réservés.
         </div>
       </div>
 
       {/* ================= RIGHT PANEL (AUTH FORM) ================= */}
-      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 md:p-16 bg-white relative">
+      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 md:p-16 bg-white dark:bg-neutral-900 relative">
         <div className="w-full max-w-md mx-auto space-y-8">
           
           {/* Header */}
@@ -121,14 +121,14 @@ export default function LoginPage() {
             <div className="lg:hidden mb-6">
               <Link href="/" className="inline-flex items-center gap-2.5">
                 <img src="/iris-logo.png" alt="Iris" className="w-9 h-9 object-contain" />
-                <span className="font-heading font-bold text-3xl text-neutral-900">Iris</span>
+                <span className="font-heading font-bold text-3xl text-neutral-900 dark:text-neutral-100">Iris</span>
               </Link>
             </div>
 
-            <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
+            <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-neutral-900 dark:text-neutral-100 tracking-tight">
               Connexion
             </h2>
-            <p className="text-base text-neutral-600 leading-relaxed font-normal">
+            <p className="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed font-normal">
               Accédez à votre compte avec votre adresse e-mail ou via votre compte Google.
             </p>
           </div>
@@ -140,7 +140,7 @@ export default function LoginPage() {
               type="button" 
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 px-5 py-3.5 border border-neutral-200 hover:border-neutral-300 rounded-2xl text-base font-bold text-neutral-800 bg-white hover:bg-neutral-50 transition-all shadow-2xs disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-3 px-5 py-3.5 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 rounded-2xl text-base font-bold text-neutral-800 dark:text-neutral-200 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:bg-neutral-800/50 transition-all shadow-2xs disabled:opacity-50"
             >
               <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -154,8 +154,8 @@ export default function LoginPage() {
 
           {/* Divider */}
           <div className="relative flex items-center justify-center my-6">
-            <div className="w-full border-t border-neutral-200"></div>
-            <span className="absolute bg-white px-4 text-xs sm:text-sm font-bold text-neutral-400 uppercase tracking-wider">
+            <div className="w-full border-t border-neutral-200 dark:border-neutral-800"></div>
+            <span className="absolute bg-white dark:bg-neutral-900 px-4 text-xs sm:text-sm font-bold text-neutral-400 uppercase tracking-wider">
               ou
             </span>
           </div>
@@ -174,7 +174,7 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label className="block text-sm font-bold text-neutral-800 mb-2 uppercase tracking-wider">
+              <label className="block text-sm font-bold text-neutral-800 dark:text-neutral-200 mb-2 uppercase tracking-wider">
                 Adresse e-mail *
               </label>
               <div className="relative">
@@ -186,7 +186,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="vous@exemple.com" 
-                  className="w-full pl-12 pr-4 py-3.5 text-base border border-neutral-200 rounded-2xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all outline-none bg-white text-neutral-900 placeholder:text-neutral-400 font-medium"
+                  className="w-full pl-12 pr-4 py-3.5 text-base border border-neutral-200 dark:border-neutral-800 rounded-2xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all outline-none bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 font-medium"
                   required 
                 />
               </div>
@@ -195,7 +195,7 @@ export default function LoginPage() {
             {usePassword && (
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <label className="block text-sm font-bold text-neutral-800 uppercase tracking-wider">
+                  <label className="block text-sm font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
                     Mot de passe *
                   </label>
                   <button type="button" onClick={() => setUsePassword(false)} className="text-xs sm:text-sm text-secondary hover:underline font-bold">
@@ -211,12 +211,12 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••" 
-                    className="w-full pl-12 pr-12 py-3.5 text-base border border-neutral-200 rounded-2xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all outline-none bg-white text-neutral-900 placeholder:text-neutral-400 font-medium"
+                    className="w-full pl-12 pr-12 py-3.5 text-base border border-neutral-200 dark:border-neutral-800 rounded-2xl focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all outline-none bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 font-medium"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:text-neutral-400 transition-colors cursor-pointer"
                     tabIndex={-1}
                   >
                     <span className="material-symbols-outlined text-xl">
@@ -229,7 +229,7 @@ export default function LoginPage() {
 
             {!usePassword && (
               <div className="flex justify-end">
-                <button type="button" onClick={() => setUsePassword(true)} className="text-xs sm:text-sm text-neutral-500 hover:text-neutral-900 font-semibold">
+                <button type="button" onClick={() => setUsePassword(true)} className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 font-semibold">
                   Utiliser un mot de passe
                 </button>
               </div>
@@ -250,8 +250,8 @@ export default function LoginPage() {
           </form>
 
           {/* Switch link */}
-          <div className="pt-4 text-center border-t border-neutral-100">
-            <p className="text-sm text-neutral-600 font-medium">
+          <div className="pt-4 text-center border-t border-neutral-100 dark:border-neutral-800">
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 font-medium">
               Pas encore de compte ?{" "}
               <Link href="/register" className="font-bold text-secondary hover:underline">
                 Inscription ici

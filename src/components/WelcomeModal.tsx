@@ -66,7 +66,7 @@ export default function WelcomeModal() {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.92, y: 15 }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          className="relative w-full max-w-[340px] sm:max-w-sm bg-white rounded-2xl shadow-xl border border-neutral-100 overflow-hidden z-10 my-auto text-neutral-900"
+          className="relative w-full max-w-[340px] sm:max-w-sm bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-100 dark:border-neutral-800 overflow-hidden z-10 my-auto text-neutral-900 dark:text-neutral-100"
           role="dialog"
           aria-modal="true"
         >
@@ -76,7 +76,7 @@ export default function WelcomeModal() {
           {/* Close Button */}
           <button
             onClick={handleClose}
-            className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-700 transition-colors z-20"
+            className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:text-neutral-300 transition-colors z-20"
             aria-label="Fermer"
           >
             <X className="w-3.5 h-3.5" />
@@ -84,29 +84,29 @@ export default function WelcomeModal() {
 
           <div className="p-5 sm:p-6 space-y-4 text-center">
             {/* Compact Refined Icon Badge */}
-            <div className="mx-auto w-11 h-11 rounded-2xl bg-neutral-100 border border-neutral-200 flex items-center justify-center text-neutral-800">
+            <div className="mx-auto w-11 h-11 rounded-2xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 flex items-center justify-center text-neutral-800 dark:text-neutral-200">
               <Sparkles className="w-5 h-5 text-secondary" />
             </div>
 
             {/* Title & Greeting */}
             <div className="space-y-1">
-              <h2 className="font-heading text-lg sm:text-xl font-bold tracking-tight text-neutral-900">
+              <h2 className="font-heading text-lg sm:text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
                 Bienvenue sur Iris{displayName ? ` ${displayName}` : ""}
               </h2>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
                 Votre studio de création et d&apos;édition littéraire.
               </p>
             </div>
 
             {/* 500 Coins Gift Highlight Card */}
-            <div className="bg-neutral-50 border border-neutral-200/80 rounded-xl p-3.5 text-center space-y-1 shadow-2xs">
+            <div className="bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200/80 dark:border-neutral-800 rounded-xl p-3.5 text-center space-y-1 shadow-2xs">
               <div className="flex items-center justify-center gap-2">
                 <Coins className="w-5 h-5 text-secondary" />
-                <span className="font-heading font-bold text-lg text-neutral-900 tracking-tight">
+                <span className="font-heading font-bold text-lg text-neutral-900 dark:text-neutral-100 tracking-tight">
                   500 crédits offerts
                 </span>
               </div>
-              <p className="text-xs text-neutral-500 leading-snug">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-snug">
                 Disponibles immédiatement pour démarrer votre premier ouvrage !
               </p>
             </div>
@@ -124,7 +124,7 @@ export default function WelcomeModal() {
 
               <button
                 onClick={handleClose}
-                className="w-full text-neutral-500 hover:text-neutral-800 font-medium py-1 text-xs transition-colors"
+                className="w-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:text-neutral-200 font-medium py-1 text-xs transition-colors"
               >
                 Explorer le tableau de bord
               </button>

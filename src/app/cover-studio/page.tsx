@@ -42,11 +42,11 @@ function CoverStudioHubContent() {
         {/* Header Section Compact */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
           <div>
-            <h1 className="text-2xl md:text-3xl font-heading font-extrabold text-neutral-900 flex items-center gap-2">
+            <h1 className="text-2xl md:text-3xl font-heading font-extrabold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
               <Sparkles className="w-7 h-7 text-secondary" strokeWidth={2.5} />
               Studio de Couverture
             </h1>
-            <p className="text-sm text-neutral-500 mt-2 max-w-xl">
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-2 max-w-xl">
               Sélectionnez un projet pour générer sa couverture professionnelle avec l'IA.
             </p>
           </div>
@@ -54,7 +54,7 @@ function CoverStudioHubContent() {
 
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h3 className="font-heading font-extrabold text-lg text-neutral-900">
+              <h3 className="font-heading font-extrabold text-lg text-neutral-900 dark:text-neutral-100">
                 Vos Livres & Projets
               </h3>
               
@@ -67,23 +67,23 @@ function CoverStudioHubContent() {
                   placeholder="Rechercher un livre..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:border-secondary outline-none transition-colors"
+                  className="w-full pl-10 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl text-sm focus:border-secondary outline-none transition-colors"
                 />
               </div>
             </div>
 
             {loading ? (
-              <div className="flex flex-col justify-center items-center h-48 bg-white border border-neutral-200 rounded-3xl">
+              <div className="flex flex-col justify-center items-center h-48 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl">
                 <span className="material-symbols-outlined animate-spin text-secondary text-3xl">progress_activity</span>
-                <p className="text-sm font-semibold text-neutral-500 mt-3">Chargement de vos projets...</p>
+                <p className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mt-3">Chargement de vos projets...</p>
               </div>
             ) : filteredProjects.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-12 bg-white border border-neutral-200 rounded-3xl text-center">
-                <div className="w-16 h-16 bg-neutral-50 rounded-2xl flex items-center justify-center mb-4">
+              <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl text-center">
+                <div className="w-16 h-16 bg-neutral-50 dark:bg-neutral-800/50 rounded-2xl flex items-center justify-center mb-4">
                   <BookOpen className="w-8 h-8 text-neutral-400" strokeWidth={1.5} />
                 </div>
-                <h3 className="text-lg font-bold text-neutral-900 mb-2">Aucun projet trouvé</h3>
-                <p className="text-sm text-neutral-500 max-w-sm mb-6">
+                <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-2">Aucun projet trouvé</h3>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-sm mb-6">
                   {searchQuery ? "Aucun livre ne correspond à votre recherche." : "Vous n'avez pas encore de livre. Allez dans 'Mes Livres & Projets' pour en créer un."}
                 </p>
                 {!searchQuery && (
@@ -95,9 +95,9 @@ function CoverStudioHubContent() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
                 {filteredProjects.map((project) => (
-                  <div key={project.id} className="bg-white border border-neutral-200 hover:border-secondary/50 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all group flex flex-col h-full">
+                  <div key={project.id} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-secondary/50 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all group flex flex-col h-full">
                     {/* Fake Cover Preview Area */}
-                    <div className="aspect-[2/3] bg-neutral-100 relative overflow-hidden">
+                    <div className="aspect-[2/3] bg-neutral-100 dark:bg-neutral-800 relative overflow-hidden">
                       {project.cover_url ? (
                         <img src={project.cover_url} alt="Couverture" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                       ) : (
@@ -110,8 +110,8 @@ function CoverStudioHubContent() {
                     
                     <div className="p-5 flex flex-col flex-1">
                       <div className="flex-1">
-                        <h4 className="font-bold text-neutral-900 line-clamp-1">{project.title}</h4>
-                        <p className="text-xs text-neutral-500 line-clamp-1 mt-1">{project.subtitle || "Sans sous-titre"}</p>
+                        <h4 className="font-bold text-neutral-900 dark:text-neutral-100 line-clamp-1">{project.title}</h4>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-1">{project.subtitle || "Sans sous-titre"}</p>
                       </div>
                       
                       <Link 

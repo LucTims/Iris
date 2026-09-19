@@ -619,7 +619,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       </AnimatePresence>
 
       {/* ================= 1. GOOGLE DOCS STYLE TOP MENU BAR ================= */}
-      <div ref={menuRef} className="bg-white border-b border-neutral-200/80 px-2 sm:px-6 py-1 sm:py-2 flex flex-wrap items-center gap-0.5 sm:gap-2 text-xs sm:text-sm font-semibold shrink-0 z-50 select-none">
+      <div ref={menuRef} className="bg-white dark:bg-neutral-900 border-b border-neutral-200/80 dark:border-neutral-800 px-2 sm:px-6 py-1 sm:py-2 flex flex-wrap items-center gap-0.5 sm:gap-2 text-xs sm:text-sm font-semibold shrink-0 z-50 select-none">
         {[
           {
             id: "edition", label: "Édition", items: [
@@ -642,40 +642,40 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           },
           {
             id: "insertion", label: "Insertion", items: [
-              { label: "Importer un manuscrit (.docx, .epub)", icon: <FileUp className="w-3.5 h-3.5 text-neutral-500" />, action: handleImportButtonClick },
-              { label: "Saut de page (Ctrl+Entrée)", icon: <FilePlus className="w-3.5 h-3.5 text-neutral-500" />, action: handleAddNewPage },
-              { label: "Image...", icon: <ImageIcon className="w-3.5 h-3.5 text-neutral-500" />, action: () => setIsImageModalOpen(true) },
-              { label: "Tableau (3 × 3)", icon: <TableIcon className="w-3.5 h-3.5 text-neutral-500" />, action: () => handleInsertTable(3, 3) },
+              { label: "Importer un manuscrit (.docx, .epub)", icon: <FileUp className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />, action: handleImportButtonClick },
+              { label: "Saut de page (Ctrl+Entrée)", icon: <FilePlus className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />, action: handleAddNewPage },
+              { label: "Image...", icon: <ImageIcon className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />, action: () => setIsImageModalOpen(true) },
+              { label: "Tableau (3 × 3)", icon: <TableIcon className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />, action: () => handleInsertTable(3, 3) },
               { label: "Encadré Information", icon: <Info className="w-3.5 h-3.5 text-blue-500" />, action: () => handleInsertCallout("info") },
               { label: "Encadré Attention", icon: <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />, action: () => handleInsertCallout("warning") },
               { label: "Encadré Conseil", icon: <Lightbulb className="w-3.5 h-3.5 text-emerald-500" />, action: () => handleInsertCallout("tip") },
               { label: "Encadré Exemple", icon: <Sparkles className="w-3.5 h-3.5 text-purple-500" />, action: () => handleInsertCallout("example") },
-              { label: "Chiffre clé mis en valeur", icon: <Binary className="w-3.5 h-3.5 text-neutral-500" />, action: handleInsertKeyFigure },
-              { label: "Citation en exergue", icon: <Quote className="w-3.5 h-3.5 text-neutral-500" />, action: handleInsertPullQuote },
-              { label: "Lettrine éditoriale", icon: <Type className="w-3.5 h-3.5 text-neutral-500" />, action: handleInsertDropCap },
-              { label: "Séparateur étoiles", icon: <Sparkle className="w-3.5 h-3.5 text-neutral-500" />, action: () => handleInsertSectionDivider("stars") },
-              { label: "Séparateur ornement", icon: <Sparkles className="w-3.5 h-3.5 text-neutral-500" />, action: () => handleInsertSectionDivider("ornament") },
-              { label: "Séparateur ligne", icon: <Minus className="w-3.5 h-3.5 text-neutral-500" />, action: () => handleInsertSectionDivider("line") },
-              { label: "Séparateur points", icon: <MoreHorizontal className="w-3.5 h-3.5 text-neutral-500" />, action: () => handleInsertSectionDivider("dots") },
-              { label: "Lien hypertexte...", icon: <Link2 className="w-3.5 h-3.5 text-neutral-500" />, action: () => setIsLinkModalOpen(true) },
-              { label: "Ligne horizontale", icon: <Minus className="w-3.5 h-3.5 text-neutral-500" />, action: () => editor.chain().focus().setHorizontalRule().run() }
+              { label: "Chiffre clé mis en valeur", icon: <Binary className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />, action: handleInsertKeyFigure },
+              { label: "Citation en exergue", icon: <Quote className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />, action: handleInsertPullQuote },
+              { label: "Lettrine éditoriale", icon: <Type className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />, action: handleInsertDropCap },
+              { label: "Séparateur étoiles", icon: <Sparkle className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />, action: () => handleInsertSectionDivider("stars") },
+              { label: "Séparateur ornement", icon: <Sparkles className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />, action: () => handleInsertSectionDivider("ornament") },
+              { label: "Séparateur ligne", icon: <Minus className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />, action: () => handleInsertSectionDivider("line") },
+              { label: "Séparateur points", icon: <MoreHorizontal className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />, action: () => handleInsertSectionDivider("dots") },
+              { label: "Lien hypertexte...", icon: <Link2 className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />, action: () => setIsLinkModalOpen(true) },
+              { label: "Ligne horizontale", icon: <Minus className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />, action: () => editor.chain().focus().setHorizontalRule().run() }
             ]
           }
         ].map((menu) => (
           <div key={menu.id} className="relative">
             <button
               onClick={() => setActiveMenu(activeMenu === menu.id ? null : menu.id)}
-              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm text-neutral-700 font-medium hover:bg-neutral-100 transition-colors whitespace-nowrap ${activeMenu === menu.id ? "bg-neutral-100 font-bold text-neutral-900" : ""}`}
+              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm text-neutral-700 dark:text-neutral-300 font-medium hover:bg-neutral-100 dark:bg-neutral-800 transition-colors whitespace-nowrap ${activeMenu === menu.id ? "bg-neutral-100 dark:bg-neutral-800 font-bold text-neutral-900 dark:text-neutral-100" : ""}`}
             >
               {menu.label}
             </button>
             {activeMenu === menu.id && (
-              <div className="absolute left-0 mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-neutral-200 py-1.5 z-50">
+              <div className="absolute left-0 mt-1.5 w-64 bg-white dark:bg-neutral-900 rounded-xl shadow-xl border border-neutral-200 dark:border-neutral-800 py-1.5 z-50">
                 {menu.items.map((subItem: any, idx) => (
                   <button 
                     key={idx} 
                     onClick={() => { subItem.action(); setActiveMenu(null); }} 
-                    className="w-full text-left px-3.5 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 transition-colors flex items-center gap-2.5"
+                    className="w-full text-left px-3.5 py-2 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800/50 hover:text-neutral-900 dark:text-neutral-100 transition-colors flex items-center gap-2.5"
                   >
                     {subItem.icon && <span className="shrink-0">{subItem.icon}</span>}
                     <span className="truncate">{subItem.label}</span>
@@ -691,10 +691,10 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       <div className="h-11 sm:h-14 bg-[#EDF2F9]/80 border-b border-neutral-200/90 px-2 sm:px-6 flex items-center justify-between gap-2 overflow-x-auto shrink-0 z-40 select-none">
         <div className="flex items-center gap-1 sm:gap-1.5">
           {/* Undo / Redo */}
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-neutral-200/70 text-neutral-700 disabled:opacity-40 flex items-center justify-center transition-colors" title="Annuler (Ctrl+Z)">
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-neutral-200/70 text-neutral-700 dark:text-neutral-300 disabled:opacity-40 flex items-center justify-center transition-colors" title="Annuler (Ctrl+Z)">
             <span className="material-symbols-outlined text-lg">undo</span>
           </button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-neutral-200/70 text-neutral-700 disabled:opacity-40 flex items-center justify-center transition-colors" title="Rétablir (Ctrl+Y)">
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-neutral-200/70 text-neutral-700 dark:text-neutral-300 disabled:opacity-40 flex items-center justify-center transition-colors" title="Rétablir (Ctrl+Y)">
             <span className="material-symbols-outlined text-lg">redo</span>
           </button>
 
@@ -704,7 +704,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           <select 
             value={pageFormat} 
             onChange={(e) => handlePageFormatChange(e.target.value as PageFormatType)} 
-            className="bg-white border border-neutral-300 text-xs font-bold px-2 py-1.5 rounded-xl outline-none cursor-pointer shadow-2xs"
+            className="bg-white dark:bg-neutral-900 border border-neutral-300 text-xs font-bold px-2 py-1.5 rounded-xl outline-none cursor-pointer shadow-2xs"
             title="Format de page"
           >
             <option value="A4">A4</option>
@@ -714,7 +714,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           <select 
             value={zoomLevel} 
             onChange={(e) => setZoomLevel(Number(e.target.value))} 
-            className="bg-white border border-neutral-300 text-xs font-bold px-2 py-1.5 rounded-xl outline-none cursor-pointer shadow-2xs"
+            className="bg-white dark:bg-neutral-900 border border-neutral-300 text-xs font-bold px-2 py-1.5 rounded-xl outline-none cursor-pointer shadow-2xs"
             title="Zoom"
           >
             <option value={50}>50%</option>
@@ -739,7 +739,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               editor.isActive('heading', { level: 3 }) ? 'h3' :
               editor.isActive('blockquote') ? 'blockquote' : 'p'
             }
-            className="bg-white border border-neutral-300 text-xs font-bold px-2.5 py-1.5 rounded-xl outline-none cursor-pointer max-w-[125px] shadow-2xs"
+            className="bg-white dark:bg-neutral-900 border border-neutral-300 text-xs font-bold px-2.5 py-1.5 rounded-xl outline-none cursor-pointer max-w-[125px] shadow-2xs"
             title="Type de bloc"
           >
             <option value="p">Texte normal</option>
@@ -760,7 +760,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               }
             }} 
             value={editor.getAttributes('textStyle').fontFamily || ''}
-            className="bg-white border border-neutral-300 text-xs font-bold px-2.5 py-1.5 rounded-xl outline-none cursor-pointer max-w-[145px] shadow-2xs"
+            className="bg-white dark:bg-neutral-900 border border-neutral-300 text-xs font-bold px-2.5 py-1.5 rounded-xl outline-none cursor-pointer max-w-[145px] shadow-2xs"
             title="Police d'écriture"
           >
             {/* Bibliothèque complète — toutes ces polices sont embarquées en TTF
@@ -789,7 +789,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
                 const next = Math.max(8, current - 1);
                 (editor.commands as any).setFontSize(`${next}px`);
               }}
-              className="px-2 py-1.5 hover:bg-neutral-200 text-neutral-700 rounded-l-xl border border-neutral-300 text-xs font-bold transition-colors"
+              className="px-2 py-1.5 hover:bg-neutral-200 text-neutral-700 dark:text-neutral-300 rounded-l-xl border border-neutral-300 text-xs font-bold transition-colors"
               title="Diminuer la taille de police"
             >
               −
@@ -805,7 +805,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
                   (editor.commands as any).setFontSize(`${val}px`);
                 }
               }}
-              className="w-10 text-center text-xs font-bold py-1.5 border-y border-neutral-300 focus:outline-none focus:ring-1 focus:ring-secondary appearance-none bg-white [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className="w-10 text-center text-xs font-bold py-1.5 border-y border-neutral-300 focus:outline-none focus:ring-1 focus:ring-secondary appearance-none bg-white dark:bg-neutral-900 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               title="Taille de police (px)"
             />
             <button
@@ -814,7 +814,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
                 const next = Math.min(144, current + 1);
                 (editor.commands as any).setFontSize(`${next}px`);
               }}
-              className="px-2 py-1.5 hover:bg-neutral-200 text-neutral-700 rounded-r-xl border border-neutral-300 text-xs font-bold transition-colors"
+              className="px-2 py-1.5 hover:bg-neutral-200 text-neutral-700 dark:text-neutral-300 rounded-r-xl border border-neutral-300 text-xs font-bold transition-colors"
               title="Augmenter la taille de police"
             >
               +
@@ -824,10 +824,10 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           <div className="w-[1px] h-5 sm:h-6 bg-neutral-300 mx-0.5 sm:mx-1"></div>
 
           {/* Formatting */}
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleBold().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center font-black text-sm ${editor.isActive('bold') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900'}`} title="Gras (Ctrl+B)">B</button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleItalic().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center italic font-serif text-sm ${editor.isActive('italic') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900'}`} title="Italique (Ctrl+I)">I</button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleUnderline().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center underline text-sm ${editor.isActive('underline') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900'}`} title="Souligné (Ctrl+U)">U</button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleStrike().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center line-through text-sm ${editor.isActive('strike') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900'}`} title="Barré">S</button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleBold().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center font-black text-sm ${editor.isActive('bold') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900 dark:text-neutral-100'}`} title="Gras (Ctrl+B)">B</button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleItalic().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center italic font-serif text-sm ${editor.isActive('italic') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900 dark:text-neutral-100'}`} title="Italique (Ctrl+I)">I</button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleUnderline().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center underline text-sm ${editor.isActive('underline') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900 dark:text-neutral-100'}`} title="Souligné (Ctrl+U)">U</button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleStrike().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center line-through text-sm ${editor.isActive('strike') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-900 dark:text-neutral-100'}`} title="Barré">S</button>
 
           {/* Colors */}
           <label className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-neutral-200/70 cursor-pointer flex items-center justify-center relative" title="Couleur du texte">
@@ -842,10 +842,10 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           <div className="w-[1px] h-5 sm:h-6 bg-neutral-300 mx-0.5 sm:mx-1"></div>
 
           {/* Alignments */}
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'left' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Aligner à gauche"><span className="material-symbols-outlined text-lg">format_align_left</span></button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('center').run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'center' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Centrer"><span className="material-symbols-outlined text-lg">format_align_center</span></button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'right' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Aligner à droite"><span className="material-symbols-outlined text-lg">format_align_right</span></button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('justify').run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'justify' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Justifier"><span className="material-symbols-outlined text-lg">format_align_justify</span></button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'left' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700 dark:text-neutral-300'}`} title="Aligner à gauche"><span className="material-symbols-outlined text-lg">format_align_left</span></button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('center').run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'center' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700 dark:text-neutral-300'}`} title="Centrer"><span className="material-symbols-outlined text-lg">format_align_center</span></button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'right' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700 dark:text-neutral-300'}`} title="Aligner à droite"><span className="material-symbols-outlined text-lg">format_align_right</span></button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setTextAlign('justify').run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive({ textAlign: 'justify' }) ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700 dark:text-neutral-300'}`} title="Justifier"><span className="material-symbols-outlined text-lg">format_align_justify</span></button>
 
           <div className="w-[1px] h-5 sm:h-6 bg-neutral-300 mx-0.5 sm:mx-1"></div>
 
@@ -860,7 +860,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
                 (editor.commands as any).setLineHeight(val);
               }
             }}
-            className="bg-white border border-neutral-300 text-xs font-bold px-2 py-1.5 rounded-xl outline-none cursor-pointer w-[72px] shadow-2xs"
+            className="bg-white dark:bg-neutral-900 border border-neutral-300 text-xs font-bold px-2 py-1.5 rounded-xl outline-none cursor-pointer w-[72px] shadow-2xs"
             title="Interligne"
           >
             <option value="default">↕ Auto</option>
@@ -875,15 +875,15 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           </select>
 
           {/* Lists */}
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleBulletList().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive('bulletList') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Liste à puces"><span className="material-symbols-outlined text-lg">format_list_bulleted</span></button>
-          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive('orderedList') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700'}`} title="Liste numérotée"><span className="material-symbols-outlined text-lg">format_list_numbered</span></button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleBulletList().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive('bulletList') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700 dark:text-neutral-300'}`} title="Liste à puces"><span className="material-symbols-outlined text-lg">format_list_bulleted</span></button>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${editor.isActive('orderedList') ? 'bg-neutral-300 text-black' : 'hover:bg-neutral-200/70 text-neutral-700 dark:text-neutral-300'}`} title="Liste numérotée"><span className="material-symbols-outlined text-lg">format_list_numbered</span></button>
 
           <div className="w-[1px] h-5 sm:h-6 bg-neutral-300 mx-0.5 sm:mx-1"></div>
 
           {/* Inserts */}
-          <button onClick={handleImportButtonClick} title="Importer un manuscrit (.docx, .epub)" className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors"><span className="material-symbols-outlined text-lg">file_upload</span></button>
-          <button onClick={() => setIsImageModalOpen(true)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer une image"><span className="material-symbols-outlined text-lg">image</span></button>
-          <button onClick={() => setIsLinkModalOpen(true)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer un lien"><span className="material-symbols-outlined text-lg">link</span></button>
+          <button onClick={handleImportButtonClick} title="Importer un manuscrit (.docx, .epub)" className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 dark:text-neutral-200 hover:text-secondary flex items-center justify-center transition-colors"><span className="material-symbols-outlined text-lg">file_upload</span></button>
+          <button onClick={() => setIsImageModalOpen(true)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 dark:text-neutral-200 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer une image"><span className="material-symbols-outlined text-lg">image</span></button>
+          <button onClick={() => setIsLinkModalOpen(true)} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 dark:text-neutral-200 hover:text-secondary flex items-center justify-center transition-colors" title="Insérer un lien"><span className="material-symbols-outlined text-lg">link</span></button>
           <div className="relative" ref={tablePickerBtnRef}>
             <button onClick={() => {
               const next = !showTablePicker;
@@ -893,11 +893,11 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
                 setTablePickerPos({ top: rect.bottom + 4, left: Math.max(8, rect.right - pickerWidth) });
               }
               setShowTablePicker(next);
-            }} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors ${showTablePicker ? "bg-orange-100/70 text-secondary" : ""}`} title="Insérer un tableau"><span className="material-symbols-outlined text-lg">table_chart</span></button>
+            }} className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 dark:text-neutral-200 hover:text-secondary flex items-center justify-center transition-colors ${showTablePicker ? "bg-orange-100/70 text-secondary" : ""}`} title="Insérer un tableau"><span className="material-symbols-outlined text-lg">table_chart</span></button>
             {showTablePicker && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => { setShowTablePicker(false); setTableHover({ rows: 0, cols: 0 }); }} />
-                <div className="fixed z-50 bg-white rounded-2xl shadow-xl border border-neutral-200 p-3" style={tablePickerPos}>
+                <div className="fixed z-50 bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800 p-3" style={tablePickerPos}>
                   <div className="grid gap-[3px]" style={{ gridTemplateColumns: "repeat(10, 18px)" }} onMouseLeave={() => setTableHover({ rows: 0, cols: 0 })}>
                     {Array.from({ length: 8 }).map((_, r) =>
                       Array.from({ length: 10 }).map((_, c) => {
@@ -907,26 +907,26 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
                             key={`${r}-${c}`}
                             onMouseEnter={() => setTableHover({ rows: r + 1, cols: c + 1 })}
                             onClick={() => handleInsertTable(r + 1, c + 1)}
-                            className={`w-[18px] h-[18px] rounded-[3px] border transition-colors ${active ? "bg-secondary border-secondary" : "bg-neutral-50 border-neutral-200 hover:border-secondary/50"}`}
+                            className={`w-[18px] h-[18px] rounded-[3px] border transition-colors ${active ? "bg-secondary border-secondary" : "bg-neutral-50 dark:bg-neutral-800/50 border-neutral-200 dark:border-neutral-800 hover:border-secondary/50"}`}
                           />
                         );
                       })
                     )}
                   </div>
-                  <div className="mt-2 text-center text-xs font-bold text-neutral-600">
+                  <div className="mt-2 text-center text-xs font-bold text-neutral-600 dark:text-neutral-400">
                     {tableHover.rows > 0 ? `${tableHover.cols} × ${tableHover.rows}` : "Glissez pour choisir"}
                   </div>
                 </div>
               </>
             )}
           </div>
-          <button onClick={handleAddNewPage} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 hover:text-secondary flex items-center justify-center transition-colors" title="Saut de page"><span className="material-symbols-outlined text-lg">post_add</span></button>
+          <button onClick={handleAddNewPage} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl hover:bg-orange-100/70 text-neutral-800 dark:text-neutral-200 hover:text-secondary flex items-center justify-center transition-colors" title="Saut de page"><span className="material-symbols-outlined text-lg">post_add</span></button>
         </div>
       </div>
 
       {/* ================= 3. RULER BAR ================= */}
       {showRuler && (
-        <div className="h-6 bg-neutral-100 border-b border-neutral-200 hidden sm:flex items-center justify-center shrink-0 select-none overflow-hidden">
+        <div className="h-6 bg-neutral-100 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-800 hidden sm:flex items-center justify-center shrink-0 select-none overflow-hidden">
           <div className="max-w-[794px] w-full flex items-center justify-between text-[9px] font-mono text-neutral-400 px-4">
             <span>| 1</span><span>| 2</span><span>| 3</span><span>| 4</span><span>| 5</span><span>| 6</span><span>| 7</span><span>| 8</span><span>| 9</span><span>| 10</span><span>| 11</span><span>| 12</span><span>| 13</span><span>| 14</span><span>| 15</span><span>| 16</span>
           </div>
@@ -971,13 +971,13 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
                 placement: 'top',
                 offset: [0, typeof window !== "undefined" && window.innerWidth < 768 ? 65 : 8]
               }}
-              className="flex flex-col bg-white/95 backdrop-blur-md border border-neutral-200/90 shadow-2xl rounded-2xl px-2 py-1.5 z-50 overflow-hidden max-w-[92vw]"
+              className="flex flex-col bg-white dark:bg-neutral-900/95 backdrop-blur-md border border-neutral-200/90 shadow-2xl rounded-2xl px-2 py-1.5 z-50 overflow-hidden max-w-[92vw]"
             >
               <div className="flex items-center gap-1 flex-wrap">
               <button
                 onClick={() => handleContextualAction("reformuler")}
                 disabled={isAiLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-700 hover:text-secondary hover:bg-neutral-100 rounded-xl transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-700 dark:text-neutral-300 hover:text-secondary hover:bg-neutral-100 dark:bg-neutral-800 rounded-xl transition-colors disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[16px]">edit_note</span>
                 Reformuler
@@ -986,7 +986,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               <button
                 onClick={() => handleContextualAction("enrichir")}
                 disabled={isAiLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-700 hover:text-secondary hover:bg-neutral-100 rounded-xl transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-700 dark:text-neutral-300 hover:text-secondary hover:bg-neutral-100 dark:bg-neutral-800 rounded-xl transition-colors disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
                 Enrichir
@@ -995,7 +995,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               <button
                 onClick={() => handleContextualAction("etendre")}
                 disabled={isAiLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-700 hover:text-secondary hover:bg-neutral-100 rounded-xl transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-700 dark:text-neutral-300 hover:text-secondary hover:bg-neutral-100 dark:bg-neutral-800 rounded-xl transition-colors disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[16px]">add_circle</span>
                 Étendre
@@ -1004,7 +1004,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               <button
                 onClick={() => handleContextualAction("corriger")}
                 disabled={isAiLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-700 hover:text-secondary hover:bg-neutral-100 rounded-xl transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-700 dark:text-neutral-300 hover:text-secondary hover:bg-neutral-100 dark:bg-neutral-800 rounded-xl transition-colors disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[16px]">spellcheck</span>
                 Corriger
@@ -1031,7 +1031,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
                   <button
                     onClick={handleSendToChat}
                     disabled={isAiLoading}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-700 hover:text-secondary hover:bg-neutral-100 rounded-xl transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-700 dark:text-neutral-300 hover:text-secondary hover:bg-neutral-100 dark:bg-neutral-800 rounded-xl transition-colors disabled:opacity-50"
                     title="Envoyer ce passage au chat Iris pour le modifier"
                   >
                     <span className="material-symbols-outlined text-[16px]">forum</span>
@@ -1042,7 +1042,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               </div>
 
               {showInlineAi && (
-                <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-neutral-200/80">
+                <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-neutral-200/80 dark:border-neutral-800">
                   <input
                     autoFocus
                     value={inlineInstruction}
@@ -1052,7 +1052,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
                       if (e.key === "Escape") { setShowInlineAi(false); pendingSelRef.current = null; }
                     }}
                     placeholder="Que faire de ce passage ? (ex: rends-le plus percutant)"
-                    className="flex-1 min-w-[220px] bg-neutral-50 border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-secondary text-neutral-900"
+                    className="flex-1 min-w-[220px] bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-800 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-secondary text-neutral-900 dark:text-neutral-100"
                   />
                   <button
                     onClick={handleCustomInlineAction}
@@ -1397,27 +1397,27 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       {/* ================= MODALS ================= */}
       {isImageModalOpen && (
         <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 max-h-[85dvh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-neutral-100 pb-3">
-              <h3 className="font-heading font-extrabold text-lg text-neutral-900 flex items-center gap-2">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 max-h-[85dvh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 pb-3">
+              <h3 className="font-heading font-extrabold text-lg text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
                 <span className="material-symbols-outlined text-secondary">image</span>
                 <span>Insérer une Image</span>
               </h3>
-              <button onClick={() => setIsImageModalOpen(false)} className="text-neutral-400 hover:text-neutral-800">
+              <button onClick={() => setIsImageModalOpen(false)} className="text-neutral-400 hover:text-neutral-800 dark:text-neutral-200">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
             <div className="space-y-2">
-              <label className={`w-full border-2 border-dashed p-5 rounded-2xl flex flex-col items-center justify-center transition-all ${isUploadingImage ? "border-neutral-200 bg-neutral-50 cursor-wait" : "border-neutral-300 hover:border-secondary bg-neutral-50 hover:bg-orange-50/50 cursor-pointer"}`}>
+              <label className={`w-full border-2 border-dashed p-5 rounded-2xl flex flex-col items-center justify-center transition-all ${isUploadingImage ? "border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/50 cursor-wait" : "border-neutral-300 hover:border-secondary bg-neutral-50 dark:bg-neutral-800/50 hover:bg-orange-50/50 cursor-pointer"}`}>
                 {isUploadingImage ? (
                   <>
                     <span className="material-symbols-outlined text-3xl text-secondary mb-1 animate-spin">progress_activity</span>
-                    <span className="text-xs font-bold text-neutral-800">Envoi de l&apos;image…</span>
+                    <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200">Envoi de l&apos;image…</span>
                   </>
                 ) : (
                   <>
                     <span className="material-symbols-outlined text-3xl text-secondary mb-1">upload_file</span>
-                    <span className="text-xs font-bold text-neutral-800">Cliquer pour choisir un fichier image</span>
+                    <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200">Cliquer pour choisir un fichier image</span>
                   </>
                 )}
                 <input type="file" accept="image/*" onChange={handleLocalFileUpload} disabled={isUploadingImage} className="hidden" />
@@ -1427,11 +1427,11 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               )}
             </div>
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-neutral-800 uppercase tracking-wider">Lien Web URL</label>
-              <input type="text" value={imageUrlInput} onChange={(e) => setImageUrlInput(e.target.value)} placeholder="https://exemple.com/image.jpg" className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-xs font-medium focus:border-secondary outline-none" />
+              <label className="block text-xs font-bold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Lien Web URL</label>
+              <input type="text" value={imageUrlInput} onChange={(e) => setImageUrlInput(e.target.value)} placeholder="https://exemple.com/image.jpg" className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 text-xs font-medium focus:border-secondary outline-none" />
             </div>
-            <div className="flex justify-end gap-2 pt-2 border-t border-neutral-100">
-              <button onClick={() => setIsImageModalOpen(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-neutral-600 hover:bg-neutral-100">Annuler</button>
+            <div className="flex justify-end gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+              <button onClick={() => setIsImageModalOpen(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:bg-neutral-800">Annuler</button>
               <button onClick={() => insertImageIntoDOM(imageUrlInput)} disabled={!imageUrlInput.trim()} className="bg-secondary text-white px-5 py-2 rounded-xl text-xs font-bold hover:bg-orange-600 transition-colors shadow-xs disabled:opacity-40 disabled:cursor-not-allowed">Insérer l&apos;image</button>
             </div>
           </div>
@@ -1440,22 +1440,22 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
 
       {isLinkModalOpen && (
         <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 max-h-[85dvh] overflow-y-auto">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 max-h-[85dvh] overflow-y-auto">
             <div className="flex justify-between items-center">
-              <h3 className="font-heading font-extrabold text-lg text-neutral-900 flex items-center gap-2">
+              <h3 className="font-heading font-extrabold text-lg text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
                 <span className="material-symbols-outlined text-secondary">link</span>
                 <span>Insérer un Lien</span>
               </h3>
-              <button onClick={() => setIsLinkModalOpen(false)} className="text-neutral-400 hover:text-neutral-800">
+              <button onClick={() => setIsLinkModalOpen(false)} className="text-neutral-400 hover:text-neutral-800 dark:text-neutral-200">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
             <div className="space-y-3">
-              <input type="text" value={linkTextInput} onChange={(e) => setLinkTextInput(e.target.value)} placeholder="Texte du lien" className="w-full px-4 py-2 rounded-xl border border-neutral-200 text-xs font-medium outline-none" />
-              <input type="text" value={linkUrlInput} onChange={(e) => setLinkUrlInput(e.target.value)} placeholder="URL (https://...)" className="w-full px-4 py-2 rounded-xl border border-neutral-200 text-xs font-medium outline-none" />
+              <input type="text" value={linkTextInput} onChange={(e) => setLinkTextInput(e.target.value)} placeholder="Texte du lien" className="w-full px-4 py-2 rounded-xl border border-neutral-200 dark:border-neutral-800 text-xs font-medium outline-none" />
+              <input type="text" value={linkUrlInput} onChange={(e) => setLinkUrlInput(e.target.value)} placeholder="URL (https://...)" className="w-full px-4 py-2 rounded-xl border border-neutral-200 dark:border-neutral-800 text-xs font-medium outline-none" />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setIsLinkModalOpen(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-neutral-600">Annuler</button>
+              <button onClick={() => setIsLinkModalOpen(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-neutral-600 dark:text-neutral-400">Annuler</button>
               <button onClick={handleInsertLinkSubmit} className="bg-secondary text-white px-5 py-2 rounded-xl text-xs font-bold shadow-xs">Ajouter</button>
             </div>
           </div>

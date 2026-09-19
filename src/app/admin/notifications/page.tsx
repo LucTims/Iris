@@ -121,13 +121,13 @@ export default function AdminNotificationsPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-300 max-w-6xl mx-auto pb-12">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-neutral-200 dark:border-neutral-800 pb-5">
         <div>
-          <h1 className="text-2xl font-extrabold text-neutral-900 font-heading flex items-center gap-2.5">
+          <h1 className="text-2xl font-extrabold text-neutral-900 dark:text-neutral-100 font-heading flex items-center gap-2.5">
             <Bell className="w-7 h-7 text-primary" />
             <span>Gestion des Notifications</span>
           </h1>
-          <p className="text-sm text-neutral-500 mt-1">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
             Diffusez des messages, annonces et offres en temps réel à l'ensemble des utilisateurs d'Iris.
           </p>
         </div>
@@ -143,13 +143,13 @@ export default function AdminNotificationsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Form Card (7 cols) */}
-        <div className="lg:col-span-7 bg-white rounded-3xl border border-neutral-200 shadow-sm p-6 sm:p-8 space-y-6">
-          <div className="border-b border-neutral-100 pb-4">
-            <h2 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
+        <div className="lg:col-span-7 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm p-6 sm:p-8 space-y-6">
+          <div className="border-b border-neutral-100 dark:border-neutral-800 pb-4">
+            <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
               <Send className="w-5 h-5 text-secondary" />
               <span>Rédiger une nouvelle notification</span>
             </h2>
-            <p className="text-xs text-neutral-500 mt-1">
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
               Cette notification apparaîtra dans le menu cloche de tous les utilisateurs connectés.
             </p>
           </div>
@@ -167,7 +167,7 @@ export default function AdminNotificationsPage() {
 
           <form onSubmit={handlePublish} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-1.5 uppercase tracking-wider">
                 Titre de la Notification *
               </label>
               <input
@@ -175,20 +175,20 @@ export default function AdminNotificationsPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ex: Nouveauté : Génération complète de livre par IA !"
-                className="w-full px-4 py-3 rounded-xl border border-neutral-200 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-800 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all"
                 required
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-1.5 uppercase tracking-wider">
                   Type de Message
                 </label>
                 <select
                   value={type}
                   onChange={(e: any) => setType(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-neutral-200 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all bg-white"
+                  className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-800 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all bg-white dark:bg-neutral-900"
                 >
                   <option value="announcement">Annonce officielle</option>
                   <option value="update">Mise à jour / Nouveauté</option>
@@ -199,7 +199,7 @@ export default function AdminNotificationsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-1.5 uppercase tracking-wider">
                   Lien de redirection (Optionnel)
                 </label>
                 <input
@@ -207,13 +207,13 @@ export default function AdminNotificationsPage() {
                   value={link}
                   onChange={(e) => setLink(e.target.value)}
                   placeholder="Ex: /pricing ou /projects"
-                  className="w-full px-4 py-3 rounded-xl border border-neutral-200 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-800 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-1.5 uppercase tracking-wider">
                 Message / Contenu *
               </label>
               <textarea
@@ -221,7 +221,7 @@ export default function AdminNotificationsPage() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Rédigez ici le détail du message à transmettre à vos auteurs..."
-                className="w-full px-4 py-3 rounded-xl border border-neutral-200 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all resize-y"
+                className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-800 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all resize-y"
                 required
               />
             </div>
@@ -257,19 +257,19 @@ export default function AdminNotificationsPage() {
             </div>
 
             {/* Simulated Bell Popover item */}
-            <div className="bg-white text-neutral-900 rounded-2xl p-4 shadow-lg border border-neutral-200 space-y-2">
+            <div className="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 rounded-2xl p-4 shadow-lg border border-neutral-200 dark:border-neutral-800 space-y-2">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-0.5">
                   <Bell className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <h4 className="text-xs font-extrabold truncate text-neutral-900">
+                    <h4 className="text-xs font-extrabold truncate text-neutral-900 dark:text-neutral-100">
                       {title || "Titre de votre notification"}
                     </h4>
                     <span className="text-[10px] text-neutral-400 shrink-0">À l'instant</span>
                   </div>
-                  <p className="text-xs text-neutral-600 line-clamp-3 leading-relaxed">
+                  <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-3 leading-relaxed">
                     {message || "Le contenu de votre notification apparaîtra ici de manière claire et élégante."}
                   </p>
                   {link && (
@@ -290,17 +290,17 @@ export default function AdminNotificationsPage() {
       </div>
 
       {/* History Table */}
-      <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-6 sm:p-8 space-y-6">
+      <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-sm p-6 sm:p-8 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-neutral-900">Historique des notifications publiées</h2>
-            <p className="text-xs text-neutral-500 mt-0.5">
+            <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">Historique des notifications publiées</h2>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
               Liste complète des messages envoyés via la plateforme ({notifications.length})
             </p>
           </div>
           <button 
             onClick={() => mutate()} 
-            className="p-2 rounded-xl text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
+            className="p-2 rounded-xl text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 hover:bg-neutral-100 dark:bg-neutral-800 transition-colors"
             title="Rafraîchir"
           >
             <RefreshCw className="w-4 h-4" />
@@ -317,7 +317,7 @@ export default function AdminNotificationsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-neutral-100 text-xs font-bold text-neutral-400 uppercase tracking-wider">
+                <tr className="border-b border-neutral-100 dark:border-neutral-800 text-xs font-bold text-neutral-400 uppercase tracking-wider">
                   <th className="py-3 px-4">Titre & Message</th>
                   <th className="py-3 px-4">Type</th>
                   <th className="py-3 px-4">Audience</th>
@@ -329,19 +329,19 @@ export default function AdminNotificationsPage() {
                 {notifications.map((notif) => (
                   <tr key={notif.id} className="hover:bg-neutral-50/80 transition-colors">
                     <td className="py-4 px-4 max-w-xs sm:max-w-md">
-                      <p className="font-bold text-neutral-900">{notif.title}</p>
-                      <p className="text-neutral-500 line-clamp-1 mt-0.5">{notif.message}</p>
+                      <p className="font-bold text-neutral-900 dark:text-neutral-100">{notif.title}</p>
+                      <p className="text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-0.5">{notif.message}</p>
                     </td>
                     <td className="py-4 px-4 whitespace-nowrap">
                       {getTypeBadge(notif.type)}
                     </td>
                     <td className="py-4 px-4 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 text-neutral-600 font-semibold">
+                      <span className="inline-flex items-center gap-1 text-neutral-600 dark:text-neutral-400 font-semibold">
                         <Users className="w-3.5 h-3.5 text-neutral-400" />
                         Tous les utilisateurs
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-neutral-500 whitespace-nowrap">
+                    <td className="py-4 px-4 text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
                       {new Date(notif.created_at).toLocaleString("fr-FR", {
                         day: "2-digit",
                         month: "short",

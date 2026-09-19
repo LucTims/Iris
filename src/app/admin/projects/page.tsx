@@ -18,9 +18,9 @@ export default function AdminProjects() {
 
   if (error && !projects?.length) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 bg-white border border-red-200 rounded-2xl text-center space-y-3">
-        <p className="font-semibold text-neutral-900">Impossible de charger les projets</p>
-        <p className="text-sm text-neutral-500">{error.message || "Une erreur est survenue lors de la récupération des données."}</p>
+      <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-neutral-900 border border-red-200 rounded-2xl text-center space-y-3">
+        <p className="font-semibold text-neutral-900 dark:text-neutral-100">Impossible de charger les projets</p>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">{error.message || "Une erreur est survenue lors de la récupération des données."}</p>
         <button
           onClick={() => mutate()}
           className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-[#B83E26] transition-colors"
@@ -40,8 +40,8 @@ export default function AdminProjects() {
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-neutral-900 font-heading">Projets & Livres</h1>
-          <p className="text-sm text-neutral-500">Suivi des {projects.length} livres en cours de rédaction sur la plateforme.</p>
+          <h1 className="text-2xl font-extrabold text-neutral-900 dark:text-neutral-100 font-heading">Projets & Livres</h1>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">Suivi des {projects.length} livres en cours de rédaction sur la plateforme.</p>
         </div>
         
         <div className="relative w-full sm:w-72">
@@ -51,15 +51,15 @@ export default function AdminProjects() {
             placeholder="Rechercher un livre ou un auteur..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
         </div>
       </div>
 
-      <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-neutral-600">
-            <thead className="bg-neutral-50 border-b border-neutral-200 text-xs font-bold text-neutral-500 uppercase tracking-wider">
+          <table className="w-full text-left text-sm text-neutral-600 dark:text-neutral-400">
+            <thead className="bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-800 text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4">Livre</th>
                 <th className="px-6 py-4">Auteur</th>
@@ -73,12 +73,12 @@ export default function AdminProjects() {
               {filtered.map((p: any) => (
                 <tr key={p.id} className="hover:bg-neutral-50/50 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-bold text-neutral-900">{p.title || 'Sans titre'}</div>
+                    <div className="font-bold text-neutral-900 dark:text-neutral-100">{p.title || 'Sans titre'}</div>
                     <div className="text-xs text-neutral-400 font-mono mt-0.5">{p.id.split('-')[0]}...</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="font-medium text-neutral-900">{p.author_name}</div>
-                    <div className="text-xs text-neutral-500">{p.author_email}</div>
+                    <div className="font-medium text-neutral-900 dark:text-neutral-100">{p.author_name}</div>
+                    <div className="text-xs text-neutral-500 dark:text-neutral-400">{p.author_email}</div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
@@ -86,8 +86,8 @@ export default function AdminProjects() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <div className="font-bold text-neutral-900">{p.chapters} ch.</div>
-                    <div className="text-xs text-neutral-500">{p.words.toLocaleString('fr-FR')} mots</div>
+                    <div className="font-bold text-neutral-900 dark:text-neutral-100">{p.chapters} ch.</div>
+                    <div className="text-xs text-neutral-500 dark:text-neutral-400">{p.words.toLocaleString('fr-FR')} mots</div>
                   </td>
                   <td className="px-6 py-4 text-center font-semibold text-secondary">
                     {p.coins_spent.toLocaleString('fr-FR')} <span className="text-[10px]">pts</span>

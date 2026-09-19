@@ -76,17 +76,17 @@ export default function ChapterGenerateModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-neutral-900/50 backdrop-blur-xs p-0 sm:p-4">
-      <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-neutral-100 max-h-[92dvh] overflow-y-auto">
+      <div className="bg-white dark:bg-neutral-900 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl border border-neutral-100 dark:border-neutral-800 max-h-[92dvh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-neutral-100 sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 sticky top-0 bg-white dark:bg-neutral-900 z-10">
           <div className="min-w-0">
-            <h3 className="font-heading font-extrabold text-base sm:text-lg text-neutral-900 flex items-center gap-2">
+            <h3 className="font-heading font-extrabold text-base sm:text-lg text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
               <span className="material-symbols-outlined text-secondary">auto_fix_high</span>
               {hasContent ? "Modifier ce chapitre" : "Rédiger ce chapitre"}
             </h3>
-            <p className="text-xs text-neutral-500 truncate mt-0.5 pl-8">{chapterTitle}</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate mt-0.5 pl-8">{chapterTitle}</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors">
+          <button onClick={onClose} className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-neutral-400 hover:bg-neutral-100 dark:bg-neutral-800 hover:text-neutral-700 dark:text-neutral-300 transition-colors">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
@@ -102,7 +102,7 @@ export default function ChapterGenerateModal({
 
           {/* Intention */}
           <div className="space-y-2">
-            <label className="text-sm font-bold text-neutral-800">Que voulez-vous faire ?</label>
+            <label className="text-sm font-bold text-neutral-800 dark:text-neutral-200">Que voulez-vous faire ?</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {intents.map((i) => {
                 const active = intent === i.id;
@@ -112,12 +112,12 @@ export default function ChapterGenerateModal({
                     type="button"
                     onClick={() => setIntent(i.id)}
                     className={`text-left p-3 rounded-xl border-2 transition-all flex items-start gap-2.5 ${
-                      active ? "border-secondary bg-orange-50/60" : "border-neutral-200 bg-white hover:border-neutral-300"
+                      active ? "border-secondary bg-orange-50/60" : "border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-300"
                     }`}
                   >
                     <span className={`material-symbols-outlined text-lg ${active ? "text-secondary" : "text-neutral-400"}`}>{i.icon}</span>
                     <span className="min-w-0">
-                      <span className={`block text-sm font-extrabold ${active ? "text-secondary" : "text-neutral-800"}`}>{i.label}</span>
+                      <span className={`block text-sm font-extrabold ${active ? "text-secondary" : "text-neutral-800 dark:text-neutral-200"}`}>{i.label}</span>
                       <span className="block text-[11px] text-neutral-400 leading-snug">{i.hint}</span>
                     </span>
                   </button>
@@ -128,7 +128,7 @@ export default function ChapterGenerateModal({
 
           {/* Consignes libres */}
           <div className="space-y-2">
-            <label className="text-sm font-bold text-neutral-800">
+            <label className="text-sm font-bold text-neutral-800 dark:text-neutral-200">
               Précisions {intent === "custom" ? "" : <span className="font-medium text-neutral-400">(facultatif)</span>}
             </label>
             <textarea
@@ -140,13 +140,13 @@ export default function ChapterGenerateModal({
                   ? "Ex : Ajoute une étude de cas sur la BRVM et un tableau comparatif des courtiers."
                   : "Ex : adopte un ton plus direct, ajoute des exemples concrets, cite des chiffres récents…"
               }
-              className="w-full text-sm border border-neutral-200 rounded-xl px-3 py-2.5 outline-none focus:border-secondary resize-y placeholder:text-neutral-300"
+              className="w-full text-sm border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2.5 outline-none focus:border-secondary resize-y placeholder:text-neutral-300"
             />
           </div>
 
           {/* Modèle */}
           <div className="space-y-2">
-            <label className="text-sm font-bold text-neutral-800">Modèle d'écriture</label>
+            <label className="text-sm font-bold text-neutral-800 dark:text-neutral-200">Modèle d'écriture</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {BOOK_MODELS.map((m) => {
                 const active = model === m.id;
@@ -156,10 +156,10 @@ export default function ChapterGenerateModal({
                     type="button"
                     onClick={() => setModel(m.id)}
                     className={`text-left p-3 rounded-xl border-2 transition-all ${
-                      active ? "border-secondary bg-orange-50/60" : "border-neutral-200 bg-white hover:border-neutral-300"
+                      active ? "border-secondary bg-orange-50/60" : "border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-300"
                     }`}
                   >
-                    <span className={`text-sm font-bold ${active ? "text-secondary" : "text-neutral-800"}`}>{m.label}</span>
+                    <span className={`text-sm font-bold ${active ? "text-secondary" : "text-neutral-800 dark:text-neutral-200"}`}>{m.label}</span>
                     <p className="text-[11px] text-neutral-400 leading-snug">{m.hint}</p>
                   </button>
                 );
@@ -169,8 +169,8 @@ export default function ChapterGenerateModal({
         </div>
 
         {/* Footer */}
-        <div className="px-5 sm:px-6 py-4 border-t border-neutral-100 flex items-center justify-end gap-2 sticky bottom-0 bg-white">
-          <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-xs font-bold text-neutral-600 hover:bg-neutral-100 transition-colors">
+        <div className="px-5 sm:px-6 py-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-end gap-2 sticky bottom-0 bg-white dark:bg-neutral-900">
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:bg-neutral-800 transition-colors">
             Annuler
           </button>
           <button

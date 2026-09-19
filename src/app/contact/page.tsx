@@ -20,7 +20,7 @@ export default function ContactPage() {
           <p className="text-lg text-on-surface-variant">Une question, un problème ou une suggestion ? Notre équipe est là pour vous aider.</p>
         </div>
 
-        <div className="bg-white rounded-3xl border border-outline-variant p-8 md:p-12 shadow-sm">
+        <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-outline-variant p-8 md:p-12 shadow-sm">
           <form className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>

@@ -117,9 +117,9 @@ export default function ProfilePage() {
 
   return (
     <AppLayout>
-        <header className="bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md border-b border-neutral-100 dark:border-neutral-800 sticky top-0 z-20 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
+        <header className="bg-white dark:bg-neutral-900/80 dark:bg-neutral-950/80 backdrop-blur-md border-b border-neutral-100 dark:border-neutral-800 sticky top-0 z-20 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white bg-neutral-100 dark:bg-neutral-800 px-3 py-2 rounded-xl transition-all">
+            <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-white bg-neutral-100 dark:bg-neutral-800 px-3 py-2 rounded-xl transition-all">
               <span className="material-symbols-outlined text-base">arrow_back</span>
               <span>Tableau de bord</span>
             </Link>
@@ -240,7 +240,7 @@ export default function ProfilePage() {
                         disabled
                         className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-700 text-sm font-medium bg-neutral-50 dark:bg-neutral-800/60 text-neutral-500 dark:text-neutral-400 outline-none cursor-not-allowed" 
                       />
-                      <p className="text-[10px] text-neutral-400 dark:text-neutral-500 mt-1.5">L'adresse e-mail associée à votre compte ne peut pas être modifiée ici.</p>
+                      <p className="text-[10px] text-neutral-400 dark:text-neutral-500 dark:text-neutral-400 mt-1.5">L'adresse e-mail associée à votre compte ne peut pas être modifiée ici.</p>
                     </div>
                     
                     <div className="md:col-span-2">
@@ -295,7 +295,7 @@ export default function ProfilePage() {
                           value={twitterUrl}
                           onChange={(e) => setTwitterUrl(e.target.value)}
                           placeholder="votre_pseudo"
-                          className="flex-1 px-4 py-3 rounded-r-xl border border-neutral-200 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all" 
+                          className="flex-1 px-4 py-3 rounded-r-xl border border-neutral-200 dark:border-neutral-800 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all" 
                         />
                       </div>
                     </div>

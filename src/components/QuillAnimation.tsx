@@ -281,10 +281,10 @@ export default function QuillAnimation() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.5 }}
       >
-        <h3 className="font-heading font-bold text-xl sm:text-2xl text-neutral-900 tracking-tight">
+        <h3 className="font-heading font-bold text-xl sm:text-2xl text-neutral-900 dark:text-neutral-100 tracking-tight">
           Votre premier livre commence ici
         </h3>
-        <p className="text-xs sm:text-sm text-neutral-500 max-w-sm mx-auto leading-relaxed">
+        <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 max-w-sm mx-auto leading-relaxed">
           Structurez vos idées, laissez votre plume s&apos;exprimer et co-rédigez votre ouvrage chapitre par chapitre.
         </p>
       </motion.div>

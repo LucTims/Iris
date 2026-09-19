@@ -132,10 +132,10 @@ export default function AutomationsPage() {
         
         {/* Header Section */}
         <div className="space-y-4 text-center max-w-3xl mx-auto">
-          <h1 className="font-heading text-3xl md:text-4xl font-bold text-neutral-900 tracking-tight">
+          <h1 className="font-heading text-3xl md:text-4xl font-bold text-neutral-900 dark:text-neutral-100 tracking-tight">
             Connexion MCP
           </h1>
-          <p className="text-neutral-600 text-sm md:text-base leading-relaxed">
+          <p className="text-neutral-600 dark:text-neutral-400 text-sm md:text-base leading-relaxed">
             Le protocole MCP (Model Context Protocol) permet à vos assistants IA d'accéder directement à vos 
             données Iris. Fini le copier-coller : vos outils IA peuvent consulter et générer vos histoires en
             temps réel. Voici ce que vous pouvez faire avec MCP :
@@ -154,20 +154,20 @@ export default function AutomationsPage() {
         {/* Features Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto text-center">
           <div className="flex flex-col items-center space-y-2">
-            <div className="w-10 h-10 flex items-center justify-center text-neutral-500 mb-1">
+            <div className="w-10 h-10 flex items-center justify-center text-neutral-500 dark:text-neutral-400 mb-1">
               <BookOpen strokeWidth={1.5} className="w-6 h-6" />
             </div>
-            <h3 className="font-semibold text-neutral-900">Projets & Chapitres</h3>
-            <p className="text-sm text-neutral-500">
+            <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">Projets & Chapitres</h3>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
               Analysez et rédigez le contenu de vos livres
             </p>
           </div>
           <div className="flex flex-col items-center space-y-2">
-            <div className="w-10 h-10 flex items-center justify-center text-neutral-500 mb-1">
+            <div className="w-10 h-10 flex items-center justify-center text-neutral-500 dark:text-neutral-400 mb-1">
               <Users strokeWidth={1.5} className="w-6 h-6" />
             </div>
-            <h3 className="font-semibold text-neutral-900">Bible & Personnages</h3>
-            <p className="text-sm text-neutral-500">
+            <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">Bible & Personnages</h3>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
               Consultez les fiches de vos personnages
             </p>
           </div>
@@ -175,21 +175,21 @@ export default function AutomationsPage() {
 
         {/* Configuration Card */}
         <div className="bg-neutral-50/80 rounded-2xl p-6 md:p-8 space-y-6">
-          <h2 className="font-semibold text-neutral-900">Informations du serveur MCP</h2>
+          <h2 className="font-semibold text-neutral-900 dark:text-neutral-100">Informations du serveur MCP</h2>
           
           <div className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-neutral-800">Nom</label>
+              <label className="text-sm font-medium text-neutral-800 dark:text-neutral-200">Nom</label>
               <div className="flex items-center gap-2">
                 <input 
                   type="text" 
                   readOnly 
                   value={serverName}
-                  className="w-full bg-white border border-neutral-200 rounded-lg px-4 py-2.5 text-sm text-neutral-700 focus:outline-none focus:border-neutral-300"
+                  className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg px-4 py-2.5 text-sm text-neutral-700 dark:text-neutral-300 focus:outline-none focus:border-neutral-300"
                 />
                 <button 
                   onClick={() => copyToClipboard(serverName, 'name')}
-                  className="shrink-0 p-2.5 bg-white border border-neutral-200 rounded-lg text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700 transition-colors"
+                  className="shrink-0 p-2.5 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:bg-neutral-800/50 hover:text-neutral-700 dark:text-neutral-300 transition-colors"
                   title="Copier le nom"
                 >
                   {isNameCopied ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
@@ -198,18 +198,18 @@ export default function AutomationsPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-neutral-800">URL</label>
+              <label className="text-sm font-medium text-neutral-800 dark:text-neutral-200">URL</label>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   readOnly
                   value={urlFieldValue}
-                  className="w-full bg-white border border-neutral-200 rounded-lg px-4 py-2.5 text-sm font-mono text-neutral-700 focus:outline-none focus:border-neutral-300"
+                  className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg px-4 py-2.5 text-sm font-mono text-neutral-700 dark:text-neutral-300 focus:outline-none focus:border-neutral-300"
                 />
                 <button
                   onClick={() => copyToClipboard(mcpUrl, 'url')}
                   disabled={!mcpUrl}
-                  className="shrink-0 p-2.5 bg-white border border-neutral-200 rounded-lg text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="shrink-0 p-2.5 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:bg-neutral-800/50 hover:text-neutral-700 dark:text-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Copier l'URL"
                 >
                   {isUrlCopied ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
@@ -217,13 +217,13 @@ export default function AutomationsPage() {
                 <button
                   onClick={generateApiKey}
                   disabled={isLoading}
-                  className="shrink-0 p-2.5 bg-white border border-neutral-200 rounded-lg text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700 transition-colors disabled:opacity-50"
+                  className="shrink-0 p-2.5 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:bg-neutral-800/50 hover:text-neutral-700 dark:text-neutral-300 transition-colors disabled:opacity-50"
                   title="Révoquer et générer une nouvelle URL sécurisée"
                 >
                   <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                 </button>
               </div>
-              <p className="text-xs text-neutral-500 mt-1">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                 {mcpUrl
                   ? "Copiez cette URL maintenant : pour votre sécurité, elle ne sera plus jamais affichée en clair. Régénérez-en une nouvelle si vous la perdez."
                   : "Cette clé a déjà été affichée une fois par le passé et ne peut plus être récupérée en clair. Cliquez sur régénérer pour en obtenir une nouvelle et copier son URL."}
@@ -246,25 +246,25 @@ export default function AutomationsPage() {
         </div>
 
         {/* Guides Section */}
-        <div className="space-y-4 pt-4 border-t border-neutral-100">
-          <h2 className="font-heading text-xl font-bold text-neutral-900">Guides d'installation</h2>
+        <div className="space-y-4 pt-4 border-t border-neutral-100 dark:border-neutral-800">
+          <h2 className="font-heading text-xl font-bold text-neutral-900 dark:text-neutral-100">Guides d'installation</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             {/* Guide Claude.ai / ChatGPT */}
-            <div className="border border-neutral-200 rounded-xl overflow-hidden bg-white">
+            <div className="border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden bg-white dark:bg-neutral-900">
               <button
                 onClick={() => toggleGuide('remote')}
-                className="w-full flex items-center justify-between p-4 hover:bg-neutral-50 transition-colors group"
+                className="w-full flex items-center justify-between p-4 hover:bg-neutral-50 dark:bg-neutral-800/50 transition-colors group"
               >
                 <div className="flex flex-col items-start">
-                  <span className="font-medium text-neutral-900">Connecter Claude.ai ou ChatGPT</span>
-                  <span className="text-xs text-neutral-500">Connecteur distant, sans installation</span>
+                  <span className="font-medium text-neutral-900 dark:text-neutral-100">Connecter Claude.ai ou ChatGPT</span>
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">Connecteur distant, sans installation</span>
                 </div>
-                <ChevronDown className={`w-4 h-4 text-neutral-400 group-hover:text-neutral-600 transition-transform ${openGuide === 'remote' ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-neutral-400 group-hover:text-neutral-600 dark:text-neutral-400 transition-transform ${openGuide === 'remote' ? 'rotate-180' : ''}`} />
               </button>
               {openGuide === 'remote' && (
-                <div className="p-4 bg-neutral-50 border-t border-neutral-200 text-sm text-neutral-600 space-y-3">
+                <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 border-t border-neutral-200 dark:border-neutral-800 text-sm text-neutral-600 dark:text-neutral-400 space-y-3">
                   <p>1. Dans Claude.ai : Réglages &gt; Connecteurs &gt; <strong>Ajouter un connecteur personnalisé</strong>. Dans ChatGPT : Réglages &gt; Connecteurs &gt; <strong>Créer</strong>.</p>
                   <p>2. Collez l'URL générée ci-dessus dans le champ URL du serveur MCP.</p>
                   <p>3. Aucun fichier de configuration n'est nécessaire : ces assistants se connectent directement au serveur distant.</p>
@@ -273,19 +273,19 @@ export default function AutomationsPage() {
             </div>
 
             {/* Guide Cursor */}
-            <div className="border border-neutral-200 rounded-xl overflow-hidden bg-white">
+            <div className="border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden bg-white dark:bg-neutral-900">
               <button
                 onClick={() => toggleGuide('cursor')}
-                className="w-full flex items-center justify-between p-4 hover:bg-neutral-50 transition-colors group"
+                className="w-full flex items-center justify-between p-4 hover:bg-neutral-50 dark:bg-neutral-800/50 transition-colors group"
               >
                 <div className="flex flex-col items-start">
-                  <span className="font-medium text-neutral-900">Connecter Cursor</span>
-                  <span className="text-xs text-neutral-500">Client MCP distant natif</span>
+                  <span className="font-medium text-neutral-900 dark:text-neutral-100">Connecter Cursor</span>
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">Client MCP distant natif</span>
                 </div>
-                <ChevronDown className={`w-4 h-4 text-neutral-400 group-hover:text-neutral-600 transition-transform ${openGuide === 'cursor' ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-neutral-400 group-hover:text-neutral-600 dark:text-neutral-400 transition-transform ${openGuide === 'cursor' ? 'rotate-180' : ''}`} />
               </button>
               {openGuide === 'cursor' && (
-                <div className="p-4 bg-neutral-50 border-t border-neutral-200 text-sm text-neutral-600 space-y-3">
+                <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 border-t border-neutral-200 dark:border-neutral-800 text-sm text-neutral-600 dark:text-neutral-400 space-y-3">
                   <p>1. Ouvrez les paramètres de Cursor (Cursor Settings &gt; Features &gt; MCP).</p>
                   <p>2. Cliquez sur <strong>+ Add New MCP Server</strong>.</p>
                   <p>3. Collez l'URL générée ci-dessus (la clé de sécurité y est déjà incluse) ; Cursor détecte automatiquement le transport.</p>
@@ -295,19 +295,19 @@ export default function AutomationsPage() {
             </div>
 
             {/* Guide Claude Desktop */}
-            <div className="border border-neutral-200 rounded-xl overflow-hidden bg-white">
+            <div className="border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden bg-white dark:bg-neutral-900">
               <button
                 onClick={() => toggleGuide('claude-desktop')}
-                className="w-full flex items-center justify-between p-4 hover:bg-neutral-50 transition-colors group"
+                className="w-full flex items-center justify-between p-4 hover:bg-neutral-50 dark:bg-neutral-800/50 transition-colors group"
               >
                 <div className="flex flex-col items-start">
-                  <span className="font-medium text-neutral-900">Connecter Claude Desktop</span>
-                  <span className="text-xs text-neutral-500">Via mcp-remote</span>
+                  <span className="font-medium text-neutral-900 dark:text-neutral-100">Connecter Claude Desktop</span>
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">Via mcp-remote</span>
                 </div>
-                <ChevronDown className={`w-4 h-4 text-neutral-400 group-hover:text-neutral-600 transition-transform ${openGuide === 'claude-desktop' ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-neutral-400 group-hover:text-neutral-600 dark:text-neutral-400 transition-transform ${openGuide === 'claude-desktop' ? 'rotate-180' : ''}`} />
               </button>
               {openGuide === 'claude-desktop' && (
-                <div className="p-4 bg-neutral-50 border-t border-neutral-200 text-sm text-neutral-600 space-y-3">
+                <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 border-t border-neutral-200 dark:border-neutral-800 text-sm text-neutral-600 dark:text-neutral-400 space-y-3">
                   <p>Ajoutez ceci à votre fichier <code className="bg-neutral-200 px-1 rounded text-xs">claude_desktop_config.json</code> :</p>
                   <pre className="bg-[#1E1E1E] text-white p-3 rounded-lg text-xs overflow-x-auto">
 {`{

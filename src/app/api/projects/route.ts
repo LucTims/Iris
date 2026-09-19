@@ -89,12 +89,15 @@ export async function POST(req: Request) {
         characters,
         length,
         instructions,
-        // Forme de l'ouvrage / blueprint (livre, guide, ebook, storybook).
-        // Contrainte en base ; on n'enregistre que les valeurs valides et on
-        // laisse NULL sinon, la forme étant alors déduite par heuristique à la
-        // génération.
-        work_type: VALID_WORK_TYPES.includes(resolvedBlueprint) ? resolvedBlueprint : null,
-        blueprint_id: VALID_WORK_TYPES.includes(resolvedBlueprint) ? resolvedBlueprint : "livre",
+        // Forme de l'ouvrage (livre / guide / ebook). Rétrocompatible :
+        // les blueprints visuels (storybook) utilisent "livre" comme work_type.
+        work_type: ["livre", "guide", "ebook"].includes(resolvedBlueprint)
+          ? resolvedBlueprint
+          : resolvedBlueprint === "storybook" ? "livre" : null,
+        // Blueprint : identifiant étendu qui inclut les types visuels (storybook).
+        blueprint_id: ["roman", "guide", "ebook", "storybook"].includes(resolvedBlueprint)
+          ? resolvedBlueprint
+          : "roman",
         reference_analysis: refAnalysis,
         reference_meta: refMeta,
         status: "En cours"

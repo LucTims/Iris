@@ -69,7 +69,7 @@ export default function Sidebar() {
   return (
     <>
       <aside
-      className={`hidden md:flex flex-col bg-white border-r border-neutral-200/80 transition-all duration-300 z-40 sticky top-0 h-screen shrink-0 ${
+      className={`hidden md:flex flex-col bg-white dark:bg-neutral-950 border-r border-neutral-200/80 dark:border-neutral-800 transition-all duration-300 z-40 sticky top-0 h-screen shrink-0 ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
@@ -78,7 +78,7 @@ export default function Sidebar() {
         <Link href="/dashboard" className="flex items-center gap-2 overflow-hidden group">
           <img src="/iris-logo.png" alt="Iris" className="w-8 h-8 object-contain shrink-0" />
           {!collapsed && (
-            <span className="font-heading font-extrabold text-2xl tracking-tight text-neutral-900 group-hover:text-secondary transition-colors">
+            <span className="font-heading font-extrabold text-2xl tracking-tight text-neutral-900 dark:text-neutral-100 group-hover:text-secondary transition-colors">
               Iris
             </span>
           )}
@@ -88,7 +88,7 @@ export default function Sidebar() {
         <button
           onClick={toggleCollapsed}
           title={collapsed ? "Agrandir le menu" : "Réduire le menu"}
-          className="w-8 h-8 rounded-xl bg-neutral-100/80 hover:bg-neutral-200/70 border border-neutral-200/60 text-neutral-600 hover:text-neutral-900 transition-all flex items-center justify-center shadow-2xs hover:scale-105 active:scale-95 cursor-pointer"
+          className="w-8 h-8 rounded-xl bg-neutral-100/80 dark:bg-neutral-900/80 hover:bg-neutral-200/70 dark:hover:bg-neutral-800/70 border border-neutral-200/60 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100 transition-all flex items-center justify-center shadow-2xs hover:scale-105 active:scale-95 cursor-pointer"
         >
           <span className="material-symbols-outlined text-lg">
             {collapsed ? "keyboard_double_arrow_right" : "keyboard_double_arrow_left"}
@@ -111,7 +111,7 @@ export default function Sidebar() {
               className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
                 isActive
                   ? "bg-[#C84B31]/10 text-[#C84B31] font-bold shadow-2xs"
-                  : "text-neutral-600 hover:bg-[#C84B31]/5 hover:text-[#C84B31]"
+                  : "text-neutral-600 dark:text-neutral-400 hover:bg-[#C84B31]/5 hover:text-[#C84B31] dark:hover:text-[#C84B31]"
               }`}
             >
               <div className="shrink-0 transition-transform group-hover:scale-110 text-inherit flex items-center justify-center">
@@ -133,7 +133,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom Footer Links & Collapse Toggle */}
-      <div className="p-3 border-t border-neutral-100 space-y-1 bg-white mt-auto">
+      <div className="p-3 border-t border-neutral-100 dark:border-neutral-800 space-y-1 bg-white dark:bg-neutral-950 mt-auto">
         {bottomNavItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
           return (
@@ -144,7 +144,7 @@ export default function Sidebar() {
               className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
                 isActive
                   ? "bg-[#C84B31]/10 text-[#C84B31] font-bold shadow-2xs"
-                  : "text-neutral-600 hover:bg-[#C84B31]/5 hover:text-[#C84B31]"
+                  : "text-neutral-600 dark:text-neutral-400 hover:bg-[#C84B31]/5 hover:text-[#C84B31] dark:hover:text-[#C84B31]"
               }`}
             >
               <div className="shrink-0 transition-transform group-hover:scale-110 text-inherit flex items-center justify-center">
@@ -155,11 +155,11 @@ export default function Sidebar() {
           );
         })}
 
-        <div className="pt-2 mt-2 border-t border-neutral-100">
+        <div className="pt-2 mt-2 border-t border-neutral-100 dark:border-neutral-800">
         <button
           onClick={signOut}
           title={collapsed ? "Se déconnecter" : undefined}
-          className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+          className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
         >
           <LogOut strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />
           {!collapsed && <span className="truncate">Se déconnecter</span>}
@@ -167,7 +167,7 @@ export default function Sidebar() {
 
         <button
           onClick={toggleCollapsed}
-          className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-neutral-400 hover:text-neutral-800 rounded-xl hover:bg-neutral-50 transition-colors pt-2 border-t border-neutral-100 mt-1 cursor-pointer"
+          className="w-full flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold text-neutral-400 hover:text-neutral-800 dark:text-neutral-200 dark:hover:text-neutral-200 rounded-xl hover:bg-neutral-50 dark:bg-neutral-800/50 dark:hover:bg-neutral-900 transition-colors pt-2 border-t border-neutral-100 dark:border-neutral-800 mt-1 cursor-pointer"
         >
           {collapsed ? (
             <PanelLeftOpen strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />
@@ -181,20 +181,20 @@ export default function Sidebar() {
     </aside>
 
       {/* ================= MOBILE BOTTOM NAVIGATION BAR ================= */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-50 px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] flex items-center justify-around shadow-lg">
-        <Link href="/dashboard" className={`flex flex-col items-center gap-1 ${pathname === "/dashboard" ? "text-secondary font-bold" : "text-neutral-500 hover:text-neutral-900"}`}>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-950 border-t border-neutral-200 dark:border-neutral-800 z-50 px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] flex items-center justify-around shadow-lg">
+        <Link href="/dashboard" className={`flex flex-col items-center gap-1 ${pathname === "/dashboard" ? "text-secondary font-bold" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100"}`}>
           <LayoutDashboard strokeWidth={1.5} className="w-5 h-5" />
           <span className="text-[10px]">Accueil</span>
         </Link>
-        <Link href="/projects" className={`flex flex-col items-center gap-1 ${pathname.startsWith("/projects") || pathname.startsWith("/redaction") ? "text-secondary font-bold" : "text-neutral-500 hover:text-neutral-900"}`}>
+        <Link href="/projects" className={`flex flex-col items-center gap-1 ${pathname.startsWith("/projects") || pathname.startsWith("/redaction") ? "text-secondary font-bold" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100"}`}>
           <Library strokeWidth={1.5} className="w-5 h-5" />
           <span className="text-[10px]">Mes Livres</span>
         </Link>
-        <Link href="/cover-studio" className={`flex flex-col items-center gap-1 ${pathname.startsWith("/cover-studio") ? "text-secondary font-bold" : "text-neutral-500 hover:text-neutral-900"}`}>
+        <Link href="/cover-studio" className={`flex flex-col items-center gap-1 ${pathname.startsWith("/cover-studio") ? "text-secondary font-bold" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100"}`}>
           <Palette strokeWidth={1.5} className="w-5 h-5" />
           <span className="text-[10px]">Couverture</span>
         </Link>
-        <button onClick={() => setIsMobileDrawerOpen(!isMobileDrawerOpen)} className={`flex flex-col items-center gap-1 cursor-pointer ${isMobileDrawerOpen ? "text-secondary font-bold" : "text-neutral-500 hover:text-neutral-900"}`}>
+        <button onClick={() => setIsMobileDrawerOpen(!isMobileDrawerOpen)} className={`flex flex-col items-center gap-1 cursor-pointer ${isMobileDrawerOpen ? "text-secondary font-bold" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100"}`}>
           <Menu strokeWidth={1.5} className="w-5 h-5" />
           <span className="text-[10px]">Menu</span>
         </button>
@@ -203,15 +203,15 @@ export default function Sidebar() {
       {/* ================= MOBILE SLIDE-OVER DRAWER MENU ================= */}
       {isMobileDrawerOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-fadeIn">
-          <div className="bg-white rounded-t-3xl p-6 space-y-6 max-h-[85vh] overflow-y-auto border-t border-neutral-200 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-t-3xl p-6 space-y-6 max-h-[85vh] overflow-y-auto border-t border-neutral-200 dark:border-neutral-800 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-4">
               <Link href="/dashboard" onClick={() => setIsMobileDrawerOpen(false)} className="flex items-center gap-2">
                 <img src="/iris-logo.png" alt="Iris" className="w-8 h-8 object-contain" />
-                <span className="font-heading font-extrabold text-xl text-neutral-900">Navigation Iris</span>
+                <span className="font-heading font-extrabold text-xl text-neutral-900 dark:text-neutral-100">Navigation Iris</span>
               </Link>
               <button 
                 onClick={() => setIsMobileDrawerOpen(false)}
-                className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600 hover:bg-neutral-200 transition-colors"
+                className="w-9 h-9 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
               >
                 <X strokeWidth={1.5} className="w-5 h-5" />
               </button>
@@ -226,7 +226,7 @@ export default function Sidebar() {
                   className={`p-3 rounded-2xl border flex flex-col gap-2 transition-all ${
                     pathname === item.href
                       ? "bg-[#C84B31]/10 border-[#C84B31]/20 text-[#C84B31] font-bold"
-                      : "bg-neutral-50 border-neutral-200/80 text-neutral-800 font-semibold hover:bg-neutral-100"
+                      : "bg-neutral-50 dark:bg-neutral-800/50 border-neutral-200/80 dark:border-neutral-700 text-neutral-800 dark:text-neutral-200 font-semibold hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-800"
                   }`}
                 >
                   <div className="flex items-center justify-center w-6 h-6">
@@ -237,14 +237,14 @@ export default function Sidebar() {
               ))}
             </div>
 
-            <div className="pt-4 border-t border-neutral-100 flex items-center justify-between">
-              <span className="text-xs font-semibold text-neutral-500">Compte {displayName ? `: ${displayName}` : ""}</span>
+            <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+              <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">Compte {displayName ? `: ${displayName}` : ""}</span>
               <button
                 onClick={() => {
                   setIsMobileDrawerOpen(false);
                   signOut();
                 }}
-                className="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl transition-colors"
+                className="text-xs font-bold text-red-600 dark:text-red-500 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 px-4 py-2 rounded-xl transition-colors"
               >
                 Se déconnecter
               </button>

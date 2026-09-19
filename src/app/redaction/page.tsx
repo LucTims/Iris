@@ -11,7 +11,7 @@ import type { ChapterGenerateOptions } from "@/components/ChapterGenerateModal";
 // Lazy-load heavy components to reduce initial bundle size by ~1.5MB
 const RichManuscriptEditor = dynamic(
   () => import("@/components/RichManuscriptEditor"),
-  { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center bg-white"><div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div></div> }
+  { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center bg-white dark:bg-neutral-900"><div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div></div> }
 );
 const ImportManuscriptModal = dynamic(() => import("@/components/ImportManuscriptModal"), { ssr: false });
 const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
@@ -1826,20 +1826,20 @@ function RedactionContent() {
   // Suppression de handleStartNewProject pour forcer l'usage du wizard /projects/new
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row h-screen overflow-hidden">
+    <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 dark:text-neutral-100 flex flex-col md:flex-row h-screen overflow-hidden">
       {/* 1. REUSABLE GLOBAL SIDEBAR (LEFT SIDE) */}
       <Sidebar />
 
       {/* MAIN STUDIO CONTAINER */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* 2. SLEEK ESSENTIAL HEADER BAR */}
-        <header className="bg-white border-b border-neutral-200/80 h-16 px-2 sm:px-6 flex items-center justify-between shrink-0 z-30">
+        <header className="bg-white dark:bg-neutral-900 border-b border-neutral-200/80 dark:border-neutral-800 h-16 px-2 sm:px-6 flex items-center justify-between shrink-0 z-30">
           <div className="flex-1 flex items-center justify-between gap-2 sm:gap-4 overflow-x-auto no-scrollbar h-full pr-2">
             {/* Left: Book Title & Active Chapter Picker */}
             <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link
               href="/projects"
-              className="flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all shrink-0"
+              className="flex items-center gap-1.5 text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 bg-neutral-100 dark:bg-neutral-800 px-3 py-2 rounded-xl transition-all shrink-0"
             >
               <span className="material-symbols-outlined text-base">arrow_back</span>
               <span className="hidden sm:inline">Mes Livres</span>
@@ -1847,13 +1847,13 @@ function RedactionContent() {
 
             <div className="flex items-center gap-2 shrink-0">
               {/* Editable Book Title Input */}
-              <div className="flex items-center gap-1.5 bg-neutral-100/80 hover:bg-white border border-neutral-200 focus-within:border-secondary focus-within:bg-white rounded-xl px-3 py-1 transition-all">
+              <div className="flex items-center gap-1.5 bg-neutral-100/80 hover:bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 focus-within:border-secondary focus-within:bg-white dark:bg-neutral-900 rounded-xl px-3 py-1 transition-all">
                 <span className="material-symbols-outlined text-sm text-neutral-400">edit</span>
                 <input
                   type="text"
                   value={bookTitle}
                   onChange={(e) => setBookTitle(e.target.value)}
-                  className="font-heading font-extrabold text-sm sm:text-base text-neutral-900 bg-transparent border-none outline-none focus:ring-0 w-40 sm:w-56 truncate"
+                  className="font-heading font-extrabold text-sm sm:text-base text-neutral-900 dark:text-neutral-100 bg-transparent border-none outline-none focus:ring-0 w-40 sm:w-56 truncate"
                   placeholder="Titre du livre..."
                   title="Cliquer pour modifier le titre du livre"
                 />
@@ -1955,8 +1955,8 @@ function RedactionContent() {
           {/* Right Essential Actions */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Live Stats */}
-            <div className="hidden lg:flex items-center gap-3 bg-neutral-50 px-3.5 py-1.5 rounded-xl border border-neutral-200/70 text-xs">
-              <span className="font-mono font-bold text-neutral-700">{wordCount} MOTS</span>
+            <div className="hidden lg:flex items-center gap-3 bg-neutral-50 dark:bg-neutral-800/50 px-3.5 py-1.5 rounded-xl border border-neutral-200/70 text-xs">
+              <span className="font-mono font-bold text-neutral-700 dark:text-neutral-300">{wordCount} MOTS</span>
               <div className="w-[1px] h-3.5 bg-neutral-300"></div>
               {saveStatus === "saving" && (
                 <span className="text-orange-500 font-bold flex items-center gap-1 animate-pulse">
@@ -1977,7 +1977,7 @@ function RedactionContent() {
 
             <Link
               href="/projects/new"
-              className="bg-neutral-100 hover:bg-neutral-200/80 text-neutral-800 text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
+              className="bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200/80 text-neutral-800 dark:text-neutral-200 text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
               title="Démarrer un nouveau projet complet"
             >
               <span className="material-symbols-outlined text-base text-secondary">add_circle</span>
@@ -1987,11 +1987,11 @@ function RedactionContent() {
             <div className="flex items-center gap-2">
               <Link 
                 href="/pricing" 
-                className="flex items-center gap-1.5 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/80 text-neutral-800 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:border-neutral-300 group" 
+                className="flex items-center gap-1.5 bg-neutral-50 dark:bg-neutral-800/50 hover:bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:border-neutral-300 group" 
                 title="Gérer mes crédits d'écriture"
               >
                 <Coins className="w-3.5 h-3.5 text-secondary transition-transform group-hover:scale-110" />
-                <span className="tabular-nums font-bold text-neutral-900">
+                <span className="tabular-nums font-bold text-neutral-900 dark:text-neutral-100">
                   {walletBalance !== null ? Number(walletBalance).toLocaleString("fr-FR") : "..."}
                 </span>
                 <span className="text-[11px] text-neutral-400 font-medium hidden sm:inline">crédits</span>
@@ -2009,35 +2009,35 @@ function RedactionContent() {
         </div>
 
         {/* Profile Menu Toggle - Now Outside the scroll container */}
-        <div className="relative shrink-0 pl-2 sm:pl-4 border-l border-neutral-100 ml-2">
+        <div className="relative shrink-0 pl-2 sm:pl-4 border-l border-neutral-100 dark:border-neutral-800 ml-2">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="w-8.5 h-8.5 rounded-full bg-neutral-100 hover:bg-neutral-200/80 border border-neutral-200/90 flex items-center justify-center text-neutral-800 font-bold text-xs shadow-2xs cursor-pointer transition-all"
+                className="w-8.5 h-8.5 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200/80 border border-neutral-200/90 flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold text-xs shadow-2xs cursor-pointer transition-all"
               >
                 {userInitials}
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-neutral-200 py-2 z-50">
-                  <div className="px-4 py-3 border-b border-neutral-100">
-                    <p className="font-heading font-bold text-sm text-neutral-900">{displayName || "Utilisateur"}</p>
-                    <p className="text-xs text-neutral-500 truncate">{displayEmail || ""}</p>
+                <div className="absolute right-0 mt-2 w-60 bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800 py-2 z-50">
+                  <div className="px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
+                    <p className="font-heading font-bold text-sm text-neutral-900 dark:text-neutral-100">{displayName || "Utilisateur"}</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">{displayEmail || ""}</p>
                   </div>
                   <div className="py-1">
-                    <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
+                    <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800/50">
                       <span className="material-symbols-outlined text-base text-neutral-400">dashboard</span>
                       <span>Tableau de bord</span>
                     </Link>
-                    <Link href="/profile" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
+                    <Link href="/profile" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800/50">
                       <span className="material-symbols-outlined text-base text-neutral-400">person</span>
                       <span>Mon Profil</span>
                     </Link>
-                    <Link href="/settings" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50">
+                    <Link href="/settings" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800/50">
                       <span className="material-symbols-outlined text-base text-neutral-400">settings</span>
                       <span>Paramètres</span>
                     </Link>
                   </div>
-                  <div className="pt-1 border-t border-neutral-100">
+                  <div className="pt-1 border-t border-neutral-100 dark:border-neutral-800">
                     <button onClick={signOut} className="w-full text-left flex items-center gap-3 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50">
                       <span className="material-symbols-outlined text-base text-red-500">logout</span>
                       <span>Se déconnecter</span>
@@ -2049,13 +2049,13 @@ function RedactionContent() {
         </header>
 
         {/* MOBILE VIEW SEGMENTED CONTROL (visible on mobile / small screens) */}
-        <div className="lg:hidden flex items-center justify-center p-2 bg-white border-b border-neutral-200 gap-2 shrink-0 z-30">
+        <div className="lg:hidden flex items-center justify-center p-2 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 gap-2 shrink-0 z-30">
           <button
             onClick={() => setMobileView("editor")}
             className={`flex-1 py-2 px-2 sm:px-4 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-2 cursor-pointer ${
               mobileView === "editor"
                 ? "bg-[#C84B31] text-white shadow-2xs"
-                : "bg-neutral-100 text-neutral-600 hover:text-neutral-900"
+                : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100"
             }`}
           >
             <span className="material-symbols-outlined text-sm sm:text-base">description</span>
@@ -2146,23 +2146,23 @@ function RedactionContent() {
               }`}
               title="Faites glisser pour ajuster la largeur du chat IA"
             >
-              <div className="w-1 h-8 rounded-full bg-neutral-400 group-hover:bg-white transition-colors"></div>
+              <div className="w-1 h-8 rounded-full bg-neutral-400 group-hover:bg-white dark:bg-neutral-900 transition-colors"></div>
             </div>
           )}
 
           {/* ================= 3C. AI CHAT ASSISTANT PANEL (RIGHT SIDE, RESIZABLE) ================= */}
           {!isChatCollapsed && (
             <aside
-              className={`h-full bg-white border-l border-neutral-200/80 flex-col shrink-0 relative shadow-lg z-10 w-full lg:w-[var(--chat-width)] ${
+              className={`h-full bg-white dark:bg-neutral-900 border-l border-neutral-200/80 dark:border-neutral-800 flex-col shrink-0 relative shadow-lg z-10 w-full lg:w-[var(--chat-width)] ${
                 mobileView === "chat" ? "flex" : "hidden lg:flex"
               }`}
               style={{ '--chat-width': `${chatWidth}px` } as React.CSSProperties}
             >
               {/* Chat Header */}
-              <div className="p-3.5 border-b border-neutral-100 bg-neutral-50/50 flex items-center justify-between shrink-0 gap-2">
+              <div className="p-3.5 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 flex items-center justify-between shrink-0 gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-                  <span className="font-heading font-extrabold text-xs sm:text-sm text-neutral-900 truncate">
+                  <span className="font-heading font-extrabold text-xs sm:text-sm text-neutral-900 dark:text-neutral-100 truncate">
                     Iris IA
                   </span>
                 </div>
@@ -2171,7 +2171,7 @@ function RedactionContent() {
                   <select
                     value={selectedAiModel}
                     onChange={(e) => setSelectedAiModel(e.target.value)}
-                    className="bg-white border border-neutral-200 text-neutral-800 text-[11px] font-bold px-2 py-1 rounded-lg outline-none cursor-pointer hover:border-secondary transition-all"
+                    className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 text-[11px] font-bold px-2 py-1 rounded-lg outline-none cursor-pointer hover:border-secondary transition-all"
                     title="Choisir le modèle d'IA"
                   >
                     <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
@@ -2190,7 +2190,7 @@ function RedactionContent() {
                     className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
                       useWebSearch
                         ? "bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
-                        : "bg-neutral-50 border-neutral-200 text-neutral-400 hover:bg-neutral-100"
+                        : "bg-neutral-50 dark:bg-neutral-800/50 border-neutral-200 dark:border-neutral-800 text-neutral-400 hover:bg-neutral-100 dark:bg-neutral-800"
                     }`}
                     title={useWebSearch ? "Recherche web activée : l'IA utilise des données réelles et récentes" : "Recherche web désactivée : l'IA utilise uniquement ses connaissances internes"}
                   >
@@ -2213,7 +2213,7 @@ function RedactionContent() {
                         }
                       }
                     }}
-                    className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-200/60 transition-colors cursor-pointer"
+                    className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/60 transition-colors cursor-pointer"
                     title="Réinitialiser et effacer la discussion"
                   >
                     <span className="material-symbols-outlined text-base">delete_sweep</span>
@@ -2221,7 +2221,7 @@ function RedactionContent() {
 
                   <button
                     onClick={() => setIsChatCollapsed(true)}
-                    className="p-1 rounded-lg text-neutral-400 hover:text-neutral-800 hover:bg-neutral-200/60 transition-colors"
+                    className="p-1 rounded-lg text-neutral-400 hover:text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200/60 transition-colors"
                     title="Masquer le panneau de chat"
                   >
                     <span className="material-symbols-outlined text-lg">close</span>
@@ -2242,7 +2242,7 @@ function RedactionContent() {
                       className={`p-4 rounded-2xl shadow-2xs whitespace-pre-wrap ${
                         msg.sender === "user"
                           ? "bg-secondary text-white rounded-tr-xs chat-bubble-user font-medium"
-                          : "bg-neutral-100 text-neutral-900 rounded-tl-xs chat-bubble-text border border-neutral-200/60"
+                          : "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-tl-xs chat-bubble-text border border-neutral-200/60"
                       }`}
                     >
                       {msg.sender === "ai" ? (
@@ -2255,10 +2255,10 @@ function RedactionContent() {
 
                       {/* Insertion Button if AI proposed manuscript text */}
                       {msg.suggestedTextToInsert && (
-                        <div className="mt-3 pt-3 border-t border-neutral-200/80 flex justify-end">
+                        <div className="mt-3 pt-3 border-t border-neutral-200/80 dark:border-neutral-800 flex justify-end">
                           <button
                             onClick={() => handleInsertIntoManuscript(msg.suggestedTextToInsert!)}
-                            className="bg-white hover:bg-orange-50 border border-secondary/40 text-secondary text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-2xs"
+                            className="bg-white dark:bg-neutral-900 hover:bg-orange-50 border border-secondary/40 text-secondary text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-2xs"
                           >
                             <span className="material-symbols-outlined text-sm">add_to_photos</span>
                             <span>Insérer dans le chapitre</span>
@@ -2270,17 +2270,17 @@ function RedactionContent() {
                       {msg.chapterModification && (
                         <div className={`mt-3 pt-3 border-t flex flex-col gap-2.5 -mx-1 -mb-1 p-3 rounded-xl border shadow-2xs ${
                           msg.chapterModification.isUndone
-                            ? "bg-neutral-50/90 border-neutral-200"
+                            ? "bg-neutral-50/90 border-neutral-200 dark:border-neutral-800"
                             : "bg-blue-50/80 border-blue-200/90"
                         }`}>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span className={`material-symbols-outlined text-base ${
-                                msg.chapterModification.isUndone ? "text-neutral-500" : "text-[#1b6df9]"
+                                msg.chapterModification.isUndone ? "text-neutral-500 dark:text-neutral-400" : "text-[#1b6df9]"
                               }`}>
                                 {msg.chapterModification.isUndone ? "undo" : "auto_fix_high"}
                               </span>
-                              <span className="text-xs font-extrabold text-neutral-900 truncate">
+                              <span className="text-xs font-extrabold text-neutral-900 dark:text-neutral-100 truncate">
                                 {msg.chapterModification.isUndone ? "Modification annulée • " : "Chapitre modifié • "}
                                 <span className="text-blue-900 font-extrabold">
                                   {msg.chapterModification.chapterTitle || `Chapitre ${msg.chapterModification.chapterIndex + 1}`}
@@ -2290,7 +2290,7 @@ function RedactionContent() {
                           </div>
 
                           {msg.chapterModification.summary && (
-                            <p className="text-[11px] text-neutral-700 font-medium leading-relaxed font-body">
+                            <p className="text-[11px] text-neutral-700 dark:text-neutral-300 font-medium leading-relaxed font-body">
                               {msg.chapterModification.summary}
                             </p>
                           )}
@@ -2299,10 +2299,10 @@ function RedactionContent() {
                             {!msg.chapterModification.isUndone && msg.chapterModification.previousContent !== undefined && (
                               <button
                                 onClick={() => handleUndoModification(msg.id, msg.chapterModification!)}
-                                className="bg-white hover:bg-neutral-100 text-neutral-700 border border-neutral-300 text-xs font-bold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                                className="bg-white dark:bg-neutral-900 hover:bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 text-xs font-bold px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
                                 title="Annuler cette réécriture et restaurer la version précédente"
                               >
-                                <span className="material-symbols-outlined text-sm text-neutral-500">undo</span>
+                                <span className="material-symbols-outlined text-sm text-neutral-500 dark:text-neutral-400">undo</span>
                                 <span>Annuler</span>
                               </button>
                             )}
@@ -2336,43 +2336,43 @@ function RedactionContent() {
               </div>
 
               {/* Quick Action Prompt Chips */}
-              <div className="p-3 bg-neutral-50/50 border-t border-neutral-100 flex flex-wrap gap-1.5 shrink-0">
+              <div className="p-3 bg-neutral-50/50 border-t border-neutral-100 dark:border-neutral-800 flex flex-wrap gap-1.5 shrink-0">
                 <button
                   onClick={() => handleSendMessage("Proposer un plan en 5 chapitres pour ce livre")}
-                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900 rounded-full text-xs font-medium text-neutral-700 transition-all shadow-2xs"
+                  className="px-3 py-1.5 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 hover:text-neutral-900 dark:text-neutral-100 rounded-full text-xs font-medium text-neutral-700 dark:text-neutral-300 transition-all shadow-2xs"
                 >
                   Proposer un plan
                 </button>
                 <button
                   onClick={() => handleSendMessage("Développer le paragraphe actuel avec plus de détails")}
-                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900 rounded-full text-xs font-medium text-neutral-700 transition-all shadow-2xs"
+                  className="px-3 py-1.5 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 hover:text-neutral-900 dark:text-neutral-100 rounded-full text-xs font-medium text-neutral-700 dark:text-neutral-300 transition-all shadow-2xs"
                 >
                   Enrichir le texte
                 </button>
                 <button
                   onClick={() => handleSendMessage("Proposer 3 titres accrocheurs pour ce projet")}
-                  className="px-3 py-1.5 bg-white border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900 rounded-full text-xs font-medium text-neutral-700 transition-all shadow-2xs"
+                  className="px-3 py-1.5 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 hover:text-neutral-900 dark:text-neutral-100 rounded-full text-xs font-medium text-neutral-700 dark:text-neutral-300 transition-all shadow-2xs"
                 >
                   Idées de titres
                 </button>
               </div>
 
               {/* Chat Input Bar */}
-              <div className="p-3 bg-white border-t border-neutral-200/80 shrink-0">
+              <div className="p-3 bg-white dark:bg-neutral-900 border-t border-neutral-200/80 dark:border-neutral-800 shrink-0">
                 {/* Pastille du passage sélectionné (édition ciblée) */}
                 {attachedSelection && (
                   <div className="mb-2 flex items-start gap-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2">
                     <span className="material-symbols-outlined text-secondary text-base mt-0.5">content_cut</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-bold text-secondary">Passage sélectionné</p>
-                      <p className="text-[11px] text-neutral-600 line-clamp-2 italic">
+                      <p className="text-[11px] text-neutral-600 dark:text-neutral-400 line-clamp-2 italic">
                         « {attachedSelection.text.slice(0, 140)}{attachedSelection.text.length > 140 ? "…" : ""} »
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setAttachedSelection(null)}
-                      className="text-neutral-400 hover:text-neutral-700 text-xs"
+                      className="text-neutral-400 hover:text-neutral-700 dark:text-neutral-300 text-xs"
                     >
                       ✕
                     </button>
@@ -2387,7 +2387,7 @@ function RedactionContent() {
                         <span className="truncate">{att.name}</span>
                         <button
                           onClick={() => setChatAttachments((prev) => prev.filter((_, i) => i !== idx))}
-                          className="p-0.5 rounded-full hover:bg-white text-blue-500 hover:text-red-500 transition-colors shrink-0"
+                          className="p-0.5 rounded-full hover:bg-white dark:bg-neutral-900 text-blue-500 hover:text-red-500 transition-colors shrink-0"
                           title="Retirer ce document"
                         >
                           <span className="material-symbols-outlined text-sm">close</span>
@@ -2395,7 +2395,7 @@ function RedactionContent() {
                       </span>
                     ))}
                     {isAnalyzingChatFile && (
-                      <span className="inline-flex items-center gap-1.5 bg-neutral-100 border border-neutral-200 rounded-full px-2.5 py-1 text-[11px] font-bold text-neutral-600">
+                      <span className="inline-flex items-center gap-1.5 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 rounded-full px-2.5 py-1 text-[11px] font-bold text-neutral-600 dark:text-neutral-400">
                         <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
                         Analyse du document…
                       </span>
@@ -2419,7 +2419,7 @@ function RedactionContent() {
                     e.preventDefault();
                     handleSendMessage();
                   }}
-                  className={`relative flex items-center bg-neutral-50 border rounded-2xl px-2 py-2 focus-within:ring-2 focus-within:ring-secondary/20 focus-within:border-secondary transition-all ${attachedSelection ? "border-secondary/60" : "border-neutral-200"}`}
+                  className={`relative flex items-center bg-neutral-50 dark:bg-neutral-800/50 border rounded-2xl px-2 py-2 focus-within:ring-2 focus-within:ring-secondary/20 focus-within:border-secondary transition-all ${attachedSelection ? "border-secondary/60" : "border-neutral-200 dark:border-neutral-800"}`}
                 >
                   {/* Bouton + : joindre un document à analyser */}
                   <button
@@ -2427,7 +2427,7 @@ function RedactionContent() {
                     onClick={() => chatFileInputRef.current?.click()}
                     disabled={isAnalyzingChatFile}
                     title="Joindre un document à analyser (20 pièces)"
-                    className="w-8 h-8 rounded-xl flex items-center justify-center text-neutral-500 hover:text-secondary hover:bg-white transition-colors shrink-0 disabled:opacity-50"
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-secondary hover:bg-white dark:bg-neutral-900 transition-colors shrink-0 disabled:opacity-50"
                   >
                     <span className="material-symbols-outlined text-xl">add</span>
                   </button>
@@ -2443,7 +2443,7 @@ function RedactionContent() {
                         ? "Ex: rends ce passage plus percutant..."
                         : "Discutez, dictez ou demandez à l'assistant..."
                     }
-                    className="flex-1 min-w-0 bg-transparent border-none outline-none text-xs font-medium text-neutral-900 placeholder:text-neutral-400 py-1 px-1"
+                    className="flex-1 min-w-0 bg-transparent border-none outline-none text-xs font-medium text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 py-1 px-1"
                   />
 
                   {/* Micro : dicter ce qu'on veut modifier */}
@@ -2455,7 +2455,7 @@ function RedactionContent() {
                       className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all ${
                         isListening
                           ? "bg-red-500 text-white animate-pulse"
-                          : "text-neutral-500 hover:text-secondary hover:bg-white"
+                          : "text-neutral-500 dark:text-neutral-400 hover:text-secondary hover:bg-white dark:bg-neutral-900"
                       }`}
                     >
                       <span className="material-symbols-outlined text-lg">{isListening ? "stop" : "mic"}</span>
@@ -2474,7 +2474,7 @@ function RedactionContent() {
                     du moteur ne produisait aucun signal : le bouton cessait
                     simplement de clignoter. */}
                 {isListening && (
-                  <p className="text-[11px] text-neutral-500 italic px-2 pt-1.5" aria-live="polite">
+                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400 italic px-2 pt-1.5" aria-live="polite">
                     {micInterim ? `« ${micInterim} »` : "Parlez, j'écoute…"}
                   </p>
                 )}
@@ -2557,7 +2557,7 @@ export default function RedactionPage() {
       <div className="flex h-screen w-full items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm text-neutral-500 font-medium animate-pulse">Chargement de votre studio...</p>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium animate-pulse">Chargement de votre studio...</p>
         </div>
       </div>
     }>

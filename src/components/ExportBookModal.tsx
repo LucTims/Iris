@@ -160,8 +160,8 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
   if (step === 1) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-body animate-fadeIn">
-        <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl overflow-y-auto flex flex-col relative border border-neutral-100 max-h-[85dvh]">
-          <button onClick={resetAndClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-full text-neutral-600 transition-colors z-10">
+        <div className="bg-white dark:bg-neutral-900 rounded-3xl max-w-xl w-full shadow-2xl overflow-y-auto flex flex-col relative border border-neutral-100 dark:border-neutral-800 max-h-[85dvh]">
+          <button onClick={resetAndClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 rounded-full text-neutral-600 dark:text-neutral-400 transition-colors z-10">
             <span className="material-symbols-outlined text-lg">close</span>
           </button>
           
@@ -171,8 +171,8 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
             </div>
             
             <div className="space-y-2">
-              <h2 className="font-heading font-extrabold text-2xl text-neutral-900">Avez-vous une couverture ?</h2>
-              <p className="text-sm text-neutral-500 max-w-sm mx-auto leading-relaxed">
+              <h2 className="font-heading font-extrabold text-2xl text-neutral-900 dark:text-neutral-100">Avez-vous une couverture ?</h2>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-sm mx-auto leading-relaxed">
                 Une belle couverture attire l&apos;œil ! Voulez-vous générer une couverture professionnelle par IA avant de télécharger votre livre ?
               </p>
               <p className="text-xs text-neutral-400 italic mt-1">(Vous pourrez toujours y revenir plus tard)</p>
@@ -192,14 +192,14 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
               
               <button
                 onClick={() => setStep(3)}
-                className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-sm py-3.5 rounded-xl transition-all"
+                className="w-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-neutral-700 dark:text-neutral-300 font-bold text-sm py-3.5 rounded-xl transition-all"
               >
                 Passer cette étape
               </button>
             </div>
           </div>
           
-          <div className="bg-neutral-50 px-8 py-4 border-t border-neutral-100 flex items-center justify-between text-xs font-bold text-neutral-400">
+          <div className="bg-neutral-50 dark:bg-neutral-800/50 px-8 py-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between text-xs font-bold text-neutral-400">
             <span>Étape 1 sur 3</span>
             <div className="flex gap-1.5">
               <div className="w-2 h-2 rounded-full bg-secondary"></div>
@@ -218,29 +218,29 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
   if (step === 3) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-body animate-fadeIn">
-        <div className="bg-white rounded-3xl max-w-2xl w-full border border-neutral-200 shadow-2xl overflow-hidden flex flex-col max-h-[85dvh] relative">
-          <button onClick={() => setStep(1)} className="absolute top-5 left-5 w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded-full transition-colors z-20">
+        <div className="bg-white dark:bg-neutral-900 rounded-3xl max-w-2xl w-full border border-neutral-200 dark:border-neutral-800 shadow-2xl overflow-hidden flex flex-col max-h-[85dvh] relative">
+          <button onClick={() => setStep(1)} className="absolute top-5 left-5 w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:bg-neutral-800 rounded-full transition-colors z-20">
             <ArrowLeft className="w-5 h-5" />
           </button>
 
           {/* Modal Header */}
-          <div className="px-6 sm:px-8 pt-5 pb-5 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/60 shrink-0 pl-16">
+          <div className="px-6 sm:px-8 pt-5 pb-5 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between bg-neutral-50/60 shrink-0 pl-16">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-orange-100 text-secondary flex items-center justify-center">
                 <Download className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="font-heading font-extrabold text-lg sm:text-xl text-neutral-900 leading-tight">
+                <h2 className="font-heading font-extrabold text-lg sm:text-xl text-neutral-900 dark:text-neutral-100 leading-tight">
                   Export Basique du Livre
                 </h2>
-                <p className="text-xs text-neutral-500 font-medium truncate max-w-xs sm:max-w-sm">
-                  Projet : <strong className="text-neutral-800">{bookTitle}</strong>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium truncate max-w-xs sm:max-w-sm">
+                  Projet : <strong className="text-neutral-800 dark:text-neutral-200">{bookTitle}</strong>
                 </p>
               </div>
             </div>
             <button 
               onClick={resetAndClose}
-              className="w-9 h-9 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-colors"
+              className="w-9 h-9 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-neutral-600 dark:text-neutral-400 flex items-center justify-center transition-colors"
             >
               <span className="material-symbols-outlined text-xl">close</span>
             </button>
@@ -251,7 +251,7 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
             
             {/* Format Selection Grid */}
             <div className="space-y-3">
-              <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
                 1. Choisir le format de téléchargement
               </label>
 
@@ -263,22 +263,22 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
                   className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-start gap-3.5 relative ${
                     selectedFormat === "epub"
                       ? "border-secondary bg-orange-50/50 shadow-2xs ring-2 ring-secondary/20"
-                      : "border-neutral-200 hover:border-neutral-300 bg-white"
+                      : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 bg-white dark:bg-neutral-900"
                   }`}
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    selectedFormat === "epub" ? "bg-secondary text-white" : "bg-neutral-100 text-neutral-600"
+                    selectedFormat === "epub" ? "bg-secondary text-white" : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
                   }`}>
                     <span className="material-symbols-outlined text-xl">tablet_mac</span>
                   </div>
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-heading font-bold text-sm text-neutral-900">EPUB Liseuse</h4>
+                      <h4 className="font-heading font-bold text-sm text-neutral-900 dark:text-neutral-100">EPUB Liseuse</h4>
                       <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                         Recommandé
                       </span>
                     </div>
-                    <p className="text-xs text-neutral-500">Kindle, Kobo, Apple Books. Texte adaptatif universel.</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">Kindle, Kobo, Apple Books. Texte adaptatif universel.</p>
                   </div>
                 </div>
 
@@ -288,17 +288,17 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
                   className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-start gap-3.5 relative ${
                     selectedFormat === "pdf"
                       ? "border-secondary bg-orange-50/50 shadow-2xs ring-2 ring-secondary/20"
-                      : "border-neutral-200 hover:border-neutral-300 bg-white"
+                      : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 bg-white dark:bg-neutral-900"
                   }`}
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    selectedFormat === "pdf" ? "bg-secondary text-white" : "bg-neutral-100 text-neutral-600"
+                    selectedFormat === "pdf" ? "bg-secondary text-white" : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
                   }`}>
                     <span className="material-symbols-outlined text-xl">picture_as_pdf</span>
                   </div>
                   <div className="space-y-0.5">
-                    <h4 className="font-heading font-bold text-sm text-neutral-900">PDF Simple</h4>
-                    <p className="text-xs text-neutral-500">Pour relecture rapide sur tous vos appareils.</p>
+                    <h4 className="font-heading font-bold text-sm text-neutral-900 dark:text-neutral-100">PDF Simple</h4>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">Pour relecture rapide sur tous vos appareils.</p>
                   </div>
                 </div>
 
@@ -308,17 +308,17 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
                   className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-start gap-3.5 relative ${
                     selectedFormat === "docx"
                       ? "border-secondary bg-orange-50/50 shadow-2xs ring-2 ring-secondary/20"
-                      : "border-neutral-200 hover:border-neutral-300 bg-white"
+                      : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 bg-white dark:bg-neutral-900"
                   }`}
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    selectedFormat === "docx" ? "bg-secondary text-white" : "bg-neutral-100 text-neutral-600"
+                    selectedFormat === "docx" ? "bg-secondary text-white" : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
                   }`}>
                     <span className="material-symbols-outlined text-xl">description</span>
                   </div>
                   <div className="space-y-0.5">
-                    <h4 className="font-heading font-bold text-sm text-neutral-900">Microsoft Word (.docx)</h4>
-                    <p className="text-xs text-neutral-500">Fichier modifiable pour correction manuelle.</p>
+                    <h4 className="font-heading font-bold text-sm text-neutral-900 dark:text-neutral-100">Microsoft Word (.docx)</h4>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">Fichier modifiable pour correction manuelle.</p>
                   </div>
                 </div>
 
@@ -328,17 +328,17 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
                   className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-start gap-3.5 relative ${
                     selectedFormat === "markdown"
                       ? "border-secondary bg-orange-50/50 shadow-2xs ring-2 ring-secondary/20"
-                      : "border-neutral-200 hover:border-neutral-300 bg-white"
+                      : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 bg-white dark:bg-neutral-900"
                   }`}
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    selectedFormat === "markdown" ? "bg-secondary text-white" : "bg-neutral-100 text-neutral-600"
+                    selectedFormat === "markdown" ? "bg-secondary text-white" : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
                   }`}>
                     <span className="material-symbols-outlined text-xl">code</span>
                   </div>
                   <div className="space-y-0.5">
-                    <h4 className="font-heading font-bold text-sm text-neutral-900">Markdown (.md)</h4>
-                    <p className="text-xs text-neutral-500">Texte brut balisé pour le web.</p>
+                    <h4 className="font-heading font-bold text-sm text-neutral-900 dark:text-neutral-100">Markdown (.md)</h4>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">Texte brut balisé pour le web.</p>
                   </div>
                 </div>
 
@@ -346,22 +346,22 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
 
               {/* Choix de mise en page — visible uniquement pour le PDF */}
               {selectedFormat === "pdf" && (
-                <div className="mt-4 border-t border-neutral-100 pt-4">
-                  <p className="text-xs font-bold text-neutral-700 mb-2">Mise en page du PDF</p>
+                <div className="mt-4 border-t border-neutral-100 dark:border-neutral-800 pt-4">
+                  <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-2">Mise en page du PDF</p>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setPdfLayout("digital")}
-                      className={`text-left p-3 rounded-xl border transition-all ${pdfLayout === "digital" ? "border-secondary bg-orange-50/60" : "border-neutral-200 hover:bg-neutral-50"}`}
+                      className={`text-left p-3 rounded-xl border transition-all ${pdfLayout === "digital" ? "border-secondary bg-orange-50/60" : "border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:bg-neutral-800/50"}`}
                     >
-                      <span className="block text-xs font-bold text-neutral-900">Numérique (A4)</span>
-                      <span className="block text-[11px] text-neutral-500">Lecture à l'écran</span>
+                      <span className="block text-xs font-bold text-neutral-900 dark:text-neutral-100">Numérique (A4)</span>
+                      <span className="block text-[11px] text-neutral-500 dark:text-neutral-400">Lecture à l'écran</span>
                     </button>
                     <button
                       onClick={() => setPdfLayout("print")}
-                      className={`text-left p-3 rounded-xl border transition-all ${pdfLayout === "print" ? "border-secondary bg-orange-50/60" : "border-neutral-200 hover:bg-neutral-50"}`}
+                      className={`text-left p-3 rounded-xl border transition-all ${pdfLayout === "print" ? "border-secondary bg-orange-50/60" : "border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:bg-neutral-800/50"}`}
                     >
-                      <span className="block text-xs font-bold text-neutral-900">Impression · KDP (6×9")</span>
-                      <span className="block text-[11px] text-neutral-500">Marges prêtes pour Amazon</span>
+                      <span className="block text-xs font-bold text-neutral-900 dark:text-neutral-100">Impression · KDP (6×9")</span>
+                      <span className="block text-[11px] text-neutral-500 dark:text-neutral-400">Marges prêtes pour Amazon</span>
                     </button>
                   </div>
                 </div>
@@ -371,7 +371,7 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
           </div>
 
           {/* Modal Footer Actions */}
-          <div className="px-6 sm:px-8 py-4 border-t border-neutral-100 bg-neutral-50/60 flex items-center justify-between gap-4 shrink-0">
+          <div className="px-6 sm:px-8 py-4 border-t border-neutral-100 dark:border-neutral-800 bg-neutral-50/60 flex items-center justify-between gap-4 shrink-0">
             <div className="flex gap-1.5 items-center">
               <div className="w-2 h-2 rounded-full bg-secondary"></div>
               <div className="w-2 h-2 rounded-full bg-secondary"></div>
@@ -407,8 +407,8 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
   // ----------------------------------------------------
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm font-body animate-fadeIn">
-      <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-y-auto flex flex-col relative border border-neutral-100 max-h-[85dvh]">
-        <button onClick={resetAndClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-full text-neutral-600 transition-colors z-10">
+      <div className="bg-white dark:bg-neutral-900 rounded-3xl max-w-lg w-full shadow-2xl overflow-y-auto flex flex-col relative border border-neutral-100 dark:border-neutral-800 max-h-[85dvh]">
+        <button onClick={resetAndClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 rounded-full text-neutral-600 dark:text-neutral-400 transition-colors z-10">
           <span className="material-symbols-outlined text-lg">close</span>
         </button>
         
@@ -418,8 +418,8 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
           </div>
           
           <div className="space-y-3">
-            <h2 className="font-heading font-extrabold text-3xl text-neutral-900">Félicitations !</h2>
-            <p className="text-sm text-neutral-600 max-w-sm mx-auto leading-relaxed">
+            <h2 className="font-heading font-extrabold text-3xl text-neutral-900 dark:text-neutral-100">Félicitations !</h2>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 max-w-sm mx-auto leading-relaxed">
               Votre livre <strong>"{bookTitle}"</strong> a été généré et téléchargé avec succès au format {selectedFormat.toUpperCase()}.
             </p>
           </div>
@@ -441,7 +441,7 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
                 router.push("/dashboard");
                 onClose();
               }}
-              className="w-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-sm py-3.5 rounded-xl transition-all flex items-center justify-center gap-2"
+              className="w-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-neutral-700 dark:text-neutral-300 font-bold text-sm py-3.5 rounded-xl transition-all flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-lg">dashboard</span>
               <span>Aller au tableau de bord</span>

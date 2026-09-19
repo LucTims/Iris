@@ -27,17 +27,17 @@ export default function AdminDashboard() {
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-neutral-900 font-heading">Vue d'ensemble</h1>
-          <p className="text-sm text-neutral-500">Statistiques globales de votre plateforme Iris (Temps réel).</p>
+          <h1 className="text-2xl font-extrabold text-neutral-900 dark:text-neutral-100 font-heading">Vue d'ensemble</h1>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">Statistiques globales de votre plateforme Iris (Temps réel).</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {metrics.map((m, i) => (
-          <div key={i} className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-sm flex items-start justify-between">
+          <div key={i} className="bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-neutral-500">{m.label}</p>
-              <h3 className="text-2xl font-extrabold text-neutral-900 mt-1">{m.value}</h3>
+              <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">{m.label}</p>
+              <h3 className="text-2xl font-extrabold text-neutral-900 dark:text-neutral-100 mt-1">{m.value}</h3>
             </div>
             <div className={`p-3 rounded-xl ${m.bg}`}>
               <m.icon className={`w-5 h-5 ${m.color}`} />
@@ -47,8 +47,8 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm">
-          <h3 className="text-base font-bold text-neutral-900 mb-6">Revenus (14 derniers jours)</h3>
+        <div className="bg-white dark:bg-neutral-900 p-6 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm">
+          <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 mb-6">Revenus (14 derniers jours)</h3>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={act}>
@@ -66,8 +66,8 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm">
-          <h3 className="text-base font-bold text-neutral-900 mb-6">Nouvelles Inscriptions</h3>
+        <div className="bg-white dark:bg-neutral-900 p-6 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm">
+          <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 mb-6">Nouvelles Inscriptions</h3>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={act}>

@@ -180,7 +180,7 @@ export default function HeroVideoShowcase() {
           >
             {/* Seek Bar */}
             <div 
-              className="w-full h-1.5 bg-white/20 rounded-full mb-3 cursor-pointer overflow-hidden relative group/bar"
+              className="w-full h-1.5 bg-white dark:bg-neutral-900/20 rounded-full mb-3 cursor-pointer overflow-hidden relative group/bar"
               onClick={handleSeek}
             >
               <div 
@@ -194,7 +194,7 @@ export default function HeroVideoShowcase() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={togglePlay}
-                  className="p-1.5 rounded-lg hover:bg-white/20 text-white transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg hover:bg-white dark:bg-neutral-900/20 text-white transition-colors cursor-pointer"
                   aria-label={isPlaying ? "Mettre en pause" : "Lire"}
                 >
                   {isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />}
@@ -202,7 +202,7 @@ export default function HeroVideoShowcase() {
 
                 <button
                   onClick={toggleMute}
-                  className="p-1.5 rounded-lg hover:bg-white/20 text-white transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg hover:bg-white dark:bg-neutral-900/20 text-white transition-colors cursor-pointer"
                   aria-label={isMuted ? "Activer le son" : "Couper le son"}
                 >
                   {isMuted ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
@@ -212,7 +212,7 @@ export default function HeroVideoShowcase() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={toggleFullscreen}
-                  className="p-1.5 rounded-lg hover:bg-white/20 text-white transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg hover:bg-white dark:bg-neutral-900/20 text-white transition-colors cursor-pointer"
                   aria-label="Plein écran"
                 >
                   <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />

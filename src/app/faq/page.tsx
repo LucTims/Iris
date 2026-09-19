@@ -102,12 +102,12 @@ export default function FAQPage() {
             <span>Centre d&apos;aide &amp; Support Iris</span>
           </div>
 
-          <h1 className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-neutral-900 tracking-tight leading-tight mb-4">
+          <h1 className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-neutral-900 dark:text-neutral-100 tracking-tight leading-tight mb-4">
             Comment pouvons-nous <br className="hidden sm:inline" />
             <span className="text-[#C84B31]">vous aider aujourd&apos;hui ?</span>
           </h1>
 
-          <p className="text-sm sm:text-base text-neutral-600 leading-relaxed max-w-2xl mx-auto">
+          <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-2xl mx-auto">
             Contactez directement notre équipe pour une assistance personnalisée ou consultez les réponses aux questions fréquentes sur la rédaction et l&apos;édition.
           </p>
         </div>
@@ -116,12 +116,12 @@ export default function FAQPage() {
         {/* SECTION 1 : CANAUX DE CONTACT DIRECTS (EN HAUT) */}
         {/* ========================================================= */}
         <section className="space-y-6">
-          <div className="flex items-center justify-between border-b border-neutral-200/80 pb-3">
+          <div className="flex items-center justify-between border-b border-neutral-200/80 dark:border-neutral-800 pb-3">
             <div>
-              <h2 className="font-heading font-bold text-xl sm:text-2xl text-neutral-900">
+              <h2 className="font-heading font-bold text-xl sm:text-2xl text-neutral-900 dark:text-neutral-100">
                 Nous contacter directement
               </h2>
-              <p className="text-xs sm:text-sm text-neutral-500 mt-0.5">
+              <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
                 Choisissez le canal qui vous convient le mieux pour échanger avec notre équipe
               </p>
             </div>
@@ -135,33 +135,33 @@ export default function FAQPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             
             {/* Carte Email Officiel */}
-            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-neutral-200/90 shadow-2xs hover:border-[#F4C5BC] hover:shadow-md transition-all flex flex-col justify-between group">
+            <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 sm:p-7 border border-neutral-200/90 shadow-2xs hover:border-[#F4C5BC] hover:shadow-md transition-all flex flex-col justify-between group">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="w-12 h-12 rounded-2xl bg-[#FDF3F1] border border-[#F4C5BC]/60 flex items-center justify-center text-[#C84B31]">
                     <Mail className="w-6 h-6" />
                   </div>
-                  <span className="text-[11px] font-semibold text-neutral-500 bg-neutral-100 px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2.5 py-1 rounded-full flex items-center gap-1">
                     <Clock className="w-3 h-3 text-neutral-400" />
                     <span>Réponse sous 24h</span>
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="font-heading font-bold text-lg text-neutral-900 group-hover:text-[#C84B31] transition-colors">
+                  <h3 className="font-heading font-bold text-lg text-neutral-900 dark:text-neutral-100 group-hover:text-[#C84B31] transition-colors">
                     Support par Email
                   </h3>
-                  <p className="text-xs sm:text-sm text-neutral-500 mt-1 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed">
                     Pour toute question relative à votre compte, vos manuscrits ou un partenariat.
                   </p>
                 </div>
 
-                <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/70 font-mono text-xs text-neutral-800 break-all select-all font-semibold">
+                <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200/70 font-mono text-xs text-neutral-800 dark:text-neutral-200 break-all select-all font-semibold">
                   irisboom100@gmail.com
                 </div>
               </div>
 
-              <div className="pt-5 mt-3 border-t border-neutral-100">
+              <div className="pt-5 mt-3 border-t border-neutral-100 dark:border-neutral-800">
                 <a
                   href="mailto:irisboom100@gmail.com?subject=Question%20concernant%20Iris"
                   className="w-full inline-flex items-center justify-center gap-2 bg-[#C84B31] hover:bg-[#B83E26] text-white text-xs sm:text-sm font-semibold px-5 py-3 rounded-xl transition-all shadow-2xs hover:shadow-xs cursor-pointer"
@@ -173,7 +173,7 @@ export default function FAQPage() {
             </div>
 
             {/* Carte WhatsApp Direct */}
-            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-neutral-200/90 shadow-2xs hover:border-emerald-300 hover:shadow-md transition-all flex flex-col justify-between group">
+            <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 sm:p-7 border border-neutral-200/90 shadow-2xs hover:border-emerald-300 hover:shadow-md transition-all flex flex-col justify-between group">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200/70 flex items-center justify-center text-emerald-600">
@@ -187,10 +187,10 @@ export default function FAQPage() {
                 </div>
 
                 <div>
-                  <h3 className="font-heading font-bold text-lg text-neutral-900 group-hover:text-emerald-700 transition-colors">
+                  <h3 className="font-heading font-bold text-lg text-neutral-900 dark:text-neutral-100 group-hover:text-emerald-700 transition-colors">
                     WhatsApp Iris
                   </h3>
-                  <p className="text-xs sm:text-sm text-neutral-500 mt-1 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed">
                     Posez vos questions en direct à notre service d&apos;assistance via message WhatsApp.
                   </p>
                 </div>
@@ -200,7 +200,7 @@ export default function FAQPage() {
                 </div>
               </div>
 
-              <div className="pt-5 mt-3 border-t border-neutral-100">
+              <div className="pt-5 mt-3 border-t border-neutral-100 dark:border-neutral-800">
                 <a
                   href="https://wa.me/?text=Bonjour%20Iris,%20j'ai%20une%20question%20concernant%20la%20plateforme."
                   target="_blank"
@@ -219,10 +219,10 @@ export default function FAQPage() {
           {/* Grille des Réseaux Sociaux (Facebook, YouTube, TikTok) */}
           <div>
             <div className="mb-3">
-              <h3 className="font-heading font-bold text-base text-neutral-900">
+              <h3 className="font-heading font-bold text-base text-neutral-900 dark:text-neutral-100">
                 Rejoignez notre communauté sur les réseaux sociaux
               </h3>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
                 Suivez nos tutoriels vidéo, conseils d&apos;écriture et actualités littéraires
               </p>
             </div>
@@ -234,7 +234,7 @@ export default function FAQPage() {
                 href="https://facebook.com/irisboom"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white rounded-2xl p-4.5 border border-neutral-200/80 shadow-2xs hover:border-blue-300 hover:shadow-sm transition-all flex items-center justify-between group cursor-pointer"
+                className="bg-white dark:bg-neutral-900 rounded-2xl p-4.5 border border-neutral-200/80 dark:border-neutral-800 shadow-2xs hover:border-blue-300 hover:shadow-sm transition-all flex items-center justify-between group cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
@@ -243,10 +243,10 @@ export default function FAQPage() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-heading font-bold text-sm text-neutral-900 group-hover:text-blue-600 transition-colors">
+                    <h4 className="font-heading font-bold text-sm text-neutral-900 dark:text-neutral-100 group-hover:text-blue-600 transition-colors">
                       Facebook
                     </h4>
-                    <span className="text-[11px] text-neutral-500 block">Actualités &amp; Événements</span>
+                    <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block">Actualités &amp; Événements</span>
                   </div>
                 </div>
                 <ExternalLink className="w-4 h-4 text-neutral-400 group-hover:text-blue-600 transition-colors" />
@@ -257,7 +257,7 @@ export default function FAQPage() {
                 href="https://youtube.com/@irisboom"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white rounded-2xl p-4.5 border border-neutral-200/80 shadow-2xs hover:border-red-300 hover:shadow-sm transition-all flex items-center justify-between group cursor-pointer"
+                className="bg-white dark:bg-neutral-900 rounded-2xl p-4.5 border border-neutral-200/80 dark:border-neutral-800 shadow-2xs hover:border-red-300 hover:shadow-sm transition-all flex items-center justify-between group cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600">
@@ -266,10 +266,10 @@ export default function FAQPage() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-heading font-bold text-sm text-neutral-900 group-hover:text-red-600 transition-colors">
+                    <h4 className="font-heading font-bold text-sm text-neutral-900 dark:text-neutral-100 group-hover:text-red-600 transition-colors">
                       YouTube
                     </h4>
-                    <span className="text-[11px] text-neutral-500 block">Tutos &amp; Démos vidéo</span>
+                    <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block">Tutos &amp; Démos vidéo</span>
                   </div>
                 </div>
                 <ExternalLink className="w-4 h-4 text-neutral-400 group-hover:text-red-600 transition-colors" />
@@ -280,22 +280,22 @@ export default function FAQPage() {
                 href="https://tiktok.com/@irisboom"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white rounded-2xl p-4.5 border border-neutral-200/80 shadow-2xs hover:border-neutral-400 hover:shadow-sm transition-all flex items-center justify-between group cursor-pointer"
+                className="bg-white dark:bg-neutral-900 rounded-2xl p-4.5 border border-neutral-200/80 dark:border-neutral-800 shadow-2xs hover:border-neutral-400 hover:shadow-sm transition-all flex items-center justify-between group cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-neutral-100 border border-neutral-200 flex items-center justify-center text-neutral-900">
+                  <div className="w-10 h-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 flex items-center justify-center text-neutral-900 dark:text-neutral-100">
                     <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                       <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-1.01-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.24 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-heading font-bold text-sm text-neutral-900 group-hover:text-[#C84B31] transition-colors">
+                    <h4 className="font-heading font-bold text-sm text-neutral-900 dark:text-neutral-100 group-hover:text-[#C84B31] transition-colors">
                       TikTok
                     </h4>
-                    <span className="text-[11px] text-neutral-500 block">Astuces d&apos;écriture IA</span>
+                    <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block">Astuces d&apos;écriture IA</span>
                   </div>
                 </div>
-                <ExternalLink className="w-4 h-4 text-neutral-400 group-hover:text-neutral-900 transition-colors" />
+                <ExternalLink className="w-4 h-4 text-neutral-400 group-hover:text-neutral-900 dark:text-neutral-100 transition-colors" />
               </a>
 
             </div>
@@ -306,11 +306,11 @@ export default function FAQPage() {
         {/* SECTION 2 : FOIRE AUX QUESTIONS (EN BAS) */}
         {/* ========================================================= */}
         <section className="space-y-6 pt-4">
-          <div className="border-b border-neutral-200/80 pb-3">
-            <h2 className="font-heading font-bold text-xl sm:text-2xl text-neutral-900">
+          <div className="border-b border-neutral-200/80 dark:border-neutral-800 pb-3">
+            <h2 className="font-heading font-bold text-xl sm:text-2xl text-neutral-900 dark:text-neutral-100">
               Foire Aux Questions
             </h2>
-            <p className="text-xs sm:text-sm text-neutral-500 mt-0.5">
+            <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
               Trouvez des réponses immédiates aux questions les plus récurrentes
             </p>
           </div>
@@ -325,7 +325,7 @@ export default function FAQPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Rechercher par mot-clé (ex: KDP, droits, PDF, pièces, style...)"
-                className="w-full bg-white border border-neutral-200 rounded-2xl pl-11 pr-4 py-3 text-xs sm:text-sm font-medium text-neutral-800 focus:border-[#C84B31] focus:ring-2 focus:ring-[#C84B31]/15 outline-none transition-all shadow-2xs"
+                className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl pl-11 pr-4 py-3 text-xs sm:text-sm font-medium text-neutral-800 dark:text-neutral-200 focus:border-[#C84B31] focus:ring-2 focus:ring-[#C84B31]/15 outline-none transition-all shadow-2xs"
               />
             </div>
 
@@ -338,7 +338,7 @@ export default function FAQPage() {
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                     selectedCategory === cat
                       ? "bg-[#C84B31] text-white shadow-2xs"
-                      : "bg-white border border-neutral-200/80 text-neutral-600 hover:text-neutral-900 hover:border-neutral-300"
+                      : "bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 hover:border-neutral-300"
                   }`}
                 >
                   {cat}
@@ -350,11 +350,11 @@ export default function FAQPage() {
           {/* Liste des Questions / Réponses en Accordéon */}
           <div className="space-y-3">
             {filteredFaqs.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-neutral-200/80 p-8 text-center space-y-2">
-                <p className="text-sm font-semibold text-neutral-700">
+              <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 p-8 text-center space-y-2">
+                <p className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
                   Aucune question ne correspond à votre recherche « {searchQuery} ».
                 </p>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
                   Essayez un autre mot-clé ou contactez-nous directement par email à{" "}
                   <a href="mailto:irisboom100@gmail.com" className="text-[#C84B31] underline font-semibold">
                     irisboom100@gmail.com
@@ -367,7 +367,7 @@ export default function FAQPage() {
                 return (
                   <div
                     key={idx}
-                    className="bg-white rounded-2xl border border-neutral-200/80 overflow-hidden shadow-2xs hover:border-[#F4C5BC]/80 transition-colors"
+                    className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 overflow-hidden shadow-2xs hover:border-[#F4C5BC]/80 transition-colors"
                   >
                     <button
                       onClick={() => toggleAccordion(idx)}
@@ -377,13 +377,13 @@ export default function FAQPage() {
                         <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-[#C84B31] bg-[#FDF3F1] px-2 py-0.5 rounded">
                           {faq.category}
                         </span>
-                        <h3 className="font-heading font-bold text-sm sm:text-base text-neutral-900">
+                        <h3 className="font-heading font-bold text-sm sm:text-base text-neutral-900 dark:text-neutral-100">
                           {faq.q}
                         </h3>
                       </div>
 
                       <div
-                        className={`w-7 h-7 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 shrink-0 transition-transform duration-200 mt-0.5 ${
+                        className={`w-7 h-7 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-500 dark:text-neutral-400 shrink-0 transition-transform duration-200 mt-0.5 ${
                           isOpen ? "rotate-180 bg-[#FDF3F1] text-[#C84B31]" : ""
                         }`}
                       >
@@ -400,7 +400,7 @@ export default function FAQPage() {
                           transition={{ duration: 0.2 }}
                           className="overflow-hidden"
                         >
-                          <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-neutral-600 leading-relaxed border-t border-neutral-100">
+                          <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed border-t border-neutral-100 dark:border-neutral-800">
                             {faq.a}
                           </div>
                         </motion.div>
@@ -422,10 +422,10 @@ export default function FAQPage() {
               <ShieldCheck className="w-4 h-4" />
               <span>Engagement Qualité Iris</span>
             </div>
-            <h4 className="font-heading font-bold text-lg text-neutral-900">
+            <h4 className="font-heading font-bold text-lg text-neutral-900 dark:text-neutral-100">
               Prêt à commencer la rédaction de votre manuscrit ?
             </h4>
-            <p className="text-xs sm:text-sm text-neutral-500">
+            <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
               Transformez votre expertise en livre numérique prêt pour Amazon KDP et l&apos;impression papier.
             </p>
           </div>

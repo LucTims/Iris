@@ -105,7 +105,7 @@ function CropModal({
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60" onClick={onCancel}>
-      <div className="bg-white rounded-xl shadow-2xl p-6 max-w-[90vw] max-h-[90vh] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl p-6 max-w-[90vw] max-h-[90vh] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
         <h3 className="text-lg font-semibold text-gray-800">Rogner l&apos;image</h3>
 
         {/* Image + crop area */}
@@ -141,7 +141,7 @@ function CropModal({
                 return (
                   <div
                     key={corner}
-                    className="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-full z-10"
+                    className="absolute w-3 h-3 bg-white dark:bg-neutral-900 border-2 border-blue-500 rounded-full z-10"
                     style={{ left: pos.left, top: pos.top, cursor: pos.cursor }}
                     onMouseDown={e => startDrag(e, corner)}
                   />
@@ -153,7 +153,7 @@ function CropModal({
 
         {/* Actions */}
         <div className="flex justify-end gap-3">
-          <button onClick={onCancel} className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+          <button onClick={onCancel} className="px-5 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-neutral-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
             Annuler
           </button>
           <button onClick={applyCrop} className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
@@ -321,17 +321,17 @@ export function ResizableImageNodeView(props: NodeViewProps) {
       {/* Resize Handles */}
       {selected && (
         <>
-          <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-se-resize z-10" onMouseDown={(e) => startResize(e, 'br')} />
-          <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-sw-resize z-10" onMouseDown={(e) => startResize(e, 'bl')} />
-          <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-ne-resize z-10" onMouseDown={(e) => startResize(e, 'tr')} />
-          <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-sm cursor-nw-resize z-10" onMouseDown={(e) => startResize(e, 'tl')} />
+          <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white dark:bg-neutral-900 border border-blue-500 rounded-sm cursor-se-resize z-10" onMouseDown={(e) => startResize(e, 'br')} />
+          <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white dark:bg-neutral-900 border border-blue-500 rounded-sm cursor-sw-resize z-10" onMouseDown={(e) => startResize(e, 'bl')} />
+          <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white dark:bg-neutral-900 border border-blue-500 rounded-sm cursor-ne-resize z-10" onMouseDown={(e) => startResize(e, 'tr')} />
+          <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white dark:bg-neutral-900 border border-blue-500 rounded-sm cursor-nw-resize z-10" onMouseDown={(e) => startResize(e, 'tl')} />
         </>
       )}
 
       {/* Main Floating Toolbar */}
       {selected && (
         <div 
-          className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white border border-gray-200 shadow-md rounded-md p-1 z-20"
+          className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white dark:bg-neutral-900 border border-gray-200 shadow-md rounded-md p-1 z-20"
           contentEditable={false}
         >
           <button onClick={validate} className="p-1.5 hover:bg-blue-50 text-blue-500 rounded bg-blue-50" title="Valider">
@@ -384,7 +384,7 @@ export function ResizableImageNodeView(props: NodeViewProps) {
       {/* More Options Popout Menu */}
       {selected && showMoreMenu && (
         <div 
-          className="absolute -top-12 left-full ml-2 w-48 flex flex-col bg-white border border-gray-200 shadow-lg rounded-lg py-2 z-30 text-sm"
+          className="absolute -top-12 left-full ml-2 w-48 flex flex-col bg-white dark:bg-neutral-900 border border-gray-200 shadow-lg rounded-lg py-2 z-30 text-sm"
           contentEditable={false}
         >
           <button onClick={increaseSize} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-gray-700 w-full text-left">

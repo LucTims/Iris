@@ -63,7 +63,7 @@ export default function EditorGenerationOverlay({
         initial={{ scale: 0.92, y: 10 }}
         animate={{ scale: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 220, damping: 20 }}
-        className="relative flex flex-col items-center gap-5 rounded-3xl border border-white/70 bg-white/80 px-8 py-8 shadow-2xl backdrop-blur-md max-w-[86vw] w-[360px]"
+        className="relative flex flex-col items-center gap-5 rounded-3xl border border-white/70 bg-white dark:bg-neutral-900/80 px-8 py-8 shadow-2xl backdrop-blur-md max-w-[86vw] w-[360px]"
       >
         {/* Plume qui écrit sur une ligne */}
         <div className="relative w-44 h-20">
@@ -123,7 +123,7 @@ export default function EditorGenerationOverlay({
 
         {/* Titre + message rotatif */}
         <div className="flex flex-col items-center gap-1 text-center">
-          <div className="flex items-center gap-2 font-heading font-extrabold text-neutral-900 text-base">
+          <div className="flex items-center gap-2 font-heading font-extrabold text-neutral-900 dark:text-neutral-100 text-base">
             <span className="material-symbols-outlined text-secondary text-lg animate-pulse">auto_awesome</span>
             <span>{label}</span>
             <span className="inline-flex w-5 justify-start">
@@ -138,7 +138,7 @@ export default function EditorGenerationOverlay({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.35 }}
-                className="text-xs font-medium text-neutral-500 absolute inset-0"
+                className="text-xs font-medium text-neutral-500 dark:text-neutral-400 absolute inset-0"
               >
                 {messages[msgIndex]}
               </motion.p>
@@ -149,7 +149,7 @@ export default function EditorGenerationOverlay({
         {/* Barre de progression : déterminée si on connaît l'avancement, sinon shimmer */}
         {pct != null ? (
           <div className="w-full space-y-1.5">
-            <div className="flex items-center justify-between text-[11px] font-bold text-neutral-500">
+            <div className="flex items-center justify-between text-[11px] font-bold text-neutral-500 dark:text-neutral-400">
               <span>Chapitre {progress!.current} / {progress!.total}</span>
               <span>{pct}%</span>
             </div>
@@ -177,7 +177,7 @@ export default function EditorGenerationOverlay({
         {onStop && (
           <button
             onClick={onStop}
-            className="mt-1 inline-flex items-center gap-1.5 rounded-xl border border-neutral-300 bg-white/80 px-4 py-2 text-xs font-bold text-neutral-700 hover:bg-white hover:border-red-300 hover:text-red-600 transition-colors"
+            className="mt-1 inline-flex items-center gap-1.5 rounded-xl border border-neutral-300 bg-white dark:bg-neutral-900/80 px-4 py-2 text-xs font-bold text-neutral-700 dark:text-neutral-300 hover:bg-white dark:bg-neutral-900 hover:border-red-300 hover:text-red-600 transition-colors"
           >
             <span className="material-symbols-outlined text-base">stop_circle</span>
             Arrêter

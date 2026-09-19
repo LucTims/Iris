@@ -59,7 +59,7 @@ export default function PricingPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-800/50 flex items-center justify-center">
         <span className="material-symbols-outlined animate-spin text-4xl text-secondary">progress_activity</span>
       </div>
     );
@@ -78,10 +78,10 @@ export default function PricingPage() {
         <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-primary/10 to-transparent -z-10 pointer-events-none" />
         
         <div className="text-center max-w-3xl mb-16">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-neutral-900 mb-6 tracking-tight">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-neutral-900 dark:text-neutral-100 mb-6 tracking-tight">
             Des pièces pour <span className="text-primary">donner vie</span> à vos histoires
           </h1>
-          <p className="text-lg text-neutral-600 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg text-neutral-600 dark:text-neutral-400 mb-8 max-w-2xl mx-auto">
             Achetez des packs de pièces à la demande. Pas d'abonnement, pas d'engagement. Utilisez vos pièces pour générer des chapitres avec l'IA de votre choix.
           </p>
           
@@ -95,46 +95,46 @@ export default function PricingPage() {
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl w-full mx-auto relative z-10">
           
           {/* Starter Plan */}
-          <div className="bg-white rounded-3xl p-8 border border-neutral-200 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full relative">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-8 border border-neutral-200 dark:border-neutral-800 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full relative">
             <div className="mb-6">
-              <h3 className="text-xl font-bold text-neutral-900 mb-2">Pack Starter</h3>
-              <p className="text-neutral-500 text-sm h-10">Parfait pour découvrir la plateforme et écrire un premier livre court.</p>
+              <h3 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Pack Starter</h3>
+              <p className="text-neutral-500 dark:text-neutral-400 text-sm h-10">Parfait pour découvrir la plateforme et écrire un premier livre court.</p>
             </div>
             
             <div className="mb-8 flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-neutral-900">1 000</span>
-              <span className="text-lg text-neutral-500 font-medium">FCFA</span>
+              <span className="text-4xl font-extrabold text-neutral-900 dark:text-neutral-100">1 000</span>
+              <span className="text-lg text-neutral-500 dark:text-neutral-400 font-medium">FCFA</span>
             </div>
             
-            <div className="flex items-center gap-3 mb-8 bg-neutral-50 p-4 rounded-2xl border border-neutral-100">
+            <div className="flex items-center gap-3 mb-8 bg-neutral-50 dark:bg-neutral-800/50 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800">
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-primary">monetization_on</span>
               </div>
               <div>
-                <div className="font-bold text-neutral-900">1 000 Pièces</div>
-                <div className="text-xs text-neutral-500">Crédit immédiat</div>
+                <div className="font-bold text-neutral-900 dark:text-neutral-100">1 000 Pièces</div>
+                <div className="text-xs text-neutral-500 dark:text-neutral-400">Crédit immédiat</div>
               </div>
             </div>
             
             <ul className="space-y-4 mb-8 flex-1">
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-green-500 text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Tous les modèles IA inclus (Gemini, ChatGPT, Claude)</span>
+                <span className="text-neutral-700 dark:text-neutral-300 text-sm">Tous les modèles IA inclus (Gemini, ChatGPT, Claude)</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-green-500 text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Idéal pour écrire ~70 pages (un livre complet)</span>
+                <span className="text-neutral-700 dark:text-neutral-300 text-sm">Idéal pour écrire ~70 pages (un livre complet)</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-green-500 text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Pas de date d'expiration</span>
+                <span className="text-neutral-700 dark:text-neutral-300 text-sm">Pas de date d'expiration</span>
               </li>
             </ul>
             
             <button 
               onClick={() => initiatePayment('starter')}
               disabled={loadingPlan === 'starter'}
-              className="w-full py-4 rounded-xl font-bold transition-all bg-neutral-100 text-neutral-900 hover:bg-neutral-200 flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-xl font-bold transition-all bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-200 flex items-center justify-center gap-2"
             >
               {loadingPlan === 'starter' ? (
                 <span className="material-symbols-outlined animate-spin">progress_activity</span>
@@ -145,19 +145,19 @@ export default function PricingPage() {
           </div>
 
           {/* Creator Plan - Highlighted */}
-          <div className="bg-white rounded-3xl p-8 border-2 border-primary shadow-[0_0_30px_-10px_rgba(255,165,0,0.3)] hover:shadow-[0_0_40px_-10px_rgba(255,165,0,0.5)] transition-shadow flex flex-col h-full relative transform md:-translate-y-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-8 border-2 border-primary shadow-[0_0_30px_-10px_rgba(255,165,0,0.3)] hover:shadow-[0_0_40px_-10px_rgba(255,165,0,0.5)] transition-shadow flex flex-col h-full relative transform md:-translate-y-4">
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#C84B31] text-white text-[11px] font-semibold px-3.5 py-1 rounded-full uppercase tracking-wider whitespace-nowrap shadow-sm">
               Recommandé
             </div>
             
             <div className="mb-6 mt-2">
-              <h3 className="text-xl font-bold text-neutral-900 mb-2">Pack Créateur</h3>
-              <p className="text-neutral-500 text-sm h-10">L'équilibre parfait pour écrire votre premier livre entier.</p>
+              <h3 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Pack Créateur</h3>
+              <p className="text-neutral-500 dark:text-neutral-400 text-sm h-10">L'équilibre parfait pour écrire votre premier livre entier.</p>
             </div>
             
             <div className="mb-8 flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-neutral-900">2 500</span>
-              <span className="text-lg text-neutral-500 font-medium">FCFA</span>
+              <span className="text-4xl font-extrabold text-neutral-900 dark:text-neutral-100">2 500</span>
+              <span className="text-lg text-neutral-500 dark:text-neutral-400 font-medium">FCFA</span>
             </div>
             
             <div className="flex items-center gap-3 mb-8 bg-primary/10 p-4 rounded-2xl border border-primary/20">
@@ -165,7 +165,7 @@ export default function PricingPage() {
                 <span className="material-symbols-outlined text-primary">monetization_on</span>
               </div>
               <div>
-                <div className="font-bold text-neutral-900">3 000 Pièces</div>
+                <div className="font-bold text-neutral-900 dark:text-neutral-100">3 000 Pièces</div>
                 <div className="text-xs font-semibold text-primary">+500 pièces bonus offertes</div>
               </div>
             </div>
@@ -173,15 +173,15 @@ export default function PricingPage() {
             <ul className="space-y-4 mb-8 flex-1">
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm font-medium">Tous les modèles IA inclus (Gemini, ChatGPT, Claude)</span>
+                <span className="text-neutral-700 dark:text-neutral-300 text-sm font-medium">Tous les modèles IA inclus (Gemini, ChatGPT, Claude)</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Jusqu'à ~210 pages avec le modèle Standard</span>
+                <span className="text-neutral-700 dark:text-neutral-300 text-sm">Jusqu'à ~210 pages avec le modèle Standard</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Outils de réécriture avancés</span>
+                <span className="text-neutral-700 dark:text-neutral-300 text-sm">Outils de réécriture avancés</span>
               </li>
             </ul>
             
@@ -199,15 +199,15 @@ export default function PricingPage() {
           </div>
 
           {/* Author Plan */}
-          <div className="bg-white rounded-3xl p-8 border border-secondary/20 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full relative">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-8 border border-secondary/20 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full relative">
             <div className="mb-6">
-              <h3 className="text-xl font-bold text-neutral-900 mb-2">Pack Auteur Pro</h3>
-              <p className="text-neutral-500 text-sm h-10">Pour les auteurs réguliers et la plus haute qualité littéraire.</p>
+              <h3 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Pack Auteur Pro</h3>
+              <p className="text-neutral-500 dark:text-neutral-400 text-sm h-10">Pour les auteurs réguliers et la plus haute qualité littéraire.</p>
             </div>
             
             <div className="mb-8 flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-neutral-900">5 000</span>
-              <span className="text-lg text-neutral-500 font-medium">FCFA</span>
+              <span className="text-4xl font-extrabold text-neutral-900 dark:text-neutral-100">5 000</span>
+              <span className="text-lg text-neutral-500 dark:text-neutral-400 font-medium">FCFA</span>
             </div>
             
             <div className="flex items-center gap-3 mb-8 bg-secondary/5 p-4 rounded-2xl border border-secondary/10">
@@ -215,7 +215,7 @@ export default function PricingPage() {
                 <span className="material-symbols-outlined text-secondary">monetization_on</span>
               </div>
               <div>
-                <div className="font-bold text-neutral-900">7 000 Pièces</div>
+                <div className="font-bold text-neutral-900 dark:text-neutral-100">7 000 Pièces</div>
                 <div className="text-xs text-secondary">+2 000 pièces bonus</div>
               </div>
             </div>
@@ -223,15 +223,15 @@ export default function PricingPage() {
             <ul className="space-y-4 mb-8 flex-1">
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-secondary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Tous les modèles IA inclus (Gemini, ChatGPT, Claude)</span>
+                <span className="text-neutral-700 dark:text-neutral-300 text-sm">Tous les modèles IA inclus (Gemini, ChatGPT, Claude)</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-secondary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Style d'écriture humain et captivant</span>
+                <span className="text-neutral-700 dark:text-neutral-300 text-sm">Style d'écriture humain et captivant</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-secondary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Jusqu'à ~500 pages avec le modèle Standard</span>
+                <span className="text-neutral-700 dark:text-neutral-300 text-sm">Jusqu'à ~500 pages avec le modèle Standard</span>
               </li>
             </ul>
             
@@ -259,24 +259,24 @@ export default function PricingPage() {
 
         {/* FAQ Section */}
         <div className="max-w-3xl w-full mx-auto mt-32 mb-16">
-          <h2 className="text-3xl font-bold text-center text-neutral-900 mb-10">Questions Fréquentes</h2>
+          <h2 className="text-3xl font-bold text-center text-neutral-900 dark:text-neutral-100 mb-10">Questions Fréquentes</h2>
           <div className="space-y-4">
             {faqs.map((faq, index) => (
               <div 
                 key={index} 
-                className={`border rounded-2xl overflow-hidden transition-colors ${openFaq === index ? 'border-primary bg-white' : 'border-neutral-200 bg-white hover:border-neutral-300'}`}
+                className={`border rounded-2xl overflow-hidden transition-colors ${openFaq === index ? 'border-primary bg-white dark:bg-neutral-900' : 'border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-300'}`}
               >
                 <button 
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
                   className="w-full flex items-center justify-between p-6 text-left focus:outline-none"
                 >
-                  <span className="font-bold text-neutral-900">{faq.question}</span>
+                  <span className="font-bold text-neutral-900 dark:text-neutral-100">{faq.question}</span>
                   <span className={`material-symbols-outlined text-neutral-400 transition-transform ${openFaq === index ? 'rotate-180' : ''}`}>
                     expand_more
                   </span>
                 </button>
                 {openFaq === index && (
-                  <div className="px-6 pb-6 text-neutral-600 leading-relaxed">
+                  <div className="px-6 pb-6 text-neutral-600 dark:text-neutral-400 leading-relaxed">
                     {faq.answer}
                   </div>
                 )}

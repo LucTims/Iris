@@ -42,9 +42,9 @@ export default function AdminUsersPage() {
 
   if (error && !users?.length) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 bg-white border border-red-200 rounded-2xl text-center space-y-3">
-        <p className="font-semibold text-neutral-900">Impossible de charger les utilisateurs</p>
-        <p className="text-sm text-neutral-500">{error.message || "Une erreur est survenue lors de la récupération des données."}</p>
+      <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-neutral-900 border border-red-200 rounded-2xl text-center space-y-3">
+        <p className="font-semibold text-neutral-900 dark:text-neutral-100">Impossible de charger les utilisateurs</p>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">{error.message || "Une erreur est survenue lors de la récupération des données."}</p>
         <button
           onClick={() => mutate()}
           className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-[#B83E26] transition-colors"
@@ -64,8 +64,8 @@ export default function AdminUsersPage() {
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-neutral-900 font-heading">Gestion des Utilisateurs</h1>
-          <p className="text-sm text-neutral-500">Contrôle des profils, pièces et accès de {users?.length || 0} utilisateurs.</p>
+          <h1 className="text-2xl font-extrabold text-neutral-900 dark:text-neutral-100 font-heading">Gestion des Utilisateurs</h1>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">Contrôle des profils, pièces et accès de {users?.length || 0} utilisateurs.</p>
         </div>
         
         <div className="relative w-full sm:w-72">
@@ -75,15 +75,15 @@ export default function AdminUsersPage() {
             placeholder="Rechercher par nom ou email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
         </div>
       </div>
 
-      <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-neutral-600">
-            <thead className="bg-neutral-50 border-b border-neutral-200 text-xs font-bold text-neutral-500 uppercase tracking-wider">
+          <table className="w-full text-left text-sm text-neutral-600 dark:text-neutral-400">
+            <thead className="bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-800 text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4">Auteur / Email</th>
                 <th className="px-6 py-4">Rôle</th>
@@ -103,8 +103,8 @@ export default function AdminUsersPage() {
                         {u.full_name ? u.full_name.charAt(0).toUpperCase() : u.email?.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-bold text-neutral-900">{u.full_name || 'Anonyme'}</div>
-                        <div className="text-xs text-neutral-500">{u.email}</div>
+                        <div className="font-bold text-neutral-900 dark:text-neutral-100">{u.full_name || 'Anonyme'}</div>
+                        <div className="text-xs text-neutral-500 dark:text-neutral-400">{u.email}</div>
                       </div>
                     </div>
                   </td>
@@ -114,7 +114,7 @@ export default function AdminUsersPage() {
                         <ShieldAlert className="w-3 h-3" /> Admin
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-neutral-100 text-neutral-600 border border-neutral-200">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-800">
                         Auteur
                       </span>
                     )}
@@ -122,7 +122,7 @@ export default function AdminUsersPage() {
                   <td className="px-6 py-4 text-center">
                     <div className="flex justify-center items-center gap-2">
                       <select
-                        className="border border-neutral-300 rounded-lg px-2 py-1 text-xs outline-none bg-white text-neutral-700 focus:ring-2 focus:ring-primary/20"
+                        className="border border-neutral-300 rounded-lg px-2 py-1 text-xs outline-none bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 focus:ring-2 focus:ring-primary/20"
                         value={u.plan || "free"}
                         onChange={(e) => changePlan(u.id, e.target.value)}
                         disabled={loadingId === u.id}
@@ -137,15 +137,15 @@ export default function AdminUsersPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="font-extrabold text-neutral-900">{fmt(u.balance)} <span className="text-xs text-neutral-400 font-normal">pts</span></div>
+                    <div className="font-extrabold text-neutral-900 dark:text-neutral-100">{fmt(u.balance)} <span className="text-xs text-neutral-400 font-normal">pts</span></div>
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className="font-semibold text-secondary">{fmt(u.coins_spent)}</span>
                   </td>
-                  <td className="px-6 py-4 text-center font-bold text-neutral-700">
+                  <td className="px-6 py-4 text-center font-bold text-neutral-700 dark:text-neutral-300">
                     {fmt(u.projects)}
                   </td>
-                  <td className="px-6 py-4 text-right text-xs text-neutral-500">
+                  <td className="px-6 py-4 text-right text-xs text-neutral-500 dark:text-neutral-400">
                     {u.created_at ? new Date(u.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : "-"}
                   </td>
                 </tr>

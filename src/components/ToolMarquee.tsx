@@ -19,7 +19,7 @@ export default function ToolMarquee() {
     <section className="bg-gradient-to-r from-[#8B2615] via-[#C84B31] to-[#A8321D] py-16 md:py-20 overflow-hidden relative shadow-inner">
       {/* Background Ornaments for premium feel */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-white/10 blur-[80px] rounded-full"></div>
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-white dark:bg-neutral-900/10 blur-[80px] rounded-full"></div>
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-black/15 blur-[80px] rounded-full"></div>
       </div>
 
@@ -45,7 +45,7 @@ export default function ToolMarquee() {
           {extendedTools.map((tool, idx) => (
             <div
               key={idx}
-              className="flex items-center gap-3 bg-white text-neutral-900 px-6 py-3.5 md:px-8 md:py-4 rounded-full font-extrabold shadow-xl text-sm md:text-lg shrink-0 transition-transform hover:scale-105"
+              className="flex items-center gap-3 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 px-6 py-3.5 md:px-8 md:py-4 rounded-full font-extrabold shadow-xl text-sm md:text-lg shrink-0 transition-transform hover:scale-105"
             >
               <svg 
                 className="w-4 h-4 md:w-5 md:h-5 text-red-500 shrink-0" 

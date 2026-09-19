@@ -3,15 +3,15 @@ import Footer from "@/components/Footer";
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-white font-body text-neutral-900 flex flex-col justify-between">
+    <div className="min-h-screen bg-white dark:bg-neutral-900 font-body text-neutral-900 dark:text-neutral-100 flex flex-col justify-between">
       {/* Header / Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-neutral-200/80">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-neutral-900/90 backdrop-blur-md border-b border-neutral-200/80 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" className="font-heading font-extrabold text-3xl md:text-4xl text-neutral-900 tracking-tight">
+          <Link href="/" className="font-heading font-extrabold text-3xl md:text-4xl text-neutral-900 dark:text-neutral-100 tracking-tight">
             Iris
           </Link>
 
-          <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-neutral-700">
+          <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
             <Link href="/features" className="hover:text-secondary transition-colors">Fonctionnalités</Link>
             <Link href="/how-it-works" className="hover:text-secondary transition-colors">Comment ça marche</Link>
             <Link href="/pricing" className="hover:text-secondary transition-colors">Tarifs</Link>
@@ -19,7 +19,7 @@ export default function AboutPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-semibold text-neutral-700 hover:text-neutral-900 hidden sm:block">
+            <Link href="/login" className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:text-neutral-100 hidden sm:block">
               Se connecter
             </Link>
             <Link href="/register">
@@ -36,16 +36,16 @@ export default function AboutPage() {
           <span className="inline-block py-1.5 px-4 rounded-full bg-orange-50 border border-orange-200 text-secondary font-bold text-xs uppercase tracking-widest mb-4">
             À PROPOS DE BOOM
           </span>
-          <h1 className="font-heading text-4xl sm:text-6xl font-extrabold text-neutral-900 tracking-tight mb-6">
+          <h1 className="font-heading text-4xl sm:text-6xl font-extrabold text-neutral-900 dark:text-neutral-100 tracking-tight mb-6">
             Démocratiser l&apos;écriture et l&apos;auto-édition par l&apos;IA
           </h1>
-          <p className="text-lg text-neutral-600 leading-relaxed">
+          <p className="text-lg text-neutral-600 dark:text-neutral-400 leading-relaxed">
             Boom est l&apos;entreprise technologique qui conçoit Iris, la première solution de co-création littéraire dédiée aux créateurs, entrepreneurs et passionnés.
           </p>
         </div>
 
-        <div className="max-w-4xl mx-auto bg-neutral-50 rounded-3xl p-10 md:p-14 border border-neutral-200/80 mb-20 space-y-6 text-neutral-700 leading-relaxed text-base">
-          <h2 className="font-heading text-2xl font-bold text-neutral-900">Notre Mission</h2>
+        <div className="max-w-4xl mx-auto bg-neutral-50 dark:bg-neutral-800/50 rounded-3xl p-10 md:p-14 border border-neutral-200/80 dark:border-neutral-800 mb-20 space-y-6 text-neutral-700 dark:text-neutral-300 leading-relaxed text-base">
+          <h2 className="font-heading text-2xl font-bold text-neutral-900 dark:text-neutral-100">Notre Mission</h2>
           <p>
             Nous sommes convaincus que chaque personne possède une expertise, une histoire ou un savoir unique qui mérite d&apos;être transmis. Cependant, la rédaction d&apos;un ouvrage complet et les contraintes techniques de mise en page découragent la grande majorité des auteurs.
           </p>

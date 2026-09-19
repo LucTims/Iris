@@ -26,13 +26,13 @@ export default function BillingPage() {
 
   return (
     <AppLayout>
-      <header className="bg-white border-b border-neutral-200/80 sticky top-0 z-20 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
+      <header className="bg-white dark:bg-neutral-900 border-b border-neutral-200/80 dark:border-neutral-800 sticky top-0 z-20 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all">
+          <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 bg-neutral-100 dark:bg-neutral-800 px-3 py-2 rounded-xl transition-all">
             <span className="material-symbols-outlined text-base">arrow_back</span>
             <span>Tableau de bord</span>
           </Link>
-          <h1 className="font-heading font-extrabold text-xl text-neutral-900 flex items-center gap-2">
+          <h1 className="font-heading font-extrabold text-xl text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
             <span className="material-symbols-outlined text-secondary">account_balance_wallet</span>
             <span>Portefeuille &amp; Pièces</span>
           </h1>
@@ -45,19 +45,19 @@ export default function BillingPage() {
 
           <main className="flex-1 space-y-6">
             {/* Wallet Box */}
-            <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-2xs overflow-hidden p-6 sm:p-8 space-y-6">
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 shadow-2xs overflow-hidden p-6 sm:p-8 space-y-6">
               <div className="flex justify-between items-start">
                 <div>
                   <span className="inline-block py-1 px-3 rounded-full bg-orange-50 text-secondary border border-orange-200 text-[10px] font-bold tracking-wider mb-2 uppercase">
                     Solde Actuel
                   </span>
-                  <h2 className="font-heading text-4xl font-extrabold text-neutral-900">{walletBalance}</h2>
-                  <p className="text-xs font-bold text-neutral-500 mt-1">Pièces Iris (sans date d'expiration)</p>
+                  <h2 className="font-heading text-4xl font-extrabold text-neutral-900 dark:text-neutral-100">{walletBalance}</h2>
+                  <p className="text-xs font-bold text-neutral-500 dark:text-neutral-400 mt-1">Pièces Iris (sans date d'expiration)</p>
                 </div>
                 <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">Pay-as-you-go</span>
               </div>
 
-              <div className="bg-neutral-50 p-4 rounded-xl text-sm text-neutral-600 border border-neutral-100">
+              <div className="bg-neutral-50 dark:bg-neutral-800/50 p-4 rounded-xl text-sm text-neutral-600 dark:text-neutral-400 border border-neutral-100 dark:border-neutral-800">
                 <p>Vos pièces sont utilisées pour payer la génération de chapitres, de texte, et de couvertures via notre IA. Vous ne payez que ce que vous consommez.</p>
               </div>
 
@@ -70,19 +70,19 @@ export default function BillingPage() {
             </div>
 
             {/* Informations Card */}
-            <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-2xs p-6 space-y-4">
-              <h3 className="font-heading font-bold text-base text-neutral-900">Moyens de Paiement Acceptés sur SebPay</h3>
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 shadow-2xs p-6 space-y-4">
+              <h3 className="font-heading font-bold text-base text-neutral-900 dark:text-neutral-100">Moyens de Paiement Acceptés sur SebPay</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 border border-neutral-200 rounded-xl flex items-center justify-center font-bold text-xs text-orange-600 bg-orange-50/50">
+                <div className="p-3 border border-neutral-200 dark:border-neutral-800 rounded-xl flex items-center justify-center font-bold text-xs text-orange-600 bg-orange-50/50">
                   Orange Money
                 </div>
-                <div className="p-3 border border-neutral-200 rounded-xl flex items-center justify-center font-bold text-xs text-yellow-600 bg-yellow-50/50">
+                <div className="p-3 border border-neutral-200 dark:border-neutral-800 rounded-xl flex items-center justify-center font-bold text-xs text-yellow-600 bg-yellow-50/50">
                   MTN MoMo
                 </div>
-                <div className="p-3 border border-neutral-200 rounded-xl flex items-center justify-center font-bold text-xs text-blue-600 bg-blue-50/50">
+                <div className="p-3 border border-neutral-200 dark:border-neutral-800 rounded-xl flex items-center justify-center font-bold text-xs text-blue-600 bg-blue-50/50">
                   Moov Money
                 </div>
-                <div className="p-3 border border-neutral-200 rounded-xl flex items-center justify-center font-bold text-xs text-neutral-700 bg-neutral-50">
+                <div className="p-3 border border-neutral-200 dark:border-neutral-800 rounded-xl flex items-center justify-center font-bold text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-50 dark:bg-neutral-800/50">
                   Carte Visa / MC
                 </div>
               </div>

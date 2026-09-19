@@ -25,8 +25,8 @@ export default function AdminAI() {
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-neutral-900 font-heading">Surveillance IA & Consommation</h1>
-          <p className="text-sm text-neutral-500">Journal des dépenses de pièces et d'utilisation de l'IA.</p>
+          <h1 className="text-2xl font-extrabold text-neutral-900 dark:text-neutral-100 font-heading">Surveillance IA & Consommation</h1>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">Journal des dépenses de pièces et d'utilisation de l'IA.</p>
         </div>
         
         <div className="relative w-full sm:w-72">
@@ -36,15 +36,15 @@ export default function AdminAI() {
             placeholder="Rechercher (email, action)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
         </div>
       </div>
 
-      <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-neutral-600">
-            <thead className="bg-neutral-50 border-b border-neutral-200 text-xs font-bold text-neutral-500 uppercase tracking-wider">
+          <table className="w-full text-left text-sm text-neutral-600 dark:text-neutral-400">
+            <thead className="bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-800 text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4">Utilisateur</th>
                 <th className="px-6 py-4">Action</th>
@@ -57,11 +57,11 @@ export default function AdminAI() {
               {filtered.map((l: any) => (
                 <tr key={l.id} className="hover:bg-neutral-50/50 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-medium text-neutral-900">{l.name}</div>
-                    <div className="text-xs text-neutral-500">{l.email}</div>
+                    <div className="font-medium text-neutral-900 dark:text-neutral-100">{l.name}</div>
+                    <div className="text-xs text-neutral-500 dark:text-neutral-400">{l.email}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="font-medium text-neutral-800">{l.description || 'Action IA'}</div>
+                    <div className="font-medium text-neutral-800 dark:text-neutral-200">{l.description || 'Action IA'}</div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
@@ -75,7 +75,7 @@ export default function AdminAI() {
                       {l.type === 'credit' ? '+' : '-'}{l.amount.toLocaleString('fr-FR')}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right text-xs text-neutral-500">
+                  <td className="px-6 py-4 text-right text-xs text-neutral-500 dark:text-neutral-400">
                     {new Date(l.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </td>
                 </tr>

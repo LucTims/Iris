@@ -39,8 +39,8 @@ export default function AdminFinances() {
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-neutral-900 font-heading">Finances & Paiements</h1>
-          <p className="text-sm text-neutral-500">Historique des achats de pièces via Mobile Money.</p>
+          <h1 className="text-2xl font-extrabold text-neutral-900 dark:text-neutral-100 font-heading">Finances & Paiements</h1>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">Historique des achats de pièces via Mobile Money.</p>
         </div>
         
         <div className="relative w-full sm:w-72">
@@ -50,7 +50,7 @@ export default function AdminFinances() {
             placeholder="Rechercher une transaction..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
         </div>
       </div>
@@ -58,10 +58,10 @@ export default function AdminFinances() {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((k, i) => (
-          <div key={i} className="bg-white p-4 rounded-2xl border border-neutral-200 shadow-sm flex items-start justify-between">
+          <div key={i} className="bg-white dark:bg-neutral-900 p-4 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm flex items-start justify-between">
             <div>
-              <p className="text-xs font-medium text-neutral-500">{k.label}</p>
-              <h3 className="text-xl font-extrabold text-neutral-900 mt-1">{k.value}</h3>
+              <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{k.label}</p>
+              <h3 className="text-xl font-extrabold text-neutral-900 dark:text-neutral-100 mt-1">{k.value}</h3>
             </div>
             <div className={`p-2.5 rounded-xl ${k.bg}`}>
               <k.icon className={`w-4 h-4 ${k.color}`} />
@@ -70,10 +70,10 @@ export default function AdminFinances() {
         ))}
       </div>
 
-      <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-neutral-600">
-            <thead className="bg-neutral-50 border-b border-neutral-200 text-xs font-bold text-neutral-500 uppercase tracking-wider">
+          <table className="w-full text-left text-sm text-neutral-600 dark:text-neutral-400">
+            <thead className="bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-800 text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4">Utilisateur</th>
                 <th className="px-6 py-4">Pack Acheté</th>
@@ -86,16 +86,16 @@ export default function AdminFinances() {
               {filtered.map((t: any) => (
                 <tr key={t.id} className="hover:bg-neutral-50/50 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-medium text-neutral-900">{t.name}</div>
-                    <div className="text-xs text-neutral-500">{t.email}</div>
+                    <div className="font-medium text-neutral-900 dark:text-neutral-100">{t.name}</div>
+                    <div className="text-xs text-neutral-500 dark:text-neutral-400">{t.email}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex px-2 py-1 rounded bg-neutral-100 text-neutral-700 font-mono text-xs">
+                    <span className="inline-flex px-2 py-1 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-mono text-xs">
                       {t.plan_id || 'Pack'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="font-extrabold text-neutral-900">{(Number(t.amount) || 0).toLocaleString('fr-FR')} {t.currency}</div>
+                    <div className="font-extrabold text-neutral-900 dark:text-neutral-100">{(Number(t.amount) || 0).toLocaleString('fr-FR')} {t.currency}</div>
                     <div className="text-[10px] text-neutral-400 font-mono mt-0.5">Ref: {t.provider_reference || t.id?.split('-')[0]}</div>
                   </td>
                   <td className="px-6 py-4">
@@ -107,7 +107,7 @@ export default function AdminFinances() {
                       {t.status === 'paid' ? 'Payé' : t.status === 'pending' ? 'En attente' : 'Échoué'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right text-xs text-neutral-500">
+                  <td className="px-6 py-4 text-right text-xs text-neutral-500 dark:text-neutral-400">
                     {t.created_at ? new Date(t.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
                   </td>
                 </tr>

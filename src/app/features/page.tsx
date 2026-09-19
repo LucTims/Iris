@@ -36,15 +36,15 @@ export default function FeaturesPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white font-body text-neutral-900 flex flex-col justify-between">
+    <div className="min-h-screen bg-white dark:bg-neutral-900 font-body text-neutral-900 dark:text-neutral-100 flex flex-col justify-between">
       {/* Header / Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-neutral-200/80">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-neutral-900/90 backdrop-blur-md border-b border-neutral-200/80 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" className="font-heading font-extrabold text-3xl md:text-4xl text-neutral-900 tracking-tight">
+          <Link href="/" className="font-heading font-extrabold text-3xl md:text-4xl text-neutral-900 dark:text-neutral-100 tracking-tight">
             Iris
           </Link>
 
-          <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-neutral-700">
+          <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
             <Link href="/presentation" className="hover:text-secondary transition-colors">Découvrir</Link>
             <Link href="/features" className="text-secondary font-bold">Fonctionnalités</Link>
             <Link href="/how-it-works" className="hover:text-secondary transition-colors">Comment ça marche</Link>
@@ -52,7 +52,7 @@ export default function FeaturesPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-semibold text-neutral-700 hover:text-neutral-900 hidden sm:block">
+            <Link href="/login" className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:text-neutral-100 hidden sm:block">
               Se connecter
             </Link>
             <Link href="/register">
@@ -69,10 +69,10 @@ export default function FeaturesPage() {
           <span className="inline-block py-1.5 px-4 rounded-full bg-orange-50 border border-orange-200 text-secondary font-bold text-xs uppercase tracking-widest mb-4">
             TOUTES LES FONCTIONNALITÉS
           </span>
-          <h1 className="font-heading text-4xl sm:text-6xl font-extrabold text-neutral-900 tracking-tight mb-6">
+          <h1 className="font-heading text-4xl sm:text-6xl font-extrabold text-neutral-900 dark:text-neutral-100 tracking-tight mb-6">
             Tout ce dont vous avez besoin pour concevoir votre livre
           </h1>
-          <p className="text-lg text-neutral-600 leading-relaxed">
+          <p className="text-lg text-neutral-600 dark:text-neutral-400 leading-relaxed">
             Iris intègre tous les outils nécessaires à la rédaction, au design et à la publication numérique au même endroit.
           </p>
         </div>
@@ -80,13 +80,13 @@ export default function FeaturesPage() {
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-20">
           {features.map((feat, idx) => (
-            <div key={idx} className="bg-white rounded-3xl p-8 border border-neutral-200 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+            <div key={idx} className="bg-white dark:bg-neutral-900 rounded-3xl p-8 border border-neutral-200 dark:border-neutral-800 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
               <div>
                 <div className="w-12 h-12 rounded-2xl bg-orange-100 text-secondary flex items-center justify-center mb-6">
                   <span className="material-symbols-outlined text-2xl">{feat.icon}</span>
                 </div>
-                <h3 className="font-heading text-xl font-bold text-neutral-900 mb-3">{feat.title}</h3>
-                <p className="text-sm text-neutral-600 leading-relaxed">{feat.description}</p>
+                <h3 className="font-heading text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">{feat.title}</h3>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">{feat.description}</p>
               </div>
             </div>
           ))}

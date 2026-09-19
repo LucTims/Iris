@@ -32,24 +32,24 @@ export default function HeroProductShowcase() {
       <motion.div 
         animate={{ y: [0, -8, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        className="hidden md:flex items-center gap-2 bg-white px-3.5 py-2 rounded-2xl border border-neutral-200 shadow-md absolute -top-5 right-6 z-20"
+        className="hidden md:flex items-center gap-2 bg-white dark:bg-neutral-900 px-3.5 py-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-md absolute -top-5 right-6 z-20"
       >
         <div className="w-6 h-6 rounded-lg bg-orange-100 text-secondary flex items-center justify-center">
           <span className="material-symbols-outlined text-sm">verified</span>
         </div>
-        <span className="text-xs font-bold text-neutral-800">Conforme Amazon KDP</span>
+        <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200">Conforme Amazon KDP</span>
       </motion.div>
 
       {/* Floating Animated Badge 2: Bottom Left (Non-overlapping) */}
       <motion.div 
         animate={{ y: [0, 8, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        className="hidden md:flex items-center gap-2 bg-white px-3.5 py-2 rounded-2xl border border-neutral-200 shadow-md absolute -bottom-5 left-6 z-20"
+        className="hidden md:flex items-center gap-2 bg-white dark:bg-neutral-900 px-3.5 py-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-md absolute -bottom-5 left-6 z-20"
       >
         <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
           <span className="material-symbols-outlined text-sm">bolt</span>
         </div>
-        <span className="text-xs font-bold text-neutral-800">Génération 10x Rapide</span>
+        <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200">Génération 10x Rapide</span>
       </motion.div>
 
       {/* Main Floating App Showcase Window */}
@@ -57,10 +57,10 @@ export default function HeroProductShowcase() {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="bg-white rounded-2xl sm:rounded-3xl border border-neutral-200/90 shadow-[0_20px_50px_rgba(0,0,0,0.08)] overflow-hidden relative"
+        className="bg-white dark:bg-neutral-900 rounded-2xl sm:rounded-3xl border border-neutral-200/90 shadow-[0_20px_50px_rgba(0,0,0,0.08)] overflow-hidden relative"
       >
         {/* App Header Bar */}
-        <div className="bg-neutral-50 px-4 py-3 sm:px-6 sm:py-4 border-b border-neutral-200/80 flex items-center justify-between gap-2">
+        <div className="bg-neutral-50 dark:bg-neutral-800/50 px-4 py-3 sm:px-6 sm:py-4 border-b border-neutral-200/80 dark:border-neutral-800 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-400/80" />
@@ -77,7 +77,7 @@ export default function HeroProductShowcase() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-secondary"></span>
             </span>
-            <span className="text-[10px] sm:text-xs font-bold text-neutral-700 uppercase tracking-wider">
+            <span className="text-[10px] sm:text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
               Co-Rédaction en Direct
             </span>
           </div>
@@ -112,7 +112,7 @@ export default function HeroProductShowcase() {
                   <span className="text-[9px] sm:text-[10px] text-neutral-400 uppercase tracking-wider block">Progression</span>
                   <span className="font-heading font-extrabold text-sm sm:text-xl text-secondary">78%</span>
                 </div>
-                <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-md">
+                <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-white dark:bg-neutral-900/10 flex items-center justify-center backdrop-blur-md">
                   <span className="material-symbols-outlined text-white text-sm sm:text-lg">auto_awesome</span>
                 </div>
               </div>
@@ -129,7 +129,7 @@ export default function HeroProductShowcase() {
                 <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold text-[10px] sm:text-xs shrink-0 mt-0.5">
                   Vous
                 </div>
-                <div className="bg-neutral-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl rounded-tl-xs text-xs sm:text-sm text-neutral-800 font-medium leading-relaxed">
+                <div className="bg-neutral-100 dark:bg-neutral-800 p-3 sm:p-4 rounded-xl sm:rounded-2xl rounded-tl-xs text-xs sm:text-sm text-neutral-800 dark:text-neutral-200 font-medium leading-relaxed">
                   Iris, peux-tu structurer l&apos;introduction et lancer le premier chapitre avec un ton captivant ?
                 </div>
               </div>
@@ -139,7 +139,7 @@ export default function HeroProductShowcase() {
                 <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-secondary text-white flex items-center justify-center font-bold text-[10px] sm:text-xs shrink-0 shadow-sm mt-0.5">
                   Iris
                 </div>
-                <div className="bg-white border border-orange-200/80 p-3 sm:p-5 rounded-xl sm:rounded-2xl rounded-tl-xs text-xs sm:text-sm text-neutral-900 shadow-sm relative w-full">
+                <div className="bg-white dark:bg-neutral-900 border border-orange-200/80 p-3 sm:p-5 rounded-xl sm:rounded-2xl rounded-tl-xs text-xs sm:text-sm text-neutral-900 dark:text-neutral-100 shadow-sm relative w-full">
                   <div className="flex items-center gap-1.5 mb-2 sm:mb-3 text-[10px] sm:text-xs font-bold text-secondary">
                     <span className="material-symbols-outlined text-xs sm:text-base">edit_note</span>
                     <span>Génération du chapitre...</span>
@@ -147,7 +147,7 @@ export default function HeroProductShowcase() {
                   
                   {/* Fixed height container ensures 100% stable card dimensions during typing */}
                   <div className="h-[68px] sm:h-[84px] overflow-hidden">
-                    <p className="leading-relaxed text-neutral-800 font-sans">
+                    <p className="leading-relaxed text-neutral-800 dark:text-neutral-200 font-sans">
                       {typedText}
                       <span className="inline-block w-1.5 h-3.5 sm:w-1.5 sm:h-4 bg-secondary ml-1 animate-pulse" />
                     </p>
@@ -156,13 +156,13 @@ export default function HeroProductShowcase() {
               </div>
 
               {/* Bottom Live Action Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 sm:pt-4 border-t border-neutral-200/60 text-xs font-semibold text-neutral-500">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 sm:pt-4 border-t border-neutral-200/60 text-xs font-semibold text-neutral-500 dark:text-neutral-400">
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                   <span className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 text-xs">
                     <span className="material-symbols-outlined text-sm">check_circle</span>
                     124 pages formatées
                   </span>
-                  <span className="flex items-center gap-1.5 text-neutral-700 text-xs">
+                  <span className="flex items-center gap-1.5 text-neutral-700 dark:text-neutral-300 text-xs">
                     <span className="material-symbols-outlined text-sm">speed</span>
                     Export PDF / EPUB prêt
                   </span>

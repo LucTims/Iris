@@ -51,9 +51,9 @@ export default function GeoScoreModal({ isOpen, onClose, bookTitle, bookContent 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 sm:p-8 flex flex-col max-h-[90vh]"
+          className="relative w-full max-w-lg bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl p-6 sm:p-8 flex flex-col max-h-[90vh]"
         >
-          <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition-colors">
+          <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-neutral-600 dark:text-neutral-400 transition-colors">
             <X className="w-5 h-5" />
           </button>
 
@@ -62,15 +62,15 @@ export default function GeoScoreModal({ isOpen, onClose, bookTitle, bookContent 
               <Target className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-neutral-900">Score GEO & IA</h2>
-              <p className="text-sm text-neutral-500">Optimisation pour l'intelligence artificielle</p>
+              <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100">Score GEO & IA</h2>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">Optimisation pour l'intelligence artificielle</p>
             </div>
           </div>
 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
               <Loader2 className="w-10 h-10 text-purple-500 animate-spin" />
-              <p className="text-neutral-500 font-medium animate-pulse">Analyse sémantique par l'IA en cours...</p>
+              <p className="text-neutral-500 dark:text-neutral-400 font-medium animate-pulse">Analyse sémantique par l'IA en cours...</p>
             </div>
           ) : geoData ? (
             <div className="space-y-8 overflow-y-auto pr-2">
@@ -78,25 +78,25 @@ export default function GeoScoreModal({ isOpen, onClose, bookTitle, bookContent 
                 <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-orange-500">
                   {geoData.score}/100
                 </div>
-                <p className="text-sm font-medium text-neutral-600 mt-2">
+                <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mt-2">
                   {geoData.score >= 80 ? "Excellent ! Les IAs adorent." : geoData.score >= 50 ? "Peut être amélioré." : "Attention, l'IA risque d'ignorer ce contenu."}
                 </p>
               </div>
 
               <div>
-                <h3 className="font-bold text-neutral-800 mb-4 flex items-center gap-2">
+                <h3 className="font-bold text-neutral-800 dark:text-neutral-200 mb-4 flex items-center gap-2">
                   <span className="material-symbols-outlined text-purple-600">tips_and_updates</span>
                   Recommandations de l'IA
                 </h3>
                 <ul className="space-y-3">
                   {geoData.feedback.map((tip, idx) => (
-                    <li key={idx} className="flex gap-3 bg-neutral-50 p-4 rounded-xl border border-neutral-100">
+                    <li key={idx} className="flex gap-3 bg-neutral-50 dark:bg-neutral-800/50 p-4 rounded-xl border border-neutral-100 dark:border-neutral-800">
                       {geoData.score >= 80 ? (
                         <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                       ) : (
                         <AlertTriangle className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
                       )}
-                      <span className="text-sm text-neutral-700">{tip}</span>
+                      <span className="text-sm text-neutral-700 dark:text-neutral-300">{tip}</span>
                     </li>
                   ))}
                 </ul>

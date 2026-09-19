@@ -10,7 +10,8 @@ import type { BookSizeKey } from "@/lib/book/generationPresets";
 import { useUser } from "@/hooks/useUser";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { WORK_TYPES, WORK_TYPE_META, type WorkType } from "@/lib/book/work-type";
-import { BookOpen, Compass, FileText, Sparkles, Mic, MicOff, Check, ArrowRight, ArrowLeft, Upload, X, Rocket, Layers } from "lucide-react";
+import { BLUEPRINT_LIST, type BlueprintId, type BookBlueprint, resolveBlueprint } from "@/lib/book/book-blueprint";
+import { BookOpen, Compass, FileText, ImagePlay, Sparkles, Mic, MicOff, Check, ArrowRight, ArrowLeft, Upload, X, Rocket, Layers } from "lucide-react";
 
 // Associe le libellé de longueur du formulaire à une clé de preset.
 const lengthToSizeKey = (length: string): BookSizeKey =>
@@ -20,7 +21,7 @@ export default function NewBookWizard() {
   const router = useRouter();
   const { walletBalance } = useUser();
   const [step, setStep] = useState(1);
-  const totalSteps = 3;
+  const totalSteps = 4;
   const formContainerRef = useRef<HTMLDivElement>(null);
   
   const [formData, setFormData] = useState({
@@ -34,13 +35,25 @@ export default function NewBookWizard() {
     length: "Moyen (Roman standard)",
     instructions: "",
     includeToc: true,
-    // Forme de l'ouvrage : elle pilote la structure ET la mise en page.
-    // Un livre se lit d'une traite, un guide se pratique, un ebook se parcourt.
     workType: "livre" as WorkType,
+    blueprintId: "roman" as BlueprintId,
   });
 
   const updateForm = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleBlueprintSelect = (id: BlueprintId) => {
+    let newWorkType: WorkType = "livre";
+    if (id === "guide") newWorkType = "guide";
+    else if (id === "ebook") newWorkType = "ebook";
+    else if (id === "storybook") newWorkType = "storybook";
+    
+    setFormData((prev) => ({
+      ...prev,
+      blueprintId: id,
+      workType: newWorkType,
+    }));
   };
 
   const scrollToTop = () => {
@@ -65,10 +78,6 @@ export default function NewBookWizard() {
     }
   };
 
-  // Dictée : on réutilise le hook partagé plutôt qu'une seconde
-  // implémentation. Celle qui vivait ici reproduisait les défauts corrigés
-  // dans le hook — arrêt silencieux au premier silence, erreurs invisibles —
-  // et il fallait corriger les deux copies à chaque fois.
   const {
     isListening,
     isSupported: isSpeechSupported,
@@ -86,7 +95,7 @@ export default function NewBookWizard() {
   const [showModelModal, setShowModelModal] = useState(false);
   const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
 
-  // Document de référence que l'IA analyse pour mieux écrire le livre
+  // Document de référence
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const [refPurpose, setRefPurpose] = useState<"inspiration" | "learn" | "style" | "reference">("inspiration");
   const [referenceDoc, setReferenceDoc] = useState<{ name: string; purpose: string; analysis: string } | null>(null);
@@ -118,85 +127,47 @@ export default function NewBookWizard() {
 
   /* ------------------------------------------------------------------ *
    * FLUX « VISION-TO-STORY » — images importées par l'auteur.
-   *
-   * Les visuels sont compressés DANS LE NAVIGATEUR avant l'envoi : une photo
-   * de smartphone pèse 5 à 10 Mo, et en envoyer une douzaine telles quelles
-   * saturerait la bande passante Supabase, ralentirait l'analyse du modèle de
-   * vision, et ferait échouer l'import sur une connexion mobile. Réduites à
-   * 1600 px de côté en JPEG qualité 0,82, elles tombent autour de 300 Ko sans
-   * perte visible pour l'illustration d'un conte.
    * ------------------------------------------------------------------ */
-  const MAX_ASSETS = 24;
-  const assetsInputRef = useRef<HTMLInputElement>(null);
-  const [assets, setAssets] = useState<Array<{ url: string; path: string; name: string }>>([]);
-  const [assetsBusy, setAssetsBusy] = useState(false);
+  const MAX_ASSETS = 20;
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedImages, setUploadedImages] = useState<Array<{ id: string; url: string; name: string; position: number; file: File }>>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const [assetsError, setAssetsError] = useState("");
   const [isDraggingAssets, setIsDraggingAssets] = useState(false);
 
-  const isStorybook = formData.workType === "storybook";
+  const isStorybook = formData.blueprintId === "storybook";
 
-  const compressImage = (file: File): Promise<Blob> =>
-    new Promise((resolve, reject) => {
-      const url = URL.createObjectURL(file);
-      const img = new window.Image();
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        const MAX_SIDE = 1600;
-        const scale = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return reject(new Error("Canvas indisponible"));
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(
-          (blob) => (blob ? resolve(blob) : reject(new Error("Compression impossible"))),
-          "image/jpeg",
-          0.82
-        );
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(new Error("Image illisible"));
-      };
-      img.src = url;
-    });
-
-  const handleAssetFiles = async (fileList: FileList | File[] | null) => {
-    if (!fileList) return;
-    const files = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
-    if (files.length === 0) return;
-
-    const room = MAX_ASSETS - assets.length;
+  const handleImageUpload = async (files: FileList | null) => {
+    if (!files) return;
+    
+    const fileArray = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (fileArray.length === 0) return;
+    
+    const room = MAX_ASSETS - uploadedImages.length;
     if (room <= 0) {
       setAssetsError(`${MAX_ASSETS} images maximum.`);
       return;
     }
-
-    setAssetsBusy(true);
+    
     setAssetsError("");
-    try {
-      const body = new FormData();
-      for (const file of files.slice(0, room)) {
-        const compressed = await compressImage(file);
-        body.append("files", new File([compressed], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" }));
-      }
+    setIsUploading(true);
 
-      const res = await fetch("/api/project-assets", { method: "POST", body });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Échec de l'envoi des images.");
-      setAssets((prev) => [...prev, ...(data.assets || [])]);
-    } catch (err) {
-      setAssetsError(err instanceof Error ? err.message : "Échec de l'envoi des images.");
-    } finally {
-      setAssetsBusy(false);
-    }
+    const newImages = fileArray.slice(0, room).map((file, i) => ({
+      id: crypto.randomUUID(),
+      url: URL.createObjectURL(file),
+      name: file.name,
+      position: uploadedImages.length + i,
+      file,
+    }));
+    
+    setUploadedImages((prev) => [...prev, ...newImages]);
+    setIsUploading(false);
   };
 
-  const removeAsset = (url: string) => setAssets((prev) => prev.filter((a) => a.url !== url));
+  const removeAsset = (id: string) => setUploadedImages((prev) => prev.filter((a) => a.id !== id));
 
   const moveAsset = (index: number, direction: -1 | 1) => {
-    setAssets((prev) => {
+    setUploadedImages((prev) => {
       const next = [...prev];
       const target = index + direction;
       if (target < 0 || target >= next.length) return prev;
@@ -205,14 +176,11 @@ export default function NewBookWizard() {
     });
   };
 
-  // Intercept the final submit to show the modal first
   const handlePreSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Un storybook se construit À PARTIR des images : sans visuel, la
-    // génération n'aurait rien à regarder.
-    if (isStorybook && assets.length < 2) {
+    if (isStorybook && uploadedImages.length < 2) {
       setAssetsError("Importez au moins 2 images pour construire votre conte.");
-      setStep(2);
+      setStep(3); // Step 3 is where the images are
       return;
     }
     setShowModelModal(true);
@@ -223,17 +191,11 @@ export default function NewBookWizard() {
     setIsSubmitting(true);
 
     try {
-      const imageUrls = assets.map((a) => a.url);
-
       const projectContext = {
         ...formData,
-        model: selectedModel, // Pass selected model
-        // Document de référence analysé : consommé par /redaction → generate-plan
+        model: selectedModel,
         referenceDocument: referenceDoc || undefined,
-        // Blueprint + visuels : consommés par /redaction → generate-plan et
-        // generate-chapter pour le flux multimodal « Vision-to-Story ».
-        blueprintId: formData.workType,
-        imageUrls,
+        blueprintId: formData.blueprintId,
         createdAt: new Date().toISOString()
       };
       localStorage.setItem("iris_current_project", JSON.stringify(projectContext));
@@ -243,7 +205,7 @@ export default function NewBookWizard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          blueprintId: formData.workType,
+          blueprintId: formData.blueprintId,
           referenceDocument: referenceDoc || undefined,
         })
       });
@@ -257,22 +219,23 @@ export default function NewBookWizard() {
       if (data.project?.id) {
         localStorage.setItem("iris_current_project_id", data.project.id);
 
-        // Les images ont été téléversées avant que le projet n'existe (on ne
-        // connaissait pas encore son ID) : on les rattache maintenant, dans
-        // l'ordre choisi par l'auteur — cet ordre EST la chronologie du conte.
-        if (assets.length > 0) {
+        if (isStorybook && uploadedImages.length > 0) {
           try {
+            const uploadFormData = new FormData();
+            uploadFormData.append("projectId", data.project.id);
+            uploadFormData.append("blueprintId", formData.blueprintId);
+            for (const img of uploadedImages) {
+              uploadFormData.append("files", img.file);
+            }
             await fetch("/api/project-assets", {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ projectId: data.project.id, assets }),
+              method: "POST",
+              body: uploadFormData,
             });
           } catch (attachErr) {
             console.warn("Rattachement des images au projet impossible:", attachErr);
           }
         }
 
-        // We can pass the model in the URL or let it be picked up from localStorage in /redaction
         router.push(`/redaction?projectId=${data.project.id}&new=true`);
         return;
       }
@@ -288,7 +251,7 @@ export default function NewBookWizard() {
   const renderStepIndicators = () => {
     return (
       <div className="flex items-center justify-center gap-3 mb-8 w-full max-w-xl mx-auto px-6 sm:px-0">
-        {[1, 2, 3].map((s) => (
+        {[1, 2, 3, 4].map((s) => (
           <div key={s} className="flex-1 h-2 rounded-full bg-neutral-200 overflow-hidden relative">
             <motion.div
               className={`absolute top-0 left-0 bottom-0 w-full rounded-full ${
@@ -305,42 +268,40 @@ export default function NewBookWizard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 flex flex-col md:flex-row">
-      {/* GLOBAL REUSABLE SIDEBAR */}
+    <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 dark:text-neutral-100 flex flex-col md:flex-row">
       <Sidebar />
       <div id="main-scroll-container" className="flex-1 flex flex-col h-screen overflow-y-auto">
-      {/* Top Navigation */}
-      <header className="bg-white border-b border-neutral-200 h-16 px-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shrink-0">
-        <Link href="/projects" className="flex items-center gap-2 text-neutral-600 hover:text-neutral-900 transition-colors">
+      <header className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 h-16 px-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shrink-0">
+        <Link href="/projects" className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 transition-colors">
           <span className="material-symbols-outlined">arrow_back</span>
           <span className="text-sm font-bold">Retour aux projets</span>
         </Link>
         <div className="flex items-center gap-2">
           <span className="font-heading font-extrabold text-xl text-secondary">Iris</span>
         </div>
-        <div className="w-24"></div> {/* Spacer for centering */}
+        <div className="w-24"></div>
       </header>
 
       <main className="flex-1 flex flex-col items-center pt-6 sm:pt-8 pb-0 sm:pb-20 px-0 sm:px-4">
-        {/* Step Indicator */}
         {renderStepIndicators()}
 
-        {/* Wizard Card */}
-        <div ref={formContainerRef} className="bg-white rounded-t-[32px] sm:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] sm:shadow-xl border-t sm:border border-neutral-100 max-w-2xl w-full p-6 sm:p-10 relative overflow-y-auto flex-1 sm:flex-none flex flex-col">
+        <div ref={formContainerRef} className="bg-white dark:bg-neutral-900 rounded-t-[32px] sm:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] sm:shadow-xl border-t sm:border border-neutral-100 dark:border-neutral-800 max-w-2xl w-full p-6 sm:p-10 relative overflow-y-auto flex-1 sm:flex-none flex flex-col">
           
           <div className="mb-6 sm:mb-8 shrink-0">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FDF3F1] border border-[#F4C5BC]/60 text-[#C84B31] font-bold text-[11px] uppercase tracking-wider mb-2.5">
               <span>Étape {step} sur {totalSteps}</span>
             </span>
-            <h1 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 leading-tight">
-              {step === 1 && "Détails du projet"}
-              {step === 2 && "Sujet & Direction éditoriale"}
-              {step === 3 && "Format & Paramètres"}
+            <h1 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 dark:text-neutral-100 leading-tight">
+              {step === 1 && "Quel livre voulez-vous créer ?"}
+              {step === 2 && "Détails du projet"}
+              {step === 3 && (isStorybook ? "Vos illustrations" : "Sujet & Direction éditoriale")}
+              {step === 4 && "Format & Paramètres"}
             </h1>
-            <p className="text-xs sm:text-sm text-neutral-500 mt-1 leading-snug">
-              {step === 1 && "Les informations fondamentales pour calibrer votre futur ouvrage."}
-              {step === 2 && "Définissez les thèmes, le ton et le contexte pour guider la rédaction IA."}
-              {step === 3 && "Ajustez le volume et la structure avant de démarrer."}
+            <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1 leading-snug">
+              {step === 1 && "Choisissez le type d'ouvrage qui correspond le mieux à votre projet."}
+              {step === 2 && "Les informations fondamentales pour calibrer votre futur ouvrage."}
+              {step === 3 && (isStorybook ? "Importez les images qui composeront votre conte." : "Définissez les thèmes, le ton et le contexte pour guider la rédaction IA.")}
+              {step === 4 && "Ajustez le volume et la structure avant de démarrer."}
             </p>
           </div>
 
@@ -354,123 +315,147 @@ export default function NewBookWizard() {
                 transition={{ duration: 0.3 }}
                 className="space-y-5 sm:space-y-6 flex-1"
               >
-                {/* STEP 1: Basic Details */}
                 {step === 1 && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {BLUEPRINT_LIST.map((blueprint) => {
+                        const selected = formData.blueprintId === blueprint.id;
+                        let IconComp = BookOpen;
+                        if (blueprint.icon === "Compass") IconComp = Compass;
+                        if (blueprint.icon === "FileText") IconComp = FileText;
+                        if (blueprint.icon === "ImagePlay") IconComp = ImagePlay;
+                        
+                        return (
+                          <button
+                            type="button"
+                            key={blueprint.id}
+                            onClick={() => handleBlueprintSelect(blueprint.id as BlueprintId)}
+                            className={`p-5 rounded-2xl border text-left transition-all flex flex-col gap-3 cursor-pointer ${
+                              selected 
+                                ? "border-[#C84B31] bg-[#FDF3F1] shadow-2xs" 
+                                : "border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-300 hover:bg-neutral-50"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between w-full">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selected ? "bg-[#C84B31] text-white" : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300"}`}>
+                                <IconComp className="w-5 h-5" />
+                              </div>
+                              <span className={`w-5 h-5 rounded-full border flex items-center justify-center ${selected ? "border-[#C84B31]" : "border-neutral-300"}`}>
+                                {selected && <span className="w-2.5 h-2.5 rounded-full bg-[#C84B31]" />}
+                              </span>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`block text-base font-bold ${selected ? "text-[#C84B31]" : "text-neutral-900 dark:text-neutral-100"}`}>
+                                  {blueprint.label}
+                                </span>
+                                {blueprint.id === "storybook" && (
+                                  <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-bold tracking-wide uppercase">✨ Nouveau</span>
+                                )}
+                              </div>
+                              <span className="text-xs font-semibold text-neutral-500 mb-2 block">
+                                {blueprint.tag}
+                              </span>
+                              <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-snug">
+                                {blueprint.description}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {isStorybook && (
+                      <div className="mt-4 p-4 rounded-xl bg-[#FDF3F1] border border-[#F4C5BC] text-[#C84B31] text-sm flex items-start gap-3">
+                        <span>📸 Uploadez vos dessins ou photos — Iris écrira l'histoire en les analysant page par page.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {step === 2 && (
                   <>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Titre du livre *</label>
+                      <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Titre du livre *</label>
                       <input
                         type="text"
                         required
                         value={formData.title}
                         onChange={(e) => updateForm("title", e.target.value)}
                         placeholder="Ex: Le Guide Complet de la Négociation"
-                        className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
+                        className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
                       />
                     </div>
                     
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Sous-titre (optionnel)</label>
-                      <input
-                        type="text"
-                        value={formData.subtitle}
-                        onChange={(e) => updateForm("subtitle", e.target.value)}
-                        placeholder="Ex: Les méthodes éprouvées pour convaincre"
-                        className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Format de l&apos;ouvrage *</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {[
-                          { id: "livre", label: "Livre", tag: "Roman & Essai", icon: BookOpen },
-                          { id: "guide", label: "Guide pratique", tag: "Méthodes & Étapes", icon: Compass },
-                          { id: "ebook", label: "Ebook", tag: "Court & Direct", icon: FileText },
-                          { id: "storybook", label: "Storybook", tag: "Conte illustré à partir de vos images", icon: Sparkles },
-                        ].map((item) => {
-                          const selected = formData.workType === item.id;
-                          const IconComp = item.icon;
-                          return (
-                            <button
-                              type="button"
-                              key={item.id}
-                              onClick={() => updateForm("workType", item.id as WorkType)}
-                              aria-pressed={selected}
-                              className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between gap-3 cursor-pointer ${
-                                selected 
-                                  ? "border-[#C84B31] bg-[#FDF3F1]/60 shadow-2xs" 
-                                  : "border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50/60"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${selected ? "bg-[#C84B31] text-white" : "bg-neutral-100 text-neutral-700"}`}>
-                                  <IconComp className="w-4 h-4" />
-                                </div>
-                                <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${selected ? "border-[#C84B31]" : "border-neutral-300"}`}>
-                                  {selected && <span className="w-2 h-2 rounded-full bg-[#C84B31]" />}
-                                </span>
-                              </div>
-                              <div>
-                                <span className={`block text-sm font-bold ${selected ? "text-[#C84B31]" : "text-neutral-800"}`}>
-                                  {item.label}
-                                </span>
-                                <span className="text-xs text-neutral-400 font-medium">
-                                  {item.tag}
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })}
+                    {!isStorybook && (
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Sous-titre (optionnel)</label>
+                        <input
+                          type="text"
+                          value={formData.subtitle}
+                          onChange={(e) => updateForm("subtitle", e.target.value)}
+                          placeholder="Ex: Les méthodes éprouvées pour convaincre"
+                          className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
+                        />
                       </div>
-                    </div>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Catégorie *</label>
-                        <select
-                          required
-                          value={formData.category}
-                          onChange={(e) => updateForm("category", e.target.value)}
-                          className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all appearance-none cursor-pointer"
-                        >
-                          <option value="" disabled>Sélectionner...</option>
-                          <option value="Roman / Fiction">Roman / Fiction</option>
-                          <option value="Business & Entrepreneuriat">Business & Entrepreneuriat</option>
-                          <option value="Développement Personnel">Développement Personnel</option>
-                          <option value="Guide Pratique">Guide Pratique / Formation</option>
-                          <option value="Biographie">Biographie</option>
-                        </select>
-                      </div>
+                      {!isStorybook && (
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Catégorie *</label>
+                          <select
+                            required
+                            value={formData.category}
+                            onChange={(e) => updateForm("category", e.target.value)}
+                            className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all appearance-none cursor-pointer"
+                          >
+                            <option value="" disabled>Sélectionner...</option>
+                            <option value="Roman / Fiction">Roman / Fiction</option>
+                            <option value="Business & Entrepreneuriat">Business & Entrepreneuriat</option>
+                            <option value="Développement Personnel">Développement Personnel</option>
+                            <option value="Guide Pratique">Guide Pratique / Formation</option>
+                            <option value="Biographie">Biographie</option>
+                          </select>
+                        </div>
+                      )}
                       
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Public cible *</label>
+                      <div className={`space-y-1.5 ${isStorybook ? 'sm:col-span-2' : ''}`}>
+                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Public cible *</label>
                         <input
                           type="text"
                           required
                           value={formData.audience}
                           onChange={(e) => updateForm("audience", e.target.value)}
                           placeholder="Ex: Professionnels, grand public..."
-                          className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
+                          className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
                         />
                       </div>
                     </div>
+
+                    {isStorybook && (
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Personnages</label>
+                        <textarea
+                          value={formData.characters}
+                          onChange={(e) => updateForm("characters", e.target.value)}
+                          placeholder="Décrivez votre personnage principal (ex: Kofi, 7 ans, t-shirt rayé bleu et blanc, casquette rouge)"
+                          rows={3}
+                          className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all resize-none"
+                        />
+                      </div>
+                    )}
                   </>
                 )}
 
-                {/* STEP 2: The Core */}
-                {step === 2 && (
+                {step === 3 && (
                   <>
-                    {/* ÉTAPE ADAPTATIVE — un storybook part des IMAGES de
-                        l'auteur : l'IA les regarde et en tire l'histoire. Les
-                        autres formats gardent le formulaire classique. */}
-                    {isStorybook && (
+                    {isStorybook ? (
                       <div className="space-y-3">
                         <div>
-                          <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                            Vos dessins &amp; photos * ({assets.length}/{MAX_ASSETS})
+                          <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                            Vos dessins &amp; photos * ({uploadedImages.length}/{MAX_ASSETS})
                           </label>
-                          <p className="text-xs text-neutral-500 mt-1 leading-snug">
+                          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-snug">
                             Importez les images dans l&apos;ordre de l&apos;histoire. L&apos;IA les analyse une par une
                             et écrit un conte qui les relie — une image par page.
                           </p>
@@ -482,9 +467,9 @@ export default function NewBookWizard() {
                           onDrop={(e) => {
                             e.preventDefault();
                             setIsDraggingAssets(false);
-                            handleAssetFiles(e.dataTransfer.files);
+                            handleImageUpload(e.dataTransfer.files);
                           }}
-                          onClick={() => assetsInputRef.current?.click()}
+                          onClick={() => imageInputRef.current?.click()}
                           className={`rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition-all ${
                             isDraggingAssets
                               ? "border-[#C84B31] bg-[#FDF3F1]"
@@ -492,19 +477,19 @@ export default function NewBookWizard() {
                           }`}
                         >
                           <Upload className="w-7 h-7 mx-auto text-[#C84B31] mb-2" />
-                          <p className="text-sm font-bold text-neutral-800">
-                            {assetsBusy ? "Envoi en cours…" : "Glissez vos images ici"}
+                          <p className="text-sm font-bold text-neutral-800 dark:text-neutral-200">
+                            {isUploading ? "Préparation en cours…" : "Glissez vos dessins ou photos ici"}
                           </p>
-                          <p className="text-[11px] text-neutral-500 mt-1">
-                            ou cliquez pour parcourir · JPG, PNG, WEBP · compressées automatiquement
+                          <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1">
+                            ou cliquez pour parcourir
                           </p>
                           <input
-                            ref={assetsInputRef}
+                            ref={imageInputRef}
                             type="file"
-                            accept="image/png,image/jpeg,image/webp"
+                            accept="image/*"
                             multiple
                             className="hidden"
-                            onChange={(e) => { handleAssetFiles(e.target.files); e.target.value = ""; }}
+                            onChange={(e) => { handleImageUpload(e.target.files); e.target.value = ""; }}
                           />
                         </div>
 
@@ -514,18 +499,17 @@ export default function NewBookWizard() {
                           </p>
                         )}
 
-                        {assets.length > 0 && (
+                        {uploadedImages.length > 0 && (
                           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                            {assets.map((asset, index) => (
-                              <div key={asset.url} className="relative group rounded-xl overflow-hidden border border-neutral-200 bg-neutral-100 aspect-square">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                            {uploadedImages.map((asset, index) => (
+                              <div key={asset.id} className="relative group rounded-xl overflow-hidden border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800 aspect-square">
                                 <img src={asset.url} alt={asset.name} className="w-full h-full object-cover" />
                                 <span className="absolute top-1 left-1 w-5 h-5 rounded-full bg-[#C84B31] text-white text-[10px] font-bold flex items-center justify-center">
                                   {index + 1}
-                                </span>
+                               </span>
                                 <button
                                   type="button"
-                                  onClick={() => removeAsset(asset.url)}
+                                  onClick={() => removeAsset(asset.id)}
                                   aria-label={`Retirer ${asset.name}`}
                                   className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                                 >
@@ -544,7 +528,7 @@ export default function NewBookWizard() {
                                   <button
                                     type="button"
                                     onClick={() => moveAsset(index, 1)}
-                                    disabled={index === assets.length - 1}
+                                    disabled={index === uploadedImages.length - 1}
                                     aria-label="Déplacer vers la droite"
                                     className="w-5 h-5 rounded bg-black/60 text-white text-xs disabled:opacity-30"
                                   >
@@ -556,236 +540,227 @@ export default function NewBookWizard() {
                           </div>
                         )}
                       </div>
-                    )}
-
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                          {isStorybook ? "L'histoire en quelques mots *" : "Synopsis & Idée principale *"}
-                        </label>
-                        <button type="button" className="text-[11px] flex items-center gap-1 font-semibold text-[#C84B31] bg-[#FDF3F1] px-2.5 py-0.5 rounded-full border border-[#F4C5BC]/60">
-                          <Sparkles className="w-3 h-3 text-[#C84B31]" />
-                          <span>Assistant IA</span>
-                        </button>
-                      </div>
-                      <div className="relative">
-                        <textarea
-                          required
-                          value={formData.synopsis}
-                          onChange={(e) => updateForm("synopsis", e.target.value)}
-                          placeholder={
-                            isStorybook
-                              ? "Qui sont les personnages ? Que voulez-vous raconter ? (L'IA s'appuiera surtout sur vos images.)"
-                              : "De quoi parle votre livre ? Idée directrice, message clé, thèmes abordés ou résumé de l'intrigue..."
-                          }
-                          rows={5}
-                          className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 pb-12 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all resize-none"
-                        />
-                        <button 
-                          type="button" 
-                          onClick={toggleListening}
-                          className={`absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm ${
-                            isListening 
-                              ? 'bg-red-500 text-white animate-pulse' 
-                              : 'bg-white border border-neutral-200 text-neutral-500 hover:text-[#C84B31] hover:border-[#F4C5BC] hover:bg-[#FDF3F1]'
-                          }`}
-                          disabled={!isSpeechSupported}
-                          aria-pressed={isListening}
-                          title={
-                            !isSpeechSupported
-                              ? "Votre navigateur ne gère pas la dictée vocale."
-                              : isListening
-                                ? "Arrêter la dictée"
-                                : "Dicter vocalement"
-                          }
-                        >
-                          {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-                        </button>
-                      </div>
-
-                      {/* Retour de dictée : le texte en cours de reconnaissance
-                          et les erreurs étaient jusqu'ici totalement invisibles. */}
-                      {isListening && (
-                        <p className="text-[11px] text-neutral-500 italic min-h-[16px]" aria-live="polite">
-                          {interimTranscript ? `« ${interimTranscript} »` : "Parlez, j'écoute…"}
-                        </p>
-                      )}
-                      {speechError && (
-                        <p className="text-[11px] font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5">
-                          {speechError}
-                        </p>
-                      )}
-                      {!isSpeechSupported && (
-                        <p className="text-[11px] text-neutral-500">
-                          La dictée vocale n&apos;est pas disponible dans ce navigateur (essayez Chrome, Edge ou Safari).
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Ton &amp; Style *</label>
-                        <select
-                          required
-                          value={formData.tone}
-                          onChange={(e) => updateForm("tone", e.target.value)}
-                          className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all appearance-none cursor-pointer"
-                        >
-                          <option value="" disabled>Sélectionner...</option>
-                          <option value="Sérieux et Didactique">Sérieux &amp; Pédagogique</option>
-                          <option value="Inspirant et Motivationnel">Inspirant &amp; Motivationnel</option>
-                          <option value="Humoristique et Décalé">Humoristique &amp; Décalé</option>
-                          <option value="Épique et Descriptif">Épique &amp; Descriptif</option>
-                          <option value="Familier et Accessible">Familier &amp; Accessible</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Concepts ou Personnages</label>
-                        <input
-                          type="text"
-                          value={formData.characters}
-                          onChange={(e) => updateForm("characters", e.target.value)}
-                          placeholder="Optionnel (ex: Héros, notions clés...)"
-                          className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Document de référence */}
-                    <div className="pt-3 border-t border-neutral-100 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Document source (Optionnel)</label>
-                        <span className="text-[10px] font-medium text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-md">20 crédits / analyse</span>
-                      </div>
-
-                      {/* Objectif de l'analyse */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {[
-                          { id: "inspiration", label: "S'inspirer", icon: "lightbulb" },
-                          { id: "learn", label: "Apprendre", icon: "school" },
-                          { id: "style", label: "Style / Ton", icon: "brush" },
-                          { id: "reference", label: "Référence", icon: "menu_book" },
-                        ].map((opt) => (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => setRefPurpose(opt.id as typeof refPurpose)}
-                            className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                              refPurpose === opt.id
-                                ? "border-[#C84B31] bg-[#FDF3F1] text-[#C84B31]"
-                                : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
-                            }`}
-                          >
-                            <span className="material-symbols-outlined text-base">{opt.icon}</span>
-                            <span>{opt.label}</span>
-                          </button>
-                        ))}
-                      </div>
-
-                      <input
-                        ref={referenceInputRef}
-                        type="file"
-                        accept=".pdf,.docx,.epub,.txt,.md,.markdown"
-                        className="hidden"
-                        onChange={(e) => { handleReferenceFile(e.target.files?.[0] || null); e.target.value = ""; }}
-                      />
-
-                      {referenceDoc && refStatus === "done" ? (
-                        <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                            <span className="text-xs font-semibold text-emerald-900 truncate">{referenceDoc.name}</span>
+                    ) : (
+                      <>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                              Synopsis &amp; Idée principale *
+                            </label>
+                            <button type="button" className="text-[11px] flex items-center gap-1 font-semibold text-[#C84B31] bg-[#FDF3F1] px-2.5 py-0.5 rounded-full border border-[#F4C5BC]/60">
+                              <Sparkles className="w-3 h-3 text-[#C84B31]" />
+                              <span>Assistant IA</span>
+                            </button>
                           </div>
-                          <button type="button" onClick={() => { setReferenceDoc(null); setRefStatus("idle"); }} className="text-neutral-400 hover:text-red-500 transition-colors p-1" title="Supprimer">
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => referenceInputRef.current?.click()}
-                          disabled={refStatus === "working"}
-                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-neutral-300 hover:border-[#C84B31]/50 text-neutral-600 hover:text-[#C84B31] text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 bg-neutral-50/50 hover:bg-[#FDF3F1]/40"
-                        >
-                          {refStatus === "working" ? (
-                            <>
-                              <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
-                              <span>Analyse en cours…</span>
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="w-3.5 h-3.5" />
-                              <span>Importer un document source (.pdf, .docx, .txt...)</span>
-                            </>
+                          <div className="relative">
+                            <textarea
+                              required
+                              value={formData.synopsis}
+                              onChange={(e) => updateForm("synopsis", e.target.value)}
+                              placeholder="De quoi parle votre livre ? Idée directrice, message clé, thèmes abordés ou résumé de l'intrigue..."
+                              rows={5}
+                              className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 pb-12 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all resize-none"
+                            />
+                            <button 
+                              type="button" 
+                              onClick={toggleListening}
+                              className={`absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm ${
+                                isListening 
+                                  ? 'bg-red-500 text-white animate-pulse' 
+                                  : 'bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-[#C84B31] hover:border-[#F4C5BC] hover:bg-[#FDF3F1]'
+                              }`}
+                              disabled={!isSpeechSupported}
+                              aria-pressed={isListening}
+                              title={!isSpeechSupported ? "Non supporté" : isListening ? "Arrêter" : "Dicter"}
+                            >
+                              {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          {isListening && (
+                            <p className="text-[11px] text-neutral-500 dark:text-neutral-400 italic min-h-[16px]" aria-live="polite">
+                              {interimTranscript ? `« ${interimTranscript} »` : "Parlez, j'écoute…"}
+                            </p>
                           )}
-                        </button>
-                      )}
-                      {refStatus === "error" && refError && (
-                        <p className="text-xs text-red-600 font-medium">{refError}</p>
-                      )}
-                    </div>
+                          {speechError && (
+                            <p className="text-[11px] font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5">
+                              {speechError}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Ton &amp; Style *</label>
+                            <select
+                              required
+                              value={formData.tone}
+                              onChange={(e) => updateForm("tone", e.target.value)}
+                              className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all appearance-none cursor-pointer"
+                            >
+                              <option value="" disabled>Sélectionner...</option>
+                              <option value="Sérieux et Didactique">Sérieux &amp; Pédagogique</option>
+                              <option value="Inspirant et Motivationnel">Inspirant &amp; Motivationnel</option>
+                              <option value="Humoristique et Décalé">Humoristique &amp; Décalé</option>
+                              <option value="Épique et Descriptif">Épique &amp; Descriptif</option>
+                              <option value="Familier et Accessible">Familier &amp; Accessible</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Concepts ou Personnages</label>
+                            <input
+                              type="text"
+                              value={formData.characters}
+                              onChange={(e) => updateForm("characters", e.target.value)}
+                              placeholder="Optionnel (ex: Héros, notions clés...)"
+                              className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Document de référence */}
+                        <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Document source (Optionnel)</label>
+                            <span className="text-[10px] font-medium text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-md">20 crédits / analyse</span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {[
+                              { id: "inspiration", label: "S'inspirer", icon: "lightbulb" },
+                              { id: "learn", label: "Apprendre", icon: "school" },
+                              { id: "style", label: "Style / Ton", icon: "brush" },
+                              { id: "reference", label: "Référence", icon: "menu_book" },
+                            ].map((opt) => (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => setRefPurpose(opt.id as typeof refPurpose)}
+                                className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                                  refPurpose === opt.id
+                                    ? "border-[#C84B31] bg-[#FDF3F1] text-[#C84B31]"
+                                    : "border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:border-neutral-300"
+                                }`}
+                              >
+                                <span className="material-symbols-outlined text-base">{opt.icon}</span>
+                                <span>{opt.label}</span>
+                              </button>
+                            ))}
+                          </div>
+
+                          <input
+                            ref={referenceInputRef}
+                            type="file"
+                            accept=".pdf,.docx,.epub,.txt,.md,.markdown"
+                            className="hidden"
+                            onChange={(e) => { handleReferenceFile(e.target.files?.[0] || null); e.target.value = ""; }}
+                          />
+
+                          {referenceDoc && refStatus === "done" ? (
+                            <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                                <span className="text-xs font-semibold text-emerald-900 truncate">{referenceDoc.name}</span>
+                              </div>
+                              <button type="button" onClick={() => { setReferenceDoc(null); setRefStatus("idle"); }} className="text-neutral-400 hover:text-red-500 transition-colors p-1" title="Supprimer">
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => referenceInputRef.current?.click()}
+                              disabled={refStatus === "working"}
+                              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-neutral-300 hover:border-[#C84B31]/50 text-neutral-600 dark:text-neutral-400 hover:text-[#C84B31] text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 bg-neutral-50/50 hover:bg-[#FDF3F1]/40"
+                            >
+                              {refStatus === "working" ? (
+                                <>
+                                  <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                                  <span>Analyse en cours…</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="w-3.5 h-3.5" />
+                                  <span>Importer un document source (.pdf, .docx, .txt...)</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+                          {refStatus === "error" && refError && (
+                            <p className="text-xs text-red-600 font-medium">{refError}</p>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
 
-                {/* STEP 3: Structure */}
-                {step === 3 && (
+                {step === 4 && (
                   <>
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Longueur estimée *</label>
-                      <div className="grid grid-cols-3 gap-3">
-                        {[
-                          { id: "Court (Nouvelle / Lead Magnet)", label: "Court", pages: "~50 pages" },
-                          { id: "Moyen (Roman standard)", label: "Moyen", pages: "~150 pages" },
-                          { id: "Long (Fresque / Manuel)", label: "Long", pages: "~300 pages" },
-                        ].map((opt) => {
-                          const selected = formData.length === opt.id;
-                          return (
-                            <div 
-                              key={opt.id}
-                              onClick={() => updateForm("length", opt.id)}
-                              className={`border rounded-2xl p-4 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 ${
-                                selected 
-                                  ? 'border-[#C84B31] bg-[#FDF3F1]/60 shadow-2xs' 
-                                  : 'border-neutral-200 bg-white hover:bg-neutral-50/60'
-                              }`}
-                            >
-                              <span className={`text-sm font-bold ${selected ? 'text-[#C84B31]' : 'text-neutral-800'}`}>{opt.label}</span>
-                              <span className="text-xs text-neutral-400 font-medium">{opt.pages}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Devis épuré */}
-                    {(() => {
-                      const preset = SIZE_PRESETS[lengthToSizeKey(formData.length)];
-                      const pages = preset.pagesEstimate;
-                      return (
-                        <div className="rounded-2xl border border-neutral-200/80 bg-neutral-50/70 p-4 space-y-2.5">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-semibold text-neutral-700">Volume estimé</span>
-                            <span className="font-bold text-neutral-900">~{pages} pages ({preset.pages})</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-200/60">
-                            <span className="font-semibold text-neutral-700">Coût estimé</span>
-                            <span className="font-bold text-[#C84B31] text-sm">
-                              {estimatePagesCoins(pages, "gemini-2.5-flash").toLocaleString("fr-FR")} à {estimatePagesCoins(pages, "claude-sonnet-5").toLocaleString("fr-FR")} crédits
-                            </span>
+                    {!isStorybook ? (
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Longueur estimée *</label>
+                          <div className="grid grid-cols-3 gap-3">
+                            {[
+                              { id: "Court (Nouvelle / Lead Magnet)", label: "Court", pages: "~50 pages" },
+                              { id: "Moyen (Roman standard)", label: "Moyen", pages: "~150 pages" },
+                              { id: "Long (Fresque / Manuel)", label: "Long", pages: "~300 pages" },
+                            ].map((opt) => {
+                              const selected = formData.length === opt.id;
+                              return (
+                                <div 
+                                  key={opt.id}
+                                  onClick={() => updateForm("length", opt.id)}
+                                  className={`border rounded-2xl p-4 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 ${
+                                    selected 
+                                      ? 'border-[#C84B31] bg-[#FDF3F1]/60 shadow-2xs' 
+                                      : 'border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:bg-neutral-50/60'
+                                  }`}
+                                >
+                                  <span className={`text-sm font-bold ${selected ? 'text-[#C84B31]' : 'text-neutral-800 dark:text-neutral-200'}`}>{opt.label}</span>
+                                  <span className="text-xs text-neutral-400 font-medium">{opt.pages}</span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
-                      );
-                    })()}
+
+                        {(() => {
+                          const preset = SIZE_PRESETS[lengthToSizeKey(formData.length)];
+                          const pages = preset.pagesEstimate;
+                          return (
+                            <div className="rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-neutral-50/70 p-4 space-y-2.5">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-semibold text-neutral-700 dark:text-neutral-300">Volume estimé</span>
+                                <span className="font-bold text-neutral-900 dark:text-neutral-100">~{pages} pages ({preset.pages})</span>
+                              </div>
+                              <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-200/60">
+                                <span className="font-semibold text-neutral-700 dark:text-neutral-300">Coût estimé</span>
+                                <span className="font-bold text-[#C84B31] text-sm">
+                                  {estimatePagesCoins(pages, "gemini-2.5-flash").toLocaleString("fr-FR")} à {estimatePagesCoins(pages, "claude-sonnet-5").toLocaleString("fr-FR")} crédits
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </>
+                    ) : (
+                      <div className="rounded-2xl border border-[#C84B31] bg-[#FDF3F1]/60 p-5 flex flex-col items-center justify-center text-center gap-2">
+                        <Sparkles className="w-8 h-8 text-[#C84B31] mb-1" />
+                        <span className="text-base font-bold text-[#C84B31]">Votre album — {uploadedImages.length} pages illustrées</span>
+                        <p className="text-xs text-[#C84B31]/80 max-w-sm">Chaque image que vous avez importée deviendra une page richement décrite de votre conte.</p>
+                      </div>
+                    )}
 
                     <div className="space-y-1.5 pt-1">
-                      <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Consignes spécifiques (Optionnel)</label>
+                      <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Consignes spécifiques (Optionnel)</label>
                       <textarea
                         value={formData.instructions}
                         onChange={(e) => updateForm("instructions", e.target.value)}
                         placeholder="Ex: Tutoie le lecteur, ajoute des exemples concrets à chaque chapitre..."
                         rows={3}
-                        className="w-full bg-neutral-50/80 border border-neutral-200 text-neutral-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all resize-none"
+                        className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all resize-none"
                       />
                     </div>
 
@@ -797,10 +772,10 @@ export default function NewBookWizard() {
                           checked={formData.includeToc}
                           onChange={(e) => updateForm("includeToc", e.target.checked)}
                         />
-                        <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-colors ${formData.includeToc ? 'bg-[#C84B31] border-[#C84B31]' : 'bg-white border-neutral-300'}`}>
+                        <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-colors ${formData.includeToc ? 'bg-[#C84B31] border-[#C84B31]' : 'bg-white dark:bg-neutral-900 border-neutral-300'}`}>
                           {formData.includeToc && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
                         </div>
-                        <span className="text-xs sm:text-sm font-semibold text-neutral-800">
+                        <span className="text-xs sm:text-sm font-semibold text-neutral-800 dark:text-neutral-200">
                           Générer une table des matières structurée avant la rédaction
                         </span>
                       </label>
@@ -810,19 +785,18 @@ export default function NewBookWizard() {
               </motion.div>
             </AnimatePresence>
 
-            {/* Navigation Buttons */}
-            <div className="mt-auto pt-6 pb-24 sm:pb-0 border-t border-neutral-100 flex items-center justify-between shrink-0">
+            <div className="mt-auto pt-6 pb-24 sm:pb-0 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between shrink-0">
               {step > 1 ? (
                 <button
                   type="button"
                   onClick={prevStep}
-                  className="px-5 py-2.5 rounded-xl border border-neutral-200 text-neutral-600 font-bold text-sm hover:bg-neutral-50 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 font-bold text-sm hover:bg-neutral-50 dark:bg-neutral-800/50 transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span>Retour</span>
                 </button>
               ) : (
-                <div /> // Spacer
+                <div />
               )}
 
               <button
@@ -867,79 +841,76 @@ export default function NewBookWizard() {
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white rounded-3xl shadow-2xl border border-neutral-200 max-w-md w-full max-h-[85vh] overflow-y-auto p-5 sm:p-6 relative"
+                className="bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl border border-neutral-200 dark:border-neutral-800 max-w-md w-full max-h-[85vh] overflow-y-auto p-5 sm:p-6 relative"
               >
                 <button
                   onClick={() => setShowModelModal(false)}
-                  className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-700 bg-neutral-100 hover:bg-neutral-200 w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer"
+                  className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
 
                 <div className="text-center mb-5">
-                  <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 mb-1">Moteur d&apos;Écriture IA</h2>
-                  <p className="text-xs sm:text-sm text-neutral-500">
+                  <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 dark:text-neutral-100 mb-1">Moteur d&apos;Écriture IA</h2>
+                  <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
                     Sélectionnez l&apos;intelligence artificielle qui rédigera votre ouvrage.
                   </p>
                 </div>
 
                 <div className="space-y-2.5 mb-6">
-                  {/* Standard Model */}
                   <div 
                     onClick={() => setSelectedModel("gemini-2.5-flash")}
                     className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
                       selectedModel === "gemini-2.5-flash" 
                         ? "border-[#C84B31] bg-[#FDF3F1]/40 shadow-xs" 
-                        : "border-neutral-200 hover:border-neutral-300 bg-white"
+                        : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 bg-white dark:bg-neutral-900"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-neutral-900">Gemini 2.5 Flash</span>
-                      <span className="text-[10px] font-semibold text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded-md">
+                      <span className="font-bold text-sm text-neutral-900 dark:text-neutral-100">Gemini 2.5 Flash</span>
+                      <span className="text-[10px] font-semibold text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-md">
                         Rapide &amp; Économique
                       </span>
                     </div>
-                    <p className="text-xs text-neutral-500 leading-snug">
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-snug">
                       Modèle vif et direct, idéal pour les ébauches et les guides synthétiques.
                     </p>
                   </div>
 
-                  {/* Advanced Model */}
                   <div 
                     onClick={() => setSelectedModel("gpt-4o")}
                     className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
                       selectedModel === "gpt-4o" 
                         ? "border-[#C84B31] bg-[#FDF3F1]/40 shadow-xs" 
-                        : "border-neutral-200 hover:border-neutral-300 bg-white"
+                        : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 bg-white dark:bg-neutral-900"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-neutral-900">ChatGPT (GPT-4o mini)</span>
+                      <span className="font-bold text-sm text-neutral-900 dark:text-neutral-100">ChatGPT (GPT-4o mini)</span>
                       <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
                         Équilibré
                       </span>
                     </div>
-                    <p className="text-xs text-neutral-500 leading-snug">
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-snug">
                       Excellente nuance d&apos;analyse et logique rigoureuse pour les manuels et essais.
                     </p>
                   </div>
 
-                  {/* Pro Model */}
                   <div 
                     onClick={() => setSelectedModel("claude-sonnet-5")}
                     className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
                       selectedModel === "claude-sonnet-5" 
                         ? "border-[#C84B31] bg-[#FDF3F1]/40 shadow-xs" 
-                        : "border-neutral-200 hover:border-neutral-300 bg-white"
+                        : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 bg-white dark:bg-neutral-900"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-neutral-900">Claude 3.5 Sonnet</span>
+                      <span className="font-bold text-sm text-neutral-900 dark:text-neutral-100">Claude 3.5 Sonnet</span>
                       <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
                         Style Littéraire Supérieur
                       </span>
                     </div>
-                    <p className="text-xs text-neutral-500 leading-snug">
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-snug">
                       Vocabulaire riche, sens du rythme narratif et élégance d&apos;écriture d&apos;exception.
                     </p>
                   </div>
@@ -948,7 +919,7 @@ export default function NewBookWizard() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowModelModal(false)}
-                    className="flex-1 px-4 py-3 rounded-xl border border-neutral-200 text-neutral-600 font-bold text-sm hover:bg-neutral-50 transition-colors cursor-pointer"
+                    className="flex-1 px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 font-bold text-sm hover:bg-neutral-50 dark:bg-neutral-800/50 transition-colors cursor-pointer"
                   >
                     Annuler
                   </button>

@@ -3,13 +3,13 @@ import Footer from "@/components/Footer";
 
 export default function PricingCancelPage() {
   return (
-    <div className="min-h-screen bg-white font-body text-neutral-900 flex flex-col justify-between">
+    <div className="min-h-screen bg-white dark:bg-neutral-900 font-body text-neutral-900 dark:text-neutral-100 flex flex-col justify-between">
       <main className="pt-36 pb-20 max-w-4xl mx-auto px-6 w-full text-center flex-grow flex flex-col items-center justify-center">
         <span className="material-symbols-outlined text-red-500 text-8xl mb-6">cancel</span>
-        <h1 className="font-heading text-4xl sm:text-5xl font-extrabold text-neutral-900 tracking-tight mb-4">
+        <h1 className="font-heading text-4xl sm:text-5xl font-extrabold text-neutral-900 dark:text-neutral-100 tracking-tight mb-4">
           Paiement annulé ou échoué
         </h1>
-        <p className="text-lg text-neutral-600 mb-8 max-w-xl">
+        <p className="text-lg text-neutral-600 dark:text-neutral-400 mb-8 max-w-xl">
           Aucun montant n'a été débité. Vous pouvez réessayer de souscrire à un plan à tout moment.
         </p>
         
@@ -20,7 +20,7 @@ export default function PricingCancelPage() {
             </button>
           </Link>
           <Link href="/dashboard">
-            <button className="bg-neutral-100 hover:bg-neutral-200 text-neutral-900 px-8 py-4 rounded-full text-lg font-bold transition-all">
+            <button className="bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-neutral-900 dark:text-neutral-100 px-8 py-4 rounded-full text-lg font-bold transition-all">
               Retour au tableau de bord
             </button>
           </Link>
