@@ -4,8 +4,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.irisboom.online"),
-  title: "Iris | La 1ère plateforme de co-création littéraire assistée par IA",
-  description: "Iris accompagne les experts et créateurs dans la rédaction, le design et la publication de leurs livres numériques.",
+  title: "Iris | La 1ere plateforme de co-creation litteraire assistee par IA",
+  description: "Iris accompagne les experts et createurs dans la redaction, le design et la publication de leurs livres numeriques.",
   applicationName: "Iris",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Iris", statusBarStyle: "default" },
@@ -15,15 +15,15 @@ export const metadata: Metadata = {
 };
 
 // Viewport mobile explicite. Sans lui (le <head> manuel ci-dessous peut
-// empêcher l'injection auto de Next), les navigateurs mobiles rendent la page
-// à ~980px de large puis dézooment : tout paraît géant et coupé par l'écran.
+// empecher l'injection auto de Next), les navigateurs mobiles rendent la page
+// a ~980px de large puis dezooment : tout parait geant et coupe par l'ecran.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
   // Teinte la barre d'adresse mobile avec le fond de la marque. Une seule
-  // valeur : l'application est désormais en thème clair uniquement, et une
+  // valeur : l'application est desormais en theme clair uniquement, et une
   // variante sombre assombrirait le navigateur autour d'une page claire.
   themeColor: "#F8F8F7",
 };
@@ -43,7 +43,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
         {/*
-          POLICE D'ICÔNES — AXES FIGÉS.
+          POLICE D'ICONES - AXES FIGES.
 
           Cette URL demandait jusqu'ici toute la matrice de variations de
           Material Symbols :
@@ -51,21 +51,21 @@ export default function RootLayout({
               opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200
 
           Chaque plage a..b fait livrer une police VARIABLE contenant tous
-          les états intermédiaires. Le fichier servi pesait **5 248 Ko**, sans
-          découpage par plage de caractères — donc téléchargé en entier par
-          chaque visiteur. C'était, et de très loin, le plus gros poste de
-          poids du site : à lui seul, plus de six fois le reste de la page.
+          les etats intermediaires. Le fichier servi pesait **5 248 Ko**, sans
+          decoupage par plage de caracteres - donc telecharge en entier par
+          chaque visiteur. C'etait, et de tres loin, le plus gros poste de
+          poids du site : a lui seul, plus de six fois le reste de la page.
 
           L'application n'utilise qu'une seule graisse, aucun remplissage
           variable et aucun ajustement de graduation. En figeant les quatre
-          axes sur l'instance réellement employée, le même rendu est obtenu
-          avec **372 Ko** — 4,9 Mo économisés par visiteur.
+          axes sur l'instance reellement employee, le meme rendu est obtenu
+          avec **372 Ko** - 4,9 Mo economises par visiteur.
 
-          La feuille reste bloquante à dessein : avant que la police ne soit
-          prête, une icône s'affiche sous forme de son nom en toutes lettres
-          (« arrow_back », « search »). Le fichier CSS pèse un kilo-octet et
-          les preconnect ci-dessus couvrent déjà la latence réseau ; c'est la
-          POLICE, chargée en display=swap, qui ne bloque pas le rendu.
+          La feuille reste bloquante a dessein : avant que la police ne soit
+          prete, une icone s'affiche sous forme de son nom en toutes lettres
+          (arrow_back, search). Le fichier CSS pese un kilo-octet et
+          les preconnect ci-dessus couvrent deja la latence reseau ; c'est la
+          POLICE, chargee en display=swap, qui ne bloque pas le rendu.
         */}
         <link
           rel="stylesheet"

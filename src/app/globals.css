@@ -7,11 +7,11 @@
   --font-landing: "Plus Jakarta Sans", -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
-  /* Terracotta EXACTE de la marque, relevée sur le fichier du logo.
-     Distincte de `--color-primary` (#c84b31), l'accent d'interface
-     historique : les deux coexistent aujourd'hui, ce qui se voit dès qu'ils
-     se côtoient. Basculer tout le SaaS sur la couleur de la marque se fait en
-     alignant `--color-primary` et `--color-secondary` sur cette valeur. */
+  /* Terracotta EXACTE de la marque, relevee sur le fichier du logo.
+     Distincte de --color-primary (#c84b31), l'accent d'interface
+     historique : les deux coexistent aujourd'hui, ce qui se voit des qu'ils
+     se cotoient. Basculer tout le SaaS sur la couleur de la marque se fait en
+     alignant --color-primary et --color-secondary sur cette valeur. */
   --color-brand: #bf6345;
   --color-brand-ground: #f8f8f7;
   --color-brand-pupil: #161616;
