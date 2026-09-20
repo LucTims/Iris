@@ -268,6 +268,13 @@ export default function NewBookWizard() {
             console.warn("Rattachement des images au projet impossible:", attachErr);
           }
         }
+        
+        if (typeof window !== "undefined" && (window as any).fbq) {
+          (window as any).fbq("trackCustom", "ProjectCreated", {
+            projectId: data.project.id,
+            workType: formData.workType
+          });
+        }
 
         router.push(`/redaction?projectId=${data.project.id}&new=true`);
         return;

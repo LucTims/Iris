@@ -59,6 +59,9 @@ export default function RegisterPage() {
       setError(error.message);
     } else {
       setMessage("Compte créé avec succès ! Un e-mail de confirmation vous a été envoyé pour valider votre compte.");
+      if (typeof window !== "undefined" && (window as any).fbq) {
+        (window as any).fbq("track", "CompleteRegistration");
+      }
     }
   };
 

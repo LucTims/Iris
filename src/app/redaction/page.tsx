@@ -1593,6 +1593,13 @@ function RedactionContent() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ title: chap.title, content: txt, status: "Terminé" }),
           });
+          
+          if (typeof window !== "undefined" && (window as any).fbq) {
+            (window as any).fbq("trackCustom", "ChapterWritten", {
+              projectId: pId,
+              chapterId: chap.id
+            });
+          }
         } catch {
           /* échec de sauvegarde silencieux */
         }
@@ -2000,7 +2007,14 @@ function RedactionContent() {
               </Link>
               
               <button
-                onClick={() => setIsExportModalOpen(true)}
+                onClick={() => {
+                  if (typeof window !== "undefined" && (window as any).fbq) {
+                    (window as any).fbq("trackCustom", "BookCompleted", {
+                      projectId: currentProjectId
+                    });
+                  }
+                  setIsExportModalOpen(true);
+                }}
                 className="bg-[#C84B31] hover:bg-[#B83E26] text-white text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-base">download</span>

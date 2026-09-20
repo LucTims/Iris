@@ -38,6 +38,15 @@ function PricingInner() {
     }
   }, [paymentCompleted, user, refreshWalletBalance]);
 
+  // Track ViewContent for the pricing page
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window as any).fbq) {
+      (window as any).fbq("track", "ViewContent", {
+        content_name: "Pricing Page"
+      });
+    }
+  }, []);
+
   const initiatePayment = (planId: string) => {
     if (!user) {
       alert("Veuillez vous connecter ou créer un compte pour acheter des pièces.");
@@ -48,6 +57,13 @@ function PricingInner() {
     const checkoutUrl = CHARIOW_LINKS[planId];
     if (checkoutUrl) {
       setLoadingPlan(planId);
+      
+      if (typeof window !== "undefined" && (window as any).fbq) {
+        (window as any).fbq("track", "InitiateCheckout", {
+          content_ids: [planId]
+        });
+      }
+
       const redirectUrl = encodeURIComponent(`${window.location.origin}/dashboard?payment_completed=true`);
       window.location.href = `${checkoutUrl}?email=${encodeURIComponent(
         user.email || ""

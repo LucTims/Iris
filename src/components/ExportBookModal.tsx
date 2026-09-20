@@ -137,6 +137,13 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
       setExportSuccess(true);
       setStep(4); // Go to success step
 
+      if (typeof window !== "undefined" && (window as any).fbq) {
+        (window as any).fbq("trackCustom", "BookExported", {
+          projectId: project?.id,
+          format: selectedFormat
+        });
+      }
+
     } catch (error) {
       console.error("Export error:", error);
       const message =
