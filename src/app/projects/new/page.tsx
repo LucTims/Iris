@@ -290,7 +290,7 @@ export default function NewBookWizard() {
 
   const renderStepIndicators = () => {
     return (
-      <div className="flex items-center justify-center gap-3 mb-8 w-full max-w-xl mx-auto px-6 sm:px-0">
+      <div className="flex items-center justify-center gap-1 mb-8 w-full max-w-xl mx-auto px-6 sm:px-0">
         {[1, 2, 3, 4].map((s) => (
           <div key={s} className="flex-1 h-2 rounded-full bg-neutral-200 overflow-hidden relative">
             <motion.div
@@ -317,8 +317,8 @@ export default function NewBookWizard() {
           <span className="text-sm font-bold">Retour aux projets</span>
         </Link>
         <div className="flex items-center gap-2">
-          <IrisMark size={24} className="text-brand shrink-0" />
-          <span className="font-heading font-extrabold text-xl text-neutral-900">Iris</span>
+          <IrisMark size={24} className="text-brand shrink-0 rotate-6 transition-transform" />
+          <span className="font-heading font-extrabold text-xl text-neutral-900">ris</span>
         </div>
         <div className="w-24"></div>
       </header>

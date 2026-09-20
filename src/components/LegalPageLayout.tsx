@@ -34,11 +34,9 @@ export default function LegalPageLayout({
     <div className="min-h-screen bg-white font-body text-neutral-900 flex flex-col justify-between">
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-neutral-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
-            <IrisMark size={30} className="text-brand shrink-0 group-hover:scale-105 transition-transform" />
-            <span className="font-heading font-extrabold text-2xl sm:text-3xl text-neutral-900 tracking-tight">
-              Iris
-            </span>
+          <Link href="/" className="flex items-center gap-1 shrink-0 group">
+            <IrisMark size={30} className="text-brand shrink-0 group-hover:scale-105 transition-transform rotate-6" />
+            <span className="font-heading font-extrabold text-2xl sm:text-3xl text-neutral-900 tracking-tight">ris</span>
           </Link>
 
           <div className="hidden lg:flex items-center gap-7 text-sm font-semibold text-neutral-700">

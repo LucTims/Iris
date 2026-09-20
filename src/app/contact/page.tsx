@@ -7,9 +7,9 @@ export default function ContactPage() {
       <nav className="bg-surface/80 backdrop-blur-md sticky top-0 z-50 shadow-sm border-b border-outline-variant">
         <div className="flex justify-between items-center w-full px-6 max-w-[1200px] mx-auto h-16">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2 group">
-              <IrisMark size={26} className="text-brand shrink-0 group-hover:scale-105 transition-transform" />
-              <span className="font-heading text-2xl font-extrabold text-neutral-900">Iris</span>
+            <Link href="/" className="flex items-center gap-1 group">
+              <IrisMark size={26} className="text-brand shrink-0 group-hover:scale-105 transition-transform rotate-6" />
+              <span className="font-heading text-2xl font-extrabold text-neutral-900">ris</span>
             </Link>
           </div>
           <div className="flex items-center gap-4">

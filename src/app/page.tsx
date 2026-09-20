@@ -46,10 +46,10 @@ export default function Home() {
       {/* Navigation Bar */}
       <nav className="fixed top-0 w-full z-50 bg-white dark:bg-neutral-900/95 backdrop-blur-md border-b border-neutral-200/80 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between">
-          <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group shrink-0">
-            <IrisMark size={34} className="text-brand shrink-0 group-hover:scale-105 transition-transform" />
+          <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-1 group shrink-0">
+            <IrisMark size={34} className="text-brand shrink-0 group-hover:scale-105 rotate-6 transition-transform" />
             <span className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-neutral-900">
-              Iris
+              ris
             </span>
           </Link>
 
@@ -173,7 +173,7 @@ export default function Home() {
             {/* Main Title */}
             <h1 className="font-heading text-4xl sm:text-5xl lg:text-[54px] xl:text-[62px] font-extrabold text-neutral-900 dark:text-neutral-100 tracking-tight leading-[1.1] mb-6">
               Votre savoir mérite un livre. <br />
-              <span className="text-[#C84B31]">Iris</span>{" "}l&apos;écrit avec vous.
+              <span className="text-[#C84B31]">ris</span>{" "}l&apos;écrit avec vous.
             </h1>
 
             {/* Subtitle */}

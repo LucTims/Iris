@@ -34,7 +34,7 @@ export default function PresentationPage() {
       <section className="py-4 sm:py-8 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto bg-gradient-to-b from-[#FAF7F5] to-white border border-[#F4C5BC]/80 rounded-3xl p-5 sm:p-8 lg:p-12 shadow-sm">
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-1 lg:gap-12 items-center">
             
             {/* Colonne Livre 3D : En premier sur mobile (order-1) et à gauche sur desktop (lg:order-1) */}
             <div className="lg:col-span-5 flex flex-col items-center justify-center order-1 lg:order-1">
@@ -66,10 +66,10 @@ export default function PresentationPage() {
                     {/* Haut de couverture */}
                     <div>
                       <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <IrisMark size={20} className="text-brand shrink-0" />
+                        <div className="flex items-center gap-1">
+                          <IrisMark size={20} className="text-brand shrink-0 rotate-6 transition-transform" />
                           <span className="text-[10px] font-mono uppercase tracking-widest text-[#F4C5BC]">
-                            Éditions Iris
+                            Éditions ris
                           </span>
                         </div>
                         <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#C84B31] text-white">
@@ -114,7 +114,7 @@ export default function PresentationPage() {
                 <a
                   href="/IrisGuideComplet.pdf"
                   download="IrisGuideComplet.pdf"
-                  className="w-full inline-flex items-center justify-center gap-3 bg-[#C84B31] hover:bg-[#B83E26] text-white px-6 py-4 rounded-full font-bold text-base shadow-sm active:scale-[0.99] transition-all cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-1 bg-[#C84B31] hover:bg-[#B83E26] text-white px-6 py-4 rounded-full font-bold text-base shadow-sm active:scale-[0.99] transition-all cursor-pointer"
                 >
                   <Download className="w-5 h-5" />
                   <span>Télécharger le livre offert (PDF)</span>
@@ -291,11 +291,9 @@ export default function PresentationPage() {
       {/* Navigation Header Publique */}
       <header className="sticky top-0 w-full z-50 bg-white dark:bg-neutral-900/95 backdrop-blur-md border-b border-neutral-200/80 dark:border-neutral-800">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <IrisMark size={32} className="text-brand shrink-0 group-hover:scale-105 transition-transform" />
-            <span className="font-heading font-extrabold text-2xl tracking-tight text-neutral-900">
-              Iris
-            </span>
+          <Link href="/" className="flex items-center gap-1 group">
+            <IrisMark size={32} className="text-brand shrink-0 group-hover:scale-105 rotate-6 transition-transform" />
+            <span className="font-heading font-extrabold text-2xl tracking-tight text-neutral-900">ris</span>
           </Link>
 
           <div className="flex items-center gap-4">

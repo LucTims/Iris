@@ -29,7 +29,7 @@ export default function GuideDashboardPage() {
 
         {/* Section Livre Offert avec Mockup 3D */}
         <section className="bg-gradient-to-b from-[#FAF7F5] to-white border border-[#F4C5BC]/80 rounded-3xl p-5 sm:p-8 lg:p-12 shadow-sm">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-1 lg:gap-12 items-center">
             
             {/* Colonne Livre 3D : En premier sur mobile (order-1) et à gauche sur desktop (lg:order-1) */}
             <div className="lg:col-span-5 flex flex-col items-center justify-center order-1 lg:order-1">
@@ -61,10 +61,10 @@ export default function GuideDashboardPage() {
                     {/* Haut de couverture */}
                     <div>
                       <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <IrisMark size={20} className="text-brand shrink-0" />
+                        <div className="flex items-center gap-1">
+                          <IrisMark size={20} className="text-brand shrink-0 rotate-6 transition-transform" />
                           <span className="text-[10px] font-mono uppercase tracking-widest text-[#F4C5BC]">
-                            Éditions Iris
+                            Éditions ris
                           </span>
                         </div>
                         <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#C84B31] text-white">

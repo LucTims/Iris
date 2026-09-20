@@ -76,12 +76,10 @@ export default function Sidebar() {
     >
       {/* Sidebar Header (Seamless top section with Iris Typography & Enhanced Toggle Button) */}
       <div className="px-5 py-4 flex items-center justify-between h-16 shrink-0">
-        <Link href="/dashboard" className="flex items-center gap-2 overflow-hidden group">
-          <IrisMark size={30} className="text-brand shrink-0" />
+        <Link href="/dashboard" className="flex items-center gap-1 overflow-hidden group">
+          <IrisMark size={30} className="text-brand shrink-0 rotate-6 transition-transform" />
           {!collapsed && (
-            <span className="font-heading font-extrabold text-2xl tracking-tight text-neutral-900 dark:text-neutral-100 group-hover:text-secondary transition-colors">
-              Iris
-            </span>
+            <span className="font-heading font-extrabold text-2xl tracking-tight text-neutral-900 dark:text-neutral-100 group-hover:text-secondary transition-colors">ris</span>
           )}
         </Link>
 
@@ -160,7 +158,7 @@ export default function Sidebar() {
         <button
           onClick={signOut}
           title={collapsed ? "Se déconnecter" : undefined}
-          className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
+          className="w-full flex items-center gap-1 px-3.5 py-2.5 text-sm font-bold text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
         >
           <LogOut strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />
           {!collapsed && <span className="truncate">Se déconnecter</span>}

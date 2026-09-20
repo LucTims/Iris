@@ -103,13 +103,13 @@ export default function IrisLogo({
   }
 
   return (
-    <span className={`inline-flex items-center gap-2 ${className || ""}`}>
-      <IrisMark size={size} pupil={pupil} />
+    <span className={`inline-flex items-center gap-1 ${className || ""}`}>
+      <IrisMark size={size} pupil={pupil} className="rotate-6 transition-transform" />
       <span
         className={`font-heading font-extrabold tracking-tight leading-none ${wordmarkClassName}`}
         style={{ fontSize: wordmarkSize ?? Math.round(size * 0.86) }}
       >
-        Iris
+        ris
       </span>
     </span>
   );

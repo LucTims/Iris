@@ -88,10 +88,10 @@ export default function LoginPage() {
 
         {/* Top Logo */}
         <div className="relative z-10">
-          <Link href="/" className="inline-flex items-center gap-3 group">
-            <IrisMark size={38} className="text-brand shrink-0 group-hover:scale-105 transition-transform" />
+          <Link href="/" className="inline-flex items-center gap-1 group">
+            <IrisMark size={38} className="text-brand shrink-0 group-hover:scale-105 rotate-6 transition-transform" />
             <span className="font-heading font-extrabold text-3xl tracking-tight text-white">
-              Iris
+              ris
             </span>
           </Link>
         </div>
@@ -120,9 +120,9 @@ export default function LoginPage() {
           <div className="space-y-3">
             {/* Logo shown on mobile */}
             <div className="lg:hidden mb-6">
-              <Link href="/" className="inline-flex items-center gap-2.5">
-                <IrisMark size={34} className="text-brand shrink-0" />
-                <span className="font-heading font-bold text-3xl text-neutral-900">Iris</span>
+              <Link href="/" className="inline-flex items-center gap-1">
+                <IrisMark size={34} className="text-brand shrink-0 rotate-6 transition-transform" />
+                <span className="font-heading font-bold text-3xl text-neutral-900">ris</span>
               </Link>
             </div>
 

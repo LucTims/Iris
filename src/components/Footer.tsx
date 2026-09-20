@@ -7,7 +7,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 md:px-12">
         
         {/* Top Section */}
-        <div className="flex flex-col md:flex-row justify-between gap-12 mb-16">
+        <div className="flex flex-col md:flex-row justify-between gap-1 mb-16">
           {/* Left Column Tagline */}
           <div>
             <h3 className="font-heading font-medium text-2xl md:text-3xl text-neutral-900 dark:text-neutral-100 tracking-tight">
@@ -42,10 +42,8 @@ export default function Footer() {
             {/* La taille passée sert de repli ; les classes de hauteur
                 l'emportent sur les attributs du SVG, ce qui laisse la marque
                 suivre l'échelle du mot à toutes les largeurs d'écran. */}
-            <IrisMark size={164} className="text-brand h-[12vw] md:h-[128px] lg:h-[164px] w-auto" />
-            <span className="font-heading font-bold text-[13vw] md:text-[140px] lg:text-[180px] tracking-tighter text-neutral-900 leading-none">
-              Iris
-            </span>
+            <IrisMark size={164} className="text-brand h-[12vw] md:h-[128px] lg:h-[164px] w-auto rotate-6 transition-transform" />
+            <span className="font-heading font-bold text-[13vw] md:text-[140px] lg:text-[180px] tracking-tighter text-neutral-900 leading-none">ris</span>
           </span>
         </div>
 
