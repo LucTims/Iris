@@ -107,10 +107,23 @@ export default function CoverStudioEditorPage() {
       }
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.url) {
+        // `detail` liste le motif d'échec de CHAQUE moteur. Sans lui, une clé
+        // d'API manquante restait invisible et l'auteur ne voyait qu'un
+        // « réessayez » qui ne marchait jamais.
+        if (Array.isArray(data?.detail) && data.detail.length > 0) {
+          console.error("[cover-studio] moteurs d'image en échec:", data.detail);
+        }
         alert(data?.error || "La génération de la couverture a échoué. Réessayez.");
         return;
       }
       setCoverImage(data.url);
+      // Le serveur ne facture le premium que si un moteur premium a vraiment
+      // produit l'image. On prévient l'auteur quand il a reçu l'image gratuite.
+      if (data.downgraded) {
+        alert(
+          "Les moteurs premium sont momentanément indisponibles : une couverture en qualité gratuite a été générée et aucune pièce n'a été débitée."
+        );
+      }
     } catch (err) {
       console.error("Erreur génération couverture:", err);
       alert("Une erreur réseau est survenue pendant la génération.");
