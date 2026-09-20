@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, Newsreader, Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, Newsreader } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 
-const outfit = Outfit({
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-outfit",
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-plus-jakarta",
+  weight: ["300", "400", "500", "600", "700", "800"],
 });
 
 const newsreader = Newsreader({
@@ -16,13 +16,6 @@ const newsreader = Newsreader({
   style: ["normal", "italic"],
   variable: "--font-newsreader",
   weight: ["400", "600", "700"],
-});
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-plus-jakarta",
-  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -60,7 +53,7 @@ export default function RootLayout({
     <html
       lang="fr"
       suppressHydrationWarning
-      className={`${outfit.variable} ${newsreader.variable} ${plusJakartaSans.variable}`}
+      className={`${plusJakartaSans.variable} ${newsreader.variable}`}
     >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
