@@ -194,17 +194,24 @@ function buildDocDefinition(
   // une vraie TOC paginée), et (b) les chapitres « fantômes » sans contenu réel
   // — des placeholders titre-seul hérités du plan qui produisaient des
   // pages-titres en double avant chaque chapitre.
-  const realChapters = chapters.filter((ch) => {
-    if (isSummaryChapter(ch.title, ch.content)) return false;
+  let realChapters = chapters.filter((ch) => {
+    // Le storybook génère tout son contenu dans un seul chapitre. S'il a un titre
+    // "Sommaire", il ne doit pas être supprimé.
+    if (workType !== "storybook" && isSummaryChapter(ch.title, ch.content)) return false;
     const { rest } = extractLeadingHeading(ch.content || "");
     const bodyText = (rest || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     return bodyText.length >= 20;
   });
 
+  // Sécurité: si tous les chapitres ont été supprimés (ex: un seul chapitre avec < 20 caractères), on le garde.
+  if (realChapters.length === 0 && chapters.length > 0) {
+    realChapters = chapters;
+  }
+
   // Table des matières native (numéros de page résolus par pdfmake en 2 passes)
   // UNIQUEMENT en mode « avec sommaire ». Pas de pageBreak:"after" : le premier
   // chapitre force déjà son propre saut de page.
-  if (hasSummary) {
+  if (hasSummary && workType !== "storybook") {
     content.push({
       toc: {
         title: { text: "Table des matières", style: "tocTitle", margin: [0, 40, 0, 24] },
