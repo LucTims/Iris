@@ -22,7 +22,7 @@ export function providerOf(modelId: string): Provider {
 
 /** Modèle représentatif de chaque fournisseur, utilisé comme secours. */
 const DEFAULT_BY_PROVIDER: Record<Provider, string> = {
-  google: "gemini-2.5-flash",
+  google: "gemini-3.6-flash",
   openai: "gpt-4o-mini",
   anthropic: "claude-sonnet-5",
 };

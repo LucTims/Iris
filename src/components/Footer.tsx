@@ -43,7 +43,7 @@ export default function Footer() {
                 l'emportent sur les attributs du SVG, ce qui laisse la marque
                 suivre l'échelle du mot à toutes les largeurs d'écran. */}
             <IrisMark size={164} className="text-brand h-[12vw] md:h-[128px] lg:h-[164px] w-auto" />
-            <span className="font-heading font-bold text-[13vw] md:text-[140px] lg:text-[180px] tracking-tighter text-neutral-900 dark:text-neutral-100 leading-none">
+            <span className="font-heading font-bold text-[13vw] md:text-[140px] lg:text-[180px] tracking-tighter text-neutral-900 leading-none">
               Iris
             </span>
           </span>

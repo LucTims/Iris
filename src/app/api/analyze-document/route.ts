@@ -59,7 +59,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const selectedModelName = chosenModel || "gemini-2.5-flash";
+    const selectedModelName = chosenModel || "gemini-3.6-flash";
 
     const hasEnoughCoins = await checkMinimumBalance(user.id, ANALYSIS_COST_COINS);
     if (!hasEnoughCoins) {

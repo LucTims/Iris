@@ -215,7 +215,7 @@ async function summarizeChapterForContinuity(chapterTitle: string, text: string)
     // temps pour ne jamais bloquer le job.
     const { text: summary } = await Promise.race([
       generateWithFallback({
-        preferred: "gemini-2.5-flash",
+        preferred: "gemini-3.6-flash",
         system: "Tu résumes des chapitres de livre de façon factuelle et concise.",
         prompt: `Résume ce chapitre de livre ("${chapterTitle}") en 2 à 3 phrases MAXIMUM, orientées suite de l'histoire : personnages impliqués, événements clés, état final. Réponds UNIQUEMENT avec le résumé, sans préambule.\n\nTexte du chapitre :\n${plain.slice(0, 6000)}`,
         maxAttempts: 2,
@@ -269,7 +269,7 @@ export async function processNextChapter(
   const chapter = job.plan[job.current_index];
   const settings = job.settings;
   const wordsTarget = Math.max(400, Math.min(4000, Number(settings.targetWords) || 800));
-  const selectedModelName = settings.model || "gemini-2.5-flash";
+  const selectedModelName = settings.model || "gemini-3.6-flash";
 
   const requiredCoins = estimateChapterCoins(wordsTarget, selectedModelName);
   const hasEnoughCoins = await checkMinimumBalance(job.user_id, requiredCoins, db);

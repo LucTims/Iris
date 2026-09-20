@@ -9,7 +9,7 @@ export default function ContactPage() {
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2 group">
               <IrisMark size={26} className="text-brand shrink-0 group-hover:scale-105 transition-transform" />
-              <span className="font-heading text-2xl font-extrabold text-neutral-900 dark:text-neutral-100">Iris</span>
+              <span className="font-heading text-2xl font-extrabold text-neutral-900">Iris</span>
             </Link>
           </div>
           <div className="flex items-center gap-4">

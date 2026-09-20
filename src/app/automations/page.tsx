@@ -143,7 +143,7 @@ export default function AutomationsPage() {
           <div>
             <Link
               href="/automations/documentation"
-              className="inline-flex items-center gap-2 text-xs font-bold text-secondary bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/40 border border-orange-100 dark:border-orange-900 px-4 py-2.5 rounded-xl transition-colors"
+              className="inline-flex items-center gap-2 text-xs font-bold text-secondary bg-orange-50 hover:bg-orange-100 border border-orange-100 px-4 py-2.5 rounded-xl transition-colors"
             >
               <BookOpen className="w-4 h-4" />
               <span>Documentation complète : outils, sécurité, dépannage</span>

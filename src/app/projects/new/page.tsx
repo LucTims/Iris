@@ -85,7 +85,7 @@ export default function NewBookWizard() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModelModal, setShowModelModal] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
+  const [selectedModel, setSelectedModel] = useState("gemini-3.6-flash");
 
   // Document de référence que l'IA analyse pour mieux écrire le livre
   const referenceInputRef = useRef<HTMLInputElement>(null);
@@ -208,6 +208,31 @@ export default function NewBookWizard() {
       [next[index], next[target]] = [next[target], next[index]];
       return next;
     });
+  };
+
+  const retryAsset = async (path: string) => {
+    setAssetsBusy(true);
+    setAssetsError("");
+    try {
+      const res = await fetch("/api/project-assets/reanalyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paths: [path] }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Échec de la relance.");
+      
+      const result = data.results?.[0];
+      if (result?.success && result.analysis) {
+        setAssets((prev) => prev.map(a => a.path === path ? { ...a, analysisStatus: "done", analysis: result.analysis } : a));
+      } else {
+        throw new Error(result?.error || "L'analyse a de nouveau échoué.");
+      }
+    } catch (err) {
+      setAssetsError(err instanceof Error ? err.message : "Échec de la relance.");
+    } finally {
+      setAssetsBusy(false);
+    }
   };
 
   // Intercept the final submit to show the modal first
@@ -533,11 +558,23 @@ export default function NewBookWizard() {
                                   type="button"
                                   onClick={() => removeAsset(asset.url)}
                                   aria-label={`Retirer ${asset.name}`}
-                                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity z-10"
                                 >
                                   <X className="w-3 h-3" />
                                 </button>
-                                <div className="absolute bottom-1 inset-x-1 flex justify-between opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                                {asset.analysisStatus === "failed" && (
+                                  <div className="absolute inset-0 bg-red-900/40 flex flex-col items-center justify-center gap-2 p-2">
+                                    <span className="text-[10px] font-bold text-white bg-red-600 px-2 py-0.5 rounded shadow">⚠️ Analyse échouée</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => retryAsset(asset.path)}
+                                      className="text-[10px] font-semibold text-white border border-white/50 bg-black/40 rounded px-2 py-1 hover:bg-black/60 transition"
+                                    >
+                                      Réessayer
+                                    </button>
+                                  </div>
+                                )}
+                                <div className="absolute bottom-1 inset-x-1 flex justify-between opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity z-10">
                                   <button
                                     type="button"
                                     onClick={() => moveAsset(index, -1)}
@@ -777,7 +814,7 @@ export default function NewBookWizard() {
                           <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-200/60">
                             <span className="font-semibold text-neutral-700">Coût estimé</span>
                             <span className="font-bold text-[#C84B31] text-sm">
-                              {estimatePagesCoins(pages, "gemini-2.5-flash").toLocaleString("fr-FR")} à {estimatePagesCoins(pages, "claude-sonnet-5").toLocaleString("fr-FR")} crédits
+                              {estimatePagesCoins(pages, "gemini-3.6-flash").toLocaleString("fr-FR")} à {estimatePagesCoins(pages, "claude-sonnet-5").toLocaleString("fr-FR")} crédits
                             </span>
                           </div>
                         </div>
@@ -892,9 +929,9 @@ export default function NewBookWizard() {
                 <div className="space-y-2.5 mb-6">
                   {/* Standard Model */}
                   <div 
-                    onClick={() => setSelectedModel("gemini-2.5-flash")}
+                    onClick={() => setSelectedModel("gemini-3.6-flash")}
                     className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
-                      selectedModel === "gemini-2.5-flash" 
+                      selectedModel === "gemini-3.6-flash" 
                         ? "border-[#C84B31] bg-[#FDF3F1]/40 shadow-xs" 
                         : "border-neutral-200 hover:border-neutral-300 bg-white"
                     }`}

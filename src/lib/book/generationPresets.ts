@@ -45,7 +45,7 @@ export const SIZE_PRESETS: Record<BookSizeKey, BookSizePreset> = {
 
 /** Les 3 modèles proposés à l'auteur, du plus économique au premium. */
 export const BOOK_MODELS = [
-  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Rapide et économique" },
+  { id: "gemini-3.6-flash", label: "Gemini 2.5 Flash", hint: "Rapide et économique" },
   { id: "gpt-4o-mini", label: "GPT-4o mini", hint: "Bon compromis qualité/prix" },
   { id: "claude-sonnet-5", label: "Claude Sonnet", hint: "Excellente qualité de rédaction" },
 ];
