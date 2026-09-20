@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 @theme {
-  --font-body: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-heading: "Plus Jakarta Sans", -apple-system, sans-serif;
-  --font-editorial: "Newsreader", Georgia, "Times New Roman", serif;
-  --font-landing: "Plus Jakarta Sans", -apple-system, sans-serif;
+  --font-body: var(--font-outfit), "Outfit", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading: var(--font-outfit), "Outfit", -apple-system, sans-serif;
+  --font-editorial: var(--font-newsreader), "Newsreader", Georgia, "Times New Roman", serif;
+  --font-landing: var(--font-outfit), "Outfit", "DM Sans", -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
   /* Terracotta EXACTE de la marque, relevee sur le fichier du logo.
@@ -45,6 +45,10 @@
 }
 
 :root {
+  --font-body: var(--font-outfit), "Outfit", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading: var(--font-outfit), "Outfit", -apple-system, sans-serif;
+  --font-editorial: var(--font-newsreader), "Newsreader", Georgia, "Times New Roman", serif;
+  --font-landing: var(--font-outfit), "Outfit", "DM Sans", -apple-system, sans-serif;
   --app-bg: #ffffff;
   --app-fg: #111827;
   --app-muted-fg: #1f2937;
@@ -58,13 +62,25 @@ html {
 }
 
 body {
-  font-family: var(--font-body);
+  font-family: var(--font-body), "Outfit", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--app-bg);
   color: var(--app-fg);
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.font-heading {
+  font-family: var(--font-heading), "Outfit", sans-serif !important;
+}
+
+.font-body {
+  font-family: var(--font-body), "Outfit", "DM Sans", sans-serif !important;
+}
+
+.font-editorial {
+  font-family: var(--font-editorial), "Newsreader", Georgia, serif !important;
 }
 
 /* Enhancements for high-readability text like Claude/ChatGPT */
