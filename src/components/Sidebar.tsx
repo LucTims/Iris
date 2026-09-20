@@ -22,6 +22,7 @@ import {
   User,
   BookOpen,
   Bot,
+  Book,
 } from "lucide-react";
 import { IrisMark } from "@/components/IrisLogo";
 
@@ -29,21 +30,19 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { signOut, displayName, isAdmin } = useUser();
   const [collapsed, setCollapsed] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const savedState = localStorage.getItem("iris_sidebar_collapsed");
-    if (savedState !== null) {
-      setCollapsed(savedState === "true");
-    }
+    const stored = localStorage.getItem("iris_sidebar_collapsed");
+    if (stored === "true") setCollapsed(true);
   }, []);
 
   const toggleCollapsed = () => {
-    const nextState = !collapsed;
-    setCollapsed(nextState);
-    localStorage.setItem("iris_sidebar_collapsed", String(nextState));
+    const newVal = !collapsed;
+    setCollapsed(newVal);
+    localStorage.setItem("iris_sidebar_collapsed", String(newVal));
   };
 
   const navItems = [
@@ -58,6 +57,7 @@ export default function Sidebar() {
 
   const bottomNavItems = [
     { id: "profil", label: "Mon profil", icon: <User strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/profile" },
+    { id: "docs", label: "Documentation", icon: <Book strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/docs" },
     { id: "aide", label: "Centre d'aide & FAQ", icon: <HelpCircle strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />, href: "/faq" },
   ];
 
