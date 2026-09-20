@@ -23,6 +23,7 @@ import {
   BookOpen,
   Bot,
 } from "lucide-react";
+import { IrisMark } from "@/components/IrisLogo";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -76,7 +77,7 @@ export default function Sidebar() {
       {/* Sidebar Header (Seamless top section with Iris Typography & Enhanced Toggle Button) */}
       <div className="px-5 py-4 flex items-center justify-between h-16 shrink-0">
         <Link href="/dashboard" className="flex items-center gap-2 overflow-hidden group">
-          <img src="/iris-logo.png" alt="Iris" className="w-8 h-8 object-contain shrink-0" />
+          <IrisMark size={30} className="text-brand shrink-0" />
           {!collapsed && (
             <span className="font-heading font-extrabold text-2xl tracking-tight text-neutral-900 dark:text-neutral-100 group-hover:text-secondary transition-colors">
               Iris
@@ -206,8 +207,8 @@ export default function Sidebar() {
           <div className="bg-white dark:bg-neutral-900 rounded-t-3xl p-6 space-y-6 max-h-[85vh] overflow-y-auto border-t border-neutral-200 dark:border-neutral-800 shadow-2xl">
             <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-4">
               <Link href="/dashboard" onClick={() => setIsMobileDrawerOpen(false)} className="flex items-center gap-2">
-                <img src="/iris-logo.png" alt="Iris" className="w-8 h-8 object-contain" />
-                <span className="font-heading font-extrabold text-xl text-neutral-900 dark:text-neutral-100">Navigation Iris</span>
+                <IrisMark size={28} className="text-brand shrink-0" />
+                <span className="font-heading font-extrabold text-xl text-neutral-900">Navigation Iris</span>
               </Link>
               <button 
                 onClick={() => setIsMobileDrawerOpen(false)}

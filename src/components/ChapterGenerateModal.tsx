@@ -44,7 +44,7 @@ export default function ChapterGenerateModal({
   onConfirm,
   chapterTitle,
   hasContent,
-  defaultModel = "gemini-2.5-flash",
+  defaultModel = "gemini-3.6-flash",
 }: ChapterGenerateModalProps) {
   const [intent, setIntent] = useState<ChapterIntent>(hasContent ? "enrich" : "rewrite");
   const [instructions, setInstructions] = useState("");

@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       updatedAt="19 septembre 2026"
       activeHref="/privacy"
     >
-      <p className="text-neutral-800 dark:text-neutral-200 font-semibold">
+      <p className="text-neutral-800 font-semibold">
         En résumé : vos manuscrits vous appartiennent. Iris ne les vend pas, ne les
         publie pas et ne s&apos;en sert pas pour entraîner des modèles d&apos;IA. Les
         données collectées servent à faire fonctionner le service que vous utilisez —
@@ -45,7 +45,7 @@ export default function PrivacyPage() {
 
         <div className="space-y-4 pt-1">
           <div>
-            <h3 className="font-bold text-neutral-900 dark:text-neutral-100">
+            <h3 className="font-bold text-neutral-900">
               a. Données de compte
             </h3>
             <p>
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
           </div>
 
           <div>
-            <h3 className="font-bold text-neutral-900 dark:text-neutral-100">
+            <h3 className="font-bold text-neutral-900">
               b. Contenu que vous créez
             </h3>
             <p>
@@ -72,7 +72,7 @@ export default function PrivacyPage() {
           </div>
 
           <div>
-            <h3 className="font-bold text-neutral-900 dark:text-neutral-100">
+            <h3 className="font-bold text-neutral-900">
               c. Données d&apos;usage et de facturation
             </h3>
             <p>
@@ -85,7 +85,7 @@ export default function PrivacyPage() {
           </div>
 
           <div>
-            <h3 className="font-bold text-neutral-900 dark:text-neutral-100">
+            <h3 className="font-bold text-neutral-900">
               d. Données techniques
             </h3>
             <p>
@@ -156,13 +156,13 @@ export default function PrivacyPage() {
         <div className="overflow-x-auto -mx-1 px-1 pt-1">
           <table className="w-full text-xs border-collapse min-w-[520px]">
             <thead>
-              <tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+              <tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
                 <th className="py-2 pr-4 font-bold">Sous-traitant</th>
                 <th className="py-2 pr-4 font-bold">Rôle</th>
                 <th className="py-2 font-bold">Données concernées</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+            <tbody className="divide-y divide-neutral-200">
               {[
                 ["Supabase", "Base de données, authentification, stockage", "Compte, livres, fichiers"],
                 ["Vercel", "Hébergement de l'application", "Journaux techniques, adresse IP"],
@@ -173,7 +173,7 @@ export default function PrivacyPage() {
                 ["Google Analytics", "Mesure d'audience", "Données de navigation"],
               ].map(([name, role, data]) => (
                 <tr key={name}>
-                  <td className="py-2 pr-4 font-bold text-neutral-800 dark:text-neutral-200">{name}</td>
+                  <td className="py-2 pr-4 font-bold text-neutral-800">{name}</td>
                   <td className="py-2 pr-4">{role}</td>
                   <td className="py-2">{data}</td>
                 </tr>

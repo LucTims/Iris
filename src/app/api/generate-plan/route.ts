@@ -12,6 +12,7 @@ import {
   WORK_TYPE_META,
 } from "@/lib/book/work-type";
 import { visionInstruction } from "@/lib/book/book-blueprint";
+import { buildStorybookPlanPrompt, isStorybookBlueprint } from "@/lib/ai/storybook-prompts";
 import { factualityRules } from "@/lib/ai/factuality";
 
 export const maxDuration = 60;
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
       imageUrls,
     } = await req.json();
 
-    const selectedModelName = chosenModel || "gemini-2.5-flash";
+    const selectedModelName = chosenModel || "gemini-3.6-flash";
     const genre = detectGenre(category, tone);
     const webSearchEnabled = shouldGroundWithWebSearch(genre, useWebSearch);
     // Forme de l'ouvrage : elle décide du DÉCOUPAGE (un guide se découpe en
@@ -76,14 +77,45 @@ export async function POST(req: Request) {
 
     // Flux « Vision-to-Story » : pour un blueprint piloté par l'image
     // (storybook), la structure du livre se déduit des visuels importés par
-    // l'auteur, pas du seul synopsis. Les URL sont jointes au prompt
-    // multimodal ; le modèle REGARDE les images avant de découper l'histoire.
-    const visionImages: string[] = isImageDrivenWorkType(workType)
-      ? (Array.isArray(imageUrls) ? imageUrls : [])
-          .filter((u: unknown): u is string => typeof u === "string" && /^https?:\/\//.test(u))
-          .slice(0, 24)
-      : [];
-    const visionBlock = visionInstruction(workType, visionImages.length);
+    // l'auteur, pas du seul synopsis.
+    //
+    // On lit en PRIORITÉ les analyses mises en cache à l'import
+    // (`project_assets.ai_analysis`). Travailler sur ces descriptions plutôt
+    // que de renvoyer les images à chaque génération évite de re-téléverser
+    // plusieurs mégaoctets par essai, rend le plan reproductible, et permet
+    // d'écrire avec un modèle non multimodal. Les images ne sont jointes au
+    // prompt qu'en REPLI, quand aucune analyse n'est disponible.
+    let storedAssets: Array<{ file_url: string; ai_analysis?: string | null }> = [];
+    if (isImageDrivenWorkType(workType) && projectId) {
+      const { data: assetRows, error: assetError } = await supabase
+        .from("project_assets")
+        .select("file_url, ai_analysis")
+        .eq("project_id", projectId)
+        .eq("user_id", user.id)
+        .order("position", { ascending: true });
+
+      if (assetError) {
+        console.warn("[generate-plan] Lecture des visuels impossible:", assetError.message);
+      } else {
+        storedAssets = assetRows || [];
+      }
+    }
+
+    const hasCachedAnalyses = storedAssets.some((a) => (a.ai_analysis || "").trim().length > 0);
+
+    const visionImages: string[] =
+      isImageDrivenWorkType(workType) && !hasCachedAnalyses
+        ? (storedAssets.length
+            ? storedAssets.map((a) => a.file_url)
+            : Array.isArray(imageUrls)
+              ? imageUrls
+              : []
+          )
+            .filter((u: unknown): u is string => typeof u === "string" && /^https?:\/\//.test(u))
+            .slice(0, 24)
+        : [];
+
+    const visionBlock = hasCachedAnalyses ? "" : visionInstruction(workType, visionImages.length);
 
     // Check coins
     const hasEnoughCoins = await checkMinimumBalance(user.id, 50);
@@ -164,7 +196,23 @@ ${referenceAnalysis}
 --- FIN DU DOCUMENT DE RÉFÉRENCE ---`
       : "";
 
-    const prompt = `Voici les détails du livre :
+    // Un album illustré n'est pas un livre court : le prompt générique
+    // (« ghostwriter expert », sommaire de chapitres thématiques) produirait
+    // une table des matières de roman. On bascule donc sur un prompt dédié,
+    // construit autour des images analysées.
+    const storybookPrompt =
+      isStorybookBlueprint(workType) && storedAssets.length > 0
+        ? buildStorybookPlanPrompt({
+            title,
+            synopsis,
+            audience,
+            tone,
+            instructions,
+            assets: storedAssets,
+          })
+        : null;
+
+    const prompt = storybookPrompt ?? `Voici les détails du livre :
 Forme de l'ouvrage : ${WORK_TYPE_META[workType].label} — ${WORK_TYPE_META[workType].hint}
 Titre : ${title}
 Sous-titre : ${subtitle || "Non spécifié"}
@@ -183,7 +231,12 @@ ${referenceBlock}${visionBlock}
 
 ${missionText}`;
 
-    const systemPrompt = `Tu es un ghostwriter expert et rédacteur de livres professionnels.
+    // Le prompt d'album porte déjà son persona et ses règles : lui superposer
+    // le persona « ghostwriter de best-sellers » remettrait exactement la
+    // consigne qu'on cherche à écarter.
+    const systemPrompt = storybookPrompt
+      ? `Tu réponds UNIQUEMENT en HTML valide, sans Markdown, sans salutation et sans commentaire final. Commence directement par la balise <h1>.`
+      : `Tu es un ghostwriter expert et rédacteur de livres professionnels.
 IMPORTANT:
 - Tu dois répondre UNIQUEMENT avec le contenu formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>, <hr data-page-break>).
 - ${includeToc ? "Le tout premier élément DOIT être le titre du sommaire en <h1> : soit <h1>Sommaire</h1>, soit <h1>Table des matières</h1> (à toi de choisir selon le livre)." : "Le tout premier élément DOIT être <h1>Prototype du livre</h1>."}

@@ -1,12 +1,68 @@
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { generateText } from "ai";
+import { google } from "@ai-sdk/google";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
+import { deductGenerationCost } from "@/lib/ai/cost-engine";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const BUCKET = "project-assets";
+
+/** Modèle de vision utilisé pour décrire les images importées. */
+const VISION_MODEL = "gemini-3.6-flash";
+
+/**
+ * Décrit une image pour le flux « Vision-to-Story ».
+ *
+ * L'analyse est faite UNE FOIS, à l'import, et conservée dans
+ * `project_assets.ai_analysis`. Tout le reste du pipeline (plan, chapitres,
+ * reprises) travaille ensuite sur ce texte au lieu de re-téléverser les images
+ * à chaque appel — ce qui coûtait plusieurs mégaoctets par essai, allongeait
+ * la latence, et interdisait d'écrire le livre avec un modèle non multimodal.
+ *
+ * La description cible ce qui sert à RACONTER : personnages, action, émotion,
+ * décor, moment de la journée. Pas d'interprétation esthétique.
+ */
+async function describeImage(
+  bytes: Buffer,
+  contentType: string
+): Promise<{ text: string; usage: unknown }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+  try {
+    const { text, usage } = await generateText({
+      model: google(VISION_MODEL),
+      abortSignal: controller.signal,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Décris cette image pour un auteur qui va écrire une histoire autour d'elle.
+
+Donne, en 3 à 5 phrases et en français :
+- qui ou quoi apparaît (personnages, animaux, objets marquants), avec leur apparence précise ;
+- ce qui est en train de se passer ;
+- le décor et le moment (intérieur/extérieur, saison, heure) ;
+- l'émotion qui s'en dégage.
+
+N'invente rien qui ne soit pas visible. Ne commente ni la qualité ni le style du dessin. Réponds uniquement par la description, sans préambule.`,
+            },
+            { type: "image", image: bytes, mediaType: contentType },
+          ],
+        },
+      ],
+    });
+
+    return { text: (text || "").trim(), usage };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 /**
  * 6 Mo par image APRÈS compression côté client. Le client réduit déjà chaque
@@ -20,6 +76,9 @@ const MAX_BYTES = 6_000_000;
 const MAX_FILES = 24;
 
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+
+/** États acceptés par la contrainte CHECK de `analysis_status`. */
+const ANALYSIS_STATUSES = new Set(["pending", "done", "failed", "skipped"]);
 
 function admin() {
   return createAdminClient(
@@ -73,7 +132,7 @@ export async function GET(req: Request) {
     // user_id garde la requête correcte même si la policy évoluait.
     const { data, error } = await supabase
       .from("project_assets")
-      .select("id, file_url, position, metadata")
+      .select("id, file_url, position, ai_analysis, analysis_status, metadata")
       .eq("project_id", projectId)
       .eq("user_id", user.id)
       .order("position", { ascending: true });
@@ -144,8 +203,23 @@ export async function POST(req: Request) {
       }
     }
 
+    // `analyze=1` déclenche la description visuelle (flux Vision-to-Story du
+    // blueprint Storybook). Les autres blueprints n'en ont pas besoin et ne
+    // doivent donc pas payer un appel de vision par image.
+    const shouldAnalyze = form.get("analyze") === "1";
+
     const db = admin();
-    const uploaded: Array<{ url: string; path: string; name: string; position: number }> = [];
+    const uploaded: Array<{
+      url: string;
+      path: string;
+      name: string;
+      position: number;
+      analysis: string | null;
+      analysisStatus: "done" | "failed" | "skipped";
+      /** Octets conservés le temps de l'analyse, jamais renvoyés au client. */
+      bytes: Buffer;
+      contentType: string;
+    }> = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -184,7 +258,58 @@ export async function POST(req: Request) {
       }
 
       const { data: pub } = db.storage.from(BUCKET).getPublicUrl(objectPath);
-      uploaded.push({ url: pub.publicUrl, path: objectPath, name: file.name, position: i });
+
+      uploaded.push({
+        url: pub.publicUrl,
+        path: objectPath,
+        name: file.name,
+        position: i,
+        analysis: null,
+        analysisStatus: "skipped",
+        bytes,
+        contentType: file.type,
+      });
+    }
+
+    // Description visuelle mise en cache, en PARALLÈLE par lots.
+    //
+    // Chaque analyse peut prendre jusqu'à 25 s. En série, une douzaine
+    // d'images dépasserait largement la limite d'exécution de la fonction et
+    // l'import échouerait entièrement. On borne la concurrence pour ne pas
+    // saturer le quota du fournisseur d'un seul coup.
+    //
+    // Un échec d'analyse n'annule JAMAIS l'import : l'auteur garde son image
+    // et le statut `failed` permet de relancer. Perdre une photo parce que le
+    // modèle de vision a hoqueté serait absurde.
+    if (shouldAnalyze) {
+      const CONCURRENCY = 4;
+      for (let start = 0; start < uploaded.length; start += CONCURRENCY) {
+        const batch = uploaded.slice(start, start + CONCURRENCY);
+        await Promise.all(
+          batch.map(async (item) => {
+            try {
+              const described = await describeImage(item.bytes, item.contentType);
+              if (described.text) {
+                item.analysis = described.text;
+                item.analysisStatus = "done";
+                // L'analyse est un appel IA réel : elle se facture comme tel.
+                await deductGenerationCost(
+                  user.id,
+                  VISION_MODEL,
+                  described.usage,
+                  `Analyse d'image : ${item.name}`,
+                  { projectId, outputText: described.text }
+                );
+              } else {
+                item.analysisStatus = "failed";
+              }
+            } catch (visionErr) {
+              console.warn(`[project-assets] Analyse impossible pour « ${item.name} » :`, visionErr);
+              item.analysisStatus = "failed";
+            }
+          })
+        );
+      }
     }
 
     // Référencement en base (uniquement si le projet existe déjà : dans
@@ -240,7 +365,8 @@ export async function POST(req: Request) {
           storage_path: u.path,
           asset_type: "user-upload",
           position: u.position,
-          ai_analysis: aiAnalysis,
+          ai_analysis: u.analysis,
+          analysis_status: u.analysisStatus,
           metadata: { original_name: u.name },
         });
       }
@@ -253,7 +379,11 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ assets: finalAssets.length > 0 ? finalAssets : uploaded });
+    // Les octets ne servaient qu'à l'analyse : les renvoyer au client ferait
+    // transiter les images une seconde fois, dans le sens inverse.
+    return NextResponse.json({
+      assets: uploaded.map(({ bytes: _bytes, contentType: _contentType, ...asset }) => asset),
+    });
   } catch (error) {
     console.error("[project-assets] Erreur inattendue:", error);
     return NextResponse.json({ error: "Erreur lors de l'envoi des images." }, { status: 500 });
@@ -289,18 +419,29 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Projet introuvable." }, { status: 404 });
     }
 
+    // L'analyse visuelle a déjà été faite à l'import : on la reporte telle
+    // quelle plutôt que de payer une seconde fois un appel de vision.
     const rows = assets
       .slice(0, MAX_FILES)
-      .filter((a: { url?: string; path?: string }) => typeof a?.url === "string")
-      .map((a: { url: string; path?: string; name?: string }, i: number) => ({
-        project_id: projectId,
-        user_id: user.id,
-        file_url: a.url,
-        storage_path: a.path || null,
-        asset_type: "user-upload",
-        position: i,
-        metadata: { original_name: a.name || null },
-      }));
+      .filter((a: { url?: string }) => typeof a?.url === "string")
+      .map(
+        (
+          a: { url: string; path?: string; name?: string; analysis?: string | null; analysisStatus?: string },
+          i: number
+        ) => ({
+          project_id: projectId,
+          user_id: user.id,
+          file_url: a.url,
+          storage_path: a.path || null,
+          asset_type: "user-upload",
+          position: i,
+          ai_analysis: typeof a.analysis === "string" ? a.analysis : null,
+          analysis_status: ANALYSIS_STATUSES.has(a.analysisStatus || "")
+            ? a.analysisStatus
+            : "skipped",
+          metadata: { original_name: a.name || null },
+        })
+      );
 
     if (rows.length === 0) {
       return NextResponse.json({ error: "Aucune image exploitable." }, { status: 400 });

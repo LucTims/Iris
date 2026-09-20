@@ -28,7 +28,7 @@ export default function GenerateBookModal({
   isOpen,
   onClose,
   onConfirm,
-  defaultModel = "gemini-2.5-flash",
+  defaultModel = "gemini-3.6-flash",
   sommaireChapters,
   balance,
 }: GenerateBookModalProps) {

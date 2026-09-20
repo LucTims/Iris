@@ -52,10 +52,10 @@ export function estimateReadingTime(words: number): string {
 
 /**
  * Calcule un coût estimatif des générations IA en fonction du nombre de mots.
- * Utilise le tarif du modèle de base (gemini-2.5-flash) comme référence.
+ * Utilise le tarif du modèle de base (gemini-3.6-flash) comme référence.
  */
 export function estimateCost(words: number): string {
   if (words === 0) return "0 pièce";
-  const coins = estimateChapterCoins(words, "gemini-2.5-flash");
+  const coins = estimateChapterCoins(words, "gemini-3.6-flash");
   return `${coins} pièce${coins > 1 ? "s" : ""}`;
 }

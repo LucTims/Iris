@@ -23,7 +23,7 @@ export default function TermsPage() {
       updatedAt="19 septembre 2026"
       activeHref="/terms"
     >
-      <p className="text-neutral-800 dark:text-neutral-200 font-semibold">
+      <p className="text-neutral-800 font-semibold">
         En résumé : vous achetez des pièces, vous les dépensez quand vous générez du
         texte ou des images, et tout ce que vous écrivez vous appartient. Les pièces ne
         se périment pas, mais ne sont pas remboursables une fois consommées.

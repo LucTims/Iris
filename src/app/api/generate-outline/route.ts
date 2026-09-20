@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       workType: requestedWorkType,
     } = await req.json();
 
-    const selectedModelName = chosenModel || "gemini-2.5-flash";
+    const selectedModelName = chosenModel || "gemini-3.6-flash";
     const nbChapters = Math.max(3, Math.min(24, Number(targetChapters) || 8));
     // La forme de l'ouvrage décide du découpage : un guide s'articule en
     // étapes opérationnelles, un livre en chapitres thématiques.

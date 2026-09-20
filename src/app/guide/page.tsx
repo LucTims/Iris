@@ -12,6 +12,7 @@ import {
   FileText,
   Plus
 } from "lucide-react";
+import { IrisMark } from "@/components/IrisLogo";
 
 export default function GuideDashboardPage() {
   return (
@@ -61,7 +62,7 @@ export default function GuideDashboardPage() {
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <img src="/iris-logo.png" alt="Iris" className="w-5 h-5 object-contain" />
+                          <IrisMark size={20} className="text-brand shrink-0" />
                           <span className="text-[10px] font-mono uppercase tracking-widest text-[#F4C5BC]">
                             Éditions Iris
                           </span>

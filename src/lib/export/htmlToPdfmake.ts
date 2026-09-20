@@ -306,9 +306,37 @@ function parseStoryPage(html: string): PdfNode {
 
   return {
     stack: stack.length ? stack : [{ text: "" }],
+    // `unbreakable` garantit que l'illustration n'est jamais séparée de son
+    // texte par un saut de page — c'est tout l'intérêt du format.
     unbreakable: true,
     margin: [0, 10, 0, 18],
   };
+}
+
+/**
+ * Isole chaque page de storybook sur SA page PDF.
+ *
+ * Dans un album, une page du livre = une page imprimée : deux illustrations
+ * qui se suivent sur la même feuille cassent le rythme de lecture à voix haute
+ * et rendent l'album inutilisable à l'impression. `unbreakable` empêche une
+ * page d'être coupée en deux, mais n'empêche pas deux pages de cohabiter —
+ * d'où ce saut explicite entre elles.
+ *
+ * Le saut est posé AVANT chaque page sauf la première du chapitre, qui suit
+ * déjà le titre.
+ */
+function paginateStoryPages(nodes: PdfNode[]): PdfNode[] {
+  let seenFirst = false;
+  return nodes.map((node) => {
+    if (!node || !("unbreakable" in node) || !node.unbreakable || !Array.isArray(node.stack)) {
+      return node;
+    }
+    if (!seenFirst) {
+      seenFirst = true;
+      return node;
+    }
+    return { ...node, pageBreak: "before" };
+  });
 }
 
 function parsePullQuote(html: string): PdfNode {
@@ -356,8 +384,17 @@ function parseSectionDivider(html: string): PdfNode {
   };
 }
 
-/** Convert one chapter's HTML into a pdfmake content array. */
-export function htmlToPdfmakeContent(html: string): PdfNode[] {
+/**
+ * Convert one chapter's HTML into a pdfmake content array.
+ *
+ * `opts.onePageEach` isole chaque page de storybook sur sa propre page PDF
+ * (voir `paginateStoryPages`). Les autres formats laissent le texte s'écouler
+ * normalement.
+ */
+export function htmlToPdfmakeContent(
+  html: string,
+  opts: { onePageEach?: boolean } = {}
+): PdfNode[] {
   const out: PdfNode[] = [];
   if (!html) return out;
 
@@ -489,5 +526,5 @@ export function htmlToPdfmakeContent(html: string): PdfNode[] {
     }
   }
 
-  return out;
+  return opts.onePageEach ? paginateStoryPages(out) : out;
 }

@@ -1,293 +1,198 @@
 /**
- * Prompts IA dédiés à la génération d'albums illustrés pour enfants (storybook).
+ * PROMPTS EXPERTS — ALBUM JEUNESSE ILLUSTRÉ (blueprint « storybook »).
  *
- * Innovation clé : l'utilisateur peut téléverser ses propres illustrations ou dessins.
- * Gemini Vision analyse chaque image, et ces descriptions visuelles sont ensuite injectées
- * dans la génération du plan et la rédaction page par page afin que le texte COMPLÈTE
- * parfaitement les dessins sans les paraphraser.
+ * POURQUOI UN MODULE DÉDIÉ. Le prompt système de chapitre s'ouvre sur
+ * « Tu es un auteur professionnel de best-sellers […] rédige un chapitre
+ * COMPLET […] vise au moins 800 à 1500 mots ». Pour un conte illustré, chacune
+ * de ces trois consignes est FAUSSE et travaille contre les règles de forme :
+ * une page d'album fait 40 à 80 mots, et l'objectif n'est pas la complétude
+ * mais le rythme de lecture à voix haute. Deux consignes contradictoires dans
+ * le même prompt, c'est le modèle qui arbitre — et il tranche généralement en
+ * faveur de la plus longue et la plus insistante, donc du roman.
+ *
+ * Ce module remplace donc le persona ET les règles de longueur, au lieu de les
+ * empiler. Il concentre par ailleurs tout le savoir-faire « album jeunesse »
+ * en un seul endroit, pour qu'il s'affine sans toucher au reste du moteur.
  */
 
-/**
- * Options pour la génération du plan de l'album illustré.
- */
-export interface StorybookPlanOptions {
-  /** Titre de l'album illustré */
-  title: string;
-  /** Résumé général ou idée principale de l'histoire */
-  synopsis?: string;
-  /** Tranche d'âge ou public cible (ex: « 3-6 ans », « 6-8 ans ») */
-  audience?: string;
-  /** Description des personnages principaux */
-  characters?: string;
-  /** Nombre total de pages prévues pour l'album */
-  pageCount: number;
-  /**
-   * Analyses visuelles des images téléversées par l'utilisateur (issues de Gemini Vision),
-   * ordonnées de la première à la dernière image.
-   */
-  imageDescriptions?: string[];
+/** Tranche d'âge visée — elle pilote le vocabulaire et la longueur des pages. */
+export type StorybookAge = "3-5" | "6-8" | "9-12";
+
+interface AgeProfile {
+  label: string;
+  wordsPerPage: string;
+  sentence: string;
+  vocabulary: string;
+}
+
+const AGE_PROFILES: Record<StorybookAge, AgeProfile> = {
+  "3-5": {
+    label: "3 à 5 ans (lu par un adulte)",
+    wordsPerPage: "25 à 50 mots",
+    sentence: "Une à deux phrases très courtes par page, de 6 à 10 mots chacune.",
+    vocabulary:
+      "Vocabulaire du quotidien uniquement. Présent de narration. Aucune subordonnée, aucun mot abstrait.",
+  },
+  "6-8": {
+    label: "6 à 8 ans (premiers lecteurs)",
+    wordsPerPage: "40 à 80 mots",
+    sentence: "Deux à quatre phrases par page, de 8 à 14 mots chacune.",
+    vocabulary:
+      "Vocabulaire concret, avec deux ou trois mots plus rares par livre, toujours éclairés par le contexte. Passé composé ou présent, jamais de passé simple.",
+  },
+  "9-12": {
+    label: "9 à 12 ans (lecteurs autonomes)",
+    wordsPerPage: "80 à 140 mots",
+    sentence: "Quatre à sept phrases par page, avec des rythmes variés.",
+    vocabulary:
+      "Vocabulaire riche assumé, images et comparaisons bienvenues. L'imparfait et le passé simple sont permis.",
+  },
+};
+
+/** Déduit la tranche d'âge depuis le public saisi par l'auteur. */
+export function resolveStorybookAge(audience?: string | null): StorybookAge {
+  const hay = (audience || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+
+  // On cherche d'abord un âge explicite : « 4 ans », « 7-9 ans », « dès 3 ans ».
+  const numbers = hay.match(/\d+/g);
+  if (numbers) {
+    const youngest = Math.min(...numbers.map(Number).filter((n) => n > 0 && n < 18));
+    if (Number.isFinite(youngest)) {
+      if (youngest <= 5) return "3-5";
+      if (youngest <= 8) return "6-8";
+      return "9-12";
+    }
+  }
+
+  if (/maternelle|tout-petit|tout petit|bebe|creche/.test(hay)) return "3-5";
+  if (/college|preado|pre-ado|10 ans|11 ans|12 ans/.test(hay)) return "9-12";
+  return "6-8";
 }
 
 /**
- * Options pour la rédaction du texte d'une page individuelle de l'album.
+ * Persona de rédaction. Remplace « auteur de best-sellers » : écrire un album
+ * est un métier distinct, où l'économie de mots prime sur l'ampleur.
  */
-export interface StorybookPageOptions {
-  /** Titre de l'album */
-  title: string;
-  /** Numéro de la page en cours de rédaction (commence à 1) */
-  pageNumber: number;
-  /** Nombre total de pages de l'album */
-  totalPages: number;
-  /** Description ou trame prévue pour cette page dans le plan */
-  pageOutline: string;
-  /** Analyse de l'illustration associée à cette page (le cas échéant) */
-  imageDescription?: string;
-  /** Texte ou résumé des pages précédentes pour assurer la continuité */
-  previousPages?: string;
-  /** Description des personnages principaux */
-  characters?: string;
+export function storybookPersona(age: StorybookAge): string {
+  const profile = AGE_PROFILES[age];
+  return `Tu es un auteur-illustrateur d'albums jeunesse reconnu, publié chez des éditeurs exigeants. Tu écris pour des enfants de ${profile.label}.
+
+Ton métier n'est PAS d'écrire beaucoup, c'est d'écrire JUSTE. Dans un album, l'image raconte et le texte accompagne : tout ce que l'illustration montre déjà n'a pas à être décrit. Un album réussi se relit vingt fois sans lasser l'adulte qui le lit à voix haute.`;
+}
+
+/** Règles de forme d'une page d'album, adaptées à la tranche d'âge. */
+export function storybookPageRules(age: StorybookAge): string {
+  const profile = AGE_PROFILES[age];
+  return `RÈGLES DE LA PAGE D'ALBUM (contraintes absolues, elles priment sur toute consigne de longueur donnée ailleurs) :
+- ${profile.wordsPerPage} PAR PAGE. Jamais davantage. Un texte trop long ne tient pas sous l'illustration et casse la mise en page.
+- ${profile.sentence}
+- ${profile.vocabulary}
+- Une page = une image + un moment de l'histoire. Ne jamais accumuler deux scènes sur la même page.
+- Ne DÉCRIS PAS l'image : elle est sous les yeux de l'enfant. Raconte ce qu'elle ne montre pas — ce qu'on ressent, ce qu'on entend, ce qui va arriver.
+- Termine la plupart des pages sur une petite tension qui donne envie de tourner : une question, un bruit, une apparition.
+- Les refrains et les formules qui reviennent (« Et alors… », « Mais soudain… ») font le charme de l'album : utilises-en un, et reprends-le.
+- Lis mentalement chaque page À VOIX HAUTE : si une phrase trébuche, réécris-la.
+
+STRUCTURE HTML EXIGÉE, une page par bloc, sans rien autour :
+<div class="story-page"><img src="URL_EXACTE" alt="courte description"/><p>Le texte de la page.</p></div>
+
+INTERDIT dans un album : encadré, tableau, liste à puces, sous-titre <h2>, note de bas de page, chiffre-clé, citation détachée.`;
 }
 
 /**
- * Contexte fourni à Gemini Vision pour analyser une illustration téléversée.
+ * Bloc décrivant les images de l'auteur à partir des analyses mises en cache
+ * au moment de l'import (colonne `project_assets.ai_analysis`).
+ *
+ * Travailler sur ces descriptions plutôt que de renvoyer les images à chaque
+ * génération évite de re-téléverser plusieurs mégaoctets à chaque essai, rend
+ * le plan reproductible, et permet d'utiliser un modèle non multimodal pour la
+ * rédaction si l'auteur en choisit un.
  */
-export interface ImageAnalysisContext {
-  /** Titre de l'album ou du projet */
-  title: string;
-  /** Public cible envisagé pour l'album */
-  audience?: string;
-  /** Index de l'image analysée (commence à 1) */
-  imageIndex: number;
-  /** Nombre total d'illustrations téléversées */
-  totalImages: number;
+export function renderAssetAnalyses(
+  assets: Array<{ file_url: string; ai_analysis?: string | null }>
+): string {
+  if (assets.length === 0) return "";
+
+  const lines = assets
+    .map((asset, index) => {
+      const description = (asset.ai_analysis || "").trim() || "(analyse indisponible — appuie-toi sur le contexte)";
+      return `IMAGE ${index + 1}
+URL : ${asset.file_url}
+Ce que l'on y voit : ${description}`;
+    })
+    .join("\n\n");
+
+  return `\n\n--- LES ${assets.length} IMAGES DE L'AUTEUR, DANS L'ORDRE DU LIVRE ---
+${lines}
+--- FIN DES IMAGES ---`;
 }
 
 /**
- * Persona système pour la génération de livres pour enfants (storybook).
- * Établit les règles d'or de la littérature jeunesse illustrée :
- * concision, complémentarité texte-image, simplicité du langage et musicalité.
- */
-export const STORYBOOK_SYSTEM_PERSONA = `Tu es un auteur professionnel de livres pour enfants et d'albums jeunesse illustrés de renommée internationale.
-
-Ton rôle est d'écrire des histoires tendres, drôles, captivantes et poétiques, parfaitement adaptées aux jeunes enfants et conçues pour être lues à voix haute par les parents ou les éducateurs.
-
-RÈGLES D'OR DE RÉDACTION :
-1. TEXTE COURT PAR PAGE : Rédige STRICTEMENT entre 30 et 150 mots par page. Jamais de longs pavés : l'enfant regarde l'illustration pendant que l'adulte lit.
-2. LANGAGE SIMPLE ET VIVANT : Emploie un vocabulaire clair, accessible, chaleureux et imagé, parfaitement dosé pour la tranche d'âge ciblée.
-3. INTERDICTION DES PHRASES COMPLEXES : N'utilise JAMAIS de mots savants, d'abstractions compliquées ou de phrases à rallonge. Privilégie des phrases courtes, rythmées et musicales.
-4. COMPLÉMENTARITÉ TEXTE-IMAGE :
-   - Le texte ne doit JAMAIS répéter bêtement ce que l'enfant voit déjà sur l'illustration (ne dis pas : « Voici un garçon brun qui porte un chapeau »).
-   - L'image montre le visible ; le texte apporte l'invisible : les émotions secrètes, les bruits de l'environnement (« Flic, flac ! »), les pensées, les parfums et la tension dramatique.
-5. COHÉRENCE ET CONSTANCE : Conserve rigoureusement les mêmes prénoms, les mêmes personnalités et les mêmes caractéristiques physiques pour chaque personnage d'une page à l'autre.
-6. ARC NARRATIF COMPLET : Même sur un format court, construis une véritable progression : situation initiale attachante, petit défi ou péripétie accessible, et résolution bienveillante, douce ou joyeuse.
-7. DIALOGUES NATURELS : Encadre TOUS les dialogues avec les guillemets français (« … »). Rends les échanges spontanés, expressifs et faciles à jouer à l'oral.
-8. AUCUN MÉTA-DISCOURS : Ne produis aucun préambule (pas de « Voici l'histoire », ni « En tant qu'IA »). Écris directement et exclusivement le texte de l'histoire.`;
-
-/**
- * Construit le prompt de génération du PLAN page par page d'un album jeunesse.
- *
- * Si des descriptions d'images (`imageDescriptions`) sont fournies (analysées via Gemini Vision),
- * le plan est impérativement articulé AUTOUR de ces illustrations existantes.
- * En l'absence d'images, un plan jeunesse standard cohérent est proposé.
- *
- * @param opts Paramètres du plan (titre, synopsis, public, personnages, nombre de pages, images)
- * @returns Le prompt complet en français
+ * Prompt de PLAN : découper l'histoire en chapitres à partir des images.
+ * L'ordre des images est la chronologie du conte — on ne le réarrange pas.
  */
 export function buildStorybookPlanPrompt(opts: {
   title: string;
   synopsis?: string;
   audience?: string;
-  characters?: string;
-  pageCount: number;
-  imageDescriptions?: string[];
+  tone?: string;
+  instructions?: string;
+  assets: Array<{ file_url: string; ai_analysis?: string | null }>;
 }): string {
-  const {
-    title,
-    synopsis,
-    audience = "Enfants (3-8 ans)",
-    characters,
-    pageCount,
-    imageDescriptions,
-  } = opts;
+  const age = resolveStorybookAge(opts.audience);
+  const profile = AGE_PROFILES[age];
+  const imageCount = opts.assets.length;
 
-  const hasImages = Array.isArray(imageDescriptions) && imageDescriptions.length > 0;
+  return `${storybookPersona(age)}
 
-  let imageSection = "";
-  if (hasImages) {
-    const formattedList = imageDescriptions
-      .map((desc, idx) => `Page ${idx + 1} (Illustration existante) :\n${desc.trim()}`)
-      .join("\n\n");
+Tu prépares le SOMMAIRE d'un album illustré, pas son texte.
 
-    imageSection = `--- ILLUSTRATIONS FOURNIES PAR L'AUTEUR (ANALYSE GEMINI VISION) ---
-L'auteur a déjà téléversé ses propres illustrations / dessins. Voici l'analyse détaillée de chaque image :
+Album :
+Titre : ${opts.title}
+Intention de l'auteur : ${opts.synopsis || "à déduire des images"}
+Lecteurs : ${profile.label}
+Ton souhaité : ${opts.tone || "chaleureux et malicieux"}
+${opts.instructions ? `Consignes de l'auteur (priorité maximale) : ${opts.instructions}\n` : ""}${renderAssetAnalyses(opts.assets)}
 
-${formattedList}
+TA MISSION :
+1. Regarde l'enchaînement des ${imageCount} images. Elles sont dans l'ordre du livre : l'image 1 ouvre l'histoire, la dernière la referme.
+2. Déduis-en UNE histoire cohérente, avec un protagoniste nommé, un désir, un obstacle et une résolution. Même un album de huit pages raconte un arc complet.
+3. Découpe cette histoire en ${imageCount <= 6 ? "3" : imageCount <= 12 ? "4" : "5"} chapitres au maximum. Chaque chapitre regroupe plusieurs images consécutives — JAMAIS une image dans deux chapitres, JAMAIS d'image oubliée.
+4. Donne à chaque chapitre un titre court et évocateur, formulé comme un moment vécu (« Le départ au petit matin »), jamais comme une rubrique (« Partie 1 : introduction »).
 
---- CONSIGNE MAJEURE : PLAN ARTICULÉ AUTOUR DES IMAGES ---
-- Ton plan DOIT s'articuler impérativement autour de cette séquence d'illustrations.
-- Chaque page de l'histoire doit correspondre exactement à l'illustration fournie pour cette même page.
-- Relie ces illustrations de façon fluide et logique pour former une histoire captivante, drôle ou émouvante qui fait sens avec les éléments visuels observés.
-- N'invente pas d'éléments majeurs qui contrediraient directement ce qui est visible dans les dessins.`;
-  } else {
-    imageSection = `--- GÉNÉRATION DE PLAN SANS ILLUSTRATION PRÉALABLE ---
-L'auteur n'a pas encore téléversé d'illustrations. Conçois un découpage narratif idéal en ${pageCount} pages, avec pour chaque page une suggestion claire d'illustration visuelle que l'auteur ou un illustrateur pourra réaliser plus tard.`;
-  }
+FORMAT DE RÉPONSE — uniquement du HTML, en commençant directement par la balise <h1> :
+<h1>Sommaire</h1>
+<ul>
+<li><strong>Le titre du chapitre</strong> — En une ou deux phrases, ce que vit le personnage dans ce chapitre, et quelles images (numéros) il couvre.</li>
+</ul>
 
-  return `Tu dois concevoir le PLAN DÉTAILLÉ (découpage page par page) pour un album illustré pour enfants.
-
-INFORMATIONS SUR LE LIVRE :
-- Titre : ${title}
-- Public cible : ${audience}
-- Nombre total de pages : ${pageCount}
-- Personnages principaux : ${characters?.trim() || "À définir ou à déduire des visuels / synopsis"}
-- Synopsis ou thème : ${synopsis?.trim() || "À imaginer de façon captivante autour du titre"}
-
-${imageSection}
-
-STRUCTURE ATTENDUE POUR LE PLAN :
-Pour CHAQUE page (de la Page 1 à la Page ${pageCount}), indique rigoureusement :
-1. **Numéro de la page et Titre évocateur** (ex: « Page 1 : Le mystère sous le grand baobab »)
-2. **Action narrative** : Ce qui se passe dans l'histoire sur cette page (1 à 2 phrases).
-3. **Élément visuel clé** : ${
-    hasImages
-      ? "L'élément de l'illustration fournie sur lequel s'appuie le texte."
-      : "L'idée d'illustration recommandée pour cette page."
-  }
-4. **Tonalité / Émotion** : L'émotion ou le sentiment recherché (émerveillement, rire, curiosité, réconfort...).
-
-RÈGLES IMPORTANTES :
-- Assure une progression narrative fluide du début à la fin (situation de départ, péripétie/aventure, dénouement positif).
-- Reste concis et structuré dans ta réponse.
-- Réponds UNIQUEMENT avec le plan page par page, sans préambule ni conclusion méta.`;
+N'écris AUCUN texte d'album ici, aucun paragraphe de contenu. Ne numérote pas toi-même les chapitres. Pas de Markdown, pas de salutation, pas de commentaire final.`;
 }
 
 /**
- * Construit le prompt de rédaction d'UNE PAGE individuelle de l'album illustré.
- *
- * Intègre les contraintes de concision extrême (2 à 5 phrases, 30-150 mots),
- * la complémentarité avec l'illustration (ne pas redécrire le visible),
- * et les règles strictes de continuité narrative.
- *
- * @param opts Paramètres de la page (titre, numéro, total, trame, image, antécédents, personnages)
- * @returns Le prompt complet en français
+ * Bloc à injecter dans le prompt SYSTÈME de rédaction d'un chapitre d'album.
+ * Il porte le persona, les règles de page et les images du chapitre.
  */
-export function buildStorybookPagePrompt(opts: {
-  title: string;
-  pageNumber: number;
-  totalPages: number;
-  pageOutline: string;
-  imageDescription?: string;
-  previousPages?: string;
-  characters?: string;
-}): string {
-  const {
-    title,
-    pageNumber,
-    totalPages,
-    pageOutline,
-    imageDescription,
-    previousPages,
-    characters,
-  } = opts;
-
-  // Directive de continuité selon la position de la page
-  let continuityDirective = "";
-  if (pageNumber === 1) {
-    continuityDirective = `PREMIÈRE PAGE DU LIVRE :
-- Installe l'atmosphère et présente le protagoniste de manière vivante et chaleureuse.
-- Accroche immédiatement l'attention de l'enfant dès la première ligne.
-- Ne fais aucun résumé préalable : entre directement dans le vif du récit.`;
-  } else {
-    const isLastPage = pageNumber === totalPages;
-    continuityDirective = `CONTINUITÉ STRICTE (Page ${pageNumber} sur ${totalPages}) :
-- Tu poursuis une histoire déjà entamée. Les pages précédentes sont fournies ci-dessous.
-- RÈGLE ABSOLUE : Ne recommence JAMAIS l'histoire au début ! Ne réintroduis pas les personnages comme s'ils étaient nouveaux.
-- Reprends l'action EXACTEMENT là où s'est arrêtée la page précédente.
-- Conserve les mêmes prénoms, les mêmes traits d'humeur et la même dynamique.${
-      isLastPage
-        ? `\n- DERNIÈRE PAGE DE L'ALBUM : Apporte une fin satisfaisante, réconfortante ou joyeuse qui clôture l'aventure sur une note douce et mémorable.`
-        : ""
-    }`;
-  }
-
-  // Directive liée à l'illustration de la page
-  let imageComplementDirective = "";
-  if (imageDescription && imageDescription.trim()) {
-    imageComplementDirective = `ILLUSTRATION DE CETTE PAGE (Analyse visuelle) :
-« ${imageDescription.trim()} »
-
-CONSIGNE CRUCIALE DE COMPLÉMENTARITÉ :
-- Le texte DOIT COMPLÉTER l'illustration et NON la paraphraser.
-- INTERDIT ABSOLU : Ne dis JAMAIS « Sur cette image… », « On voit… », « Regardez le dessin… ».
-- L'enfant a l'image sous les yeux : il voit déjà les couleurs, les poses et les objets.
-- Ton texte doit donner vie à ce qui ne se voit pas : les sons (« Cric, crac, boum ! »), les pensées intérieures du personnage, ses doutes, ses rires, les dialogues ou la phrase d'action qui fait avancer la scène.`;
-  } else {
-    imageComplementDirective = `CONSIGNE VISUELLE :
-- Aucun dessin n'est encore fourni pour cette page. Rédige un texte évocateur et très visuel qui donnera envie à l'enfant d'imaginer la scène.`;
-  }
-
-  const charactersBlock = characters?.trim()
-    ? `\nPERSONNAGES DE L'HISTOIRE :\n${characters.trim()}\n`
-    : "";
-
-  const previousBlock =
-    previousPages && previousPages.trim() && pageNumber > 1
-      ? `\nRÉSUMÉ OU TEXTE DES PAGES PRÉCÉDENTES :\n${previousPages.trim()}\n`
-      : "";
-
-  return `Rédige le texte de la PAGE ${pageNumber} sur un total de ${totalPages} pages pour l'album illustré jeunesse : « ${title} ».
-
-TRAME PRÉVUE POUR CETTE PAGE :
-${pageOutline.trim()}
-${charactersBlock}${previousBlock}
-${imageComplementDirective}
-
-${continuityDirective}
-
-CONTRAINTES FORMELLES STRICTES :
-1. LONGUEUR : Entre 2 et 5 phrases au total (30 à 150 mots maximum). Court, percutant et adapté au souffle d'une lecture partagée.
-2. DIALOGUES : Si un personnage parle, utilise impérativement des guillemets français (« … »).
-3. STYLE : Des phrases courtes et musicales. Jamais de vocabulaire abstrait ou obscur.
-4. FORMAT DE SORTIE : Écris UNIQUEMENT le texte destiné à la page du livre. N'ajoute aucun titre, aucun numéro de page, aucune remarque méta (« Voici le texte : »).`;
-}
-
-/**
- * Construit le prompt envoyé à Gemini Vision pour analyser une image ou un dessin
- * téléversé par l'utilisateur.
- *
- * L'analyse visuelle obtenue est enregistrée pour être ensuite réutilisée
- * dans la génération du plan narratif et la rédaction de chaque page.
- *
- * @param context Métadonnées de l'image (titre de l'album, public cible, position de l'image)
- * @returns Le prompt en français destiné au modèle de vision
- */
-export function buildImageAnalysisPrompt(context: {
-  title: string;
+export function buildStorybookChapterPrompt(opts: {
   audience?: string;
-  imageIndex: number;
-  totalImages: number;
+  assets: Array<{ file_url: string; ai_analysis?: string | null }>;
 }): string {
-  const {
-    title,
-    audience = "Jeunes enfants (3-8 ans)",
-    imageIndex,
-    totalImages,
-  } = context;
+  const age = resolveStorybookAge(opts.audience);
+  const pageCount = opts.assets.length;
 
-  return `Tu es un spécialiste de l'analyse d'illustrations pour la littérature jeunesse.
+  return `${storybookPersona(age)}
 
-Cette image est l'illustration n°${imageIndex} sur un total de ${totalImages} pour un album pour enfants intitulé « ${title} » (Public cible : ${audience}).
+${storybookPageRules(age)}
+${renderAssetAnalyses(opts.assets)}
 
-Analyse attentivement cette image et décris avec précision ses composantes pour qu'un auteur puisse écrire l'histoire qui l'accompagne :
+POUR CE CHAPITRE : écris EXACTEMENT ${pageCount} bloc${pageCount > 1 ? "s" : ""} <div class="story-page">, un par image, dans l'ordre donné. Reprends les URL telles quelles, sans les modifier ni en inventer.
+Le personnage garde le même nom, la même apparence et le même caractère d'un chapitre à l'autre : c'est ce qui fait tenir l'album.`;
+}
 
-1. **Sujets principaux et personnages** : Quels personnages, animaux ou êtres vivants apparaissent ? Décris leur apparence, leurs vêtements, leur posture, l'expression de leur visage et l'émotion visible (joie, surprise, peur, malice...).
-2. **Action et dynamique** : Que sont-ils en train de faire ? Quel geste, mouvement ou événement précis se déroule sur l'image ?
-3. **Décor et environnement** : Où la scène se situe-t-elle (chambre, forêt, savane, école, cuisine, extérieur, intérieur...) ? Quels sont les éléments notables du décor ou de l'arrière-plan ?
-4. **Couleurs et ambiance visuelle** : Quelles sont les couleurs dominantes ? Quelle est la luminosité et l'atmosphère générale (douce, chaleureuse, nocturne, mystérieuse, festive...) ?
-5. **Détails narratifs remarquables** : Y a-t-il des objets insolites, des petits animaux cachés, des détails curieux qui pourraient inspirer un dialogue ou une péripétie dans l'histoire ?
-
-DIRECTIVES DE RÉPONSE :
-- Rédige une analyse synthétique, claire et évocatrice en français (150 à 250 mots environ).
-- Sois objectif et précis sur ce qui est réellement visible dans le dessin.
-- Cette analyse sera directement transmise à l'IA chargée d'écrire le texte de l'album.`;
+/** Vrai si ce blueprint doit passer par les prompts d'album. */
+export function isStorybookBlueprint(blueprintId?: string | null): boolean {
+  return blueprintId === "storybook";
 }

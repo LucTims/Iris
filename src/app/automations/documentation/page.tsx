@@ -108,24 +108,24 @@ function Section({
     <section
       className={`rounded-3xl border shadow-2xs overflow-hidden ${
         tone === "warning"
-          ? "bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/60"
-          : "bg-white dark:bg-neutral-900 border-neutral-200/80 dark:border-neutral-800"
+          ? "bg-amber-50/60 border-amber-200"
+          : "bg-white border-neutral-200/80"
       }`}
     >
       <div className="p-6 sm:p-8 space-y-4">
-        <h2 className="font-heading text-lg font-extrabold text-neutral-900 dark:text-neutral-100 flex items-center gap-2.5">
+        <h2 className="font-heading text-lg font-extrabold text-neutral-900 flex items-center gap-2.5">
           <span
             className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
               tone === "warning"
-                ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300"
-                : "bg-orange-50 dark:bg-orange-950/40 text-secondary"
+                ? "bg-amber-100 text-amber-700"
+                : "bg-orange-50 text-secondary"
             }`}
           >
             <Icon className="w-4 h-4" />
           </span>
           {title}
         </h2>
-        <div className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed space-y-3">
+        <div className="text-sm text-neutral-600 leading-relaxed space-y-3">
           {children}
         </div>
       </div>
@@ -146,16 +146,16 @@ export default function McpDocumentationPage() {
 
   return (
     <AppLayout>
-      <header className="bg-white dark:bg-neutral-900/80 dark:bg-neutral-950/80 backdrop-blur-md border-b border-neutral-100 dark:border-neutral-800 sticky top-0 z-20 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
+      <header className="bg-white/80 backdrop-blur-md border-b border-neutral-100 sticky top-0 z-20 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/automations"
-            className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-white bg-neutral-100 dark:bg-neutral-800 px-3 py-2 rounded-xl transition-all"
+            className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Automatisations</span>
           </Link>
-          <h1 className="font-heading font-extrabold text-lg sm:text-xl text-neutral-900 dark:text-neutral-100 flex items-center gap-2 truncate">
+          <h1 className="font-heading font-extrabold text-lg sm:text-xl text-neutral-900 flex items-center gap-2 truncate">
             <BookOpen className="w-5 h-5 text-secondary shrink-0" strokeWidth={2.5} />
             <span className="truncate">Documentation MCP</span>
           </h1>
@@ -164,7 +164,7 @@ export default function McpDocumentationPage() {
 
       <main className="p-4 sm:p-6 md:p-10 max-w-4xl mx-auto w-full space-y-6">
         <div className="space-y-2">
-          <p className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed">
+          <p className="text-sm text-neutral-600 leading-relaxed">
             La connexion MCP relie votre bibliothèque Iris à un assistant IA externe
             (Claude, ChatGPT, Cursor, n8n, Make…). L&apos;assistant peut alors lire vos
             livres et écrire dedans <strong>en votre nom</strong>, sans que vous ayez à
@@ -178,7 +178,7 @@ export default function McpDocumentationPage() {
             assistant IA d&apos;appeler des outils sur un service tiers. Iris expose un
             serveur MCP à cette adresse :
           </p>
-          <pre className="bg-neutral-900 dark:bg-black text-neutral-100 p-3 rounded-xl text-xs overflow-x-auto font-mono">
+          <pre className="bg-neutral-900 text-neutral-100 p-3 rounded-xl text-xs overflow-x-auto font-mono">
             {mcpUrl}
           </pre>
           <p>
@@ -198,36 +198,36 @@ export default function McpDocumentationPage() {
           <div className="overflow-x-auto -mx-2 px-2">
             <table className="w-full text-xs border-collapse min-w-[640px]">
               <thead>
-                <tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                <tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
                   <th className="py-2 pr-3 font-bold">Outil</th>
                   <th className="py-2 pr-3 font-bold">Ce qu&apos;il fait</th>
                   <th className="py-2 pr-3 font-bold">Paramètres</th>
                   <th className="py-2 font-bold">Accès</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
+              <tbody className="divide-y divide-neutral-100">
                 {TOOLS.map((tool) => (
                   <tr key={tool.name} className="align-top">
                     <td className="py-2.5 pr-3">
                       <code className="font-mono font-bold text-secondary">{tool.name}</code>
                     </td>
-                    <td className="py-2.5 pr-3 text-neutral-600 dark:text-neutral-300">
+                    <td className="py-2.5 pr-3 text-neutral-600">
                       {tool.summary}
                       {tool.costsCoins && (
-                        <span className="block mt-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 inline-flex items-center gap-1">
+                        <span className="block mt-1 text-[10px] font-bold text-amber-600 inline-flex items-center gap-1">
                           <Coins className="w-3 h-3" /> {tool.costsCoins}
                         </span>
                       )}
                     </td>
-                    <td className="py-2.5 pr-3 font-mono text-[10px] text-neutral-500 dark:text-neutral-400">
+                    <td className="py-2.5 pr-3 font-mono text-[10px] text-neutral-500">
                       {tool.params}
                     </td>
                     <td className="py-2.5">
                       <span
                         className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
                           tool.writes
-                            ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300"
-                            : "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-emerald-100 text-emerald-700"
                         }`}
                       >
                         {tool.writes ? "Écriture" : "Lecture"}
@@ -326,14 +326,14 @@ export default function McpDocumentationPage() {
         </Section>
 
         <Section icon={Terminal} title="Connecter votre outil">
-          <p className="font-bold text-neutral-800 dark:text-neutral-100">
+          <p className="font-bold text-neutral-800">
             Claude Desktop, Cursor, Windsurf
           </p>
           <p>
             Ces clients passent par <code className="text-[11px]">mcp-remote</code>.
             Ajoutez ce bloc à leur fichier de configuration MCP :
           </p>
-          <pre className="bg-neutral-900 dark:bg-black text-neutral-100 p-3 rounded-xl text-[11px] overflow-x-auto font-mono leading-relaxed">
+          <pre className="bg-neutral-900 text-neutral-100 p-3 rounded-xl text-[11px] overflow-x-auto font-mono leading-relaxed">
 {`{
   "mcpServers": {
     "iris": {
@@ -344,20 +344,20 @@ export default function McpDocumentationPage() {
 }`}
           </pre>
 
-          <p className="font-bold text-neutral-800 dark:text-neutral-100 pt-2">
+          <p className="font-bold text-neutral-800 pt-2">
             n8n, Make, Zapier et appels directs
           </p>
           <p>
             Ces plateformes envoient des requêtes HTTP : utilisez l&apos;en-tête
             d&apos;autorisation, plus sûr que la clé dans l&apos;URL.
           </p>
-          <pre className="bg-neutral-900 dark:bg-black text-neutral-100 p-3 rounded-xl text-[11px] overflow-x-auto font-mono leading-relaxed">
+          <pre className="bg-neutral-900 text-neutral-100 p-3 rounded-xl text-[11px] overflow-x-auto font-mono leading-relaxed">
 {`curl -X POST ${mcpUrl} \\
   -H "Authorization: Bearer VOTRE_CLE" \\
   -H "Content-Type: application/json" \\
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'`}
           </pre>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+          <p className="text-xs text-neutral-500">
             <code className="text-[11px]">tools/list</code> est le meilleur test de
             connexion : il ne modifie rien et renvoie la liste des neuf outils ci-dessus.
           </p>
@@ -366,38 +366,38 @@ export default function McpDocumentationPage() {
         <Section icon={AlertTriangle} title="Résoudre un problème">
           <dl className="space-y-3">
             <div>
-              <dt className="font-bold text-neutral-800 dark:text-neutral-100">
+              <dt className="font-bold text-neutral-800">
                 « Non autorisé : clé API MCP manquante ou invalide »
               </dt>
-              <dd className="text-neutral-600 dark:text-neutral-300">
+              <dd className="text-neutral-600">
                 La clé est absente, mal recopiée ou a été révoquée par une régénération.
                 Générez-en une nouvelle depuis Automatisations et remplacez-la partout.
               </dd>
             </div>
             <div>
-              <dt className="font-bold text-neutral-800 dark:text-neutral-100">
+              <dt className="font-bold text-neutral-800">
                 L&apos;assistant ne voit aucun outil
               </dt>
-              <dd className="text-neutral-600 dark:text-neutral-300">
+              <dd className="text-neutral-600">
                 L&apos;adresse est probablement incomplète. Elle doit se terminer par
                 <code className="text-[11px]"> /api/mcp</code>, sans barre oblique finale.
               </dd>
             </div>
             <div>
-              <dt className="font-bold text-neutral-800 dark:text-neutral-100">
+              <dt className="font-bold text-neutral-800">
                 « Projet introuvable » alors que le livre existe
               </dt>
-              <dd className="text-neutral-600 dark:text-neutral-300">
+              <dd className="text-neutral-600">
                 L&apos;identifiant transmis n&apos;appartient pas au compte de la clé
                 utilisée. Demandez d&apos;abord <code className="text-[11px]">list_projects</code>,
                 puis reprenez l&apos;identifiant exact qu&apos;il renvoie.
               </dd>
             </div>
             <div>
-              <dt className="font-bold text-neutral-800 dark:text-neutral-100">
+              <dt className="font-bold text-neutral-800">
                 Une génération échoue pour fonds insuffisants
               </dt>
-              <dd className="text-neutral-600 dark:text-neutral-300">
+              <dd className="text-neutral-600">
                 Les outils MCP consomment les mêmes pièces que l&apos;application.
                 Vérifiez votre solde avec <code className="text-[11px]">get_wallet_balance</code>.
               </dd>

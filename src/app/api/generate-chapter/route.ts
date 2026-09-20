@@ -39,6 +39,7 @@ export async function POST(req: Request) {
       synopsis,
       tone,
       category,
+      audience,
       characters,
       chapterTitle,
       chapterNumber,
@@ -68,14 +69,44 @@ export async function POST(req: Request) {
       title,
     });
 
-    // Flux « Vision-to-Story » : les images de CE chapitre sont jointes au
-    // prompt multimodal. Le modèle rédige à partir de ce qu'il voit, et
-    // réutilise les URL exactes pour construire les pages du conte.
-    const visionImages: string[] = isImageDrivenWorkType(workType)
-      ? (Array.isArray(imageUrls) ? imageUrls : [])
-          .filter((u: unknown): u is string => typeof u === "string" && /^https?:\/\//.test(u))
-          .slice(0, 12)
-      : [];
+    // Flux « Vision-to-Story ». On privilégie les descriptions mises en cache
+    // à l'import : le modèle rédige alors à partir d'un texte, ce qui évite de
+    // re-téléverser les images à chaque régénération de chapitre et autorise
+    // un modèle non multimodal. Les images ne partent en pièce jointe qu'en
+    // repli, quand aucune analyse n'existe.
+    let chapterAssets: Array<{ file_url: string; ai_analysis?: string | null }> = [];
+    if (isImageDrivenWorkType(workType) && projectId) {
+      const { data: assetRows } = await supabase
+        .from("project_assets")
+        .select("file_url, ai_analysis")
+        .eq("project_id", projectId)
+        .eq("user_id", user.id)
+        .order("position", { ascending: true });
+
+      const all = assetRows || [];
+      const requested = (Array.isArray(imageUrls) ? imageUrls : []).filter(
+        (u: unknown): u is string => typeof u === "string"
+      );
+      // Le client indique quelles images reviennent à ce chapitre ; sans
+      // précision, on prend l'ensemble.
+      chapterAssets = requested.length
+        ? all.filter((a) => requested.includes(a.file_url))
+        : all;
+    }
+
+    const hasCachedAnalyses = chapterAssets.some((a) => (a.ai_analysis || "").trim().length > 0);
+
+    const visionImages: string[] =
+      isImageDrivenWorkType(workType) && !hasCachedAnalyses
+        ? (chapterAssets.length
+            ? chapterAssets.map((a) => a.file_url)
+            : Array.isArray(imageUrls)
+              ? imageUrls
+              : []
+          )
+            .filter((u: unknown): u is string => typeof u === "string" && /^https?:\/\//.test(u))
+            .slice(0, 12)
+        : [];
 
     // Titre canonique du chapitre. Le client peut l'imposer (il connaît la
     // position réelle du chapitre dans le livre) ; sinon on le recompose ici en
@@ -92,7 +123,7 @@ export async function POST(req: Request) {
     // des chapitres démesurés qui dépasseraient la limite de temps de 60 s.
     const wordsTarget = Math.max(400, Math.min(4000, Number(targetWords) || 0));
 
-    const selectedModelName = chosenModel || "gemini-2.5-flash";
+    const selectedModelName = chosenModel || "gemini-3.6-flash";
 
     // Garde-fou : on exige le coût ESTIMÉ du chapitre (pages × tarif/page) AVANT
     // de générer, pour s'arrêter proprement quand les pièces manquent — sans
@@ -144,6 +175,10 @@ export async function POST(req: Request) {
       previousSummary: previousChaptersSummary,
       searchContext,
       wordsTarget: wordsTarget || undefined,
+      // Bascule le prompt sur le persona « album jeunesse » quand des visuels
+      // analysés accompagnent ce chapitre.
+      storybookAssets: chapterAssets.length ? chapterAssets : undefined,
+      audience,
     });
 
     // Génération AVEC REPLI AUTOMATIQUE entre fournisseurs : si la clé du modèle

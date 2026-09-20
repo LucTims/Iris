@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { getPackById } from "@/lib/coinPacks";
+import { getPackByChariowProductId, getPackById } from "@/lib/coinPacks";
 import { creditWalletCoins } from "@/lib/payments/creditWallet";
 import { verifyChariowSignature } from "@/lib/payments/chariowSignature";
 
 /**
  * Webhook "Pulse" Chariow — sécurisé selon le contrat officiel
  * (https://chariow.dev/en/guides/pulse-security) :
- *   - signature HMAC-SHA256 du corps BRUT, header `x-chariow-signature`
- *     au format `sha256=<hex>`, comparaison en temps constant ;
- *   - déduplication sur `x-pulse-delivery-id` (Chariow réessaie jusqu'à 5 fois
- *     la même livraison) via la table webhook_deliveries ;
- *   - crédit du wallet via le RPC atomique credit_wallet_coins (pas de
- *     lire-puis-écrire, qui pouvait perdre un crédit sous concurrence).
- *
- * AVANT ce fichier : la route ne vérifiait AUCUNE signature — n'importe qui
- * connaissant/devinant l'URL pouvait créditer des pièces gratuitement.
+ *   - signature HMAC-SHA256 du corps BRUT, header x-chariow-signature
+ *     au format sha256=<hex>, comparaison en temps constant ;
+ *   - déduplication sur x-pulse-delivery-id (Chariow réessaie jusqu'à 5 fois)
+ *     via la table webhook_deliveries ;
+ *   - prise en charge des événements:
+ *       * successful.sale (vente réussie directe)
+ *       * license.issued (licence générée suite à un achat)
+ *       * license.activated (licence activée)
+ *   - double déduplication anti-rejeu via la table redeemed_licenses et transactions ;
+ *   - crédit du wallet via le RPC atomique credit_wallet_coins (verrouillage FOR UPDATE).
  */
 
 function getSupabaseAdmin() {
@@ -25,26 +26,19 @@ function getSupabaseAdmin() {
   );
 }
 
-// IDs produits Chariow -> plans de pièces internes (voir @/lib/coinPacks).
-const PRODUCT_ID_TO_PLAN: Record<string, string> = {
-  prd_waqgpzhy: "starter",
-  prd_jvzz32pf: "creator",
-  prd_yekmrhdn: "author",
-};
-
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
 
-    const secret = process.env.CHARIOW_PULSE_SECRET;
+    const secret = process.env.CHARIOW_PULSE_SECRET || process.env.CHARIOW_WEBHOOK_SECRET;
     if (!secret) {
-      console.error("CHARIOW_PULSE_SECRET manquante côté serveur — webhook refusé par sécurité.");
+      console.error("[Webhook Chariow] Clé secrète (CHARIOW_PULSE_SECRET/CHARIOW_WEBHOOK_SECRET) manquante.");
       return NextResponse.json({ error: "Configuration serveur invalide" }, { status: 500 });
     }
 
     const receivedSignature = req.headers.get("x-chariow-signature");
     if (!verifyChariowSignature(rawBody, secret, receivedSignature)) {
-      console.warn("Signature Chariow invalide ou absente — requête rejetée 401.");
+      console.warn("[Webhook Chariow] Signature Chariow invalide ou absente — requête rejetée 401.");
       return NextResponse.json({ error: "Signature invalide" }, { status: 401 });
     }
 
@@ -57,10 +51,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // Déduplication : un même événement peut être livré plusieurs fois
-    // (réessais Chariow, ou replay manuel depuis le dashboard). Les tests
-    // envoyés depuis le dashboard n'ont pas de delivery-id : dans ce cas on
-    // traite sans persister de clé d'idempotence.
+    // 1. Déduplication au niveau livraison Chariow (x-pulse-delivery-id)
     const deliveryId = req.headers.get("x-pulse-delivery-id");
     if (deliveryId) {
       const { error: dedupeError } = await supabase
@@ -68,55 +59,96 @@ export async function POST(req: NextRequest) {
         .insert({ provider: "chariow", delivery_id: deliveryId, event: payload?.event || null });
 
       if (dedupeError) {
-        // Violation de contrainte unique = déjà traité : on acquitte sans rejouer.
         if ((dedupeError as any).code === "23505") {
           return NextResponse.json({ received: true, status: "already_processed" });
         }
-        console.error("Erreur lors de l'enregistrement de l'idempotence Chariow:", dedupeError);
-        // On continue quand même le traitement plutôt que de perdre un paiement
-        // pour un souci d'écriture sur la table de dédup.
+        console.error("[Webhook Chariow] Erreur enregistrement webhook_deliveries:", dedupeError);
       }
     }
 
     const event = payload?.event;
-    if (event !== "successful.sale") {
-      // Autres événements (abandoned/failed sale, licences, affilié…) : rien à
-      // créditer, on acquitte simplement pour éviter les réessais Chariow.
+    // On prend en compte les événements de vente et de licence
+    const validEvents = ["successful.sale", "license.issued", "license.activated"];
+    if (!validEvents.includes(event)) {
       return NextResponse.json({ received: true, status: "ignored", event });
     }
 
     const sale = payload?.sale || {};
+    const license = payload?.license || {};
     const product = payload?.product || {};
     const customer = payload?.customer || {};
 
+    const licenseKey: string | undefined = license?.key ? license.key.trim() : undefined;
+    const licenseId: string | undefined = license?.id;
     const productId: string | undefined = product?.id;
-    const planId =
-      (productId && PRODUCT_ID_TO_PLAN[productId]) ||
-      sale?.custom_metadata?.plan_id ||
-      undefined;
+    const saleId: string | undefined = sale?.id;
 
-    const pack = planId ? getPackById(planId) : undefined;
+    // 2. Déduplication métier anti-double crédit
+
+    // A. Si c'est une licence et qu'elle a déjà été enregistrée/créditée
+    if (licenseKey) {
+      const { data: existingLicense } = await supabase
+        .from("redeemed_licenses")
+        .select("id, user_id, coins_credited")
+        .eq("license_key", licenseKey)
+        .maybeSingle();
+
+      if (existingLicense) {
+        return NextResponse.json({ received: true, status: "already_credited_license" });
+      }
+    }
+
+    // B. Si un ID de vente est présent et qu'il a déjà été payé et crédité
+    if (saleId) {
+      const { data: existingTx } = await supabase
+        .from("transactions")
+        .select("id, user_id")
+        .eq("provider_reference", saleId)
+        .eq("status", "paid")
+        .maybeSingle();
+
+      if (existingTx) {
+        // Enregistrer la clé de licence si elle arrive sur un événement séparé
+        if (licenseKey) {
+          try {
+            await supabase.from("redeemed_licenses").insert({
+              user_id: existingTx.user_id,
+              license_key: licenseKey,
+              chariow_license_id: licenseId || null,
+              product_id: productId || "unknown",
+              plan_id: "unknown",
+              coins_credited: 0,
+              source: "pulse_webhook",
+            });
+          } catch {}
+        }
+        return NextResponse.json({ received: true, status: "already_credited_sale" });
+      }
+    }
+
+    // 3. Identification du pack de pièces
+    let pack = productId ? getPackByChariowProductId(productId) : undefined;
     if (!pack) {
-      console.error("Produit Chariow non mappé à un pack de pièces:", productId);
+      const planId = sale?.custom_metadata?.plan_id || product?.name;
+      if (planId) {
+        pack = getPackById(planId);
+      }
+    }
+
+    if (!pack) {
+      console.error("[Webhook Chariow] Produit non mappé à un pack:", productId, product?.name);
       return NextResponse.json({ received: true, status: "unknown_product" });
     }
 
-    // Identification de l'utilisateur : d'abord la référence explicite passée
-    // au checkout (custom_metadata.user_id / client_reference_id), sinon
-    // repli par email (moins fiable, un email peut ne correspondre à aucun
-    // compte si l'achat a été fait avec une autre adresse).
+    // 4. Identification de l'utilisateur Iris
     let userId: string | undefined =
-      sale?.custom_metadata?.user_id || sale?.custom_metadata?.client_reference_id;
+      sale?.custom_metadata?.user_id ||
+      sale?.custom_metadata?.client_reference_id ||
+      payload?.custom_metadata?.user_id ||
+      payload?.custom_metadata?.client_reference_id;
 
     const customerEmail: string | undefined = customer?.email;
     if (!userId && customerEmail) {
-      // Recherche directe par e-mail dans `profiles` (colonne `email`
-      // alimentée par le trigger handle_new_user).
-      //
-      // AVANT : `auth.admin.listUsers()` sans pagination ne renvoie que la
-      // PREMIÈRE page (50 comptes par défaut). Au-delà de 50 inscrits, un
-      // acheteur payant qui n'était pas dans cette première page n'était tout
-      // simplement pas trouvé — paiement encaissé, aucune pièce créditée.
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id")
@@ -124,40 +156,64 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
 
       if (profileError) {
-        console.error("Recherche du profil par e-mail impossible:", profileError);
+        console.error("[Webhook Chariow] Erreur recherche profil par email:", profileError);
       } else if (profile?.id) {
         userId = profile.id;
       }
     }
 
     if (!userId) {
-      console.error("Impossible de trouver l'utilisateur pour la vente Chariow:", sale?.id, customerEmail);
+      console.error("[Webhook Chariow] Utilisateur introuvable pour la vente/licence:", saleId, customerEmail);
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 400 });
     }
 
     const amountValue = Number(sale?.amount?.value) || pack.priceFcfa;
     const currency = sale?.amount?.currency || "XOF";
 
+    // 5. Crédit atomique du portefeuille
     const credit = await creditWalletCoins(
       supabase,
       userId,
       pack.coins,
-      `Achat de pièces (Chariow) : ${pack.name}`,
+      `Achat de pièces (Chariow ${event}) : ${pack.name}`,
       {
         provider: "chariow",
-        sale_id: sale?.id,
+        event,
+        sale_id: saleId,
+        license_key: licenseKey,
+        license_id: licenseId,
         product_id: productId,
         plan_id: pack.id,
       }
     );
 
     if (!credit.ok) {
-      console.error("Échec du crédit wallet pour la vente Chariow:", sale?.id, userId);
+      console.error("[Webhook Chariow] Échec du crédit wallet:", saleId, userId);
       return NextResponse.json({ error: "Échec du crédit" }, { status: 500 });
     }
 
-    // Journal (best-effort) — cohérent avec le schéma réel de `transactions`
-    // (plan_id NOT NULL). Une erreur ici n'annule pas le crédit déjà effectué.
+    // 6. Enregistrement dans redeemed_licenses si clé présente
+    if (licenseKey) {
+      try {
+        await supabase.from("redeemed_licenses").insert({
+          user_id: userId,
+          license_key: licenseKey,
+          chariow_license_id: licenseId || null,
+          product_id: productId || "unknown",
+          plan_id: pack.id,
+          coins_credited: pack.coins,
+          source: "pulse_webhook",
+          metadata: {
+            sale_id: saleId,
+            customer_email: customerEmail,
+          },
+        });
+      } catch (licErr) {
+        console.warn("[Webhook Chariow] Erreur non critique écriture redeemed_licenses:", licErr);
+      }
+    }
+
+    // 7. Journalisation dans transactions
     try {
       await supabase.from("transactions").insert({
         user_id: userId,
@@ -165,17 +221,19 @@ export async function POST(req: NextRequest) {
         amount: amountValue,
         currency,
         status: "paid",
-        provider_reference: sale?.id || null,
+        provider_reference: saleId || licenseId || licenseKey || null,
       });
     } catch (logErr) {
-      console.warn("Journalisation transaction Chariow non critique:", logErr);
+      console.warn("[Webhook Chariow] Journalisation transaction non critique:", logErr);
     }
 
-    console.log(`[Webhook Chariow] ${pack.coins} pièces créditées à l'utilisateur ${userId} (vente ${sale?.id}).`);
+    console.log(
+      `[Webhook Chariow] ${pack.coins} pièces créditées à ${userId} (event: ${event}, ref: ${saleId || licenseKey}).`
+    );
 
     return NextResponse.json({ success: true, coins_credited: pack.coins });
   } catch (error: any) {
-    console.error("Erreur Webhook Chariow:", error?.message || error);
+    console.error("[Webhook Chariow] Erreur non gérée:", error?.message || error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

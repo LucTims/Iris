@@ -108,10 +108,10 @@ export async function POST(req: Request) {
     const userPlan = profile?.plan || "free";
     const userRole = profile?.role || "user";
 
-    // Server Whitelist: Force gemini-2.5-flash for free users attempting gemini-2.5-pro
-    let selectedModelName = chosenModel || "gemini-2.5-flash";
+    // Server Whitelist: Force gemini-3.6-flash for free users attempting gemini-2.5-pro
+    let selectedModelName = chosenModel || "gemini-3.6-flash";
     if (selectedModelName === "gemini-2.5-pro" && userPlan === "free" && userRole !== "admin") {
-      selectedModelName = "gemini-2.5-flash";
+      selectedModelName = "gemini-3.6-flash";
     }
 
     // Quota enforcement (inline, using the parallel result)

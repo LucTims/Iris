@@ -117,18 +117,18 @@ export default function ProfilePage() {
 
   return (
     <AppLayout>
-        <header className="bg-white dark:bg-neutral-900/80 dark:bg-neutral-950/80 backdrop-blur-md border-b border-neutral-100 dark:border-neutral-800 sticky top-0 z-20 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
+        <header className="bg-white/80 backdrop-blur-md border-b border-neutral-100 sticky top-0 z-20 h-16 px-4 md:px-8 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-white bg-neutral-100 dark:bg-neutral-800 px-3 py-2 rounded-xl transition-all">
+            <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 bg-neutral-100 px-3 py-2 rounded-xl transition-all">
               <span className="material-symbols-outlined text-base">arrow_back</span>
               <span>Tableau de bord</span>
             </Link>
-            <h1 className="font-heading font-extrabold text-xl text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+            <h1 className="font-heading font-extrabold text-xl text-neutral-900 flex items-center gap-2">
               <User className="w-5 h-5 text-secondary" strokeWidth={2.5} />
               <span>Mon Profil</span>
             </h1>
           </div>
-          <Link href="/settings" className="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 text-xs font-bold px-4 py-2 rounded-xl transition-all">
+          <Link href="/settings" className="flex items-center gap-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold px-4 py-2 rounded-xl transition-all">
             <span className="material-symbols-outlined text-base">settings</span>
             <span className="hidden sm:inline">Paramètres</span>
           </Link>
@@ -142,11 +142,11 @@ export default function ProfilePage() {
             <div className="flex-1 space-y-6">
               
               {/* Profile Card */}
-              <section className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200/80 dark:border-neutral-800 shadow-2xs overflow-hidden">
+              <section className="bg-white rounded-3xl border border-neutral-200/80 shadow-2xs overflow-hidden">
                 <div className="p-6 sm:p-8 space-y-8">
                   <div>
-                    <h2 className="font-heading text-xl font-extrabold text-neutral-900 dark:text-neutral-100">Informations Personnelles</h2>
-                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">Gérez votre identité publique en tant qu'auteur.</p>
+                    <h2 className="font-heading text-xl font-extrabold text-neutral-900">Informations Personnelles</h2>
+                    <p className="text-xs text-neutral-500 mt-1">Gérez votre identité publique en tant qu'auteur.</p>
                   </div>
                   
                   {feedback && (
@@ -154,8 +154,8 @@ export default function ProfilePage() {
                       role="status"
                       className={`px-4 py-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-fadeIn border ${
                         feedback.kind === "success"
-                          ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300"
-                          : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900 text-red-700 dark:text-red-300"
+                          ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                          : "bg-red-50 border-red-200 text-red-700"
                       }`}
                     >
                       {feedback.kind === "success" ? (
@@ -168,13 +168,13 @@ export default function ProfilePage() {
                   )}
 
                   {/* Avatar Section */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 border-b border-neutral-100 dark:border-neutral-800">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 border-b border-neutral-100">
                     <button
                       type="button"
                       onClick={() => avatarInputRef.current?.click()}
                       disabled={uploadingAvatar}
                       aria-label="Modifier l'avatar"
-                      className="w-24 h-24 rounded-full bg-orange-100 dark:bg-orange-950/40 border-2 border-orange-200 dark:border-orange-900 flex items-center justify-center text-secondary font-extrabold font-heading text-3xl shadow-sm shrink-0 relative overflow-hidden group cursor-pointer disabled:cursor-wait"
+                      className="w-24 h-24 rounded-full bg-orange-100 border-2 border-orange-200 flex items-center justify-center text-secondary font-extrabold font-heading text-3xl shadow-sm shrink-0 relative overflow-hidden group cursor-pointer disabled:cursor-wait"
                     >
                       {avatarUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -204,15 +204,15 @@ export default function ProfilePage() {
                     />
 
                     <div className="space-y-2">
-                      <h3 className="text-sm font-bold text-neutral-800 dark:text-neutral-100">Avatar Auteur</h3>
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-sm leading-relaxed">
+                      <h3 className="text-sm font-bold text-neutral-800">Avatar Auteur</h3>
+                      <p className="text-xs text-neutral-500 max-w-sm leading-relaxed">
                         Cet avatar vous représente sur la plateforme. Formats acceptés : JPG, PNG, WEBP. Taille max : 2 Mo.
                       </p>
                       <button
                         type="button"
                         onClick={() => avatarInputRef.current?.click()}
                         disabled={uploadingAvatar}
-                        className="text-xs font-bold text-secondary hover:text-orange-600 bg-orange-50 dark:bg-orange-950/40 px-3 py-1.5 rounded-lg border border-orange-100 dark:border-orange-900 transition-colors disabled:opacity-60"
+                        className="text-xs font-bold text-secondary hover:text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-100 transition-colors disabled:opacity-60"
                       >
                         {uploadingAvatar ? "Envoi en cours…" : "Télécharger une image"}
                       </button>
@@ -222,35 +222,35 @@ export default function ProfilePage() {
                   {/* Form Fields */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-2 uppercase tracking-wider">Nom complet / Nom de plume</label>
+                      <label className="block text-xs font-bold text-neutral-700 mb-2 uppercase tracking-wider">Nom complet / Nom de plume</label>
                       <input 
                         type="text" 
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder="John Doe"
-                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all" 
+                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all" 
                       />
                     </div>
                     
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-2 uppercase tracking-wider">Adresse E-mail</label>
+                      <label className="block text-xs font-bold text-neutral-700 mb-2 uppercase tracking-wider">Adresse E-mail</label>
                       <input 
                         type="email" 
                         value={displayEmail} 
                         disabled
-                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-700 text-sm font-medium bg-neutral-50 dark:bg-neutral-800/60 text-neutral-500 dark:text-neutral-400 outline-none cursor-not-allowed" 
+                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 text-sm font-medium bg-neutral-50 text-neutral-500 outline-none cursor-not-allowed" 
                       />
-                      <p className="text-[10px] text-neutral-400 dark:text-neutral-500 dark:text-neutral-400 mt-1.5">L'adresse e-mail associée à votre compte ne peut pas être modifiée ici.</p>
+                      <p className="text-[10px] text-neutral-400 mt-1.5">L'adresse e-mail associée à votre compte ne peut pas être modifiée ici.</p>
                     </div>
                     
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-2 uppercase tracking-wider">Biographie de l'Auteur</label>
+                      <label className="block text-xs font-bold text-neutral-700 mb-2 uppercase tracking-wider">Biographie de l'Auteur</label>
                       <textarea 
                         rows={4} 
                         value={bio}
                         onChange={(e) => setBio(e.target.value)}
                         placeholder="Rédigez une brève présentation pour vos lecteurs... Ex: Auteur passionné de science-fiction..."
-                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all resize-y"
+                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all resize-y"
                       ></textarea>
                     </div>
                   </div>
@@ -258,17 +258,17 @@ export default function ProfilePage() {
               </section>
 
               {/* Social Links Card */}
-              <section className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200/80 dark:border-neutral-800 shadow-2xs overflow-hidden">
+              <section className="bg-white rounded-3xl border border-neutral-200/80 shadow-2xs overflow-hidden">
                 <div className="p-6 sm:p-8 space-y-6">
                   <div>
-                    <h2 className="font-heading text-xl font-extrabold text-neutral-900 dark:text-neutral-100">Présence en ligne</h2>
-                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">Ajoutez vos liens pour renforcer votre profil public d'auteur.</p>
+                    <h2 className="font-heading text-xl font-extrabold text-neutral-900">Présence en ligne</h2>
+                    <p className="text-xs text-neutral-500 mt-1">Ajoutez vos liens pour renforcer votre profil public d'auteur.</p>
                   </div>
 
                   <div className="space-y-4">
                     
                     <div>
-                      <label className="flex items-center gap-2 text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-2 uppercase tracking-wider">
+                      <label className="flex items-center gap-2 text-xs font-bold text-neutral-700 mb-2 uppercase tracking-wider">
                         <Globe className="w-4 h-4 text-neutral-400" />
                         Site Web Personnel
                       </label>
@@ -277,17 +277,17 @@ export default function ProfilePage() {
                         value={websiteUrl}
                         onChange={(e) => setWebsiteUrl(e.target.value)}
                         placeholder="https://www.mon-site.com"
-                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all" 
+                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all" 
                       />
                     </div>
 
                     <div>
-                      <label className="flex items-center gap-2 text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-2 uppercase tracking-wider">
+                      <label className="flex items-center gap-2 text-xs font-bold text-neutral-700 mb-2 uppercase tracking-wider">
                         <AtSign className="w-4 h-4 text-blue-400" />
                         Profil X (Twitter)
                       </label>
                       <div className="flex">
-                        <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/60 text-neutral-500 dark:text-neutral-400 text-sm font-medium">
+                        <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-neutral-200 bg-neutral-50 text-neutral-500 text-sm font-medium">
                           x.com/
                         </span>
                         <input 
@@ -301,7 +301,7 @@ export default function ProfilePage() {
                     </div>
 
                     <div>
-                      <label className="flex items-center gap-2 text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-2 uppercase tracking-wider">
+                      <label className="flex items-center gap-2 text-xs font-bold text-neutral-700 mb-2 uppercase tracking-wider">
                         <ShoppingCart className="w-4 h-4 text-amber-500" />
                         Page Auteur Amazon
                       </label>
@@ -310,7 +310,7 @@ export default function ProfilePage() {
                         value={amazonUrl}
                         onChange={(e) => setAmazonUrl(e.target.value)}
                         placeholder="https://www.amazon.fr/author/..."
-                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all" 
+                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all" 
                       />
                     </div>
 

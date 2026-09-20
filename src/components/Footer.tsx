@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { IrisMark } from "@/components/IrisLogo";
 
 export default function Footer() {
   return (
@@ -36,9 +37,15 @@ export default function Footer() {
         </div>
 
         {/* Editorial Brand Display */}
-        <div className="w-full my-8 py-6 border-y border-neutral-100 dark:border-neutral-800 flex items-center justify-center text-center">
-          <span className="font-heading font-bold text-[13vw] md:text-[140px] lg:text-[180px] tracking-tighter text-neutral-900 dark:text-neutral-100 leading-none select-none">
-            Iris
+        <div className="w-full my-8 py-6 border-y border-neutral-100 flex items-center justify-center text-center">
+          <span className="flex items-end justify-center gap-[2vw] md:gap-6 select-none">
+            {/* La taille passée sert de repli ; les classes de hauteur
+                l'emportent sur les attributs du SVG, ce qui laisse la marque
+                suivre l'échelle du mot à toutes les largeurs d'écran. */}
+            <IrisMark size={164} className="text-brand h-[12vw] md:h-[128px] lg:h-[164px] w-auto" />
+            <span className="font-heading font-bold text-[13vw] md:text-[140px] lg:text-[180px] tracking-tighter text-neutral-900 leading-none">
+              Iris
+            </span>
           </span>
         </div>
 

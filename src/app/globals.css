@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-body: var(--font-plus-jakarta), "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -7,6 +6,15 @@
   --font-editorial: var(--font-newsreader), "Newsreader", Georgia, "Times New Roman", serif;
   --font-landing: var(--font-plus-jakarta), "Plus Jakarta Sans", -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+
+  /* Terracotta EXACTE de la marque, relevée sur le fichier du logo.
+     Distincte de `--color-primary` (#c84b31), l'accent d'interface
+     historique : les deux coexistent aujourd'hui, ce qui se voit dès qu'ils
+     se côtoient. Basculer tout le SaaS sur la couleur de la marque se fait en
+     alignant `--color-primary` et `--color-secondary` sur cette valeur. */
+  --color-brand: #bf6345;
+  --color-brand-ground: #f8f8f7;
+  --color-brand-pupil: #161616;
 
   /* Iris Color Theme (Editorial Warm Terracotta Theme) */
   --color-primary: #c84b31; /* Warm Editorial Terracotta */
@@ -36,19 +44,6 @@
   --color-error-container: #fee2e2;
 }
 
-/* ---------------------------------------------------------------------
- * Jetons de surface — pilotés par la classe `.dark` posée sur <html> par
- * next-themes. Toutes les règles CSS brutes ci-dessous consomment ces
- * variables au lieu de couleurs claires en dur.
- *
- * ATTENTION (cause du bug historique du mode sombre) : les utilitaires
- * Tailwind v4 vivent dans `@layer utilities`, alors que les règles CSS
- * écrites ici sont HORS layer. Dans la cascade CSS, une règle hors layer
- * l'emporte TOUJOURS sur une règle en layer, quelle que soit la
- * spécificité. Un `body { background-color: #ffffff }` écrasait donc
- * `dark:bg-neutral-950` sur toutes les pages du SaaS : le thème sombre
- * n'était appliqué qu'aux éléments enfants, jamais au fond de page.
- * ------------------------------------------------------------------- */
 :root {
   --app-bg: #ffffff;
   --app-fg: #111827;
@@ -56,15 +51,6 @@
   --app-scrollbar-thumb: #d1d5db;
   --app-scrollbar-thumb-hover: #9ca3af;
   color-scheme: light;
-}
-
-.dark {
-  --app-bg: #0a0a0a;
-  --app-fg: #f5f5f5;
-  --app-muted-fg: #d4d4d4;
-  --app-scrollbar-thumb: #3f3f46;
-  --app-scrollbar-thumb-hover: #52525b;
-  color-scheme: dark;
 }
 
 html {

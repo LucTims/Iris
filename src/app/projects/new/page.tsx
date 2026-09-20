@@ -10,8 +10,8 @@ import type { BookSizeKey } from "@/lib/book/generationPresets";
 import { useUser } from "@/hooks/useUser";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { WORK_TYPES, WORK_TYPE_META, type WorkType } from "@/lib/book/work-type";
-import { BLUEPRINT_LIST, type BlueprintId, type BookBlueprint, resolveBlueprint } from "@/lib/book/book-blueprint";
-import { BookOpen, Compass, FileText, ImagePlay, Sparkles, Mic, MicOff, Check, ArrowRight, ArrowLeft, Upload, X, Rocket, Layers } from "lucide-react";
+import { BookOpen, Compass, FileText, Sparkles, Mic, MicOff, Check, ArrowRight, ArrowLeft, Upload, X, Rocket, Layers } from "lucide-react";
+import { IrisMark } from "@/components/IrisLogo";
 
 // Associe le libellé de longueur du formulaire à une clé de preset.
 const lengthToSizeKey = (length: string): BookSizeKey =>
@@ -93,7 +93,7 @@ export default function NewBookWizard() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModelModal, setShowModelModal] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
+  const [selectedModel, setSelectedModel] = useState("gemini-3.6-flash");
 
   // Document de référence
   const referenceInputRef = useRef<HTMLInputElement>(null);
@@ -128,10 +128,10 @@ export default function NewBookWizard() {
   /* ------------------------------------------------------------------ *
    * FLUX « VISION-TO-STORY » — images importées par l'auteur.
    * ------------------------------------------------------------------ */
-  const MAX_ASSETS = 20;
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const [uploadedImages, setUploadedImages] = useState<Array<{ id: string; url: string; name: string; position: number; file: File }>>([]);
-  const [isUploading, setIsUploading] = useState(false);
+  const MAX_ASSETS = 24;
+  const assetsInputRef = useRef<HTMLInputElement>(null);
+  const [assets, setAssets] = useState<Array<{ url: string; path: string; name: string; analysis?: string | null; analysisStatus?: string }>>([]);
+  const [assetsBusy, setAssetsBusy] = useState(false);
   const [assetsError, setAssetsError] = useState("");
   const [isDraggingAssets, setIsDraggingAssets] = useState(false);
 
@@ -150,7 +150,16 @@ export default function NewBookWizard() {
     }
     
     setAssetsError("");
-    setIsUploading(true);
+    try {
+      const body = new FormData();
+      // Le blueprint Storybook fait analyser chaque image a l'import : la
+      // description est mise en cache et sert ensuite a toutes les
+      // generations, au lieu de renvoyer les images a chaque appel.
+      if (isStorybook) body.append("analyze", "1");
+      for (const file of files.slice(0, room)) {
+        const compressed = await compressImage(file);
+        body.append("files", new File([compressed], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" }));
+      }
 
     const newImages = fileArray.slice(0, room).map((file, i) => ({
       id: crypto.randomUUID(),
@@ -176,6 +185,32 @@ export default function NewBookWizard() {
     });
   };
 
+  const retryAsset = async (path: string) => {
+    setAssetsBusy(true);
+    setAssetsError("");
+    try {
+      const res = await fetch("/api/project-assets/reanalyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paths: [path] }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Échec de la relance.");
+      
+      const result = data.results?.[0];
+      if (result?.success && result.analysis) {
+        setAssets((prev) => prev.map(a => a.path === path ? { ...a, analysisStatus: "done", analysis: result.analysis } : a));
+      } else {
+        throw new Error(result?.error || "L'analyse a de nouveau échoué.");
+      }
+    } catch (err) {
+      setAssetsError(err instanceof Error ? err.message : "Échec de la relance.");
+    } finally {
+      setAssetsBusy(false);
+    }
+  };
+
+  // Intercept the final submit to show the modal first
   const handlePreSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isStorybook && uploadedImages.length < 2) {
@@ -277,7 +312,8 @@ export default function NewBookWizard() {
           <span className="text-sm font-bold">Retour aux projets</span>
         </Link>
         <div className="flex items-center gap-2">
-          <span className="font-heading font-extrabold text-xl text-secondary">Iris</span>
+          <IrisMark size={24} className="text-brand shrink-0" />
+          <span className="font-heading font-extrabold text-xl text-neutral-900">Iris</span>
         </div>
         <div className="w-24"></div>
       </header>
@@ -511,11 +547,23 @@ export default function NewBookWizard() {
                                   type="button"
                                   onClick={() => removeAsset(asset.id)}
                                   aria-label={`Retirer ${asset.name}`}
-                                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity z-10"
                                 >
                                   <X className="w-3 h-3" />
                                 </button>
-                                <div className="absolute bottom-1 inset-x-1 flex justify-between opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                                {asset.analysisStatus === "failed" && (
+                                  <div className="absolute inset-0 bg-red-900/40 flex flex-col items-center justify-center gap-2 p-2">
+                                    <span className="text-[10px] font-bold text-white bg-red-600 px-2 py-0.5 rounded shadow">⚠️ Analyse échouée</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => retryAsset(asset.path)}
+                                      className="text-[10px] font-semibold text-white border border-white/50 bg-black/40 rounded px-2 py-1 hover:bg-black/60 transition"
+                                    >
+                                      Réessayer
+                                    </button>
+                                  </div>
+                                )}
+                                <div className="absolute bottom-1 inset-x-1 flex justify-between opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity z-10">
                                   <button
                                     type="button"
                                     onClick={() => moveAsset(index, -1)}
@@ -697,32 +745,48 @@ export default function NewBookWizard() {
 
                 {step === 4 && (
                   <>
-                    {!isStorybook ? (
-                      <>
-                        <div className="space-y-2">
-                          <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Longueur estimée *</label>
-                          <div className="grid grid-cols-3 gap-3">
-                            {[
-                              { id: "Court (Nouvelle / Lead Magnet)", label: "Court", pages: "~50 pages" },
-                              { id: "Moyen (Roman standard)", label: "Moyen", pages: "~150 pages" },
-                              { id: "Long (Fresque / Manuel)", label: "Long", pages: "~300 pages" },
-                            ].map((opt) => {
-                              const selected = formData.length === opt.id;
-                              return (
-                                <div 
-                                  key={opt.id}
-                                  onClick={() => updateForm("length", opt.id)}
-                                  className={`border rounded-2xl p-4 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 ${
-                                    selected 
-                                      ? 'border-[#C84B31] bg-[#FDF3F1]/60 shadow-2xs' 
-                                      : 'border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:bg-neutral-50/60'
-                                  }`}
-                                >
-                                  <span className={`text-sm font-bold ${selected ? 'text-[#C84B31]' : 'text-neutral-800 dark:text-neutral-200'}`}>{opt.label}</span>
-                                  <span className="text-xs text-neutral-400 font-medium">{opt.pages}</span>
-                                </div>
-                              );
-                            })}
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Longueur estimée *</label>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[
+                          { id: "Court (Nouvelle / Lead Magnet)", label: "Court", pages: "~50 pages" },
+                          { id: "Moyen (Roman standard)", label: "Moyen", pages: "~150 pages" },
+                          { id: "Long (Fresque / Manuel)", label: "Long", pages: "~300 pages" },
+                        ].map((opt) => {
+                          const selected = formData.length === opt.id;
+                          return (
+                            <div 
+                              key={opt.id}
+                              onClick={() => updateForm("length", opt.id)}
+                              className={`border rounded-2xl p-4 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 ${
+                                selected 
+                                  ? 'border-[#C84B31] bg-[#FDF3F1]/60 shadow-2xs' 
+                                  : 'border-neutral-200 bg-white hover:bg-neutral-50/60'
+                              }`}
+                            >
+                              <span className={`text-sm font-bold ${selected ? 'text-[#C84B31]' : 'text-neutral-800'}`}>{opt.label}</span>
+                              <span className="text-xs text-neutral-400 font-medium">{opt.pages}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Devis épuré */}
+                    {(() => {
+                      const preset = SIZE_PRESETS[lengthToSizeKey(formData.length)];
+                      const pages = preset.pagesEstimate;
+                      return (
+                        <div className="rounded-2xl border border-neutral-200/80 bg-neutral-50/70 p-4 space-y-2.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-semibold text-neutral-700">Volume estimé</span>
+                            <span className="font-bold text-neutral-900">~{pages} pages ({preset.pages})</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-200/60">
+                            <span className="font-semibold text-neutral-700">Coût estimé</span>
+                            <span className="font-bold text-[#C84B31] text-sm">
+                              {estimatePagesCoins(pages, "gemini-3.6-flash").toLocaleString("fr-FR")} à {estimatePagesCoins(pages, "claude-sonnet-5").toLocaleString("fr-FR")} crédits
+                            </span>
                           </div>
                         </div>
 
@@ -859,9 +923,9 @@ export default function NewBookWizard() {
 
                 <div className="space-y-2.5 mb-6">
                   <div 
-                    onClick={() => setSelectedModel("gemini-2.5-flash")}
+                    onClick={() => setSelectedModel("gemini-3.6-flash")}
                     className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
-                      selectedModel === "gemini-2.5-flash" 
+                      selectedModel === "gemini-3.6-flash" 
                         ? "border-[#C84B31] bg-[#FDF3F1]/40 shadow-xs" 
                         : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 bg-white dark:bg-neutral-900"
                     }`}

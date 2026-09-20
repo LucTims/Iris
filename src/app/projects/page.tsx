@@ -161,7 +161,7 @@ export default function ProjectsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Rechercher par titre, sujet ou catégorie..."
-                className="w-full bg-neutral-100/80 dark:bg-neutral-800/80 border border-transparent rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-neutral-800 dark:text-neutral-100 focus:bg-white dark:bg-neutral-900 dark:focus:bg-neutral-900 focus:border-neutral-300 dark:focus:border-neutral-700 outline-none transition-all"
+                className="w-full bg-neutral-100/80 border border-transparent rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-neutral-800 focus:bg-white focus:border-neutral-300 outline-none transition-all"
               />
             </div>
 
@@ -180,7 +180,7 @@ export default function ProjectsPage() {
                   className={`shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full border transition-all ${
                     activeFilter === chip.key
                       ? "bg-[#C84B31] text-white border-[#C84B31]"
-                      : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700 hover:border-neutral-300"
+                      : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300"
                   }`}
                 >
                   {chip.label}

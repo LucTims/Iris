@@ -52,7 +52,7 @@ export const WORDS_PER_PAGE = 275;
 /** Pièces facturées par page rédigée, par modèle. */
 export const COINS_PER_PAGE: Record<string, number> = {
   // Éco
-  "gemini-2.5-flash": 20,
+  "gemini-3.6-flash": 20,
   "gemini-1.5-flash": 20,
   // Standard / recommandé
   "gpt-4o-mini": 30,
@@ -126,7 +126,7 @@ export function estimateTokensFromText(text: string | undefined | null): number 
  * Le débit réel lit les tarifs exacts dans la table `ai_models`.
  */
 export const MODEL_RATES_USD: Record<string, { in: number; out: number }> = {
-  "gemini-2.5-flash": { in: 0.3, out: 2.5 },
+  "gemini-3.6-flash": { in: 0.3, out: 2.5 },
   "gemini-2.5-pro": { in: 1.25, out: 10 },
   "gemini-1.5-flash": { in: 0.075, out: 0.3 },
   "gpt-4o": { in: 5, out: 15 },

@@ -105,3 +105,20 @@ export function coinsForPurchase(planId?: string | null, amountFcfa?: number | n
   }
   return 0;
 }
+
+/** Mapping des identifiants de produits Chariow vers nos plans de pièces internes. */
+export const CHARIOW_PRODUCT_TO_PLAN: Record<string, string> = {
+  // Produits Licences Chariow actuels
+  prd_mryxlaqo: "pack_starter",
+  prd_18k5s6e1: "pack_creator",
+  prd_48qp19t3: "pack_author",
+  // Rétro-compatibilité anciens produits
+  prd_waqgpzhy: "pack_starter",
+  prd_jvzz32pf: "pack_creator",
+  prd_yekmrhdn: "pack_author",
+};
+
+export function getPackByChariowProductId(productId: string): CoinPack | undefined {
+  const planId = CHARIOW_PRODUCT_TO_PLAN[productId];
+  return planId ? getPackById(planId) : undefined;
+}
