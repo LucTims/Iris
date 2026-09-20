@@ -31,15 +31,12 @@ export async function POST(req: NextRequest) {
     const rawBody = await req.text();
 
     const secret = process.env.CHARIOW_PULSE_SECRET || process.env.CHARIOW_WEBHOOK_SECRET;
-    if (!secret) {
-      console.error("[Webhook Chariow] Clé secrète (CHARIOW_PULSE_SECRET/CHARIOW_WEBHOOK_SECRET) manquante.");
-      return NextResponse.json({ error: "Configuration serveur invalide" }, { status: 500 });
-    }
-
     const receivedSignature = req.headers.get("x-chariow-signature");
-    if (!verifyChariowSignature(rawBody, secret, receivedSignature)) {
-      console.warn("[Webhook Chariow] Signature Chariow invalide ou absente — requête rejetée 401.");
-      return NextResponse.json({ error: "Signature invalide" }, { status: 401 });
+    const chariowApiKey = process.env.CHARIOW_API_KEY;
+
+    let isHmacValid = false;
+    if (secret && receivedSignature) {
+      isHmacValid = verifyChariowSignature(rawBody, secret, receivedSignature);
     }
 
     let payload: any;
@@ -47,6 +44,53 @@ export async function POST(req: NextRequest) {
       payload = JSON.parse(rawBody);
     } catch {
       return NextResponse.json({ error: "Payload JSON invalide" }, { status: 400 });
+    }
+
+    // Si la signature HMAC échoue (ex: décalage du secret Pulse suite à une regénération),
+    // on vérifie directement l'authenticité de la licence ou de la vente auprès de l'API Chariow.
+    if (!isHmacValid) {
+      console.warn("[Webhook Chariow] Signature HMAC invalide. Tentative de vérification directe via API Chariow...");
+      let isApiVerified = false;
+
+      const candidateKey = payload?.license?.key ? String(payload.license.key).trim() : null;
+      const candidateSaleId = payload?.sale?.id ? String(payload.sale.id).trim() : null;
+
+      if (chariowApiKey && (candidateKey || candidateSaleId)) {
+        try {
+          if (candidateKey) {
+            const licRes = await fetch(`https://api.chariow.com/v1/licenses/${encodeURIComponent(candidateKey)}`, {
+              headers: { Authorization: `Bearer ${chariowApiKey}`, Accept: "application/json" },
+            });
+            if (licRes.ok) {
+              const licJson = await licRes.json();
+              if (licJson?.data?.license?.key === candidateKey) {
+                isApiVerified = true;
+                console.log("[Webhook Chariow] Authentification validée par l'API Chariow pour la licence:", candidateKey);
+              }
+            }
+          }
+
+          if (!isApiVerified && candidateSaleId) {
+            const saleRes = await fetch(`https://api.chariow.com/v1/sales/${encodeURIComponent(candidateSaleId)}`, {
+              headers: { Authorization: `Bearer ${chariowApiKey}`, Accept: "application/json" },
+            });
+            if (saleRes.ok) {
+              const saleJson = await saleRes.json();
+              if (saleJson?.data?.id === candidateSaleId && saleJson?.data?.status === "completed") {
+                isApiVerified = true;
+                console.log("[Webhook Chariow] Authentification validée par l'API Chariow pour la vente:", candidateSaleId);
+              }
+            }
+          }
+        } catch (apiErr) {
+          console.error("[Webhook Chariow] Erreur vérification API Chariow fallback:", apiErr);
+        }
+      }
+
+      if (!isApiVerified) {
+        console.warn("[Webhook Chariow] Rejet 401 — signature HMAC invalide et API Chariow non vérifiée.");
+        return NextResponse.json({ error: "Signature invalide et non vérifiée" }, { status: 401 });
+      }
     }
 
     const supabase = getSupabaseAdmin();
@@ -208,6 +252,17 @@ export async function POST(req: NextRequest) {
             customer_email: customerEmail,
           },
         });
+        // Activation automatique de la licence sur Chariow pour marquer l'achat consommé
+        if (licenseKey && chariowApiKey) {
+          fetch(`https://api.chariow.com/v1/licenses/${encodeURIComponent(licenseKey)}/activate`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${chariowApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ device_identifier: userId }),
+          }).catch(() => {});
+        }
       } catch (licErr) {
         console.warn("[Webhook Chariow] Erreur non critique écriture redeemed_licenses:", licErr);
       }

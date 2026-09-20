@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import AppLayout from "@/components/AppLayout";
@@ -11,12 +12,62 @@ import { BookOpen, Clock, CheckCircle2, ArrowRight, Download, Palette, Sparkles 
 const QuillAnimation = dynamic(() => import("@/components/QuillAnimation"), { ssr: false });
 const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
 
-export default function DashboardPage() {
-  const { displayName } = useUser();
+function DashboardContent() {
+  const { user, displayName, refreshWalletBalance } = useUser();
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedProjectForExport, setSelectedProjectForExport] = useState<any | null>(null);
+  const [syncBanner, setSyncBanner] = useState<{ show: boolean; message: string; type: "success" | "info" } | null>(null);
+
+  const searchParams = useSearchParams();
+  const paymentCompleted = searchParams.get("payment_completed") === "true";
 
   const { projects } = useProjects();
+
+  useEffect(() => {
+    if (!user) return;
+
+    const performSync = async (isExplicitPayment: boolean) => {
+      try {
+        if (isExplicitPayment) {
+          setSyncBanner({
+            show: true,
+            message: "Validation du paiement en cours et synchronisation de vos pièces...",
+            type: "info",
+          });
+        }
+
+        const res = await fetch("/api/chariow/sync", { method: "POST" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.coinsAdded > 0) {
+            setSyncBanner({
+              show: true,
+              message: `Félicitations ! Vos ${data.coinsAdded.toLocaleString("fr-FR")} pièces ont été créditées avec succès. Nouveau solde : ${data.newBalance?.toLocaleString("fr-FR")} pièces.`,
+              type: "success",
+            });
+            refreshWalletBalance();
+          } else if (isExplicitPayment) {
+            setSyncBanner({
+              show: true,
+              message: "Votre paiement a été validé et votre portefeuille de pièces est déjà crédité et à jour !",
+              type: "success",
+            });
+            refreshWalletBalance();
+          }
+        }
+      } catch (err) {
+        console.warn("[Dashboard] Erreur synchronisation pièces:", err);
+      }
+    };
+
+    if (paymentCompleted) {
+      performSync(true);
+      const timer = setTimeout(() => performSync(false), 4000);
+      return () => clearTimeout(timer);
+    } else {
+      performSync(false);
+    }
+  }, [paymentCompleted, user, refreshWalletBalance]);
 
   const handleOpenExportModal = (project: any) => {
     setSelectedProjectForExport(project);
@@ -31,6 +82,37 @@ export default function DashboardPage() {
       {/* Dashboard Main Container */}
       <main className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto w-full space-y-8">
         
+        {/* BANNIÈRE DE RETOUR APRÈS PAIEMENT OU SYNCHRONISATION */}
+        {syncBanner && syncBanner.show && (
+          <div className={`p-4 sm:p-5 rounded-2xl flex items-start justify-between gap-4 shadow-sm border transition-all animate-fade-in ${
+            syncBanner.type === "success"
+              ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100"
+              : "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-950 dark:text-blue-100"
+          }`}>
+            <div className="flex items-start gap-3">
+              <span className={`material-symbols-outlined text-2xl sm:text-3xl shrink-0 mt-0.5 ${
+                syncBanner.type === "success" ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400 animate-spin"
+              }`}>
+                {syncBanner.type === "success" ? "check_circle" : "progress_activity"}
+              </span>
+              <div>
+                <h3 className="font-bold text-sm sm:text-base mb-0.5">
+                  {syncBanner.type === "success" ? "Paiement validé avec succès !" : "Synchronisation en cours"}
+                </h3>
+                <p className="text-xs sm:text-sm opacity-90 leading-relaxed">
+                  {syncBanner.message}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setSyncBanner(null)}
+              className="text-xs font-bold px-2 py-1 rounded-md opacity-60 hover:opacity-100 transition-opacity cursor-pointer shrink-0"
+              title="Fermer"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* 2. PERSONALIZED GREETING */}
         <div className="space-y-1">
@@ -247,5 +329,19 @@ export default function DashboardPage() {
         project={selectedProjectForExport}
       />
     </AppLayout>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#F9FAFB] dark:bg-neutral-950 flex items-center justify-center">
+          <span className="material-symbols-outlined animate-spin text-3xl text-[#C84B31]">progress_activity</span>
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   );
 }

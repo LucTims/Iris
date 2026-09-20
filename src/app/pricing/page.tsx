@@ -48,10 +48,10 @@ function PricingInner() {
     const checkoutUrl = CHARIOW_LINKS[planId];
     if (checkoutUrl) {
       setLoadingPlan(planId);
-      const redirectUrl = encodeURIComponent(`${window.location.origin}/pricing?payment_completed=true`);
+      const redirectUrl = encodeURIComponent(`${window.location.origin}/dashboard?payment_completed=true`);
       window.location.href = `${checkoutUrl}?email=${encodeURIComponent(
         user.email || ""
-      )}&client_reference_id=${user.id}&redirect_url=${redirectUrl}&success_url=${redirectUrl}`;
+      )}&client_reference_id=${user.id}&redirect_url=${redirectUrl}&success_url=${redirectUrl}&return_url=${redirectUrl}`;
     }
   };
 

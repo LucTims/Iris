@@ -10,6 +10,7 @@ import type { BookSizeKey } from "@/lib/book/generationPresets";
 import { useUser } from "@/hooks/useUser";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { WORK_TYPES, WORK_TYPE_META, type WorkType } from "@/lib/book/work-type";
+import { BLUEPRINT_LIST, type BlueprintId } from "@/lib/book/book-blueprint";
 import { BookOpen, Compass, FileText, Sparkles, Mic, MicOff, Check, ArrowRight, ArrowLeft, Upload, X, Rocket, Layers } from "lucide-react";
 import { IrisMark } from "@/components/IrisLogo";
 
@@ -129,9 +130,9 @@ export default function NewBookWizard() {
    * FLUX « VISION-TO-STORY » — images importées par l'auteur.
    * ------------------------------------------------------------------ */
   const MAX_ASSETS = 24;
-  const assetsInputRef = useRef<HTMLInputElement>(null);
-  const [assets, setAssets] = useState<Array<{ url: string; path: string; name: string; analysis?: string | null; analysisStatus?: string }>>([]);
-  const [assetsBusy, setAssetsBusy] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedImages, setUploadedImages] = useState<Array<{ id: string; url: string; name: string; position: number; file: File; path?: string; analysisStatus?: string }>>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const [assetsError, setAssetsError] = useState("");
   const [isDraggingAssets, setIsDraggingAssets] = useState(false);
 
@@ -150,27 +151,23 @@ export default function NewBookWizard() {
     }
     
     setAssetsError("");
-    try {
-      const body = new FormData();
-      // Le blueprint Storybook fait analyser chaque image a l'import : la
-      // description est mise en cache et sert ensuite a toutes les
-      // generations, au lieu de renvoyer les images a chaque appel.
-      if (isStorybook) body.append("analyze", "1");
-      for (const file of files.slice(0, room)) {
-        const compressed = await compressImage(file);
-        body.append("files", new File([compressed], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" }));
-      }
+    setIsUploading(true);
 
-    const newImages = fileArray.slice(0, room).map((file, i) => ({
-      id: crypto.randomUUID(),
-      url: URL.createObjectURL(file),
-      name: file.name,
-      position: uploadedImages.length + i,
-      file,
-    }));
-    
-    setUploadedImages((prev) => [...prev, ...newImages]);
-    setIsUploading(false);
+    try {
+      const newImages = fileArray.slice(0, room).map((file, i) => ({
+        id: crypto.randomUUID(),
+        url: URL.createObjectURL(file),
+        name: file.name,
+        position: uploadedImages.length + i,
+        file,
+      }));
+      
+      setUploadedImages((prev) => [...prev, ...newImages]);
+    } catch (err: any) {
+      setAssetsError(err instanceof Error ? err.message : "Erreur lors du chargement des images.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const removeAsset = (id: string) => setUploadedImages((prev) => prev.filter((a) => a.id !== id));
@@ -185,8 +182,9 @@ export default function NewBookWizard() {
     });
   };
 
-  const retryAsset = async (path: string) => {
-    setAssetsBusy(true);
+  const retryAsset = async (path?: string) => {
+    if (!path) return;
+    setIsUploading(true);
     setAssetsError("");
     try {
       const res = await fetch("/api/project-assets/reanalyze", {
@@ -199,14 +197,14 @@ export default function NewBookWizard() {
       
       const result = data.results?.[0];
       if (result?.success && result.analysis) {
-        setAssets((prev) => prev.map(a => a.path === path ? { ...a, analysisStatus: "done", analysis: result.analysis } : a));
+        setUploadedImages((prev) => prev.map(a => a.path === path ? { ...a, analysisStatus: "done", analysis: result.analysis } : a));
       } else {
         throw new Error(result?.error || "L'analyse a de nouveau échoué.");
       }
     } catch (err) {
       setAssetsError(err instanceof Error ? err.message : "Échec de la relance.");
     } finally {
-      setAssetsBusy(false);
+      setIsUploading(false);
     }
   };
 
@@ -745,7 +743,9 @@ export default function NewBookWizard() {
 
                 {step === 4 && (
                   <>
-                    <div className="space-y-2">
+                    {!isStorybook ? (
+                      <>
+                        <div className="space-y-2">
                       <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Longueur estimée *</label>
                       <div className="grid grid-cols-3 gap-3">
                         {[
@@ -777,38 +777,21 @@ export default function NewBookWizard() {
                       const preset = SIZE_PRESETS[lengthToSizeKey(formData.length)];
                       const pages = preset.pagesEstimate;
                       return (
-                        <div className="rounded-2xl border border-neutral-200/80 bg-neutral-50/70 p-4 space-y-2.5">
+                        <div className="rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-800/40 p-4 space-y-2.5">
                           <div className="flex items-center justify-between text-xs">
-                            <span className="font-semibold text-neutral-700">Volume estimé</span>
-                            <span className="font-bold text-neutral-900">~{pages} pages ({preset.pages})</span>
+                            <span className="font-semibold text-neutral-700 dark:text-neutral-300">Volume estimé</span>
+                            <span className="font-bold text-neutral-900 dark:text-neutral-100">~{pages} pages ({preset.pages})</span>
                           </div>
-                          <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-200/60">
-                            <span className="font-semibold text-neutral-700">Coût estimé</span>
+                          <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-200/60 dark:border-neutral-700/60">
+                            <span className="font-semibold text-neutral-700 dark:text-neutral-300">Coût estimé</span>
                             <span className="font-bold text-[#C84B31] text-sm">
                               {estimatePagesCoins(pages, "gemini-3.6-flash").toLocaleString("fr-FR")} à {estimatePagesCoins(pages, "claude-sonnet-5").toLocaleString("fr-FR")} crédits
                             </span>
                           </div>
                         </div>
-
-                        {(() => {
-                          const preset = SIZE_PRESETS[lengthToSizeKey(formData.length)];
-                          const pages = preset.pagesEstimate;
-                          return (
-                            <div className="rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-neutral-50/70 p-4 space-y-2.5">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="font-semibold text-neutral-700 dark:text-neutral-300">Volume estimé</span>
-                                <span className="font-bold text-neutral-900 dark:text-neutral-100">~{pages} pages ({preset.pages})</span>
-                              </div>
-                              <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-200/60">
-                                <span className="font-semibold text-neutral-700 dark:text-neutral-300">Coût estimé</span>
-                                <span className="font-bold text-[#C84B31] text-sm">
-                                  {estimatePagesCoins(pages, "gemini-2.5-flash").toLocaleString("fr-FR")} à {estimatePagesCoins(pages, "claude-sonnet-5").toLocaleString("fr-FR")} crédits
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </>
+                      );
+                    })()}
+                  </>
                     ) : (
                       <div className="rounded-2xl border border-[#C84B31] bg-[#FDF3F1]/60 p-5 flex flex-col items-center justify-center text-center gap-2">
                         <Sparkles className="w-8 h-8 text-[#C84B31] mb-1" />
