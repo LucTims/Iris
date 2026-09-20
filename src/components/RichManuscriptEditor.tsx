@@ -1357,7 +1357,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       {/* Un SEUL bouton flottant, dont le rôle dépend de la vue :
           - vue livre complet / sommaire  → « Générer tout le livre »
           - vue d'un chapitre découpé      → « Générer le chapitre » (popup d'instructions) */}
-      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-8 flex flex-col gap-3 z-30">
+      <div className="absolute bottom-24 right-4 md:bottom-6 md:right-8 flex flex-col gap-3 z-30">
         {bookViewMode === "chapter" && onGenerateChapter ? (
           <button
             onClick={onGenerateChapter}
