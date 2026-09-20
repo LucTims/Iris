@@ -285,6 +285,36 @@ export async function POST(req: NextRequest) {
     } catch (logErr) {
       console.warn("[Webhook Chariow] Journalisation transaction non critique:", logErr);
     }
+    
+    // 8. Envoi de l'événement d'achat à Meta via l'API Conversions (CAPI)
+    try {
+      const { sendToCAPI } = await import("@/lib/meta/capi");
+      const crypto = await import("crypto");
+      
+      const hashedEmail = customerEmail 
+        ? crypto.createHash("sha256").update(customerEmail.trim().toLowerCase()).digest("hex") 
+        : undefined;
+
+      await sendToCAPI([{
+        event_name: "Purchase",
+        event_time: Math.floor(Date.now() / 1000),
+        action_source: "website",
+        user_data: {
+          em: hashedEmail,
+          // fbc/fbp options: would need to extract from cookies, but server webhooks don't have user cookies. 
+          // Email hash is the main matching key here.
+        },
+        custom_data: {
+          currency,
+          value: amountValue,
+          content_name: pack.name,
+          content_ids: [pack.id]
+        },
+        event_id: saleId || licenseKey || `chariow_${Date.now()}` // deduplication ID
+      }]);
+    } catch (capiErr) {
+      console.warn("[Webhook Chariow] Erreur CAPI non critique:", capiErr);
+    }
 
     console.log(
       `[Webhook Chariow] ${pack.coins} pièces créditées à ${userId} (event: ${event}, ref: ${saleId || licenseKey}).`
