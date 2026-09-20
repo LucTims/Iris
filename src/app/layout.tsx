@@ -1,27 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, Newsreader } from "next/font/google";
-import { GoogleAnalytics } from '@next/third-parties/google';
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-plus-jakarta",
-  weight: ["300", "400", "500", "600", "700", "800"],
-});
-
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  display: "swap",
-  style: ["normal", "italic"],
-  variable: "--font-newsreader",
-  weight: ["400", "600", "700"],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.irisboom.online"),
-  title: "Iris | La 1Ã¨re plateforme de co-crÃ©ation littÃ©raire assistÃ©e par IA",
-  description: "Iris accompagne les experts et crÃ©ateurs dans la rÃ©daction, le design et la publication de leurs livres numÃ©riques.",
+  title: "Iris | La 1ère plateforme de co-création littéraire assistée par IA",
+  description: "Iris accompagne les experts et créateurs dans la rédaction, le design et la publication de leurs livres numériques.",
   applicationName: "Iris",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Iris", statusBarStyle: "default" },
@@ -31,15 +15,15 @@ export const metadata: Metadata = {
 };
 
 // Viewport mobile explicite. Sans lui (le <head> manuel ci-dessous peut
-// empÃªcher l'injection auto de Next), les navigateurs mobiles rendent la page
-// Ã  ~980px de large puis dÃ©zooment : tout paraÃ®t gÃ©ant et coupÃ© par l'Ã©cran.
+// empêcher l'injection auto de Next), les navigateurs mobiles rendent la page
+// à ~980px de large puis dézooment : tout paraît géant et coupé par l'écran.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
   // Teinte la barre d'adresse mobile avec le fond de la marque. Une seule
-  // valeur : l'application est dÃ©sormais en thÃ¨me clair uniquement, et une
+  // valeur : l'application est désormais en thème clair uniquement, et une
   // variante sombre assombrirait le navigateur autour d'une page claire.
   themeColor: "#F8F8F7",
 };
@@ -50,34 +34,38 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" suppressHydrationWarning className={`${plusJakartaSans.variable} ${newsreader.variable}`}>
+    <html lang="fr" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Poppins:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
         {/*
-          POLICE D'ICÃ”NES â€” AXES FIGÃ‰S.
+          POLICE D'ICÔNES — AXES FIGÉS.
 
           Cette URL demandait jusqu'ici toute la matrice de variations de
           Material Symbols :
 
               opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200
 
-          Chaque plage `a..b` fait livrer une police VARIABLE contenant tous
-          les Ã©tats intermÃ©diaires. Le fichier servi pesait **5 248 Ko**, sans
-          dÃ©coupage par plage de caractÃ¨res â€” donc tÃ©lÃ©chargÃ© en entier par
-          chaque visiteur. C'Ã©tait, et de trÃ¨s loin, le plus gros poste de
-          poids du site : Ã  lui seul, plus de six fois le reste de la page.
+          Chaque plage a..b fait livrer une police VARIABLE contenant tous
+          les états intermédiaires. Le fichier servi pesait **5 248 Ko**, sans
+          découpage par plage de caractères — donc téléchargé en entier par
+          chaque visiteur. C'était, et de très loin, le plus gros poste de
+          poids du site : à lui seul, plus de six fois le reste de la page.
 
           L'application n'utilise qu'une seule graisse, aucun remplissage
           variable et aucun ajustement de graduation. En figeant les quatre
-          axes sur l'instance rÃ©ellement employÃ©e, le mÃªme rendu est obtenu
-          avec **372 Ko** â€” 4,9 Mo Ã©conomisÃ©s par visiteur.
+          axes sur l'instance réellement employée, le même rendu est obtenu
+          avec **372 Ko** — 4,9 Mo économisés par visiteur.
 
-          La feuille reste bloquante Ã  dessein : avant que la police ne soit
-          prÃªte, une icÃ´ne s'affiche sous forme de son nom en toutes lettres
-          (Â« arrow_back Â», Â« search Â»). Le fichier CSS pÃ¨se un kilo-octet et
-          les `preconnect` ci-dessus couvrent dÃ©jÃ  la latence rÃ©seau ; c'est la
-          POLICE, chargÃ©e en `display=swap`, qui ne bloque pas le rendu.
+          La feuille reste bloquante à dessein : avant que la police ne soit
+          prête, une icône s'affiche sous forme de son nom en toutes lettres
+          (« arrow_back », « search »). Le fichier CSS pèse un kilo-octet et
+          les preconnect ci-dessus couvrent déjà la latence réseau ; c'est la
+          POLICE, chargée en display=swap, qui ne bloque pas le rendu.
         */}
         <link
           rel="stylesheet"
@@ -91,4 +79,3 @@ export default function RootLayout({
     </html>
   );
 }
-
