@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { IrisMark } from "@/components/IrisLogo";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -77,7 +78,7 @@ export default function RegisterPage() {
         {/* Top Logo */}
         <div className="relative z-10">
           <Link href="/" className="inline-flex items-center gap-3 group">
-            <img src="/iris-logo.png" alt="Iris" className="w-10 h-10 object-contain group-hover:scale-105 transition-transform" />
+            <IrisMark size={38} className="text-brand shrink-0 group-hover:scale-105 transition-transform" />
             <span className="font-heading font-extrabold text-3xl tracking-tight text-white">
               Iris
             </span>
@@ -112,7 +113,7 @@ export default function RegisterPage() {
             {/* Logo shown on mobile */}
             <div className="lg:hidden mb-6">
               <Link href="/" className="inline-flex items-center gap-2.5">
-                <img src="/iris-logo.png" alt="Iris" className="w-9 h-9 object-contain" />
+                <IrisMark size={34} className="text-brand shrink-0" />
                 <span className="font-heading font-bold text-3xl text-neutral-900">Iris</span>
               </Link>
             </div>

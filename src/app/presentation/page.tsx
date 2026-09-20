@@ -14,6 +14,7 @@ import {
   ShieldCheck, 
   FileText
 } from "lucide-react";
+import { IrisMark } from "@/components/IrisLogo";
 
 export default function PresentationPage() {
   const { user } = useUser();
@@ -66,7 +67,7 @@ export default function PresentationPage() {
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <img src="/iris-logo.png" alt="Iris" className="w-5 h-5 object-contain" />
+                          <IrisMark size={20} className="text-brand shrink-0" />
                           <span className="text-[10px] font-mono uppercase tracking-widest text-[#F4C5BC]">
                             Éditions Iris
                           </span>
@@ -291,11 +292,7 @@ export default function PresentationPage() {
       <header className="sticky top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-neutral-200/80">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <img 
-              src="/iris-logo.png" 
-              alt="Iris Logo" 
-              className="w-8 h-8 object-contain group-hover:scale-105 transition-transform" 
-            />
+            <IrisMark size={32} className="text-brand shrink-0 group-hover:scale-105 transition-transform" />
             <span className="font-heading font-extrabold text-2xl tracking-tight text-neutral-900">
               Iris
             </span>

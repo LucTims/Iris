@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Icône d'application Iris. Le signe est posé sur le fond crème de la
+       marque, dans un carré à coins arrondis : c'est la forme que les
+       systèmes (onglet, écran d'accueil, favori) attendent. -->
+  <rect width="512" height="512" rx="114" fill="#F8F8F7"/>
+  <!-- Signe « i » : boîte d'origine 59 × 271, agrandie ×1.48 et centrée.
+       Largeur 87.3, hauteur 401 -> décalage x 212.3, y 55.5 -->
+  <g transform="translate(212.35 55.5) scale(1.4797)">
+    <circle cx="29" cy="29" r="29" fill="#BF6345"/>
+    <circle cx="29" cy="29" r="15" fill="#161616"/>
+    <path d="M54 75 5 118l9 153h29z" fill="#BF6345"/>
+  </g>
+</svg>

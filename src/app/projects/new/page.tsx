@@ -11,6 +11,7 @@ import { useUser } from "@/hooks/useUser";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { WORK_TYPES, WORK_TYPE_META, type WorkType } from "@/lib/book/work-type";
 import { BookOpen, Compass, FileText, Sparkles, Mic, MicOff, Check, ArrowRight, ArrowLeft, Upload, X, Rocket, Layers } from "lucide-react";
+import { IrisMark } from "@/components/IrisLogo";
 
 // Associe le libellé de longueur du formulaire à une clé de preset.
 const lengthToSizeKey = (length: string): BookSizeKey =>
@@ -320,7 +321,8 @@ export default function NewBookWizard() {
           <span className="text-sm font-bold">Retour aux projets</span>
         </Link>
         <div className="flex items-center gap-2">
-          <span className="font-heading font-extrabold text-xl text-secondary">Iris</span>
+          <IrisMark size={24} className="text-brand shrink-0" />
+          <span className="font-heading font-extrabold text-xl text-neutral-900">Iris</span>
         </div>
         <div className="w-24"></div> {/* Spacer for centering */}
       </header>

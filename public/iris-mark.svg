@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 59 271">
+  <!-- Signe Iris seul, sans fond. Pour les usages hors React (e-mails,
+       documents, réseaux sociaux). -->
+  <circle cx="29" cy="29" r="29" fill="#BF6345"/>
+  <circle cx="29" cy="29" r="15" fill="#161616"/>
+  <path d="M54 75 5 118l9 153h29z" fill="#BF6345"/>
+</svg>

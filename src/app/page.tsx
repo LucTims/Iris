@@ -10,6 +10,7 @@ import HeroVideoShowcase from "@/components/HeroVideoShowcase";
 import Footer from "@/components/Footer";
 import { useUser } from "@/hooks/useUser";
 import { ArrowRight, Menu, X, MessageSquare, Palette, Download } from "lucide-react";
+import { IrisMark } from "@/components/IrisLogo";
 
 export default function Home() {
   const { user } = useUser();
@@ -46,7 +47,7 @@ export default function Home() {
       <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-neutral-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between">
           <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group shrink-0">
-            <img src="/iris-logo.png" alt="Iris" className="w-8 h-8 sm:w-9 sm:h-9 object-contain group-hover:scale-105 transition-transform" />
+            <IrisMark size={34} className="text-brand shrink-0 group-hover:scale-105 transition-transform" />
             <span className="font-heading font-extrabold text-2xl sm:text-3xl tracking-tight text-neutral-900">
               Iris
             </span>
