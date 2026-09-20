@@ -8,22 +8,17 @@ export const metadata: Metadata = {
 export default function AutomationsDocsPage() {
   return (
     <div className="space-y-10">
-      <header className="space-y-4 border-b border-neutral-200 dark:border-neutral-800 pb-10">
-        <div className="inline-flex items-center justify-center mb-2">
-          <div className="bg-[#FDF3F1] dark:bg-[#FDF3F1]/10 text-[#C84B31] text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest">
-            Tutoriel MCP
-          </div>
-        </div>
-        <h1 className="font-heading text-3xl sm:text-5xl font-extrabold text-neutral-900 dark:text-neutral-100 tracking-tight">
-          Automatisation & Model Context Protocol
+      <header className="space-y-4">
+        <p className="text-[#C84B31] font-semibold text-sm">Guide</p>
+        <h1 className="font-heading text-4xl sm:text-5xl font-extrabold text-neutral-900 tracking-tight">
+          Intégration MCP
         </h1>
-        <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl">
-          Iris expose de façon sécurisée un serveur MCP (Model Context Protocol). Cela permet 
-          aux assistants IA locaux (Cursor, Claude Desktop) d'accéder à vos livres et chapitres pour vous aider.
+        <p className="text-lg text-neutral-600 leading-relaxed border-b border-neutral-200 pb-8">
+          Connectez Iris à vos assistants IA locaux via le Model Context Protocol
         </p>
       </header>
 
-      <div className="prose prose-neutral dark:prose-invert max-w-none">
+      <div className="prose prose-neutral max-w-none">
         <h2>Qu'est-ce que MCP ?</h2>
         <p>
           Le <strong>Model Context Protocol</strong> est un standard ouvert permettant 
