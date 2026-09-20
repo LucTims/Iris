@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Newsreader } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import FacebookPixel from "@/components/FacebookPixel";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -95,6 +96,7 @@ export default function RootLayout({
       </head>
       <body className="bg-white text-neutral-900 font-body antialiased selection:bg-neutral-200 transition-colors duration-300">
         {children}
+        <FacebookPixel />
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || "G-5WW5K8J3D5"} />
       </body>
     </html>
