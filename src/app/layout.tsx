@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Newsreader } from "next/font/google";
 import { GoogleAnalytics } from '@next/third-parties/google';
 import "./globals.css";
-import { ThemeProvider } from "@/components/ThemeProvider";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -39,11 +38,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
-  // Teinte la barre d'adresse mobile avec la terracotta de la marque.
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F8F8F7" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
-  ],
+  // Teinte la barre d'adresse mobile avec le fond de la marque. Une seule
+  // valeur : l'application est désormais en thème clair uniquement, et une
+  // variante sombre assombrirait le navigateur autour d'une page claire.
+  themeColor: "#F8F8F7",
 };
 
 export default function RootLayout({
@@ -87,9 +85,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-white text-neutral-900 font-body antialiased selection:bg-neutral-200 transition-colors duration-300">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {children}
-        </ThemeProvider>
+        {children}
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || "G-5WW5K8J3D5"} />
       </body>
     </html>

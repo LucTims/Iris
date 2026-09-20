@@ -2,27 +2,20 @@
 
 import Link from "next/link";
 import AppLayout from "@/components/AppLayout";
-import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { 
   Settings,
   Bell,
-  Moon,
-  Sun,
   Shield,
-  FileText,
-  Monitor
+  FileText
 } from "lucide-react";
 
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [appNotifications, setAppNotifications] = useState(true);
 
-  // Avoid hydration mismatch & Load saved preferences
+  // Préférences de notification, conservées dans ce navigateur.
   useEffect(() => {
-    setMounted(true);
     const savedAppNotif = localStorage.getItem("iris_app_notifications");
     const savedEmailNotif = localStorage.getItem("iris_email_notifications");
     if (savedAppNotif !== null) setAppNotifications(savedAppNotif === "true");
@@ -56,47 +49,6 @@ export default function SettingsPage() {
 
       <main className="p-4 sm:p-6 md:p-10 max-w-4xl mx-auto w-full space-y-8">
         
-        {/* Apparence Section */}
-        <section className="bg-white rounded-3xl border border-neutral-200/80 shadow-2xs overflow-hidden">
-          <div className="p-6 sm:p-8 space-y-6">
-            <div className="flex items-center gap-3 border-b border-neutral-100 pb-4">
-              <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-secondary">
-                <Sun className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="font-heading text-lg font-extrabold text-neutral-900">Apparence</h2>
-                <p className="text-xs text-neutral-500">Personnalisez le thème de l'interface.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <button
-                onClick={() => setTheme('light')}
-                className={`flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all ${mounted && theme === 'light' ? 'border-secondary bg-orange-50' : 'border-neutral-100 hover:border-neutral-200 bg-transparent'}`}
-              >
-                <Sun className={`w-8 h-8 ${mounted && theme === 'light' ? 'text-secondary' : 'text-neutral-400'}`} />
-                <span className={`text-sm font-bold ${mounted && theme === 'light' ? 'text-secondary' : 'text-neutral-600'}`}>Clair</span>
-              </button>
-              
-              <button
-                onClick={() => setTheme('dark')}
-                className={`flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all ${mounted && theme === 'dark' ? 'border-secondary bg-orange-50' : 'border-neutral-100 hover:border-neutral-200 bg-transparent'}`}
-              >
-                <Moon className={`w-8 h-8 ${mounted && theme === 'dark' ? 'text-secondary' : 'text-neutral-400'}`} />
-                <span className={`text-sm font-bold ${mounted && theme === 'dark' ? 'text-secondary' : 'text-neutral-600'}`}>Sombre</span>
-              </button>
-
-              <button
-                onClick={() => setTheme('system')}
-                className={`flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all ${mounted && theme === 'system' ? 'border-secondary bg-orange-50' : 'border-neutral-100 hover:border-neutral-200 bg-transparent'}`}
-              >
-                <Monitor className={`w-8 h-8 ${mounted && theme === 'system' ? 'text-secondary' : 'text-neutral-400'}`} />
-                <span className={`text-sm font-bold ${mounted && theme === 'system' ? 'text-secondary' : 'text-neutral-600'}`}>Système</span>
-              </button>
-            </div>
-          </div>
-        </section>
-
         {/* Notifications Section */}
         <section className="bg-white rounded-3xl border border-neutral-200/80 shadow-2xs overflow-hidden">
           <div className="p-6 sm:p-8 space-y-6">
