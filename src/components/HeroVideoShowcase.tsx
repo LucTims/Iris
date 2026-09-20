@@ -21,12 +21,15 @@ export default function HeroVideoShowcase() {
       observer = new IntersectionObserver(
         ([entry]) => {
           if (entry.isIntersecting) {
-            const playPromise = video.play();
-            if (playPromise !== undefined) {
-              playPromise
-                .then(() => setIsPlaying(true))
-                .catch(() => setIsPlaying(false));
-            }
+            // Defer playback to unblock the main window.onload event (improves Pingdom/Lighthouse scores)
+            setTimeout(() => {
+              const playPromise = video.play();
+              if (playPromise !== undefined) {
+                playPromise
+                  .then(() => setIsPlaying(true))
+                  .catch(() => setIsPlaying(false));
+              }
+            }, 800);
           } else {
             video.pause();
             setIsPlaying(false);
@@ -126,7 +129,7 @@ export default function HeroVideoShowcase() {
             playsInline
             muted
             loop
-            preload="metadata"
+            preload="none"
             className="w-full h-full object-cover"
           />
 

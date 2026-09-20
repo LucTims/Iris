@@ -71,6 +71,7 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,400,0,0&display=swap"
         />
+        <link rel="preload" as="image" href="/iris-video-poster.webp" />
       </head>
       <body className="bg-white text-neutral-900 font-body antialiased selection:bg-neutral-200 transition-colors duration-300">
         {children}
