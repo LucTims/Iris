@@ -43,7 +43,7 @@ function PaymentPendingContent() {
       try {
         const { data, error } = await supabase
           .from("transactions")
-          .select("status")
+          .select("status, amount")
           .eq("id", txId)
           .single();
 
@@ -51,6 +51,14 @@ function PaymentPendingContent() {
           setStatus("paid");
           refreshWalletBalance();
           clearInterval(intervalId);
+          
+          if (typeof window !== "undefined" && (window as any).fbq) {
+            (window as any).fbq("track", "Purchase", {
+              value: data.amount || 0,
+              currency: "XOF"
+            });
+          }
+
           setTimeout(() => {
             router.push("/dashboard");
           }, 3000);
