@@ -84,7 +84,8 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Vérification de la configuration Chariow
-    const chariowApiKey = process.env.CHARIOW_API_KEY;
+    const chariowApiKey =
+      process.env.CHARIOW_API_KEY || "sk_g67k3ae2_f6e29ccf707f86ac1a4cdad92cf96abe";
     if (!chariowApiKey) {
       console.error("[License Redeem] CHARIOW_API_KEY manquante côté serveur.");
       return NextResponse.json(

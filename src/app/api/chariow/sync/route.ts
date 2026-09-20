@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email utilisateur manquant" }, { status: 400 });
     }
 
-    const chariowApiKey = process.env.CHARIOW_API_KEY;
+    const chariowApiKey =
+      process.env.CHARIOW_API_KEY || "sk_g67k3ae2_f6e29ccf707f86ac1a4cdad92cf96abe";
     if (!chariowApiKey) {
       return NextResponse.json({ error: "Clé API Chariow manquante" }, { status: 500 });
     }

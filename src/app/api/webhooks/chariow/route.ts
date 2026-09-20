@@ -30,9 +30,13 @@ export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
 
-    const secret = process.env.CHARIOW_PULSE_SECRET || process.env.CHARIOW_WEBHOOK_SECRET;
+    const secret =
+      process.env.CHARIOW_PULSE_SECRET ||
+      process.env.CHARIOW_WEBHOOK_SECRET ||
+      "whsec_lHFAuKLYSP5LIufvUUO7ReQK1SsFPurj1QjNF8xN";
     const receivedSignature = req.headers.get("x-chariow-signature");
-    const chariowApiKey = process.env.CHARIOW_API_KEY;
+    const chariowApiKey =
+      process.env.CHARIOW_API_KEY || "sk_g67k3ae2_f6e29ccf707f86ac1a4cdad92cf96abe";
 
     let isHmacValid = false;
     if (secret && receivedSignature) {
