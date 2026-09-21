@@ -173,7 +173,10 @@ export default function Home() {
             {/* Main Title */}
             <h1 className="font-heading text-4xl sm:text-5xl lg:text-[54px] xl:text-[62px] font-extrabold text-neutral-900 dark:text-neutral-100 tracking-tight leading-[1.1] mb-6">
               Votre savoir mérite un livre. <br />
-              <span className="text-[#C84B31]">ris</span>{" "}l&apos;écrit avec vous.
+              <span className="inline-flex items-center text-[#C84B31] gap-1 relative top-[0.1em]">
+                <IrisMark className="w-[0.9em] h-[0.9em] rotate-6" />
+                <span>ris</span>
+              </span>{" "}l&apos;écrit avec vous.
             </h1>
 
             {/* Subtitle */}
