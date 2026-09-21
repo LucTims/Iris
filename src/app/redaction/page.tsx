@@ -2064,8 +2064,8 @@ function RedactionContent() {
             </div>
         </header>
 
-        {/* MOBILE VIEW SEGMENTED CONTROL (visible on mobile / small screens) */}
-        <div className="lg:hidden flex items-center justify-center p-2 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 gap-2 shrink-0 z-30">
+        {/* MOBILE VIEW SEGMENTED CONTROL (visible on mobile / small screens / small laptops) */}
+        <div className="xl:hidden flex items-center justify-center p-2 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 gap-2 shrink-0 z-30">
           <button
             onClick={() => setMobileView("editor")}
             className={`flex-1 py-2 px-2 sm:px-4 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-2 cursor-pointer ${
@@ -2093,10 +2093,10 @@ function RedactionContent() {
         </div>
 
         {/* 3. SPLIT WORKSPACE (TEXT EDITOR IN MIDDLE, CHAT ON RIGHT) */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative pb-20 md:pb-0">
+        <div className="flex-1 flex flex-col xl:flex-row overflow-hidden relative pb-20 md:pb-0">
           {/* ================= 3A. RICH MANUSCRIPT EDITOR (MIDDLE / MAIN AREA) ================= */}
           <div className={`flex-1 flex flex-col h-full overflow-hidden min-w-0 ${
-            mobileView === "editor" ? "flex" : "hidden lg:flex"
+            mobileView === "editor" ? "flex" : "hidden xl:flex"
           }`}>
             <RichManuscriptEditor
               ref={editorRef}
@@ -2157,7 +2157,7 @@ function RedactionContent() {
           {!isChatCollapsed && (
             <div
               onMouseDown={() => setIsResizing(true)}
-              className={`hidden lg:flex w-1.5 hover:w-2 bg-neutral-200/70 hover:bg-secondary cursor-col-resize transition-all shrink-0 z-20 items-center justify-center group ${
+              className={`hidden xl:flex w-1.5 hover:w-2 bg-neutral-200/70 hover:bg-secondary cursor-col-resize transition-all shrink-0 z-20 items-center justify-center group ${
                 isResizing ? "bg-secondary w-2" : ""
               }`}
               title="Faites glisser pour ajuster la largeur du chat IA"
@@ -2169,8 +2169,8 @@ function RedactionContent() {
           {/* ================= 3C. AI CHAT ASSISTANT PANEL (RIGHT SIDE, RESIZABLE) ================= */}
           {!isChatCollapsed && (
             <aside
-              className={`h-full bg-white dark:bg-neutral-900 border-l border-neutral-200/80 dark:border-neutral-800 flex-col shrink-0 relative shadow-lg z-10 w-full lg:w-[var(--chat-width)] ${
-                mobileView === "chat" ? "flex" : "hidden lg:flex"
+              className={`h-full bg-white dark:bg-neutral-900 border-l border-neutral-200/80 dark:border-neutral-800 flex-col shrink-0 relative shadow-lg z-10 w-full xl:w-[var(--chat-width)] ${
+                mobileView === "chat" ? "flex" : "hidden xl:flex"
               }`}
               style={{ '--chat-width': `${chatWidth}px` } as React.CSSProperties}
             >

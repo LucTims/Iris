@@ -36,7 +36,16 @@ export default function Sidebar() {
   useEffect(() => {
     setMounted(true);
     const stored = localStorage.getItem("iris_sidebar_collapsed");
-    if (stored === "true") setCollapsed(true);
+    if (stored === "true") {
+      setCollapsed(true);
+    } else if (stored === "false") {
+      setCollapsed(false);
+    } else {
+      // Auto-collapse on small laptops by default
+      if (window.innerWidth < 1280) {
+        setCollapsed(true);
+      }
+    }
   }, []);
 
   const toggleCollapsed = () => {

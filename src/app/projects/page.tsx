@@ -240,7 +240,7 @@ export default function ProjectsPage() {
               </Link>
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredProjects.map((book) => {
                   const progress = getProjectProgress(book);
                   return (
