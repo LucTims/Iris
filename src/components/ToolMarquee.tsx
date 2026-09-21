@@ -19,8 +19,6 @@ export default function ToolMarquee() {
     <section className="bg-gradient-to-r from-[#8B2615] via-[#C84B31] to-[#A8321D] py-16 md:py-20 overflow-hidden relative shadow-inner">
       {/* Background Ornaments for premium feel */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-white dark:bg-neutral-900/10 blur-[80px] rounded-full"></div>
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-black/15 blur-[80px] rounded-full"></div>
       </div>
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 text-center mb-10">
