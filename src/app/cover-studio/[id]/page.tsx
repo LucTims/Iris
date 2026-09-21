@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { useUser } from "@/hooks/useUser";
+import { IrisMark } from "@/components/IrisLogo";
 
 const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
 
@@ -41,6 +42,7 @@ export default function CoverStudioEditorPage() {
   const [appliedCoverUrl, setAppliedCoverUrl] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
   const [unappliedCoverModalOpen, setUnappliedCoverModalOpen] = useState(false);
+  const [successMessageOpen, setSuccessMessageOpen] = useState(false);
 
   // Dès que la couverture (image ou style) change, elle n'est plus « appliquée ».
   useEffect(() => {
@@ -213,7 +215,10 @@ export default function CoverStudioEditorPage() {
       if (res.ok) {
         setAppliedCoverUrl(coverUrl);
         setCoverApplied(true);
-        if (!opts?.silent) alert("Couverture appliquée au livre avec succès !");
+        if (!opts?.silent) {
+          setSuccessMessageOpen(true);
+          setTimeout(() => setSuccessMessageOpen(false), 3500);
+        }
         return coverUrl;
       } else {
         const data = await res.json().catch(() => ({}));
@@ -493,6 +498,14 @@ export default function CoverStudioEditorPage() {
                       rows={2}
                       value={promptText}
                       onChange={(e) => setPromptText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (!isGenerating && promptText.trim()) {
+                            handleGenerateAI();
+                          }
+                        }
+                      }}
                       placeholder="Décrivez votre image (ex: un dragon sur une montagne...)"
                       className="w-full bg-neutral-50 dark:bg-neutral-800/50 p-4 pr-14 border border-neutral-200 dark:border-neutral-800 rounded-2xl text-xs font-medium focus:border-secondary focus:ring-2 focus:ring-orange-100 outline-none resize-none"
                     />
@@ -765,6 +778,21 @@ export default function CoverStudioEditorPage() {
         initialStep={3}
         project={{ id: projectId, title, subtitle, cover_url: appliedCoverUrl }}
       />
+
+      {/* Toast de succès avec charte Iris au milieu de l'écran */}
+      {successMessageOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl p-8 flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-300 pointer-events-auto min-w-[300px]">
+            <div className="w-16 h-16 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center shrink-0 mb-2">
+              <IrisMark className="h-8 w-auto text-secondary rotate-6" />
+            </div>
+            <div className="text-center">
+              <h4 className="font-heading font-extrabold text-xl text-neutral-900 dark:text-neutral-100 mb-2">C'est fait !</h4>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium">Couverture appliquée au livre avec succès.</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
