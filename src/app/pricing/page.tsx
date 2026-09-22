@@ -170,7 +170,7 @@ function PricingInner() {
                 <span className="material-symbols-outlined text-primary">monetization_on</span>
               </div>
               <div>
-                <div className="font-bold text-neutral-900 dark:text-neutral-100">1 000 Pièces</div>
+                <div className="font-bold text-neutral-900 dark:text-neutral-100">900 Pièces</div>
                 <div className="text-xs text-neutral-500 dark:text-neutral-400">Crédit immédiat</div>
               </div>
             </div>
@@ -182,7 +182,7 @@ function PricingInner() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-green-500 text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Idéal pour écrire ~50 pages</span>
+                <span className="text-neutral-700 text-sm">Idéal pour écrire ~45 pages</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-green-500 text-xl shrink-0">check_circle</span>
@@ -215,7 +215,7 @@ function PricingInner() {
             </div>
 
             <div className="mb-8 flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-neutral-900 dark:text-neutral-100">2 500</span>
+              <span className="text-4xl font-extrabold text-neutral-900 dark:text-neutral-100">3 500</span>
               <span className="text-lg text-neutral-500 dark:text-neutral-400 font-medium">FCFA</span>
             </div>
 
@@ -224,7 +224,7 @@ function PricingInner() {
                 <span className="material-symbols-outlined text-primary">monetization_on</span>
               </div>
               <div>
-                <div className="font-bold text-neutral-900 dark:text-neutral-100">3 000 Pièces</div>
+                <div className="font-bold text-neutral-900 dark:text-neutral-100">4 000 Pièces</div>
                 <div className="text-xs font-semibold text-primary">+500 pièces bonus offertes</div>
               </div>
             </div>
@@ -236,7 +236,7 @@ function PricingInner() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Jusqu'à ~150 pages de rédaction</span>
+                <span className="text-neutral-700 text-sm">Jusqu'à ~200 pages de rédaction</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary text-xl shrink-0">check_circle</span>
@@ -274,8 +274,8 @@ function PricingInner() {
                 <span className="material-symbols-outlined text-secondary">monetization_on</span>
               </div>
               <div>
-                <div className="font-bold text-neutral-900">7 000 Pièces</div>
-                <div className="text-xs text-secondary">+2 000 pièces bonus offertes</div>
+                <div className="font-bold text-neutral-900">7 500 Pièces</div>
+                <div className="text-xs text-secondary">+2 500 pièces bonus offertes</div>
               </div>
             </div>
 
@@ -290,7 +290,7 @@ function PricingInner() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-secondary text-xl shrink-0">check_circle</span>
-                <span className="text-neutral-700 text-sm">Jusqu'à ~350 pages de rédaction</span>
+                <span className="text-neutral-700 text-sm">Jusqu'à ~375 pages de rédaction</span>
               </li>
             </ul>
 

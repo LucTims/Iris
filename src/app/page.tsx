@@ -8,6 +8,10 @@ import BookShowcaseMarquee from "@/components/BookShowcaseMarquee";
 import GenreCloudSection from "@/components/GenreCloudSection";
 import HeroVideoShowcase from "@/components/HeroVideoShowcase";
 import Footer from "@/components/Footer";
+import HowItWorksSection from "@/components/HowItWorksSection";
+import DeliverablesSection from "@/components/DeliverablesSection";
+import PricingSection from "@/components/PricingSection";
+import FAQSection from "@/components/FAQSection";
 import { useUser } from "@/hooks/useUser";
 import { ArrowRight, Menu, X, MessageSquare, Palette, Download } from "lucide-react";
 import { IrisMark } from "@/components/IrisLogo";
@@ -142,7 +146,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section with Dot Matrix Grid Background */}
-      <section className="relative pt-28 pb-16 sm:pt-32 sm:pb-20 lg:pt-36 lg:pb-24 overflow-hidden bg-white dark:bg-neutral-900">
+      <section className="relative pt-32 pb-24 sm:pt-40 sm:pb-32 lg:pt-44 lg:pb-36 overflow-hidden bg-white dark:bg-neutral-900">
         
         {/* Dot Matrix Canvas Background Grid - DISCREET VISIBILITY & GRADUAL FADE OUT */}
         <div 
@@ -217,11 +221,11 @@ export default function Home() {
       <ToolMarquee />
 
       {/* Features Section */}
-      <section id="features" className="py-16 md:py-20 bg-neutral-50/60">
+      <section id="features" className="py-24 md:py-32 bg-neutral-50/60 dark:bg-neutral-800/20">
         <div className="max-w-7xl mx-auto px-6">
           
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="font-heading text-3xl md:text-5xl font-extrabold text-neutral-900 dark:text-neutral-100 mb-4 tracking-tight">
+          <div className="text-center max-w-3xl mx-auto mb-20">
+            <h2 className="font-heading text-3xl md:text-5xl font-extrabold text-neutral-900 dark:text-neutral-100 mb-6 tracking-tight">
               Une expérience de création sans effort
             </h2>
             <p className="text-lg md:text-xl text-neutral-600 dark:text-neutral-400">
@@ -229,7 +233,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
             {[
               {
                 icon: MessageSquare,
@@ -249,12 +253,12 @@ export default function Home() {
             ].map((feat, idx) => {
               const Icon = feat.icon;
               return (
-                <div key={idx} className="bg-white dark:bg-neutral-900 rounded-3xl p-8 border border-neutral-200/80 dark:border-neutral-800 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+                <div key={idx} className="bg-white dark:bg-neutral-900 rounded-[2rem] p-10 border border-neutral-200/80 dark:border-neutral-800 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between group">
                   <div>
-                    <div className="w-14 h-14 rounded-2xl bg-[#FDF3F1] text-[#C84B31] border border-[#F4C5BC]/60 flex items-center justify-center mb-6">
-                      <Icon className="w-7 h-7" />
+                    <div className="w-16 h-16 rounded-2xl bg-[#FDF3F1] text-[#C84B31] border border-[#F4C5BC]/60 flex items-center justify-center mb-8 transition-transform group-hover:scale-110">
+                      <Icon className="w-8 h-8" />
                     </div>
-                    <h3 className="font-heading text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">{feat.title}</h3>
+                    <h3 className="font-heading text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">{feat.title}</h3>
                     <p className="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed">{feat.desc}</p>
                   </div>
                 </div>
@@ -265,11 +269,23 @@ export default function Home() {
         </div>
       </section>
 
+      {/* How it works (3 simple steps) */}
+      <HowItWorksSection />
+
+      {/* What you get (Deliverables) */}
+      <DeliverablesSection />
+
       {/* Genre Cloud Section ("Écrivez tout ce que vous pouvez imaginer") */}
       <GenreCloudSection />
 
+      {/* Pricing Grid */}
+      <PricingSection />
+
+      {/* FAQ */}
+      <FAQSection />
+
       {/* CTA Section */}
-      <section className="py-24 bg-gradient-to-br from-[#8C2717] via-[#A8321D] to-[#C84B31] text-white relative overflow-hidden">
+      <section className="py-24 md:py-32 bg-gradient-to-br from-[#8C2717] via-[#A8321D] to-[#C84B31] text-white relative overflow-hidden">
         <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
           <h2 className="font-heading text-4xl md:text-6xl font-extrabold mb-6 tracking-tight">
             Prêt à publier votre premier livre ?

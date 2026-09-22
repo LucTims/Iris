@@ -33,11 +33,11 @@ export default function NewBookWizard() {
     synopsis: "",
     tone: "",
     characters: "",
-    length: "Moyen (Roman standard)",
+    length: "Court (Nouvelle / Lead Magnet)",
     instructions: "",
     includeToc: true,
-    workType: "livre" as WorkType,
-    blueprintId: "roman" as BlueprintId,
+    workType: "ebook" as WorkType,
+    blueprintId: "ebook" as BlueprintId,
   });
 
   const updateForm = (field: string, value: string | boolean) => {

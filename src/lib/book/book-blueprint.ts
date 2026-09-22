@@ -173,9 +173,9 @@ export const BLUEPRINTS: Record<BlueprintId, BookBlueprint> = {
  * Liste ordonnée de tous les blueprints pour l'affichage dans l'interface utilisateur.
  */
 export const BLUEPRINT_LIST: BookBlueprint[] = [
-  BLUEPRINTS.roman,
-  BLUEPRINTS.guide,
   BLUEPRINTS.ebook,
+  BLUEPRINTS.guide,
+  BLUEPRINTS.roman,
   BLUEPRINTS.storybook,
 ];
 

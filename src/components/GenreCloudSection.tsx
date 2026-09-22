@@ -98,7 +98,7 @@ function MarqueeRow({ items, direction = "left" }: { items: TagItem[]; direction
 
 export default function GenreCloudSection() {
   return (
-    <section className="py-20 md:py-28 bg-neutral-50/70 border-b border-neutral-200/80 dark:border-neutral-800 relative overflow-hidden">
+    <section className="py-24 md:py-32 bg-neutral-50/70 border-b border-neutral-200/80 dark:border-neutral-800 relative overflow-hidden">
       {/* Background radial glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-gradient-to-tr from-[#C84B31]/10 via-[#FDF3F1]/80 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
 
