@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, Suspense } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -93,6 +93,7 @@ import { resolveWorkType, chapterNounFor } from "@/lib/book/work-type";
 import { assignChapterLabels } from "@/lib/book/chapter-heading";
 import { detectGenre } from "@/lib/ai/book-style";
 import { findUnwrittenSections, canResume } from "@/lib/book/unwritten";
+import { bookJobFailureMessage, type BookJobSnapshot } from "@/lib/book/generation-job";
 
 interface ChapterRow {
   id: string;
@@ -1088,6 +1089,124 @@ function RedactionContent() {
     return n > 0 ? n : null;
   })();
 
+  // Suit un job de rédaction serveur jusqu'à son issue, en reflétant la
+  // progression réelle des chapitres enregistrés. Sert au lancement, à la
+  // reprise (« Continuer la rédaction ») et à la reconnexion quand l'auteur
+  // rouvre un livre en cours de rédaction. Chaque interrogation du statut
+  // relance aussi, côté serveur, un job dont le worker s'est arrêté.
+  const followBookJob = useCallback(
+    (jobId: string, signal?: AbortSignal): Promise<"completed" | "failed" | "canceled" | "stopped" | "detached"> =>
+      new Promise((resolve) => {
+        bookJobIdRef.current = jobId;
+        const finish = (outcome: "completed" | "failed" | "canceled" | "stopped" | "detached") => {
+          if (bookJobIdRef.current === jobId) bookJobIdRef.current = null;
+          resolve(outcome);
+        };
+
+        const poll = async () => {
+          // L'éditeur a changé de livre : on cesse de suivre, sans arrêter le job.
+          if (signal?.aborted) {
+            finish("detached");
+            return;
+          }
+          if (batchStopRef.current) {
+            try {
+              await fetch("/api/generate-book/cancel", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ jobId }),
+              });
+            } catch { /* best-effort */ }
+            finish("stopped");
+            return;
+          }
+
+          try {
+            const res = await fetch(`/api/generate-book/status?jobId=${jobId}`, { cache: "no-store" });
+            if (res.status === 404) {
+              finish("detached");
+              return;
+            }
+            const data = await res.json().catch(() => null);
+            if (signal?.aborted) {
+              finish("detached");
+              return;
+            }
+            if (Array.isArray(data?.chapters)) setChapters(toEditorChapters(data.chapters));
+            const job: BookJobSnapshot | undefined = data?.job;
+            if (job) {
+              const total = Math.max(1, job.total);
+              const done = Math.min(job.current_index, total);
+              setBatchProgress({ current: done, total });
+              if (job.status === "running") {
+                setBatchLabel(data?.resumed ? "Reprise automatique de la rédaction…" : `Rédaction ${Math.min(done + 1, total)}/${total}…`);
+              }
+              if (job.status === "failed") {
+                alert(bookJobFailureMessage(job));
+                finish("failed");
+                return;
+              }
+              if (job.status === "completed" || job.status === "canceled") {
+                finish(job.status);
+                return;
+              }
+            }
+          } catch (err) {
+            console.warn("Erreur de polling du job de génération:", err);
+          }
+          setTimeout(poll, 3000);
+        };
+        poll();
+      }),
+    []
+  );
+
+  // RECONNEXION : l'auteur rouvre un livre dont la rédaction tourne encore
+  // côté serveur (onglet rechargé, retour plus tard, autre appareil). On
+  // réaffiche la progression et on suit le job jusqu'au bout ; sans cela le
+  // livre paraissait figé et l'auteur relançait — et repayait — tout le livre.
+  const isBatchGeneratingRef = useRef(false);
+  useEffect(() => {
+    isBatchGeneratingRef.current = isBatchGenerating;
+  }, [isBatchGenerating]);
+
+  useEffect(() => {
+    const pId = currentProjectId;
+    if (!pId) return;
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/generate-book/status?projectId=${encodeURIComponent(pId)}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        const job: BookJobSnapshot | undefined = data?.job;
+        // Rien à reprendre, ou une rédaction est déjà suivie dans cet onglet.
+        if (!job || job.status !== "running" || controller.signal.aborted) return;
+        if (bookJobIdRef.current || isBatchGeneratingRef.current) return;
+
+        batchStopRef.current = false;
+        setIsBatchGenerating(true);
+        setBatchProgress({ current: Math.min(job.current_index, job.total), total: Math.max(1, job.total) });
+        setBatchLabel("Rédaction en cours…");
+        try {
+          await followBookJob(job.id, controller.signal);
+        } finally {
+          setIsBatchGenerating(false);
+          setBatchProgress(null);
+          batchStopRef.current = false;
+        }
+      } catch {
+        /* hors ligne ou changement de livre : rien à reprendre */
+      }
+    })();
+
+    return () => controller.abort();
+  }, [currentProjectId, followBookJob]);
+
   // Ouvre le popup de configuration (longueur + modèle).
   const handleGenerateWholeBook = () => setIsBookModalOpen(true);
 
@@ -1253,60 +1372,11 @@ function RedactionContent() {
         return;
       }
       const { jobId } = await startResp.json();
-      bookJobIdRef.current = jobId;
+      setBatchProgress({ current: 0, total });
 
-      // Poll le statut du job jusqu'à complétion/échec/annulation, en
-      // reflétant la progression réelle des chapitres depuis la base.
-      await new Promise<void>((resolve) => {
-        const poll = async () => {
-          if (batchStopRef.current) {
-            try {
-              await fetch("/api/generate-book/cancel", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ jobId }),
-              });
-            } catch { /* best-effort */ }
-            resolve();
-            return;
-          }
-
-          try {
-            const res = await fetch(`/api/generate-book/status?jobId=${jobId}`);
-            const data = await res.json().catch(() => null);
-            if (data?.chapters) {
-              setChapters(data.chapters);
-            }
-            const job = data?.job;
-            if (job) {
-              const doneCount = Math.min(job.current_index, total);
-              setBatchProgress({ current: doneCount, total });
-              setBatchLabel(
-                job.status === "running"
-                  ? `Rédaction ${doneCount + 1}/${total}…`
-                  : job.status
-              );
-              if (job.status === "failed") {
-                if (job.last_error === "insufficient_funds") {
-                  alert("Pièces insuffisantes pour continuer la génération du livre. Les chapitres déjà rédigés sont enregistrés.");
-                } else {
-                  alert("Une erreur est survenue pendant la génération du livre. Les chapitres déjà rédigés sont enregistrés. Vous pouvez relancer la génération pour reprendre.");
-                }
-                resolve();
-                return;
-              }
-              if (job.status === "completed" || job.status === "canceled") {
-                resolve();
-                return;
-              }
-            }
-          } catch (err) {
-            console.warn("Erreur de polling du job de génération:", err);
-          }
-          setTimeout(poll, 3000);
-        };
-        poll();
-      });
+      // Suit le job jusqu'à complétion/échec/annulation, en reflétant la
+      // progression réelle des chapitres depuis la base.
+      await followBookJob(jobId);
 
       setActiveChapterIndex(startIdx);
     } catch (error) {
@@ -1462,50 +1532,9 @@ function RedactionContent() {
         return;
       }
       const { jobId } = await startResp.json();
-      bookJobIdRef.current = jobId;
+      setBatchProgress({ current: 0, total });
 
-      await new Promise<void>((resolve) => {
-        const poll = async () => {
-          if (batchStopRef.current) {
-            try {
-              await fetch("/api/generate-book/cancel", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ jobId }),
-              });
-            } catch { /* best-effort */ }
-            resolve();
-            return;
-          }
-          try {
-            const res = await fetch(`/api/generate-book/status?jobId=${jobId}`);
-            const data = await res.json().catch(() => null);
-            if (data?.chapters) setChapters(data.chapters);
-            const job = data?.job;
-            if (job) {
-              setBatchProgress({ current: Math.min(job.current_index, total), total });
-              setBatchLabel(job.status === "running" ? `Rédaction ${Math.min(job.current_index + 1, total)}/${total}…` : job.status);
-              if (job.status === "failed") {
-                alert(
-                  job.last_error === "insufficient_funds"
-                    ? "Pièces insuffisantes pour continuer. Les chapitres déjà rédigés sont enregistrés — rechargez puis cliquez à nouveau sur « Continuer la rédaction »."
-                    : "La génération s'est interrompue. Les chapitres déjà rédigés sont enregistrés. Réessayez ou changez de modèle."
-                );
-                resolve();
-                return;
-              }
-              if (job.status === "completed" || job.status === "canceled") {
-                resolve();
-                return;
-              }
-            }
-          } catch (err) {
-            console.warn("Erreur de polling du job de génération:", err);
-          }
-          setTimeout(poll, 3000);
-        };
-        poll();
-      });
+      await followBookJob(jobId);
 
       setActiveChapterIndex(0);
     } catch (error) {

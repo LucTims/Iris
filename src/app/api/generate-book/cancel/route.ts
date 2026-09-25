@@ -35,11 +35,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Job introuvable." }, { status: 404 });
     }
 
+    // Le bail n'est pas retiré : le worker achève et enregistre le chapitre en
+    // cours, puis s'arrête (advance_book_job ne rétablit jamais « running »).
     if (job.status === "running") {
       await getServiceRoleClient()
         .from("book_generation_jobs")
         .update({ status: "canceled", updated_at: new Date().toISOString() })
-        .eq("id", jobId);
+        .eq("id", jobId)
+        .eq("status", "running");
     }
 
     return NextResponse.json({ success: true });

@@ -1,13 +1,19 @@
 import { NextResponse, after } from "next/server";
+import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance } from "@/lib/ai/cost-engine";
 import { estimateChapterCoins } from "@/lib/ai/pricing";
 import { getServiceRoleClient, type BookJobChapterPlan, type BookJobSettings } from "@/lib/ai/book-job";
+import type { LeasedBookJob } from "@/lib/ai/book-job-lease";
+import { driveBookJob } from "@/lib/ai/book-job-runner";
 import { generateWithFallback } from "@/lib/ai/model-fallback";
 import { buildBiblePrompt, parseBible, isUsefulBible, EMPTY_BIBLE, type BookBible } from "@/lib/book/book-bible";
 import { detectGenre } from "@/lib/ai/book-style";
 import { resolveWorkType } from "@/lib/book/work-type";
+
+// Les premiers chapitres s'écrivent dans cette même invocation (after()).
+export const maxDuration = 300;
 
 const BIBLE_TIMEOUT_MS = 25_000;
 
@@ -61,12 +67,13 @@ async function buildBibleSafely(
 
 /**
  * Démarre (ou reprend) une génération de livre complet en arrière-plan.
- * Crée un job persisté, puis déclenche son traitement serveur-à-serveur
- * (voir /api/generate-book/process) : le reste de la génération continue
- * même si le client ferme l'onglet, contrairement à l'ancienne boucle
- * `fetch` exécutée directement depuis le navigateur.
+ * Crée un job persisté sous bail, puis écrit les premiers chapitres dans
+ * cette même invocation, après avoir répondu ; la suite passe par des relais
+ * (/api/generate-book/process) et, si un relais se perd, par la reprise
+ * automatique. La génération continue même si le client ferme l'onglet.
  */
 export async function POST(req: Request) {
+  const startedAt = Date.now();
   try {
     const supabase = await createClient();
     const {
@@ -117,6 +124,25 @@ export async function POST(req: Request) {
       );
     }
 
+    const db = getServiceRoleClient();
+
+    // UNE rédaction à la fois par livre, et dès maintenant (avant les
+    // secondes que prend la fiche de référence) : un job précédent encore
+    // actif écrirait — et facturerait — des chapitres que l'éditeur vient de
+    // recréer, ou ceux que cette reprise va écrire. Sans bail, son worker
+    // n'écrit plus rien.
+    await db
+      .from("book_generation_jobs")
+      .update({
+        status: "canceled",
+        last_error: "superseded",
+        lock_token: null,
+        lock_pending: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("project_id", projectId)
+      .eq("status", "running");
+
     // FICHE DE RÉFÉRENCE DE L'OUVRAGE, établie une seule fois avant d'écrire la
     // première ligne. Elle est ensuite injectée dans le prompt de CHAQUE
     // chapitre : c'est elle qui donne au rédacteur la vue d'ensemble qui lui
@@ -128,7 +154,6 @@ export async function POST(req: Request) {
     // fiche plutôt que d'empêcher l'auteur d'écrire son livre.
     const bible = await buildBibleSafely(settings, chapters);
 
-    const db = getServiceRoleClient();
     const { data: job, error: jobError } = await db
       .from("book_generation_jobs")
       .insert({
@@ -141,8 +166,11 @@ export async function POST(req: Request) {
         total: chapters.length,
         chapter_summaries: [],
         bible,
+        // Le job naît sous le bail de cette invocation, qui écrit les
+        // premiers chapitres elle-même.
+        lock_token: randomUUID(),
       })
-      .select("id")
+      .select("*")
       .single();
 
     if (jobError || !job) {
@@ -150,30 +178,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Impossible de démarrer la génération." }, { status: 500 });
     }
 
-    // Déclenche le traitement du premier chapitre APRÈS avoir répondu au
-    // client (after()) : le job continuera en arrière-plan indépendamment de
-    // la requête HTTP courante. Chaque chapitre suivant s'enchaîne lui-même
-    // de la même façon (voir /api/generate-book/process).
+    // Rédaction APRÈS avoir répondu au client (after()) : le job avance en
+    // arrière-plan indépendamment de la requête HTTP courante.
+    const leased = job as LeasedBookJob;
     const origin = new URL(req.url).origin;
-    const secret = process.env.INTERNAL_JOB_SECRET;
-    if (!secret) {
-      console.error("INTERNAL_JOB_SECRET manquant — le job ne pourra pas être traité.");
-      return NextResponse.json({ error: "Configuration serveur incomplète." }, { status: 500 });
-    }
+    after(() => driveBookJob(db, leased, { origin, startedAt }));
 
-    after(async () => {
-      try {
-        await fetch(`${origin}/api/generate-book/process`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-internal-job-secret": secret },
-          body: JSON.stringify({ jobId: job.id }),
-        });
-      } catch (err) {
-        console.error(`[generate-book/start] Échec du déclenchement initial du job ${job.id}:`, err);
-      }
-    });
-
-    return NextResponse.json({ jobId: job.id });
+    return NextResponse.json({ jobId: leased.id });
   } catch (error) {
     console.error("Erreur lors du démarrage de la génération du livre:", error);
     return NextResponse.json({ error: "Une erreur est survenue au démarrage de la génération." }, { status: 500 });
