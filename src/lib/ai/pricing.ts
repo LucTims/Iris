@@ -74,6 +74,18 @@ export function coinsPerPage(model: string): number {
   return 30;
 }
 
+/** Modèle de rédaction par défaut de l'éditeur (routes generate-chapter, generate-book). */
+export const DEFAULT_WRITING_MODEL = "gemini-3.6-flash";
+
+/**
+ * Pièces facturées par page quand l'assistant IA de l'auteur (Claude, ChatGPT…)
+ * écrit le livre via MCP (outil `write_chapter`). Même tarif que la rédaction
+ * par défaut de l'éditeur : un livre coûte le même prix, qu'il soit rédigé
+ * dans Iris ou par un LLM connecté. Seules les pages AJOUTÉES sont facturées :
+ * réenregistrer ou corriger un chapitre sans l'allonger ne coûte rien.
+ */
+export const MCP_COINS_PER_PAGE = COINS_PER_PAGE[DEFAULT_WRITING_MODEL];
+
 /** Nombre de pages correspondant à un nombre de mots (arrondi au supérieur). */
 export function pagesFromWords(words: number): number {
   if (!Number.isFinite(words) || words <= 0) return 0;

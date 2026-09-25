@@ -43,10 +43,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ status: "already_processed", coins_credited: 0 });
     }
 
-    await admin
+    // Passage à "paid" ATOMIQUE (même garde que le webhook SEBPay) : deux clics
+    // simultanés ne peuvent pas créditer deux fois la même transaction.
+    const { data: claimed, error: claimError } = await admin
       .from("transactions")
       .update({ status: "paid", updated_at: new Date().toISOString() })
-      .eq("id", tx.id);
+      .eq("id", tx.id)
+      .neq("status", "paid")
+      .select("id")
+      .maybeSingle();
+
+    if (claimError) {
+      return NextResponse.json({ error: "Confirmation impossible" }, { status: 500 });
+    }
+    if (!claimed) {
+      return NextResponse.json({ status: "already_processed", coins_credited: 0 });
+    }
 
     const coins = coinsForPurchase(tx.plan_id, tx.amount);
     if (coins > 0 && tx.user_id) {

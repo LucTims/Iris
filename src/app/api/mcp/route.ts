@@ -10,7 +10,13 @@ import { StatelessHttpTransport } from "@/lib/mcp/transport";
 // s'appuyait sur une Map en mémoire (incompatible avec le serverless
 // Vercel : GET et POST peuvent atterrir sur des instances différentes) et
 // sur un mock de réponse Node incomplet qui faisait échouer chaque message.
-const RESPONSE_TIMEOUT_MS = 25_000;
+//
+// Runtime Node et 60 s : l'outil `export_pdf` compose le livre sur place
+// (pdfmake, polices TTF lues sur disque), ce qui peut dépasser 25 s pour un
+// livre long avec couverture.
+export const runtime = "nodejs";
+export const maxDuration = 60;
+const RESPONSE_TIMEOUT_MS = 55_000;
 
 export async function POST(request: Request) {
   const auth = await resolveApiKeyUser(request);

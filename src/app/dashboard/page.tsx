@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -23,8 +23,14 @@ function DashboardContent() {
 
   const { projects } = useProjects();
 
+  // Utilisateur pour lequel la synchro a déjà été lancée : l'effet ci-dessous
+  // peut se rejouer à chaque rendu, mais la synchro ne part qu'une fois par visite.
+  const syncedForUserRef = useRef<string | null>(null);
+  const userId = user?.id;
+
   useEffect(() => {
-    if (!user) return;
+    if (!userId || syncedForUserRef.current === userId) return;
+    syncedForUserRef.current = userId;
 
     const performSync = async (isExplicitPayment: boolean) => {
       try {
@@ -37,23 +43,23 @@ function DashboardContent() {
         }
 
         const res = await fetch("/api/chariow/sync", { method: "POST" });
-        if (res.ok) {
-          const data = await res.json();
-          if (data?.coinsAdded > 0) {
-            setSyncBanner({
-              show: true,
-              message: `Félicitations ! Vos ${data.coinsAdded.toLocaleString("fr-FR")} pièces ont été créditées avec succès. Nouveau solde : ${data.newBalance?.toLocaleString("fr-FR")} pièces.`,
-              type: "success",
-            });
-            refreshWalletBalance();
-          } else if (isExplicitPayment) {
-            setSyncBanner({
-              show: true,
-              message: "Votre paiement a été validé et votre portefeuille de pièces est déjà crédité et à jour !",
-              type: "success",
-            });
-            refreshWalletBalance();
-          }
+        const data = res.ok ? await res.json() : null;
+        if (data?.coinsAdded > 0) {
+          setSyncBanner({
+            show: true,
+            message: `Félicitations ! Vos ${data.coinsAdded.toLocaleString("fr-FR")} pièces ont été créditées avec succès. Nouveau solde : ${data.newBalance?.toLocaleString("fr-FR")} pièces.`,
+            type: "success",
+          });
+          refreshWalletBalance();
+        } else if (isExplicitPayment) {
+          setSyncBanner({
+            show: true,
+            message: data
+              ? "Votre paiement a été validé et votre portefeuille de pièces est déjà crédité et à jour !"
+              : "Paiement reçu : vos pièces sont en cours d'attribution et apparaîtront dans quelques instants.",
+            type: "success",
+          });
+          refreshWalletBalance();
         }
       } catch (err) {
         console.warn("[Dashboard] Erreur synchronisation pièces:", err);
@@ -62,12 +68,14 @@ function DashboardContent() {
 
     if (paymentCompleted) {
       performSync(true);
-      const timer = setTimeout(() => performSync(false), 4000);
-      return () => clearTimeout(timer);
+      // Seconde passe différée : la licence peut n'être émise par Chariow
+      // que quelques secondes après le retour sur Iris. Pas d'annulation au
+      // démontage : la garde ci-dessus empêche déjà toute relance.
+      setTimeout(() => performSync(false), 4000);
     } else {
       performSync(false);
     }
-  }, [paymentCompleted, user, refreshWalletBalance]);
+  }, [paymentCompleted, userId, refreshWalletBalance]);
 
   const handleOpenExportModal = (project: any) => {
     setSelectedProjectForExport(project);

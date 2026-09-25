@@ -106,19 +106,34 @@ export function coinsForPurchase(planId?: string | null, amountFcfa?: number | n
   return 0;
 }
 
-/** Mapping des identifiants de produits Chariow vers nos plans de pièces internes. */
-export const CHARIOW_PRODUCT_TO_PLAN: Record<string, string> = {
-  // Produits Licences Chariow actuels
-  prd_mryxlaqo: "pack_starter",
-  prd_18k5s6e1: "pack_creator",
-  prd_48qp19t3: "pack_author",
-  // Rétro-compatibilité anciens produits
-  prd_waqgpzhy: "pack_starter",
-  prd_jvzz32pf: "pack_creator",
-  prd_yekmrhdn: "pack_author",
+/**
+ * Produits Chariow → packs de pièces.
+ *
+ * `issuesLicense` décide QUEL événement crédite l'achat. Un produit à licence
+ * déclenche deux notifications pour un seul paiement (`successful.sale` puis
+ * `license.issued`) qui ne partagent aucun identifiant : la vente ne porte pas
+ * la clé de licence, la licence ne porte pas l'id de vente. Créditer sur les
+ * deux donnait le double de pièces. Pour ces produits, seule la LICENCE (clé
+ * unique, également utilisée par la synchro et la saisie manuelle) crédite.
+ * Les anciens produits, sans licence, sont crédités sur la vente.
+ */
+export const CHARIOW_PRODUCTS: Record<string, { planId: string; issuesLicense: boolean }> = {
+  // Produits à licence actuels (liens de la page /pricing)
+  prd_mryxlaqo: { planId: "pack_starter", issuesLicense: true },
+  prd_18k5s6e1: { planId: "pack_creator", issuesLicense: true },
+  prd_48qp19t3: { planId: "pack_author", issuesLicense: true },
+  // Anciens produits (téléchargement simple, sans licence)
+  prd_waqgpzhy: { planId: "pack_starter", issuesLicense: false },
+  prd_jvzz32pf: { planId: "pack_creator", issuesLicense: false },
+  prd_yekmrhdn: { planId: "pack_author", issuesLicense: false },
 };
 
 export function getPackByChariowProductId(productId: string): CoinPack | undefined {
-  const planId = CHARIOW_PRODUCT_TO_PLAN[productId];
-  return planId ? getPackById(planId) : undefined;
+  const product = CHARIOW_PRODUCTS[productId];
+  return product ? getPackById(product.planId) : undefined;
+}
+
+/** Vrai si l'achat de ce produit Chariow délivre une licence (crédit par la licence). */
+export function chariowProductIssuesLicense(productId: string | null | undefined): boolean {
+  return !!(productId && CHARIOW_PRODUCTS[productId]?.issuesLicense);
 }

@@ -1,6 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { MCP_COINS_PER_PAGE, WORDS_PER_PAGE } from "@/lib/ai/pricing";
+import { renderBookPdf } from "@/lib/export/pdfBook";
+import { writeChapterWithBilling } from "@/lib/mcp/writeChapter";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.irisboom.online";
+const MCP_PRICE_NOTE = `L'écriture via MCP coûte ${MCP_COINS_PER_PAGE} pièces par page ajoutée (1 page ≈ ${WORDS_PER_PAGE} mots) ; réenregistrer ou corriger un chapitre sans l'allonger est gratuit.`;
 
 function getAdminClient() {
   return createClient(
@@ -76,15 +82,19 @@ export function buildMcpServer(userId: string): McpServer {
 
   server.tool(
     "create_book",
-    "Créer un nouveau projet de livre",
+    "Créer un nouveau projet de livre. Écrivez ensuite ses chapitres avec write_chapter.",
     {
       title: z.string().describe("Titre du livre"),
       synopsis: z.string().optional().describe("Synopsis ou résumé"),
       category: z.string().optional().describe("Catégorie / genre"),
       tone: z.string().optional().describe("Ton du livre"),
       audience: z.string().optional().describe("Public visé"),
+      work_type: z
+        .enum(["livre", "guide", "ebook"])
+        .optional()
+        .describe("Forme de l'ouvrage, qui décide de la mise en page à l'export : 'livre' (roman, récit, essai), 'guide' (pratique, étapes), 'ebook' (court)"),
     },
-    async ({ title, synopsis, category, tone, audience }) => {
+    async ({ title, synopsis, category, tone, audience, work_type }) => {
       const { data, error } = await supabase
         .from("projects")
         .insert({
@@ -94,6 +104,9 @@ export function buildMcpServer(userId: string): McpServer {
           category: category ?? null,
           tone: tone ?? null,
           audience: audience ?? null,
+          // Mêmes colonnes que la création depuis l'application (blueprint_id
+          // n'accepte que livre/guide/ebook/storybook).
+          ...(work_type ? { work_type, blueprint_id: work_type } : {}),
         })
         .select("id")
         .single();
@@ -103,65 +116,64 @@ export function buildMcpServer(userId: string): McpServer {
       }
 
       return {
-        content: [{ type: "text", text: `Le livre "${title}" a été créé avec succès (id: ${data.id}).` }],
+        content: [{
+          type: "text",
+          text: `Le livre "${title}" a été créé avec succès (id: ${data.id}). Écrivez ses chapitres avec write_chapter en commençant par chapter_number = 1. ${MCP_PRICE_NOTE}`,
+        }],
       };
     }
   );
 
   server.tool(
     "write_chapter",
-    "Créer ou mettre à jour le contenu d'un chapitre d'un projet existant",
+    `Créer ou remplacer le contenu d'un chapitre. chapter_number est la position du chapitre dans le livre, telle que renvoyée par list_chapters (si le livre commence par un « Sommaire », celui-ci occupe la position 1 : écrivez alors le premier chapitre en position 2). Le contenu est accepté en texte brut, Markdown ou HTML : il est converti automatiquement au format du manuscrit (paragraphes, intertitres ##, listes, citations, « --- » pour un changement de scène). Le titre est ajouté en tête du chapitre : inutile de le répéter dans le contenu. Écrivez un seul chapitre par appel. ${MCP_PRICE_NOTE} Si le solde est insuffisant, rien n'est enregistré.`,
     {
       book_id: z.string().describe("ID du livre"),
-      chapter_number: z.number().int().min(1).describe("Numéro du chapitre"),
-      title: z.string().describe("Titre du chapitre"),
-      content: z.string().describe("Contenu texte du chapitre"),
+      chapter_number: z.number().int().min(1).describe("Position du chapitre dans le livre (voir list_chapters)"),
+      title: z.string().describe("Titre du chapitre, affiché en tête du chapitre"),
+      content: z.string().describe("Contenu du chapitre : texte brut, Markdown ou HTML"),
     },
     async ({ book_id, chapter_number, title, content }) => {
-      // Vérifie que le projet appartient bien à l'utilisateur de la clé API
-      // avant d'écrire quoi que ce soit : sans ce contrôle, n'importe quelle
-      // clé valide pourrait écrire dans le livre d'un autre utilisateur en
-      // devinant son book_id.
-      const { data: project, error: projectError } = await supabase
-        .from("projects")
-        .select("id")
-        .eq("id", book_id)
-        .eq("user_id", userId)
-        .maybeSingle();
+      const result = await writeChapterWithBilling(supabase, userId, {
+        bookId: book_id,
+        chapterNumber: chapter_number,
+        title,
+        content,
+      });
 
-      if (projectError) {
-        return { content: [{ type: "text", text: `Erreur : ${projectError.message}` }], isError: true };
-      }
-      if (!project) {
+      if (result.status === "not_found") {
         return { content: [{ type: "text", text: "Projet introuvable." }], isError: true };
       }
-
-      const wordCount = content.trim().length > 0 ? content.trim().split(/\s+/).length : 0;
-
-      const { error } = await supabase
-        .from("chapters")
-        .upsert(
-          {
-            project_id: book_id,
-            number: chapter_number,
-            title,
-            content,
-            word_count: wordCount,
-          },
-          { onConflict: "project_id,number" }
-        );
-
-      if (error) {
-        return { content: [{ type: "text", text: `Erreur lors de la sauvegarde : ${error.message}` }], isError: true };
+      if (result.status === "insufficient_funds") {
+        return {
+          content: [{
+            type: "text",
+            text: `Solde insuffisant : ce chapitre ajoute ${result.billedPages} page(s), soit ${result.required} pièces, et le solde est de ${result.balance} pièces. Rien n'a été enregistré. Rechargez des pièces sur ${SITE_URL}/pricing puis réessayez.`,
+          }],
+          isError: true,
+        };
+      }
+      if (result.status === "error") {
+        return { content: [{ type: "text", text: `Erreur lors de la sauvegarde : ${result.message}` }], isError: true };
       }
 
-      return { content: [{ type: "text", text: `Chapitre ${chapter_number} sauvegardé.` }] };
+      const billing =
+        result.coinsCharged > 0
+          ? `${result.coinsCharged} pièces débitées (${result.billedPages} page(s) ajoutée(s))`
+          : "aucune pièce débitée (aucune page ajoutée)";
+      const balance = result.balance !== null ? ` Solde restant : ${result.balance} pièces.` : "";
+      return {
+        content: [{
+          type: "text",
+          text: `Chapitre ${chapter_number} ${result.created ? "créé" : "mis à jour"} : ${result.wordCount} mots (~${result.pages} page(s)) ; ${billing}.${balance}`,
+        }],
+      };
     }
   );
 
   server.tool(
     "get_wallet_balance",
-    "Consulter le solde de crédits (wallet) de l'utilisateur",
+    "Consulter le solde de pièces de l'utilisateur et le tarif de l'écriture via MCP",
     {},
     async () => {
       const { data, error } = await supabase
@@ -177,13 +189,13 @@ export function buildMcpServer(userId: string): McpServer {
         return { content: [{ type: "text", text: "Portefeuille introuvable pour cet utilisateur." }] };
       }
 
-      return { content: [{ type: "text", text: `Solde actuel : ${data.balance} crédits.` }] };
+      return { content: [{ type: "text", text: `Solde actuel : ${data.balance} pièces. ${MCP_PRICE_NOTE}` }] };
     }
   );
 
   server.tool(
     "list_chapters",
-    "Lister tous les chapitres d'un livre/projet, triés par numéro",
+    "Lister les chapitres d'un livre dans l'ordre, avec leur position (le chapter_number attendu par read_chapter et write_chapter), leur titre et leur nombre de mots",
     {
       book_id: z.string().describe("ID du projet"),
     },
@@ -215,7 +227,7 @@ export function buildMcpServer(userId: string): McpServer {
       }
 
       const list = data
-        .map((ch) => `- Chapitre ${ch.number} : ${ch.title} (${ch.word_count || 0} mots)`)
+        .map((ch) => `- Position ${ch.number} : ${ch.title} (${ch.word_count || 0} mots)`)
         .join("\n");
       return { content: [{ type: "text", text: list }] };
     }
@@ -226,7 +238,7 @@ export function buildMcpServer(userId: string): McpServer {
     "Lire le contenu complet d'un chapitre spécifique",
     {
       book_id: z.string().describe("ID du projet"),
-      chapter_number: z.number().int().min(1).describe("Numéro du chapitre"),
+      chapter_number: z.number().int().min(1).describe("Position du chapitre dans le livre (voir list_chapters)"),
     },
     async ({ book_id, chapter_number }) => {
       const { data: project } = await supabase
@@ -257,7 +269,7 @@ export function buildMcpServer(userId: string): McpServer {
       return {
         content: [{
           type: "text",
-          text: `# Chapitre ${data.number} — ${data.title}\n(${data.word_count || 0} mots)\n\n${data.content || "(contenu vide)"}`
+          text: `# Position ${data.number} — ${data.title}\n(${data.word_count || 0} mots)\n\n${data.content || "(contenu vide)"}`
         }]
       };
     }
@@ -330,7 +342,7 @@ export function buildMcpServer(userId: string): McpServer {
 
   server.tool(
     "export_pdf",
-    "Exporter un livre complet en PDF (format numérique ou impression). Retourne un lien de téléchargement.",
+    "Exporter le livre complet en PDF (format numérique ou impression), à partir de tous les chapitres enregistrés. Retourne un lien de téléchargement.",
     {
       book_id: z.string().describe("ID du projet"),
       format: z.enum(["digital", "print"]).optional().describe("Format d'export : 'digital' (par défaut) ou 'print' (marges pour impression)"),
@@ -339,7 +351,7 @@ export function buildMcpServer(userId: string): McpServer {
       // Vérifier que le projet appartient à l'utilisateur
       const { data: project } = await supabase
         .from("projects")
-        .select("id, title, subtitle, category, cover_url")
+        .select("id, title, subtitle, category, cover_url, work_type")
         .eq("id", book_id)
         .eq("user_id", userId)
         .maybeSingle();
@@ -348,10 +360,11 @@ export function buildMcpServer(userId: string): McpServer {
         return { content: [{ type: "text", text: "Projet introuvable." }], isError: true };
       }
 
-      // Récupérer tous les chapitres du projet
+      // Tous les chapitres enregistrés, dans l'ordre : l'export reflète
+      // exactement ce qui a été écrit, via MCP comme depuis l'éditeur.
       const { data: chapters, error: chErr } = await supabase
         .from("chapters")
-        .select("number, title, content")
+        .select("number, title, content, word_count")
         .eq("project_id", book_id)
         .order("number", { ascending: true });
 
@@ -359,37 +372,27 @@ export function buildMcpServer(userId: string): McpServer {
         return { content: [{ type: "text", text: `Erreur : ${chErr.message}` }], isError: true };
       }
 
-      if (!chapters || chapters.length === 0) {
+      const written = (chapters || []).filter((ch) => (ch.content || "").replace(/<[^>]*>/g, "").trim().length > 0);
+      if (written.length === 0) {
         return { content: [{ type: "text", text: "Aucun chapitre à exporter. Écrivez d'abord quelques chapitres !" }] };
       }
 
-      // Appeler l'API interne d'export PDF
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+      const exportFormat = format === "print" ? "print" : "digital";
       try {
-        const res = await fetch(`${siteUrl}/api/export/pdf`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: project.title,
-            subtitle: project.subtitle,
-            category: project.category,
-            coverUrl: project.cover_url,
-            format: format || "digital",
-            chapters: chapters.map((ch) => ({
-              number: ch.number,
-              title: ch.title,
-              content: ch.content,
-            })),
-          }),
+        // Rendu direct, sans passer par /api/export/pdf : cette route exige
+        // une session navigateur, que l'appel MCP n'a pas (401 systématique).
+        const pdfBuffer = await renderBookPdf({
+          title: project.title,
+          subtitle: project.subtitle,
+          category: project.category,
+          coverUrl: project.cover_url,
+          format: exportFormat,
+          workType: project.work_type,
+          chapters: written.map((ch) => ({ number: ch.number, title: ch.title, content: ch.content || "" })),
         });
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: "Erreur inconnue" }));
-          return { content: [{ type: "text", text: `Erreur d'export : ${err.error || res.statusText}` }], isError: true };
-        }
-
-        // Le PDF est généré, on le stocke dans Supabase Storage pour donner un lien
-        const pdfBuffer = Buffer.from(await res.arrayBuffer());
+        const sizeKb = Math.round(pdfBuffer.length / 1024);
+        const words = written.reduce((sum, ch) => sum + (Number(ch.word_count) || 0), 0);
         const fileName = `exports/${userId}/${book_id}-${Date.now()}.pdf`;
 
         const { error: uploadErr } = await supabase.storage
@@ -397,17 +400,16 @@ export function buildMcpServer(userId: string): McpServer {
           .upload(fileName, pdfBuffer, { contentType: "application/pdf", upsert: true });
 
         if (uploadErr) {
-          return { content: [{ type: "text", text: `PDF généré (${chapters.length} chapitres, ${Math.round(pdfBuffer.length / 1024)} Ko) mais impossible de l'héberger pour téléchargement. Utilisez l'export depuis le tableau de bord Iris.` }] };
+          return { content: [{ type: "text", text: `PDF généré (${written.length} chapitres, ${sizeKb} Ko) mais impossible de l'héberger pour téléchargement. Utilisez l'export depuis le tableau de bord Iris.` }] };
         }
 
         const { data: pub } = supabase.storage.from("covers").getPublicUrl(fileName);
-        const downloadUrl = pub?.publicUrl || "";
 
         return {
           content: [{
             type: "text",
-            text: `PDF exporté avec succès !\n- Livre : "${project.title}"\n- ${chapters.length} chapitres\n- Format : ${format || "digital"}\n- Taille : ${Math.round(pdfBuffer.length / 1024)} Ko\n- Téléchargement : ${downloadUrl}`
-          }]
+            text: `PDF exporté avec succès !\n- Livre : "${project.title}"\n- ${written.length} chapitre(s), ${words} mots\n- Format : ${exportFormat}\n- Taille : ${sizeKb} Ko\n- Téléchargement : ${pub?.publicUrl || ""}`,
+          }],
         };
       } catch (e) {
         return { content: [{ type: "text", text: `Erreur lors de l'export : ${e instanceof Error ? e.message : String(e)}` }], isError: true };
