@@ -35,7 +35,10 @@ export async function GET() {
     supabase_service_role: present(process.env.SUPABASE_SERVICE_ROLE_KEY),
     internal_job_secret: present(process.env.INTERNAL_JOB_SECRET),
     sebpay_secret: present(process.env.SEBPAY_SECRET_KEY),
-    chariow_pulse_secret: present(process.env.CHARIOW_PULSE_SECRET),
+    chariow_pulse_secret: present(process.env.CHARIOW_PULSE_SECRET || process.env.CHARIOW_WEBHOOK_SECRET),
+    // Requise par la synchro des achats, la saisie manuelle des clés et la
+    // vérification des notifications non signées.
+    chariow_api_key: present(process.env.CHARIOW_API_KEY),
   };
 
   // Modèles d'écriture proposés dans l'éditeur → clé requise pour chacun.

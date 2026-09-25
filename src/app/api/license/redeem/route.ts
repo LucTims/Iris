@@ -2,13 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { getPackByChariowProductId, getPackById } from "@/lib/coinPacks";
-import { creditWalletCoins } from "@/lib/payments/creditWallet";
+import {
+  activateChariowLicense,
+  fetchChariowLicense,
+  getChariowApiKey,
+  normalizeLicenseKey,
+} from "@/lib/payments/chariowApi";
+import { creditPurchaseOnce } from "@/lib/payments/purchaseCredit";
+
+/**
+ * Activation manuelle d'une clé de licence Chariow (page Portefeuille).
+ *
+ * La clé est relue auprès de Chariow, puis créditée via `creditPurchaseOnce`
+ * (réservation atomique sur la clé NORMALISÉE, commune au webhook et à la
+ * synchro) : une clé déjà créditée automatiquement, ou saisie deux fois — y
+ * compris en minuscules — ne recrédite jamais.
+ */
 
 function getSupabaseAdmin() {
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 }
 
 export async function POST(req: NextRequest) {
@@ -34,212 +46,133 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Format de requête invalide." }, { status: 400 });
     }
 
-    const rawKey = body?.licenseKey;
-    if (!rawKey || typeof rawKey !== "string" || !rawKey.trim()) {
+    const inputKey = typeof body?.licenseKey === "string" ? body.licenseKey.trim() : "";
+    const normalizedInput = normalizeLicenseKey(inputKey);
+    if (!normalizedInput) {
       return NextResponse.json(
         { error: "Veuillez renseigner une clé de licence valide." },
         { status: 400 }
       );
     }
 
-    const cleanKey = rawKey.trim();
     const adminSupabase = getSupabaseAdmin();
+    const readBalance = async () => {
+      const { data: wallet } = await adminSupabase
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return wallet?.balance ?? 0;
+    };
 
-    // 3. Vérification d'idempotence : La clé a-t-elle déjà été créditée ?
-    const { data: existingLicense, error: checkError } = await adminSupabase
-      .from("redeemed_licenses")
-      .select("id, user_id, coins_credited, plan_id")
-      .eq("license_key", cleanKey)
-      .maybeSingle();
-
-    if (checkError) {
-      console.error("[License Redeem] Erreur vérification table redeemed_licenses:", checkError);
-    }
-
-    if (existingLicense) {
-      if (existingLicense.user_id === user.id) {
-        // Déjà activée par CE même utilisateur : réponse rassurante
-        const { data: wallet } = await adminSupabase
-          .from("wallets")
-          .select("balance")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
+    const alreadyCreditedResponse = async (ownerUserId: string | null, coins: number) => {
+      if (ownerUserId === user.id) {
         return NextResponse.json({
           success: true,
           alreadyProcessed: true,
-          coinsCredited: existingLicense.coins_credited,
-          newBalance: wallet?.balance ?? 0,
-          message: `Cette clé a déjà été activée sur votre compte et vos ${existingLicense.coins_credited.toLocaleString(
+          coinsCredited: coins,
+          newBalance: await readBalance(),
+          message: `Cette clé a déjà été activée sur votre compte et vos ${coins.toLocaleString(
             "fr-FR"
           )} pièces sont bien enregistrées !`,
         });
       }
-
-      // Clé déjà utilisée par un AUTRE utilisateur
       return NextResponse.json(
         { error: "Cette clé de licence a déjà été activée et utilisée sur un autre compte." },
         { status: 409 }
       );
+    };
+
+    // 3. Réponse rapide si la clé est déjà créditée (sans appel à Chariow)
+    const { data: existingLicense } = await adminSupabase
+      .from("redeemed_licenses")
+      .select("user_id, coins_credited")
+      .eq("license_key", normalizedInput)
+      .maybeSingle();
+    if (existingLicense) {
+      return alreadyCreditedResponse(existingLicense.user_id, existingLicense.coins_credited);
     }
 
-    // 4. Vérification de la configuration Chariow
-    const chariowApiKey =
-      process.env.CHARIOW_API_KEY || "sk_g67k3ae2_f6e29ccf707f86ac1a4cdad92cf96abe";
+    // 4. Vérification de la clé auprès de Chariow
+    const chariowApiKey = getChariowApiKey();
     if (!chariowApiKey) {
       console.error("[License Redeem] CHARIOW_API_KEY manquante côté serveur.");
       return NextResponse.json(
-        { error: "Configuration serveur Chariow manquante. Contactez le support." },
-        { status: 500 }
+        { error: "Activation momentanément indisponible. Contactez le support." },
+        { status: 503 }
       );
     }
 
-    // 5. Appel à l'API Chariow pour valider la clé
-    const chariowRes = await fetch(
-      `https://api.chariow.com/v1/licenses/${encodeURIComponent(cleanKey)}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${chariowApiKey}`,
-          Accept: "application/json",
+    const lookup = await fetchChariowLicense(inputKey, chariowApiKey);
+    if (lookup.status === "not_found") {
+      return NextResponse.json(
+        {
+          error:
+            "Clé de licence introuvable. Vérifiez que vous avez bien copié votre clé depuis votre reçu Chariow.",
         },
-      }
-    );
-
-    if (!chariowRes.ok) {
-      if (chariowRes.status === 404) {
-        return NextResponse.json(
-          {
-            error:
-              "Clé de licence introuvable. Vérifiez que vous avez bien copié votre clé depuis votre reçu Chariow.",
-          },
-          { status: 404 }
-        );
-      }
-      const errData = await chariowRes.json().catch(() => ({}));
-      return NextResponse.json(
-        { error: errData?.message || "Impossible de vérifier la clé auprès de Chariow." },
-        { status: 400 }
+        { status: 404 }
       );
     }
-
-    const chariowJson = await chariowRes.json();
-    const licenseObj = chariowJson?.data || chariowJson;
-
-    // 6. Vérifications d'expiration / révocation
-    if (licenseObj?.is_expired) {
-      return NextResponse.json(
-        { error: "Cette clé de licence a expiré." },
-        { status: 400 }
-      );
+    if (lookup.status === "error") {
+      console.error("[License Redeem] Vérification Chariow impossible:", lookup.message);
+      return NextResponse.json({ error: "Impossible de vérifier la clé auprès de Chariow." }, { status: 502 });
     }
 
-    if (licenseObj?.revoked_at || licenseObj?.status === "revoked") {
-      return NextResponse.json(
-        { error: "Cette clé de licence a été révoquée par le vendeur." },
-        { status: 400 }
-      );
+    const license = lookup.value;
+    if (license.isExpired) {
+      return NextResponse.json({ error: "Cette clé de licence a expiré." }, { status: 400 });
+    }
+    if (license.isRevoked) {
+      return NextResponse.json({ error: "Cette clé de licence a été révoquée par le vendeur." }, { status: 400 });
     }
 
-    // 7. Identification du pack de pièces associé au produit Chariow
-    const productId: string | undefined = licenseObj?.product?.id;
-    let pack = productId ? getPackByChariowProductId(productId) : undefined;
-
-    if (!pack && licenseObj?.product?.name) {
-      pack = getPackById(licenseObj.product.name);
-    }
-
+    // 5. Pack de pièces associé au produit Chariow
+    const pack =
+      (license.productId ? getPackByChariowProductId(license.productId) : undefined) ||
+      (license.productName ? getPackById(license.productName) : undefined);
     if (!pack) {
-      console.error("[License Redeem] Produit Chariow non mappé à un pack Iris:", productId, licenseObj?.product);
+      console.error("[License Redeem] Produit Chariow non mappé à un pack Iris:", license.productId, license.productName);
       return NextResponse.json(
         { error: "Ce produit Chariow ne correspond à aucun pack de pièces Iris connu." },
         { status: 400 }
       );
     }
 
-    // 8. Activation de la licence sur Chariow (si le produit nécessite une activation)
-    if (licenseObj.can_activate) {
-      try {
-        await fetch(`https://api.chariow.com/v1/licenses/${encodeURIComponent(cleanKey)}/activate`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${chariowApiKey}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            device_identifier: user.id,
-          }),
-        });
-      } catch (actErr) {
-        console.warn("[License Redeem] Notification d'activation Chariow non critique:", actErr);
-      }
+    // 6. Réservation + crédit atomiques (clé canonique renvoyée par Chariow)
+    const outcome = await creditPurchaseOnce(adminSupabase, {
+      claimKey: license.key,
+      userId: user.id,
+      pack,
+      source: "manual_redeem",
+      description: `Activation clé de licence Chariow : ${pack.name}`,
+      productId: license.productId,
+      chariowLicenseId: license.id,
+      metadata: {
+        customer_email: license.customerEmail || user.email,
+        product_name: license.productName,
+      },
+    });
+
+    if (outcome.status === "already_credited") {
+      return alreadyCreditedResponse(outcome.ownerUserId, outcome.coins);
     }
-
-    // 9. Crédit atomique du portefeuille via credit_wallet_coins (FOR UPDATE)
-    const credit = await creditWalletCoins(
-      adminSupabase,
-      user.id,
-      pack.coins,
-      `Activation clé de licence Chariow : ${pack.name}`,
-      {
-        provider: "chariow_license",
-        license_key: cleanKey,
-        chariow_license_id: licenseObj?.id,
-        product_id: productId,
-        plan_id: pack.id,
-      }
-    );
-
-    if (!credit.ok) {
-      console.error("[License Redeem] Échec du crédit wallet:", user.id, pack.id);
+    if (outcome.status === "failed") {
+      console.error("[License Redeem] Échec du crédit:", user.id, pack.id, outcome.reason);
       return NextResponse.json(
         { error: "Une erreur est survenue lors de l'attribution de vos pièces." },
         { status: 500 }
       );
     }
 
-    // 10. Enregistrement dans la table d'idempotence redeemed_licenses
-    const { error: insertLicenseError } = await adminSupabase.from("redeemed_licenses").insert({
-      user_id: user.id,
-      license_key: cleanKey,
-      chariow_license_id: licenseObj?.id || null,
-      product_id: productId || "unknown",
-      plan_id: pack.id,
-      coins_credited: pack.coins,
-      source: "manual_redeem",
-      metadata: {
-        customer_email: licenseObj?.customer?.email || user.email,
-        product_name: licenseObj?.product?.name,
-      },
-    });
+    // 7. Activation côté Chariow, seulement une fois l'achat crédité (non bloquant)
+    if (license.canActivate) await activateChariowLicense(license.rawKey, chariowApiKey, user.id);
 
-    if (insertLicenseError) {
-      console.error("[License Redeem] Erreur enregistrement redeemed_licenses:", insertLicenseError);
-    }
-
-    // 11. Journalisation dans transactions (best-effort)
-    try {
-      await adminSupabase.from("transactions").insert({
-        user_id: user.id,
-        plan_id: pack.id,
-        amount: pack.priceFcfa,
-        currency: "XOF",
-        status: "paid",
-        provider_reference: licenseObj?.id || cleanKey,
-      });
-    } catch (logErr) {
-      console.warn("[License Redeem] Journalisation transaction non critique:", logErr);
-    }
-
-    console.log(
-      `[License Redeem] ${pack.coins} pièces créditées avec succès à l'utilisateur ${user.id} via la clé ${cleanKey}.`
-    );
+    console.log(`[License Redeem] ${pack.coins} pièces créditées à ${user.id} (licence ${license.key}).`);
 
     return NextResponse.json({
       success: true,
       coinsCredited: pack.coins,
-      newBalance: credit.newBalance,
+      newBalance: outcome.newBalance ?? (await readBalance()),
       packName: pack.name,
       message: `Félicitations ! Votre pack ${pack.name} de ${pack.coins.toLocaleString(
         "fr-FR"

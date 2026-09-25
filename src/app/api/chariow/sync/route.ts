@@ -1,17 +1,27 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { getPackByChariowProductId, getPackById } from "@/lib/coinPacks";
-import { creditWalletCoins } from "@/lib/payments/creditWallet";
+import { checkRateLimit } from "@/lib/ratelimit";
+import { activateChariowLicense, getChariowApiKey, listRecentChariowLicenses } from "@/lib/payments/chariowApi";
+import { creditPurchaseOnce } from "@/lib/payments/purchaseCredit";
+
+/**
+ * Filet de sécurité appelé par le tableau de bord : crédite les licences
+ * Chariow de l'utilisateur que le webhook n'aurait pas encore traitées.
+ *
+ * Chaque licence passe par `creditPurchaseOnce` (réservation atomique AVANT
+ * crédit, clé = clé de licence) : ni un appel concurrent de cette route, ni le
+ * webhook, ni la saisie manuelle ne peuvent créditer la même licence deux
+ * fois. Auparavant, 5 appels simultanés du tableau de bord avaient crédité
+ * 5 fois la même licence.
+ */
 
 function getSupabaseAdmin() {
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 }
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     const supabase = await createClient();
     const {
@@ -27,138 +37,70 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email utilisateur manquant" }, { status: 400 });
     }
 
-    const chariowApiKey =
-      process.env.CHARIOW_API_KEY || "sk_g67k3ae2_f6e29ccf707f86ac1a4cdad92cf96abe";
-    if (!chariowApiKey) {
-      return NextResponse.json({ error: "Clé API Chariow manquante" }, { status: 500 });
-    }
-
-    // 1. Récupérer les licences associées à l'email de l'utilisateur (rapide & ciblé)
-    let licenses: any[] = [];
-    try {
-      const response = await fetch(
-        `https://api.chariow.com/v1/licenses?customer_email=${encodeURIComponent(userEmail)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${chariowApiKey}`,
-            Accept: "application/json",
-          },
-        }
-      );
-      if (response.ok) {
-        const json = await response.json();
-        licenses = json?.data || [];
-      }
-    } catch (fetchErr) {
-      console.warn("[Chariow Sync] Erreur fetch direct licences:", fetchErr);
-    }
-
-    // En cas de résultat vide, repli sur les 50 dernières licences du store
-    if (licenses.length === 0) {
-      try {
-        const fallbackRes = await fetch("https://api.chariow.com/v1/licenses?per_page=50", {
-          headers: {
-            Authorization: `Bearer ${chariowApiKey}`,
-            Accept: "application/json",
-          },
-        });
-        if (fallbackRes.ok) {
-          const fallbackJson = await fallbackRes.json();
-          licenses = fallbackJson?.data || [];
-        }
-      } catch (fallbackErr) {
-        console.warn("[Chariow Sync] Erreur fetch global licences:", fallbackErr);
-      }
-    }
-
     const adminSupabase = getSupabaseAdmin();
+    const readBalance = async () => {
+      const { data: wallet } = await adminSupabase
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return wallet?.balance ?? 0;
+    };
+
+    // Une synchro coûte un appel à l'API Chariow : quelques-unes par minute suffisent.
+    const rate = await checkRateLimit(`chariow_sync_${user.id}`, 4, 60 * 1000);
+    if (!rate.success) {
+      return NextResponse.json({ success: true, coinsAdded: 0, newlyCreditedCount: 0, newBalance: await readBalance(), throttled: true });
+    }
+
+    const chariowApiKey = getChariowApiKey();
+    if (!chariowApiKey) {
+      console.error("[Chariow Sync] CHARIOW_API_KEY absente : synchronisation impossible.");
+      return NextResponse.json({ error: "Synchronisation Chariow indisponible" }, { status: 503 });
+    }
+
+    let licenses;
+    try {
+      licenses = await listRecentChariowLicenses(chariowApiKey);
+    } catch (fetchErr) {
+      console.warn("[Chariow Sync] Lecture des licences impossible:", fetchErr);
+      return NextResponse.json({ error: "Chariow momentanément injoignable" }, { status: 502 });
+    }
+
     let totalCoinsAdded = 0;
     let newlyCreditedCount = 0;
 
     for (const lic of licenses) {
-      const customerEmail = lic?.customer?.email?.trim().toLowerCase();
-      if (customerEmail !== userEmail) continue;
+      if (lic.customerEmail !== userEmail || lic.isRevoked) continue;
 
-      const licenseKey = lic?.license?.key ? lic.license.key.trim() : null;
-      if (!licenseKey) continue;
-
-      // Vérifier si cette clé a déjà été créditée
-      const { data: existing } = await adminSupabase
-        .from("redeemed_licenses")
-        .select("id")
-        .eq("license_key", licenseKey)
-        .maybeSingle();
-
-      if (existing) continue; // Déjà créditée, on passe
-
-      // Identifier le pack
-      const productId = lic?.product?.id;
-      let pack = productId ? getPackByChariowProductId(productId) : undefined;
-      if (!pack && lic?.product?.name) {
-        pack = getPackById(lic.product.name);
-      }
+      const pack =
+        (lic.productId ? getPackByChariowProductId(lic.productId) : undefined) ||
+        (lic.productName ? getPackById(lic.productName) : undefined);
       if (!pack) continue;
 
-      // Crédit atomique du portefeuille
-      const credit = await creditWalletCoins(
-        adminSupabase,
-        user.id,
-        pack.coins,
-        `Synchronisation achat Chariow : ${pack.name}`,
-        {
-          provider: "chariow_sync",
-          license_key: licenseKey,
-          chariow_license_id: lic?.id,
-          product_id: productId,
-          plan_id: pack.id,
-        }
-      );
+      const outcome = await creditPurchaseOnce(adminSupabase, {
+        claimKey: lic.key,
+        userId: user.id,
+        pack,
+        source: "sync_endpoint",
+        description: `Achat de pièces (Chariow, synchronisation) : ${pack.name}`,
+        productId: lic.productId,
+        chariowLicenseId: lic.id,
+        metadata: { customer_email: userEmail, product_name: lic.productName },
+      });
 
-      if (credit.ok) {
-        totalCoinsAdded += pack.coins;
+      if (outcome.status === "credited") {
+        totalCoinsAdded += outcome.coins;
         newlyCreditedCount++;
-
-        // Enregistrer dans redeemed_licenses
-        await adminSupabase.from("redeemed_licenses").insert({
-          user_id: user.id,
-          license_key: licenseKey,
-          chariow_license_id: lic?.id || null,
-          product_id: productId || "unknown",
-          plan_id: pack.id,
-          coins_credited: pack.coins,
-          source: "sync_endpoint",
-          metadata: {
-            customer_email: customerEmail,
-            product_name: lic?.product?.name,
-          },
-        });
-
-        // Activer sur Chariow si nécessaire
-        if (lic?.can_activate) {
-          fetch(`https://api.chariow.com/v1/licenses/${encodeURIComponent(licenseKey)}/activate`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${chariowApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ device_identifier: user.id }),
-          }).catch(() => {});
-        }
+        if (lic.canActivate) await activateChariowLicense(lic.rawKey, chariowApiKey, user.id);
       }
     }
-
-    // Récupérer le solde à jour
-    const { data: wallet } = await adminSupabase
-      .from("wallets")
-      .select("balance")
-      .eq("user_id", user.id)
-      .maybeSingle();
 
     return NextResponse.json({
       success: true,
       coinsAdded: totalCoinsAdded,
       newlyCreditedCount,
-      newBalance: wallet?.balance ?? 0,
+      newBalance: await readBalance(),
     });
   } catch (err: any) {
     console.error("[Chariow Sync] Erreur inattendue:", err?.message || err);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -90,18 +90,23 @@ export function useUser() {
   const isMasterAdmin = displayEmail.toLowerCase().includes("martau@gmail.com");
   const effectiveRole = isMasterAdmin ? "admin" : (profile?.role || "user");
 
-  const refreshWalletBalance = async () => {
-    if (!user) return;
-    const { data: walletData } = await supabase
+  // Référence STABLE (useCallback) : plusieurs pages la placent dans les
+  // dépendances d'un useEffect. Recréée à chaque rendu, elle relançait l'effet
+  // à chaque rendu — sur le tableau de bord, cela déclenchait des rafales
+  // d'appels simultanés à /api/chariow/sync.
+  const userId = user?.id;
+  const refreshWalletBalance = useCallback(async () => {
+    if (!userId) return;
+    const { data: walletData } = await createClient()
       .from("wallets")
       .select("balance")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .single();
 
     if (walletData) {
       setWalletBalance(walletData.balance);
     }
-  };
+  }, [userId]);
 
   const markWelcomeModalAsSeen = async () => {
     if (!user) return;
