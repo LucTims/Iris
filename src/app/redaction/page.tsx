@@ -94,6 +94,25 @@ import { assignChapterLabels } from "@/lib/book/chapter-heading";
 import { detectGenre } from "@/lib/ai/book-style";
 import { findUnwrittenSections, canResume } from "@/lib/book/unwritten";
 
+interface ChapterRow {
+  id: string;
+  number: number;
+  title?: string | null;
+  content?: string | null;
+  status?: Chapter["status"] | null;
+}
+
+/** Lignes `chapters` renvoyées par l'API → chapitres de l'éditeur. */
+function toEditorChapters(rows: ChapterRow[]): Chapter[] {
+  return rows.map((ch) => ({
+    id: ch.id,
+    number: ch.number,
+    title: ch.title || `Chapitre ${ch.number}`,
+    content: ch.content || "",
+    status: ch.status || "Brouillon"
+  }));
+}
+
 function RedactionContent() {
   const searchParams = useSearchParams();
   const isNewProject = searchParams?.get("new") === "true";
@@ -197,6 +216,9 @@ function RedactionContent() {
   const [liveWordCount, setLiveWordCount] = useState(0);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<RichManuscriptEditorHandle>(null);
+  // Chapitres modifiés dans l'éditeur dont l'enregistrement n'est pas encore
+  // confirmé : le rechargement depuis la base ne doit jamais les écraser.
+  const locallyEditedIdsRef = useRef(new Set<number | string>());
 
   // Manuscript Import & Export State
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -443,15 +465,7 @@ function RedactionContent() {
           setProjectData(data.project);
 
           const fetchedChapters: Chapter[] =
-            data.chapters && data.chapters.length > 0
-              ? data.chapters.map((ch: any) => ({
-                  id: ch.id,
-                  number: ch.number,
-                  title: ch.title || `Chapitre ${ch.number}`,
-                  content: ch.content || "",
-                  status: ch.status || "Brouillon"
-                }))
-              : [];
+            data.chapters && data.chapters.length > 0 ? toEditorChapters(data.chapters) : [];
 
           if (fetchedChapters.length > 0) {
             setChapters(fetchedChapters);
@@ -573,6 +587,7 @@ function RedactionContent() {
           });
 
           if (res.ok) {
+            locallyEditedIdsRef.current.delete(currentChap.id);
             setSaveStatus("saved");
             return;
           } else {
@@ -591,6 +606,62 @@ function RedactionContent() {
 
     return () => clearTimeout(timer);
   }, [chapters, saveStatus, activeChapterIndex, currentProjectId]);
+
+  // Chapitres écrits HORS de l'éditeur — typiquement par l'assistant IA de
+  // l'auteur connecté en MCP (Claude, ChatGPT…) : au retour sur l'onglet, on
+  // recharge le livre enregistré pour les afficher sans rechargement manuel.
+  // Jamais pendant une génération ni avec des modifications locales en attente
+  // d'enregistrement : la frappe de l'auteur n'est jamais écrasée.
+  const canSyncFromServerRef = useRef(false);
+  useEffect(() => {
+    canSyncFromServerRef.current =
+      saveStatus === "saved" &&
+      !isBatchGenerating && !isGeneratingChapter && !isInitialGenerating && !isRewriting && !isAiThinking;
+  }, [saveStatus, isBatchGenerating, isGeneratingChapter, isInitialGenerating, isRewriting, isAiThinking]);
+
+  useEffect(() => {
+    const pId = currentProjectId;
+    if (!pId) return;
+    let inFlight = false;
+
+    const syncFromServer = async () => {
+      if (document.visibilityState !== "visible" || inFlight || !canSyncFromServerRef.current) return;
+      inFlight = true;
+      try {
+        const res = await fetch(`/api/projects/${pId}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const saved: Chapter[] = toEditorChapters(data.chapters || []);
+        // Nouvelle vérification : l'auteur a pu reprendre la main pendant la requête.
+        if (saved.length === 0 || !canSyncFromServerRef.current) return;
+        setChapters((prev) => {
+          // Un chapitre modifié dans l'éditeur et pas encore confirmé en base
+          // garde sa version locale ; les autres prennent celle de la base.
+          const merged = saved.map((c) => {
+            const local = prev.find((p) => p.id === c.id);
+            return local && locallyEditedIdsRef.current.has(c.id) ? local : c;
+          });
+          const localOnly = prev.filter((p) => !saved.some((c) => c.id === p.id));
+          const next = [...merged, ...localOnly];
+          const unchanged =
+            prev.length === next.length &&
+            prev.every((c, i) => c.id === next[i].id && c.title === next[i].title && c.content === next[i].content);
+          return unchanged ? prev : next;
+        });
+      } catch {
+        /* hors ligne : on réessaiera au prochain retour sur l'onglet */
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    document.addEventListener("visibilitychange", syncFromServer);
+    window.addEventListener("focus", syncFromServer);
+    return () => {
+      document.removeEventListener("visibilitychange", syncFromServer);
+      window.removeEventListener("focus", syncFromServer);
+    };
+  }, [currentProjectId]);
 
   // Resizing Handler via Mouse Drag
   useEffect(() => {
@@ -2106,12 +2177,14 @@ function RedactionContent() {
               onTitleChange={(newTitle) => {
                 const updated = [...chapters];
                 updated[activeChapterIndex].title = newTitle;
+                locallyEditedIdsRef.current.add(updated[activeChapterIndex].id);
                 setChapters(updated);
                 setSaveStatus("saving");
               }}
               onContentChange={(newHtml) => {
                 const updated = [...chapters];
                 updated[activeChapterIndex].content = newHtml;
+                locallyEditedIdsRef.current.add(updated[activeChapterIndex].id);
                 setChapters(updated);
                 setSaveStatus("saving");
               }}
@@ -2535,6 +2608,7 @@ function RedactionContent() {
           cover_url: (projectData as any)?.cover_url || undefined,
           chapters: chapters
         }}
+        hasUnsavedChanges={saveStatus !== "saved"}
       />
 
       {/* GEO SCORE MODAL */}

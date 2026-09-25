@@ -16,6 +16,7 @@ import {
   Eye,
   Ban,
 } from "lucide-react";
+import { MCP_COINS_PER_PAGE, WORDS_PER_PAGE } from "@/lib/ai/pricing";
 
 /**
  * Documentation de la connexion MCP.
@@ -68,15 +69,17 @@ const TOOLS: ToolDoc[] = [
   },
   {
     name: "create_book",
-    summary: "Crée un nouveau projet de livre.",
-    params: "title, synopsis, category, tone, audience",
+    summary: "Crée un nouveau projet de livre (forme : livre, guide ou ebook).",
+    params: "title, synopsis, category, tone, audience, work_type",
     writes: true,
   },
   {
     name: "write_chapter",
-    summary: "Écrit ou remplace le contenu d'un chapitre.",
+    summary:
+      "Écrit ou remplace le contenu d'un chapitre. Texte brut, Markdown ou HTML : le contenu est mis au format du manuscrit (paragraphes, intertitres, listes), pour l'éditeur comme pour les exports.",
     params: "book_id, chapter_number, title, content",
     writes: true,
+    costsCoins: `${MCP_COINS_PER_PAGE} pièces par page ajoutée (≈ ${WORDS_PER_PAGE} mots) ; réécrire sans allonger est gratuit`,
   },
   {
     name: "generate_cover",
@@ -279,8 +282,11 @@ export default function McpDocumentationPage() {
               <span>
                 <strong>Les pièces restent les vôtres.</strong> Les outils qui déclenchent
                 une génération IA débitent votre portefeuille exactement comme s&apos;ils
-                étaient lancés depuis l&apos;application. Un solde insuffisant fait
-                échouer l&apos;appel plutôt que de générer à crédit.
+                étaient lancés depuis l&apos;application, et un livre écrit par votre
+                assistant via <code className="text-[11px]">write_chapter</code> coûte{" "}
+                {MCP_COINS_PER_PAGE} pièces par page ajoutée, comme la rédaction par défaut
+                de l&apos;éditeur. Un solde insuffisant fait échouer l&apos;appel plutôt que
+                d&apos;écrire à crédit : rien n&apos;est enregistré.
               </span>
             </li>
             <li className="flex gap-3">

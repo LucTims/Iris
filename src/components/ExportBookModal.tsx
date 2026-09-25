@@ -20,9 +20,14 @@ interface ExportBookModalProps {
   } | null;
   /** Étape de départ (3 = aller directement au choix du format, sans l'upsell couverture). */
   initialStep?: 1 | 3;
+  /**
+   * Vrai quand l'éditeur a des modifications pas encore enregistrées : leurs
+   * versions locales priment alors sur celles de la base pour ces chapitres.
+   */
+  hasUnsavedChanges?: boolean;
 }
 
-export default function ExportBookModal({ isOpen, onClose, project, initialStep = 1 }: ExportBookModalProps) {
+export default function ExportBookModal({ isOpen, onClose, project, initialStep = 1, hasUnsavedChanges = false }: ExportBookModalProps) {
   const router = useRouter();
 
   // Steps: 1 = Cover, 2 = Layout, 3 = Final Download, 4 = Congratulations
@@ -48,11 +53,14 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
   const sanitizedTitle = bookTitle.toLowerCase().replace(/[^a-z0-9àâäéèêëïîôùûüÿçœæ]/gi, "_").replace(/_+/g, "_");
 
   // Build chapters data from project
-  const chaptersData = (project?.chapters || []).map((ch: any, idx: number) => ({
-    title: ch.title || `Chapitre ${ch.number || idx + 1}`,
-    content: ch.content || "",
-    number: ch.number || idx + 1,
-  }));
+  const toExportChapters = (list: any[]) =>
+    list.map((ch: any, idx: number) => ({
+      id: ch.id,
+      title: ch.title || `Chapitre ${ch.number || idx + 1}`,
+      content: ch.content || "",
+      number: ch.number || idx + 1,
+    }));
+  const chaptersData = toExportChapters(project?.chapters || []);
 
   const handleDownload = async () => {
     setIsExporting(true);
@@ -64,19 +72,21 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
       // appliquée depuis le Studio de couverture.
       let coverUrl = project?.cover_url || "";
 
-      // S'il manque les chapitres OU la couverture, on récupère le projet complet
-      // (les chapitres réels + cover_url à jour) depuis l'API.
-      if (((finalChapters.length === 0 || !finalChapters[0]?.content) || !coverUrl) && project?.id) {
-        const res = await fetch(`/api/projects/${project.id}`);
+      // SOURCE DE VÉRITÉ : la base. Les chapitres fournis par l'appelant
+      // peuvent être périmés — un assistant IA connecté en MCP a pu écrire
+      // des chapitres depuis l'ouverture de l'éditeur, qui manquaient alors à
+      // l'export. On relit donc toujours le livre enregistré ; seules les
+      // modifications locales pas encore enregistrées priment sur la base.
+      if (project?.id) {
+        const res = await fetch(`/api/projects/${project.id}`, { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          if (!coverUrl) coverUrl = data.project?.cover_url || "";
-          if ((finalChapters.length === 0 || !finalChapters[0]?.content) && data.chapters && data.chapters.length > 0) {
-            finalChapters = data.chapters.map((ch: any, idx: number) => ({
-              title: ch.title || `Chapitre ${ch.number || idx + 1}`,
-              content: ch.content || "",
-              number: ch.number || idx + 1,
-            }));
+          coverUrl = data.project?.cover_url || coverUrl;
+          if (data.chapters && data.chapters.length > 0) {
+            finalChapters = toExportChapters(data.chapters).map((saved) => {
+              const local = hasUnsavedChanges ? chaptersData.find((c) => c.id === saved.id) : undefined;
+              return local ? { ...saved, title: local.title, content: local.content } : saved;
+            });
           }
         }
       }
