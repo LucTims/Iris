@@ -16,6 +16,7 @@ import { assignChapterLabels } from "@/lib/book/chapter-heading";
 import type { BookBible } from "@/lib/book/book-bible";
 import { demoteUnsourcedKeyFigures } from "@/lib/ai/factuality";
 import { auditChapter, buildRepairPrompt, wordCount as countWords } from "@/lib/book/chapter-audit";
+import { advanceBookJob, checkBookJobLease, stopBookJob, type BookJobStatus } from "@/lib/ai/book-job-lease";
 
 /**
  * Génération de livre complet — pipeline serveur résilient.
@@ -26,10 +27,11 @@ import { auditChapter, buildRepairPrompt, wordCount as countWords } from "@/lib/
  * et la "continuité" entre chapitres ne reposait que sur une liste de TITRES.
  *
  * Ici, un job persisté en base (book_generation_jobs) avance chapitre par
- * chapitre entièrement côté serveur : chaque chapitre déclenche, une fois
- * terminé, un appel serveur-à-serveur vers lui-même pour le suivant (voir
- * /api/generate-book/process). Le client n'a plus qu'à interroger le statut
- * du job (polling) — fermer l'onglet n'arrête plus rien.
+ * chapitre entièrement côté serveur, sous un bail (voir book-job-lease et
+ * book-job-runner) : un worker écrit plusieurs chapitres par invocation puis
+ * passe le relais, et un job dont le worker s'est tu est repris
+ * automatiquement. Le client n'a plus qu'à interroger le statut du job
+ * (polling) — fermer l'onglet n'arrête plus rien.
  *
  * La continuité inter-chapitres utilise un VRAI résumé (2-3 phrases générées
  * par IA, pas juste le titre) des N derniers chapitres, plus la bible de
@@ -250,21 +252,36 @@ export interface BookJobRow {
 }
 
 /**
+ * Issue d'un chapitre : on enchaîne sur le suivant (`job` à jour), ou on
+ * s'arrête — job terminé, en échec, annulé, remplacé, ou bail perdu (`lost` :
+ * un autre worker a repris le job, celui-ci ne doit plus rien écrire).
+ */
+export type ChapterStep =
+  | { next: "continue"; job: BookJobRow }
+  | { next: "stop"; status: BookJobStatus | "lost" };
+
+/**
  * Génère UN chapitre du job (avec retries), le sauvegarde, débite le coût et
- * met à jour la progression. Retourne `{ done: true }` quand tout le livre
- * est terminé, `{ done: false }` s'il reste des chapitres à traiter (à
- * enchaîner par l'appelant), ou lève si le job doit s'arrêter (fonds
- * insuffisants, échecs répétés).
+ * fait avancer le job — le tout sous le bail `token` : rien n'est écrit ni
+ * facturé par un worker qui a perdu la main.
  */
 export async function processNextChapter(
   db: SupabaseClient,
-  job: BookJobRow
-): Promise<{ done: boolean }> {
-  if (job.status !== "running") return { done: true };
-  if (job.current_index >= job.total) {
-    await db.from("book_generation_jobs").update({ status: "completed", updated_at: new Date().toISOString() }).eq("id", job.id);
-    return { done: true };
-  }
+  job: BookJobRow,
+  token: string
+): Promise<ChapterStep> {
+  const stop = async (status: "completed" | "failed" | "canceled", reason: string | null): Promise<ChapterStep> => {
+    const final = await stopBookJob(db, job.id, token, status, reason);
+    return { next: "stop", status: final ?? "lost" };
+  };
+
+  if (job.current_index >= job.total) return stop("completed", null);
+
+  // Annulé ou repris par un autre worker depuis le chapitre précédent : on ne
+  // démarre (ni ne facture) aucun chapitre de plus. Rafraîchit aussi le signe de vie.
+  const lease = await checkBookJobLease(db, job.id, token);
+  if (lease.owned === false) return { next: "stop", status: "lost" };
+  if (lease.owned === true && lease.status !== "running") return stop("canceled", null);
 
   const chapter = job.plan[job.current_index];
   const settings = job.settings;
@@ -273,13 +290,7 @@ export async function processNextChapter(
 
   const requiredCoins = estimateChapterCoins(wordsTarget, selectedModelName);
   const hasEnoughCoins = await checkMinimumBalance(job.user_id, requiredCoins, db);
-  if (!hasEnoughCoins) {
-    await db
-      .from("book_generation_jobs")
-      .update({ status: "failed", last_error: "insufficient_funds", updated_at: new Date().toISOString() })
-      .eq("id", job.id);
-    return { done: true };
-  }
+  if (!hasEnoughCoins) return stop("failed", "insufficient_funds");
 
   const recentSummaries = job.chapter_summaries.slice(-MAX_RECENT_SUMMARIES);
   // Pas de recherche web en fiction (les sources n'ont rien à faire dans un roman).
@@ -408,7 +419,20 @@ export async function processNextChapter(
 
       const wordCount = countWords(text);
 
-      const { error: chapterError } = await db
+      // Résumé de continuité AVANT d'enregistrer : entre le débit et
+      // l'avancement du job, il ne reste ainsi qu'un appel en base. Un worker
+      // coupé dans cet intervalle ferait réécrire — et refacturer — le chapitre.
+      const summary = await summarizeChapterForContinuity(chapterHeading, text);
+
+      // Toujours titulaire du bail ? Si ce worker a été cru mort, un autre a
+      // repris le job : on n'écrit ni ne facture rien.
+      const lease = await checkBookJobLease(db, job.id, token);
+      if (lease.owned === false) {
+        console.warn(`[book-job] Bail perdu avant l'enregistrement du chapitre ${chapter.number} (job ${job.id}) : abandon.`);
+        return { next: "stop", status: "lost" };
+      }
+
+      const { data: savedRows, error: chapterError } = await db
         .from("chapters")
         .update({
           content: text,
@@ -420,8 +444,16 @@ export async function processNextChapter(
           word_count: wordCount,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", chapter.chapterId);
+        .eq("id", chapter.chapterId)
+        .select("id");
       if (chapterError) throw chapterError;
+      if (!savedRows || savedRows.length === 0) {
+        // Chapitre supprimé : le livre a été recréé depuis (nouvelle
+        // génération). Ce job est caduc, et surtout rien n'est facturé pour un
+        // texte que l'auteur ne verra jamais.
+        console.warn(`[book-job] Chapitre ${chapter.chapterId} introuvable (job ${job.id}) : job remplacé, rien n'est facturé.`);
+        return stop("canceled", "superseded");
+      }
 
       const deducted = await deductChapterCost(
         job.user_id,
@@ -434,23 +466,21 @@ export async function processNextChapter(
         console.error(`[book-job] Échec du débit pour le job ${job.id}, chapitre ${chapter.number}`);
       }
 
-      const summary = await summarizeChapterForContinuity(chapterHeading, text);
       const nextSummaries = [...job.chapter_summaries, { number: chapter.number, title: chapterHeading, summary }];
-      const nextIndex = job.current_index + 1;
+      const status = await advanceBookJob(db, job.id, token, job.current_index, nextSummaries);
+      if (status === null) return { next: "stop", status: "lost" };
+      if (status !== "running") return { next: "stop", status };
 
-      await db
-        .from("book_generation_jobs")
-        .update({
-          current_index: nextIndex,
+      return {
+        next: "continue",
+        job: {
+          ...job,
+          current_index: job.current_index + 1,
           chapter_summaries: nextSummaries,
           attempt_count: 0,
           last_error: null,
-          status: nextIndex >= job.total ? "completed" : "running",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", job.id);
-
-      return { done: nextIndex >= job.total };
+        },
+      };
     } catch (err) {
       lastError = err;
       console.warn(`[book-job] Tentative ${attempt}/${MAX_ATTEMPTS_PER_CHAPTER} échouée (chapitre ${chapter.number}, job ${job.id}):`, err);
@@ -461,15 +491,5 @@ export async function processNextChapter(
   }
 
   const message = lastError instanceof Error ? lastError.message : String(lastError);
-  await db
-    .from("book_generation_jobs")
-    .update({
-      status: "failed",
-      last_error: message.slice(0, 500),
-      attempt_count: job.attempt_count + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", job.id);
-
-  return { done: true };
+  return stop("failed", message.slice(0, 500));
 }
