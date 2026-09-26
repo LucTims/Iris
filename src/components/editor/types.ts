@@ -1,3 +1,4 @@
+import type React from "react";
 import { Editor } from "@tiptap/react";
 
 export interface EditorSelection {
@@ -27,18 +28,6 @@ export interface RichManuscriptEditorProps {
   onWordCountChange?: (count: number) => void;
   onContinueWithAi?: () => void;
   onGenerateFullChapter?: () => void;
-  /** Ouvre le flux « Générer tout le livre » (bouton flottant, visible sur mobile). */
-  onGenerateWholeBook?: () => void;
-  /**
-   * Mode d'affichage courant :
-   * - "full"    : on regarde le livre entier (document unique ou sommaire) →
-   *               le bouton flottant propose « Générer tout le livre ».
-   * - "chapter" : on regarde UN chapitre découpé → le bouton flottant devient
-   *               « Générer le chapitre » et n'agit que sur ce chapitre.
-   */
-  bookViewMode?: "full" | "chapter";
-  /** Ouvre le popup « Générer le chapitre » (instructions de (ré)écriture du chapitre courant). */
-  onGenerateChapter?: () => void;
   onContextualAiAction?: (actionType: string, selectedText: string, customInstruction?: string) => Promise<string>;
   /** Send the current selection (text + range) up to the chat panel for a free-form edit. */
   onSendSelectionToChat?: (selection: EditorSelection) => void;
@@ -50,6 +39,12 @@ export interface RichManuscriptEditorProps {
   /** When provided, shows a Stop button on the generation overlay. */
   onStopGeneration?: () => void;
   onFileSelected?: (file: File) => void;
+  /** Contenu affiché au-dessus du document (hors texte, jamais enregistré) :
+   * emplacement de couverture, bandeau d'explication du sommaire… */
+  canvasHeader?: React.ReactNode;
+  /** "outline" : le document est le SOMMAIRE (plan) — rendu en fiche de travail,
+   * visuellement distinct des pages du livre. */
+  documentVariant?: "book" | "outline";
   /** Catégorie du livre : sert à afficher, dans l'éditeur, la MÊME palette
    * typographique que l'export (aperçu WYSIWYG). */
   category?: string;

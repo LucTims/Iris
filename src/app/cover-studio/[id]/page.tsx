@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { useUser } from "@/hooks/useUser";
 import { IrisMark } from "@/components/IrisLogo";
@@ -17,6 +17,10 @@ export default function CoverStudioEditorPage() {
   const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const router = useRouter();
+  // Ouvert depuis l'éditeur (bouton « Créer la couverture ») : on y renvoie
+  // l'auteur une fois la couverture appliquée. Chemin interne uniquement.
+  const returnParam = useSearchParams()?.get("returnTo") || "";
+  const returnTo = returnParam.startsWith("/") && !returnParam.startsWith("//") ? returnParam : null;
 
   // Cover customizer state
   const [title, setTitle] = useState("Chargement...");
@@ -218,6 +222,7 @@ export default function CoverStudioEditorPage() {
         if (!opts?.silent) {
           setSuccessMessageOpen(true);
           setTimeout(() => setSuccessMessageOpen(false), 3500);
+          if (returnTo) setTimeout(() => router.push(returnTo), 1200);
         }
         return coverUrl;
       } else {
@@ -263,10 +268,17 @@ export default function CoverStudioEditorPage() {
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <header className="bg-[#F9FAFB] sticky top-0 z-30 h-16 px-4 md:px-8 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
-            <Link href="/cover-studio" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 bg-neutral-100 dark:bg-neutral-800 px-3 py-2 rounded-xl transition-all">
-              <span className="material-symbols-outlined text-base">arrow_back</span>
-              <span>Hub Studio</span>
-            </Link>
+            {returnTo ? (
+              <Link href={returnTo} className="flex items-center gap-1.5 text-xs font-bold text-white bg-[#C84B31] hover:bg-[#B83E26] px-3 py-2 rounded-xl transition-all">
+                <span className="material-symbols-outlined text-base">arrow_back</span>
+                <span>Retour à l&apos;éditeur</span>
+              </Link>
+            ) : (
+              <Link href="/cover-studio" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 bg-neutral-100 dark:bg-neutral-800 px-3 py-2 rounded-xl transition-all">
+                <span className="material-symbols-outlined text-base">arrow_back</span>
+                <span>Hub Studio</span>
+              </Link>
+            )}
             <h1 className="font-heading font-extrabold text-xl text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
               <span className="material-symbols-outlined text-secondary">palette</span>
               <span>Éditeur de Couverture</span>
@@ -408,11 +420,11 @@ export default function CoverStudioEditorPage() {
 
             <div className="mt-8 flex items-center gap-3 relative z-20">
               <button
-                onClick={handleApplyToBook}
+                onClick={() => handleApplyToBook()}
                 className="bg-secondary text-white font-bold text-xs px-6 py-3 rounded-xl hover:bg-orange-600 transition-all shadow-md flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-base">check_circle</span>
-                <span>Appliquer au Livre</span>
+                <span>{returnTo ? "Appliquer et revenir à l'éditeur" : "Appliquer au Livre"}</span>
               </button>
             </div>
           </div>

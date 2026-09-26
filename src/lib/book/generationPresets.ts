@@ -43,12 +43,32 @@ export const SIZE_PRESETS: Record<BookSizeKey, BookSizePreset> = {
   },
 };
 
+/**
+ * Longueurs proposées dans l'assistant de création. Le libellé enregistré sur
+ * le projet (`projects.length`) reprend les MÊMES intervalles de pages que les
+ * presets de génération : ce qui est annoncé à la création est ce qui est
+ * rédigé et facturé dans l'éditeur.
+ */
+export const LENGTH_OPTIONS: { value: string; sizeKey: BookSizeKey }[] = [
+  { value: "Court (5 à 20 pages)", sizeKey: "court" },
+  { value: "Moyen (30 à 60 pages)", sizeKey: "moyen" },
+  { value: "Long (70 pages et +)", sizeKey: "long" },
+];
+
+/** Associe le libellé de longueur d'un projet (anciens libellés compris) à un preset. */
+export const lengthToSizeKey = (length: string | null | undefined): BookSizeKey =>
+  /court/i.test(length || "") ? "court" : /long/i.test(length || "") ? "long" : "moyen";
+
 /** Les 3 modèles proposés à l'auteur, du plus économique au premium. */
 export const BOOK_MODELS = [
-  { id: "gemini-3.6-flash", label: "Gemini 2.5 Flash", hint: "Rapide et économique" },
+  { id: "gemini-3.6-flash", label: "Gemini Flash", hint: "Rapide et économique" },
   { id: "gpt-4o-mini", label: "GPT-4o mini", hint: "Bon compromis qualité/prix" },
   { id: "claude-sonnet-5", label: "Claude Sonnet", hint: "Excellente qualité de rédaction" },
 ];
+
+/** Libellé lisible d'un modèle (repli : l'identifiant brut). */
+export const modelLabel = (id: string | null | undefined): string =>
+  BOOK_MODELS.find((m) => m.id === id)?.label || id || BOOK_MODELS[0].label;
 
 // Les estimateurs de coût en pièces vivent dans la source unique @/lib/ai/pricing.
 export { estimateChapterCoins, estimateBookCoins, estimatePagesCoins, coinsPerPage } from "@/lib/ai/pricing";

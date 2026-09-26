@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import type { RichManuscriptEditorHandle } from "@/components/RichManuscriptEditor";
 import type { ChapterGenerateOptions } from "@/components/ChapterGenerateModal";
@@ -17,7 +17,6 @@ const ImportManuscriptModal = dynamic(() => import("@/components/ImportManuscrip
 const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
 const GeoScoreModal = dynamic(() => import("@/components/GeoScoreModal"), { ssr: false });
 
-const GenerateBookModal = dynamic(() => import("@/components/GenerateBookModal"), { ssr: false });
 const ChapterGenerateModal = dynamic(() => import("@/components/ChapterGenerateModal"), { ssr: false });
 
 // Lazy-load parsers only when needed (mammoth ~600KB, jszip ~140KB)
@@ -55,8 +54,10 @@ async function loadProjectImageUrls(
   return Array.isArray(fallback) ? fallback.filter(isHttpUrl) : [];
 }
 import { splitHtmlIntoChapters } from "@/lib/parser/splitChapters";
-import { SIZE_PRESETS } from "@/lib/book/generationPresets";
+import { SIZE_PRESETS, lengthToSizeKey, estimatePagesCoins, modelLabel, BOOK_MODELS } from "@/lib/book/generationPresets";
 import type { BookSizeKey } from "@/lib/book/generationPresets";
+import { WORDS_PER_PAGE, DEFAULT_WRITING_MODEL } from "@/lib/ai/pricing";
+import { mergeChaptersHtml, MERGED_BOOK_TITLE, isOutlineTitle } from "@/lib/book/mergeBook";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import ReactMarkdown from "react-markdown";
 import { Coins } from "lucide-react";
@@ -118,7 +119,8 @@ function RedactionContent() {
   const searchParams = useSearchParams();
   const isNewProject = searchParams?.get("new") === "true";
   const urlProjectId = searchParams?.get("projectId");
-  const { displayName, displayEmail, signOut, walletBalance } = useUser();
+  const router = useRouter();
+  const { displayName, displayEmail, signOut, walletBalance, refreshWalletBalance, loading: userLoading } = useUser();
   const userInitials = displayName ? displayName.substring(0, 2).toUpperCase() : "AU";
 
   // Save status: 'saved' | 'saving' | 'error'
@@ -207,13 +209,32 @@ function RedactionContent() {
   // Génération automatique de tout le livre (chapitre par chapitre depuis le sommaire)
   const [isBatchGenerating, setIsBatchGenerating] = useState(false);
   const [batchLabel, setBatchLabel] = useState("Iris rédige votre livre");
-  const [isBookModalOpen, setIsBookModalOpen] = useState(false);
   const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
   // Signal d'arrêt de la génération complète (respecté entre deux chapitres).
   const batchStopRef = useRef(false);
   // Job serveur de génération de livre en cours (voir /api/generate-book/*).
   const bookJobIdRef = useRef<string | null>(null);
+  // PIÈCES EN DIRECT pendant une génération : solde au lancement et devis,
+  // pour afficher « X pièces utilisées sur ≈ Y » au fil des chapitres.
+  const batchStartBalanceRef = useRef<number | null>(null);
+  const [batchCoinPlan, setBatchCoinPlan] = useState<number | null>(null);
+  // Débit récent (« −60 pièces ») affiché brièvement à côté du solde.
+  const [coinFlash, setCoinFlash] = useState<number | null>(null);
+  const refreshWalletRef = useRef(refreshWalletBalance);
+  useEffect(() => {
+    refreshWalletRef.current = refreshWalletBalance;
+  }, [refreshWalletBalance]);
+  const prevBalanceRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (userLoading) return;
+    const prev = prevBalanceRef.current;
+    prevBalanceRef.current = walletBalance;
+    if (prev === null || walletBalance >= prev) return;
+    setCoinFlash(prev - walletBalance);
+    const t = setTimeout(() => setCoinFlash(null), 4000);
+    return () => clearTimeout(t);
+  }, [walletBalance, userLoading]);
   const [liveWordCount, setLiveWordCount] = useState(0);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<RichManuscriptEditorHandle>(null);
@@ -368,7 +389,7 @@ function RedactionContent() {
               // images de l'auteur, pas seulement du synopsis.
               imageUrls: planImageUrls,
               projectId: project.id,
-              model: project.model || ctx?.model || "gemini-3.6-flash",
+              model: (project as { writing_model?: string }).writing_model || ctx?.model || "gemini-3.6-flash",
               useWebSearch,
               // Document de référence analysé : priorité à la version persistée
               // en base (project.reference_*), sinon repli sur le localStorage.
@@ -447,6 +468,7 @@ function RedactionContent() {
           }
         } finally {
           if (isSubscribed) setIsInitialGenerating(false);
+          void refreshWalletRef.current?.();
         }
       };
 
@@ -1103,6 +1125,7 @@ function RedactionContent() {
           resolve(outcome);
         };
 
+        let lastDone = -1;
         const poll = async () => {
           // L'éditeur a changé de livre : on cesse de suivre, sans arrêter le job.
           if (signal?.aborted) {
@@ -1137,6 +1160,11 @@ function RedactionContent() {
             if (job) {
               const total = Math.max(1, job.total);
               const done = Math.min(job.current_index, total);
+              // Un chapitre de plus = un débit de plus : le solde affiché suit.
+              if (done !== lastDone) {
+                lastDone = done;
+                void refreshWalletRef.current?.();
+              }
               setBatchProgress({ current: done, total });
               if (job.status === "running") {
                 setBatchLabel(data?.resumed ? "Reprise automatique de la rédaction…" : `Rédaction ${Math.min(done + 1, total)}/${total}…`);
@@ -1193,7 +1221,8 @@ function RedactionContent() {
         setBatchProgress({ current: Math.min(job.current_index, job.total), total: Math.max(1, job.total) });
         setBatchLabel("Rédaction en cours…");
         try {
-          await followBookJob(job.id, controller.signal);
+          const outcome = await followBookJob(job.id, controller.signal);
+          if (outcome === "completed") await finalizeGeneratedBookRef.current(pId);
         } finally {
           setIsBatchGenerating(false);
           setBatchProgress(null);
@@ -1207,14 +1236,88 @@ function RedactionContent() {
     return () => controller.abort();
   }, [currentProjectId, followBookJob]);
 
-  // Ouvre le popup de configuration (longueur + modèle).
-  const handleGenerateWholeBook = () => setIsBookModalOpen(true);
+  // RÉGLAGES DU LIVRE — choisis UNE fois dans l'assistant de création
+  // (longueur + modèle, enregistrés sur le projet) : plus de second popup.
+  const [storedModel, setStoredModel] = useState<string | null>(null);
+  useEffect(() => {
+    if (!currentProjectId) return;
+    try {
+      const ls = localStorage.getItem(`iris_project_model_${currentProjectId}`) || localStorage.getItem("iris_book_gen_model");
+      setStoredModel(ls && BOOK_MODELS.some((m) => m.id === ls) ? ls : null);
+    } catch {
+      setStoredModel(null);
+    }
+  }, [currentProjectId]);
+  const projectModel: string = projectData?.writing_model || storedModel || DEFAULT_WRITING_MODEL;
+  const projectSizeKey: BookSizeKey = lengthToSizeKey(projectData?.length);
+  const bookPagesEstimate = sommaireChapterCount
+    ? Math.max(1, Math.round((sommaireChapterCount * SIZE_PRESETS[projectSizeKey].wordsPerChapter) / WORDS_PER_PAGE))
+    : SIZE_PRESETS[projectSizeKey].pagesEstimate;
+  const bookCostEstimate = estimatePagesCoins(bookPagesEstimate, projectModel);
+  const plainLength = (html: string | null | undefined) =>
+    (html || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().length;
+  const bookHasWrittenBody = chapters.some((c) => !isOutlineTitle(c.title) && plainLength(c.content) > 200);
+  const fmtCoins = (n: number) => Math.round(n).toLocaleString("fr-FR");
+
+  // Lance directement la rédaction avec les réglages du projet. Seule une
+  // réécriture d'un livre DÉJÀ rédigé demande confirmation (elle remplace le texte).
+  const handleGenerateWholeBook = () => {
+    if (isBatchGenerating) return;
+    if (!userLoading && walletBalance < bookCostEstimate) {
+      if (confirm(`La rédaction de ce livre coûte environ ${fmtCoins(bookCostEstimate)} pièces et votre solde est de ${fmtCoins(walletBalance)} pièces.\n\nRecharger maintenant ?`)) {
+        router.push("/pricing");
+      }
+      return;
+    }
+    if (
+      bookHasWrittenBody &&
+      !confirm(`Votre livre contient déjà du texte. Le régénérer remplacera tout le contenu actuel (≈ ${fmtCoins(bookCostEstimate)} pièces). Continuer ?`)
+    ) {
+      return;
+    }
+    void runWholeBookGeneration({ sizeKey: projectSizeKey, model: projectModel });
+  };
+
+  // FIN DE RÉDACTION : le livre s'affiche d'un seul tenant (« Livre complet »),
+  // sans le sommaire qui n'était que le plan. « Découper en chapitres » reste
+  // disponible. On ne fusionne que si TOUS les chapitres sont rédigés, pour
+  // que « Continuer la rédaction » reste possible après un arrêt.
+  const finalizeGeneratedBook = async (pId: string) => {
+    try {
+      const res = await fetch(`/api/projects/${pId}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const rows = toEditorChapters(data.chapters || []).sort((a, b) => a.number - b.number);
+      const body = rows.filter((c) => !isOutlineTitle(c.title));
+      if (rows.length <= 1 || body.length === 0 || body.some((c) => plainLength(c.content) < 40)) return;
+      const merged = {
+        number: 1,
+        title: MERGED_BOOK_TITLE,
+        content: mergeChaptersHtml(rows, { skipOutline: true }),
+        status: "Terminé",
+      };
+      setSaveStatus("saving");
+      const persisted = await replaceChaptersOnServer(pId, rows, [merged]);
+      if (persisted) {
+        setChapters(persisted);
+        setActiveChapterIndex(0);
+        setSaveStatus("saved");
+      } else {
+        setSaveStatus("error");
+      }
+    } catch (err) {
+      console.warn("Assemblage du livre impossible (les chapitres restent séparés):", err);
+    } finally {
+      void refreshWalletRef.current?.();
+    }
+  };
+  const finalizeGeneratedBookRef = useRef(finalizeGeneratedBook);
+  finalizeGeneratedBookRef.current = finalizeGeneratedBook;
 
   // Génère automatiquement tout le livre selon les options du popup : un chapitre
   // par point (du sommaire, ou d'une structure proposée par l'IA en mode prototype),
   // rédigé séquentiellement (un appel IA par chapitre pour tenir la limite de 60 s).
   const runWholeBookGeneration = async (opts: { sizeKey: BookSizeKey; model: string }) => {
-    setIsBookModalOpen(false);
     const pId = currentProjectId || localStorage.getItem("iris_current_project_id");
     if (!pId) {
       alert("Projet introuvable. Enregistrez d'abord votre projet.");
@@ -1226,6 +1329,8 @@ function RedactionContent() {
     batchStopRef.current = false;
     setBatchProgress(null);
     setIsBatchGenerating(true);
+    batchStartBalanceRef.current = userLoading ? null : walletBalance;
+    setBatchCoinPlan(bookCostEstimate);
     setBatchLabel("Préparation des chapitres…");
     try {
       const sommaire = findSommaireChapter();
@@ -1376,16 +1481,20 @@ function RedactionContent() {
 
       // Suit le job jusqu'à complétion/échec/annulation, en reflétant la
       // progression réelle des chapitres depuis la base.
-      await followBookJob(jobId);
+      const outcome = await followBookJob(jobId);
 
       setActiveChapterIndex(startIdx);
+      if (outcome === "completed") await finalizeGeneratedBook(pId);
     } catch (error) {
       console.error("Erreur lors de la génération complète du livre:", error);
       alert("Une erreur est survenue pendant la génération du livre. Les chapitres déjà rédigés sont enregistrés.");
     } finally {
       setIsBatchGenerating(false);
       setBatchProgress(null);
+      setBatchCoinPlan(null);
+      batchStartBalanceRef.current = null;
       batchStopRef.current = false;
+      void refreshWalletRef.current?.();
     }
   };
 
@@ -1463,10 +1572,17 @@ function RedactionContent() {
       .filter(({ c }) => isRealChapterEmpty(c));
     if (targets.length === 0) { alert("Tous les chapitres sont déjà rédigés."); return; }
 
-    const model = selectedAiModel;
+    const model = projectModel;
     batchStopRef.current = false;
     setBatchProgress(null);
     setIsBatchGenerating(true);
+    batchStartBalanceRef.current = userLoading ? null : walletBalance;
+    setBatchCoinPlan(
+      estimatePagesCoins(
+        Math.max(1, Math.round((targets.length * SIZE_PRESETS[projectSizeKey].wordsPerChapter) / WORDS_PER_PAGE)),
+        model
+      )
+    );
     setBatchLabel("Reprise de la rédaction…");
     try {
       const sommaire =
@@ -1534,16 +1650,20 @@ function RedactionContent() {
       const { jobId } = await startResp.json();
       setBatchProgress({ current: 0, total });
 
-      await followBookJob(jobId);
+      const outcome = await followBookJob(jobId);
 
       setActiveChapterIndex(0);
+      if (outcome === "completed") await finalizeGeneratedBook(pId);
     } catch (error) {
       console.error("Erreur lors de la reprise de la rédaction:", error);
       alert("Une erreur est survenue pendant la reprise. Les chapitres déjà rédigés sont enregistrés.");
     } finally {
       setIsBatchGenerating(false);
       setBatchProgress(null);
+      setBatchCoinPlan(null);
+      batchStartBalanceRef.current = null;
       batchStopRef.current = false;
+      void refreshWalletRef.current?.();
     }
   };
 
@@ -1709,6 +1829,7 @@ function RedactionContent() {
       alert("Une erreur est survenue lors de la génération du chapitre.");
     } finally {
       setIsGeneratingChapter(false);
+      void refreshWalletRef.current?.();
     }
   };
 
@@ -1934,6 +2055,214 @@ function RedactionContent() {
 
   // Suppression de handleStartNewProject pour forcer l'usage du wizard /projects/new
 
+  // ---------------------------------------------------------------------
+  // BARRE D'ACTIONS DU LIVRE & EN-TÊTE DU CANEVAS
+  // ---------------------------------------------------------------------
+  const isOutlineView = isOutlineTitle(currentChapter?.title);
+  // Livre découpé et on regarde UN chapitre : le bouton principal ne touche
+  // plus qu'à ce chapitre.
+  const isSplitChapterView = chapters.length > 1 && !isOutlineView;
+  const firstBodyIndex = chapters.findIndex((c) => !isOutlineTitle(c.title));
+  const showCoverSlot = !isOutlineView && (chapters.length === 1 || activeChapterIndex === firstBodyIndex);
+  const currentChapterEmpty = plainLength(currentChapter?.content) < 40;
+  const coverUrl: string | null = projectData?.cover_url || null;
+  const coverStudioHref = currentProjectId
+    ? `/cover-studio/${currentProjectId}?returnTo=${encodeURIComponent(`/redaction?projectId=${currentProjectId}`)}`
+    : "/cover-studio";
+  const isAnyGeneration = isGeneratingChapter || isRewriting || isInitialGenerating || isBatchGenerating;
+  const coinsUsedLive =
+    isBatchGenerating && batchStartBalanceRef.current !== null && !userLoading
+      ? Math.max(0, batchStartBalanceRef.current - walletBalance)
+      : null;
+  const manuscriptInputRef = useRef<HTMLInputElement>(null);
+
+  // Enregistre immédiatement le chapitre affiché (sans attendre l'autosave)
+  // avant de quitter l'éditeur, par exemple pour le studio de couverture.
+  const saveCurrentChapterNow = async () => {
+    const chap = chapters[activeChapterIndex];
+    if (!currentProjectId || !chap || typeof chap.id !== "string" || saveStatus === "saved") return;
+    try {
+      const res = await fetch(`/api/projects/${currentProjectId}/chapters/${chap.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: chap.title, content: chap.content, status: chap.status }),
+      });
+      if (res.ok) {
+        locallyEditedIdsRef.current.delete(chap.id);
+        setSaveStatus("saved");
+      }
+    } catch {
+      /* l'autosave reprendra au retour */
+    }
+  };
+
+  const goToCoverStudio = async () => {
+    await saveCurrentChapterNow();
+    router.push(coverStudioHref);
+  };
+
+  const openExport = () => {
+    if (typeof window !== "undefined" && (window as any).fbq) {
+      (window as any).fbq("trackCustom", "BookCompleted", { projectId: currentProjectId });
+    }
+    setIsExportModalOpen(true);
+  };
+
+  const actionBtn =
+    "shrink-0 whitespace-nowrap flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
+
+  const primaryAction = isSplitChapterView ? (
+    <button
+      onClick={() => setIsChapterModalOpen(true)}
+      disabled={isAnyGeneration}
+      className={`${actionBtn} bg-[#C84B31] hover:bg-[#B83E26] text-white shadow-sm`}
+      title="Rédiger ou modifier uniquement ce chapitre avec l'IA — le reste du livre n'est pas touché"
+    >
+      <span className="material-symbols-outlined text-base">auto_fix_high</span>
+      <span>{currentChapterEmpty ? "Rédiger ce chapitre" : "Régénérer le chapitre"}</span>
+    </button>
+  ) : (
+    <button
+      onClick={handleGenerateWholeBook}
+      disabled={isAnyGeneration}
+      className={`${actionBtn} bg-[#C84B31] hover:bg-[#B83E26] text-white shadow-sm`}
+      title={`Rédiger tout le livre avec ${modelLabel(projectModel)} (${SIZE_PRESETS[projectSizeKey].pages}), réglages choisis à la création`}
+    >
+      <span className="material-symbols-outlined text-base">auto_stories</span>
+      <span>{bookHasWrittenBody ? "Régénérer le livre" : "Générer le livre"}</span>
+      <span className="font-semibold text-white/85 tabular-nums">· ≈ {fmtCoins(bookCostEstimate)} pièces</span>
+    </button>
+  );
+
+  const bookActionBar = (
+    <div className="shrink-0 bg-white dark:bg-neutral-900 border-b border-neutral-200/80 dark:border-neutral-800 px-2 sm:px-6 py-2 flex flex-wrap items-center gap-2 z-40">
+      {primaryAction}
+
+      {hasUnwrittenChapters && !isBatchGenerating && (
+        <button
+          onClick={continueBookGeneration}
+          className={`${actionBtn} bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm`}
+          title={`Reprendre la rédaction : seuls les ${remainingChaptersCount} chapitre(s) non rédigé(s) seront écrits et facturés.`}
+        >
+          <span className="material-symbols-outlined text-base">play_arrow</span>
+          <span>Continuer la rédaction{remainingChaptersCount > 0 ? ` (${remainingChaptersCount})` : ""}</span>
+        </button>
+      )}
+
+      {isBatchGenerating && (
+        <span className="shrink-0 whitespace-nowrap flex items-center gap-1.5 text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 bg-orange-50 border border-orange-200 rounded-xl px-2.5 py-1.5 tabular-nums" aria-live="polite">
+          <Coins className="w-3.5 h-3.5 text-secondary" />
+          {batchProgress ? `Chapitre ${Math.min(batchProgress.current + 1, batchProgress.total)}/${batchProgress.total} · ` : ""}
+          {coinsUsedLive !== null ? `${fmtCoins(coinsUsedLive)} pièces utilisées` : "Rédaction en cours"}
+          {batchCoinPlan ? ` / ≈ ${fmtCoins(batchCoinPlan)}` : ""}
+        </span>
+      )}
+
+      <div className="hidden sm:block w-px h-6 bg-neutral-200 dark:bg-neutral-700 shrink-0 mx-0.5" />
+
+      <button
+        onClick={() => manuscriptInputRef.current?.click()}
+        disabled={isAnyGeneration}
+        className={`${actionBtn} bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200/80 text-neutral-800 dark:text-neutral-200`}
+        title="Importer un manuscrit (.docx, .epub)"
+      >
+        <span className="material-symbols-outlined text-base">file_upload</span>
+        <span>Importer</span>
+      </button>
+      <button
+        onClick={goToCoverStudio}
+        className={`${actionBtn} bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200/80 text-neutral-800 dark:text-neutral-200`}
+        title="Créer ou modifier la couverture dans le studio, puis revenir ici"
+      >
+        <span className="material-symbols-outlined text-base">palette</span>
+        <span>Couverture</span>
+      </button>
+      <button
+        onClick={openExport}
+        className={`${actionBtn} bg-neutral-900 hover:bg-neutral-800 text-white dark:bg-white dark:text-neutral-900`}
+        title="Télécharger le livre (PDF, EPUB, DOCX…)"
+      >
+        <span className="material-symbols-outlined text-base">download</span>
+        <span>Exporter</span>
+      </button>
+
+      <span className="hidden 2xl:inline shrink-0 whitespace-nowrap text-[11px] text-neutral-400 ml-auto">
+        {modelLabel(projectModel)} · {SIZE_PRESETS[projectSizeKey].pages}
+      </span>
+
+      <input
+        ref={manuscriptInputRef}
+        type="file"
+        accept=".docx,.epub,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFileSelectedForImport(file);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
+
+  const canvasHeader = isOutlineView ? (
+    <div className="rounded-2xl border-2 border-dashed border-[#F4C5BC] bg-white dark:bg-neutral-900 p-4 sm:p-5 flex flex-col sm:flex-row gap-3 sm:items-center">
+      <div className="flex items-start gap-3 flex-1 min-w-0">
+        <span className="material-symbols-outlined text-2xl text-secondary shrink-0">list_alt</span>
+        <div className="min-w-0">
+          <p className="font-heading font-extrabold text-sm sm:text-base text-neutral-900 dark:text-neutral-100">
+            Ceci est le sommaire de votre livre — pas encore le livre
+          </p>
+          <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-snug mt-1">
+            C&apos;est le plan qu&apos;Iris va suivre. Relisez-le et modifiez les titres si besoin, puis lancez la
+            rédaction : chaque chapitre sera écrit et votre livre complet s&apos;affichera ici, d&apos;un seul tenant.
+          </p>
+        </div>
+      </div>
+      {!isInitialGenerating && (
+        <button
+          onClick={handleGenerateWholeBook}
+          disabled={isAnyGeneration}
+          className={`${actionBtn} justify-center bg-[#C84B31] hover:bg-[#B83E26] text-white shadow-sm self-stretch sm:self-auto`}
+        >
+          <span className="material-symbols-outlined text-base">auto_stories</span>
+          <span>Générer le livre · ≈ {fmtCoins(bookCostEstimate)} pièces</span>
+        </button>
+      )}
+    </div>
+  ) : showCoverSlot ? (
+    coverUrl ? (
+      <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3 sm:p-4 flex items-center gap-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={coverUrl} alt="Couverture du livre" className="w-16 sm:w-20 aspect-[2/3] object-cover rounded-lg shadow-md shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-neutral-900 dark:text-neutral-100">Couverture du livre</p>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">Elle sera placée en première page à l&apos;export.</p>
+        </div>
+        <button onClick={goToCoverStudio} className={`${actionBtn} bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200/80 text-neutral-800 dark:text-neutral-200`}>
+          <span className="material-symbols-outlined text-base">palette</span>
+          <span>Modifier la couverture</span>
+        </button>
+      </div>
+    ) : (
+      <div className="rounded-2xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 bg-white/70 dark:bg-neutral-900/70 p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+        <div className="w-16 sm:w-20 aspect-[2/3] rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center shrink-0">
+          <span className="material-symbols-outlined text-3xl text-neutral-400">image</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-neutral-900 dark:text-neutral-100">Emplacement de la couverture</p>
+          <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-snug mt-1">
+            La couverture n&apos;est pas générée automatiquement. Créez-la quand vous voulez dans le Studio couverture :
+            une fois appliquée, vous revenez ici et elle apparaît à cet endroit.
+          </p>
+        </div>
+        <button onClick={goToCoverStudio} className={`${actionBtn} bg-[#C84B31] hover:bg-[#B83E26] text-white shadow-sm`}>
+          <span className="material-symbols-outlined text-base">palette</span>
+          <span>Créer la couverture</span>
+        </button>
+      </div>
+    )
+  ) : null;
+
   return (
     <div className="min-h-screen bg-[#F9FAFB] font-body text-neutral-900 dark:text-neutral-100 flex flex-col md:flex-row h-screen overflow-hidden">
       {/* 1. REUSABLE GLOBAL SIDEBAR (LEFT SIDE) */}
@@ -1974,28 +2303,11 @@ function RedactionContent() {
                   const val = Number(e.target.value);
                   if (val === -1) {
                     // Fusionner le livre
-                    if (confirm("Voulez-vous vraiment fusionner tous les chapitres en un seul document ? (Cette action supprimera le découpage actuel)")) {
-                      // Ne JAMAIS re-préfixer un titre : le contenu des chapitres
-                      // commence déjà par son propre <h1>. L'ancien code ajoutait
-                      // systématiquement `<h1>{titre}</h1>` par-dessus, ce qui
-                      // produisait deux titres consécutifs — parfois avec deux
-                      // numéros différents (« Chapitre 1 : … » puis
-                      // « Chapitre 3 : … » pour le même chapitre).
-                      // Les chapitres sont séparés par un vrai saut de page,
-                      // pas par un <br/> qui ne casse aucune page à l'export.
-                      const mergedContent = chapters
-                        .map((c) => {
-                          const body = (c.content || '').trim();
-                          const startsWithHeading = /^\s*(?:<hr[^>]*data-page-break[^>]*>\s*)?<h1\b/i.test(body);
-                          return startsWithHeading
-                            ? body
-                            : `<hr data-page-break><h1>${c.title}</h1>\n${body}`;
-                        })
-                        .join('\n');
+                    if (confirm("Rassembler tous les chapitres en un seul livre ? (Le sommaire, qui n'est que le plan, est retiré du livre.)")) {
                       const mergedChapter = {
                         number: 1,
-                        title: "Livre complet",
-                        content: mergedContent,
+                        title: MERGED_BOOK_TITLE,
+                        content: mergeChaptersHtml(chapters, { skipOutline: chapters.some((c) => !isOutlineTitle(c.title)) }),
                         status: "En cours"
                       };
                       const pId = currentProjectId || localStorage.getItem("iris_current_project_id");
@@ -2021,8 +2333,8 @@ function RedactionContent() {
                 }}
                 className="bg-orange-50 border border-orange-200 text-secondary text-xs font-bold px-3 py-1.5 rounded-xl outline-none cursor-pointer max-w-[200px] truncate"
               >
-                {chapters.length > 1 && <option value="-1">Tout le livre (Fusionner)</option>}
-                {chapters.length === 1 && <option value="-2">Découper en chapitres</option>}
+                {chapters.length > 1 && <option value="-1">Tout le livre (Rassembler)</option>}
+                {chapters.length === 1 && !isOutlineTitle(chapters[0]?.title) && <option value="-2">Découper en chapitres</option>}
                 {chapters.map((chap, idx) => (
                   <option key={chap.id} value={idx}>
                     {chap.title}
@@ -2030,34 +2342,6 @@ function RedactionContent() {
                 ))}
               </select>
 
-              {/* Reprise après une génération interrompue. Visible dès qu'il
-                  reste des chapitres à écrire et qu'au moins un est déjà
-                  rédigé — y compris quand le livre est encore fusionné en un
-                  seul document, cas où le bouton restait caché à tort. */}
-              {hasUnwrittenChapters && !isBatchGenerating && (
-                <button
-                  onClick={continueBookGeneration}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-sm"
-                  title={`Reprendre la rédaction : seuls les ${remainingChaptersCount} chapitre(s) non rédigé(s) seront écrits et facturés. Les chapitres déjà écrits ne sont pas touchés.`}
-                >
-                  <span className="material-symbols-outlined text-sm">play_arrow</span>
-                  <span className="hidden xl:inline">
-                    Continuer la rédaction
-                    {remainingChaptersCount > 0 ? ` (${remainingChaptersCount})` : ""}
-                  </span>
-                  <span className="xl:hidden">{remainingChaptersCount || ""}</span>
-                </button>
-              )}
-
-              <button
-                onClick={handleGenerateWholeBook}
-                disabled={isBatchGenerating}
-                className="bg-[#C84B31] hover:bg-[#B83E26] text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shadow-sm disabled:opacity-60 cursor-pointer"
-                title="Rédiger automatiquement tous les chapitres à partir du sommaire (un chapitre après l'autre)"
-              >
-                <span className="material-symbols-outlined text-sm">auto_stories</span>
-                <span className="hidden xl:inline">Générer tout le livre</span>
-              </button>
             </div>
           </div>
 
@@ -2103,23 +2387,14 @@ function RedactionContent() {
                 <span className="tabular-nums font-bold text-neutral-900 dark:text-neutral-100">
                   {walletBalance !== null ? Number(walletBalance).toLocaleString("fr-FR") : "..."}
                 </span>
-                <span className="text-[11px] text-neutral-400 font-medium hidden sm:inline">crédits</span>
+                <span className="text-[11px] text-neutral-400 font-medium hidden sm:inline">pièces</span>
+                {coinFlash !== null && (
+                  <span className="text-[11px] font-bold text-red-600 tabular-nums animate-pulse" aria-live="polite">
+                    −{fmtCoins(coinFlash)}
+                  </span>
+                )}
               </Link>
               
-              <button
-                onClick={() => {
-                  if (typeof window !== "undefined" && (window as any).fbq) {
-                    (window as any).fbq("trackCustom", "BookCompleted", {
-                      projectId: currentProjectId
-                    });
-                  }
-                  setIsExportModalOpen(true);
-                }}
-                className="bg-[#C84B31] hover:bg-[#B83E26] text-white text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-base">download</span>
-                <span className="hidden sm:inline">Exporter</span>
-              </button>
             </div>
           </div>
         </div>
@@ -2198,8 +2473,11 @@ function RedactionContent() {
           <div className={`flex-1 flex flex-col h-full overflow-hidden min-w-0 ${
             mobileView === "editor" ? "flex" : "hidden xl:flex"
           }`}>
+            {bookActionBar}
             <RichManuscriptEditor
               ref={editorRef}
+              canvasHeader={canvasHeader}
+              documentVariant={isOutlineView ? "outline" : "book"}
               category={projectData?.category}
               initialContent={currentChapter.content}
               chapterTitle={currentChapter.title}
@@ -2223,19 +2501,14 @@ function RedactionContent() {
                 handleSendMessage("Rédiger la suite de ce chapitre avec l'IA");
               }}
               onGenerateFullChapter={handleGenerateFullChapter}
-              onGenerateWholeBook={handleGenerateWholeBook}
-              bookViewMode={
-                chapters.length <= 1 || /sommaire|table des mati/i.test(currentChapter?.title || "")
-                  ? "full"
-                  : "chapter"
-              }
-              onGenerateChapter={() => setIsChapterModalOpen(true)}
               onContextualAiAction={handleContextualAiAction}
               onSendSelectionToChat={handleSendSelectionToChat}
               isGenerating={isGeneratingChapter || isRewriting || isInitialGenerating || isBatchGenerating}
               generationLabel={
                 isBatchGenerating
-                  ? batchLabel
+                  ? coinsUsedLive !== null
+                    ? `${batchLabel} · ${fmtCoins(coinsUsedLive)} pièces utilisées`
+                    : batchLabel
                   : isRewriting
                   ? "Iris réécrit votre livre"
                   : isInitialGenerating
@@ -2648,15 +2921,6 @@ function RedactionContent() {
         bookContent={chapters.map(c => c.content).join("\n\n")}
       />
 
-      <GenerateBookModal
-        isOpen={isBookModalOpen}
-        onClose={() => setIsBookModalOpen(false)}
-        onConfirm={runWholeBookGeneration}
-        defaultModel={selectedAiModel}
-        sommaireChapters={sommaireChapterCount}
-        balance={walletBalance}
-      />
-
       <ChapterGenerateModal
         key={`chapmodal-${activeChapterIndex}-${isChapterModalOpen}`}
         isOpen={isChapterModalOpen}
@@ -2664,7 +2928,7 @@ function RedactionContent() {
         onConfirm={(opts) => runChapterGeneration(activeChapterIndex, opts)}
         chapterTitle={currentChapter?.title || "Ce chapitre"}
         hasContent={((currentChapter?.content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().length) > 40}
-        defaultModel={selectedAiModel}
+        defaultModel={projectModel}
       />
     </div>
   );
