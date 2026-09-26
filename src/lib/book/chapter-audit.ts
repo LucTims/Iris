@@ -21,13 +21,15 @@
  */
 
 import { analyzeFactuality } from "@/lib/ai/factuality";
+import { findCliches, clicheRepairInstruction, CLICHE_REPAIR_THRESHOLD } from "@/lib/ai/writing-craft";
 
 export type ChapterDefectKind =
   | "trop-court"
   | "chiffres-non-sources"
   | "redite"
   | "sans-structure"
-  | "coupe-en-cours";
+  | "coupe-en-cours"
+  | "cliches";
 
 export interface ChapterDefect {
   kind: ChapterDefectKind;
@@ -153,6 +155,12 @@ export function auditChapter(input: AuditInput): ChapterDefect[] {
       });
       break; // une seule consigne de redite suffit
     }
+  }
+
+  // Plume : trop de formules toutes faites signent un texte générique.
+  const cliches = findCliches(html);
+  if (cliches.length >= CLICHE_REPAIR_THRESHOLD) {
+    defects.push({ kind: "cliches", instruction: clicheRepairInstruction(cliches) });
   }
 
   const subheads = (html.match(/<h2\b/gi) || []).length;

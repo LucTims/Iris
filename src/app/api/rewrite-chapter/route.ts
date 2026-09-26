@@ -9,6 +9,11 @@ import {
   fetchSearchContext,
 } from "@/lib/ai/search-context";
 import { factualityRules } from "@/lib/ai/factuality";
+import { detectGenre } from "@/lib/ai/book-style";
+import { craftCharter, emotionDirective } from "@/lib/ai/writing-craft";
+import { resolveWorkType } from "@/lib/book/work-type";
+import { defaultEnrichment, enrichmentRules } from "@/lib/book/enrichment";
+import { loadWritingProfile } from "@/lib/book/writing-profile";
 
 export const maxDuration = 60;
 
@@ -86,6 +91,27 @@ export async function POST(req: Request) {
       searchQuery
     );
 
+    // Nature du livre et plume de l'auteur : la réécriture doit rester dans la
+    // même voix et la même mise en forme que le reste du manuscrit.
+    const projectId: string | null = projectContext?.id || null;
+    let bookRow: { category?: string | null; tone?: string | null; work_type?: string | null; title?: string | null } | null = null;
+    if (projectId) {
+      const { data } = await supabase
+        .from("projects")
+        .select("category, tone, work_type, title")
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      bookRow = data;
+    }
+    const genre = detectGenre(bookRow?.category, bookRow?.tone || projectContext?.tone);
+    const workType = resolveWorkType({ explicit: bookRow?.work_type, category: bookRow?.category, title: bookRow?.title });
+    const writing = bookRow ? await loadWritingProfile(supabase, projectId) : {};
+    const enrichment = writing.enrichment ?? defaultEnrichment(genre, workType);
+    const authorStyleBlock = writing.authorStyle
+      ? `\nLA PLUME DE L'AUTEUR (à respecter : le texte réécrit doit sonner comme lui) :\n${writing.authorStyle.slice(0, 3000)}\n`
+      : "";
+
     let projectInfo = "";
     if (projectContext) {
       projectInfo = `
@@ -111,15 +137,20 @@ Si le texte contient des titres, conserve-les (ou améliore-les).`;
 
     const result = streamText({
       model: getAiModel(selectedModelName),
-      system: `Tu es un ghostwriter expert et éditeur de livres professionnels.
+      system: `Tu es un écrivain et éditeur de métier : tu réécris ce texte comme le ferait un auteur publié qui a une vraie plume.
 IMPORTANT:
-- Tu dois répondre UNIQUEMENT avec le contenu réécrit formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, <table>, <thead>, <tbody>, <tr>, <th>, <td>, <div class="callout callout-TYPE">, <div class="key-figure">, <div class="pull-quote">, <p class="drop-cap">, <div class="section-divider section-divider-STYLE">).
+- Tu dois répondre UNIQUEMENT avec le contenu réécrit formaté en HTML valide (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>, <blockquote>, et les éléments de mise en forme autorisés ci-dessous).
 - N'utilise JAMAIS de Markdown (pas de **, pas de #, pas de \`\`\`).
 - NE FAIS AUCUNE SALUTATION (ne dis pas "Bonjour", ni "Voici le contenu", ni "Absolument").
-- Quand le contenu contient des données comparatives, des listes de critères chiffrés ou des informations tabulaires, présente-les dans un tableau HTML bien structuré.
 - Ne rajoute aucun commentaire personnel à la fin, donne-moi juste le code HTML pur de la nouvelle version du texte.
+${authorStyleBlock}
+${craftCharter(genre, workType)}
+
+${emotionDirective(bookRow?.tone || projectContext?.tone, genre)}
+
+${enrichmentRules(enrichment, genre)}
 ${searchContext}
-${factualityRules(searchContext)}`,
+${genre === "fiction" ? "" : factualityRules(searchContext)}`,
       prompt: prompt,
       onError({ error }) {
         console.error("[rewrite-chapter] Erreur pendant le stream IA:", error);

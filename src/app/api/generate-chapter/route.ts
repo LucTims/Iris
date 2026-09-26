@@ -11,6 +11,8 @@ import { resolveWorkType, chapterNounFor, isImageDrivenWorkType } from "@/lib/bo
 import { visionInstruction } from "@/lib/book/book-blueprint";
 import { assignChapterLabels } from "@/lib/book/chapter-heading";
 import { demoteUnsourcedKeyFigures } from "@/lib/ai/factuality";
+import { loadWritingProfile } from "@/lib/book/writing-profile";
+import { defaultEnrichment, enforceEnrichment } from "@/lib/book/enrichment";
 
 export const maxDuration = 60;
 
@@ -154,8 +156,15 @@ export async function POST(req: Request) {
       `${title} - ${chapterTitle} ${synopsis || ""}`
     );
 
+    // Plume de l'auteur, matière de référence et mise en forme du projet.
+    const profile = await loadWritingProfile(supabase, projectId);
+    const enrichment = profile.enrichment ?? defaultEnrichment(genre, workType);
+
     const systemPrompt = buildChapterSystemPrompt({
       genre,
+      enrichment,
+      authorStyle: profile.authorStyle,
+      referenceNotes: profile.referenceNotes,
       title,
       synopsis,
       tone,
@@ -231,9 +240,10 @@ export async function POST(req: Request) {
     // Nettoyage avant renvoi : le client insère ce HTML tel quel dans le
     // manuscrit, donc il doit déjà être exempt de blocs ```html, de Markdown
     // résiduel, de lettrine cassée et de titre en double.
-    const cleanText = demoteUnsourcedKeyFigures(
-      sanitizeGeneratedHtml(generated.text, { expectedHeading: effectiveHeading }),
-      searchContext
+    const cleanText = enforceEnrichment(
+      demoteUnsourcedKeyFigures(sanitizeGeneratedHtml(generated.text, { expectedHeading: effectiveHeading }), searchContext),
+      enrichment,
+      genre
     );
 
     const deducted = await deductChapterCost(

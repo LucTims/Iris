@@ -11,6 +11,7 @@ import { generateWithFallback } from "@/lib/ai/model-fallback";
 import { buildBiblePrompt, parseBible, isUsefulBible, EMPTY_BIBLE, type BookBible } from "@/lib/book/book-bible";
 import { detectGenre } from "@/lib/ai/book-style";
 import { resolveWorkType } from "@/lib/book/work-type";
+import { loadWritingProfile } from "@/lib/book/writing-profile";
 
 // Les premiers chapitres s'écrivent dans cette même invocation (after()).
 export const maxDuration = 300;
@@ -42,10 +43,12 @@ async function buildBibleSafely(
       synopsis: settings.synopsis,
       tone: settings.tone,
       category: settings.category,
+      audience: settings.audience,
       instructions: settings.instructions,
       outline,
       workType,
       genre,
+      authorStyle: settings.authorStyle,
     });
 
     const { text } = await Promise.race([
@@ -113,6 +116,13 @@ export async function POST(req: Request) {
     if (projectError || !project) {
       return NextResponse.json({ error: "Projet introuvable." }, { status: 404 });
     }
+
+    // Plume de l'auteur, matière de référence et mise en forme : lues depuis
+    // le projet (jamais depuis le client), puis figées dans le job.
+    const profile = await loadWritingProfile(supabase, projectId);
+    settings.authorStyle = profile.authorStyle;
+    settings.referenceNotes = profile.referenceNotes;
+    settings.enrichment = profile.enrichment;
 
     const wordsTarget = Math.max(400, Math.min(4000, Number(settings.targetWords) || 800));
     const requiredCoins = estimateChapterCoins(wordsTarget, settings.model || "gemini-3.6-flash");

@@ -135,9 +135,7 @@ export function workTypeWritingRules(workType: WorkType, genre: BookGenre): stri
     return `FORME : GUIDE PRATIQUE. Le lecteur ouvre cet ouvrage pour FAIRE quelque chose, pas pour le lire au lit.
 - Chaque chapitre suit une progression opérationnelle : le problème, la méthode, les étapes concrètes, les pièges à éviter.
 - Numérote les actions (<ol>) dès qu'il y a une marche à suivre. Les listes à puces sont bienvenues.
-- Utilise les encadrés (callout-tip, callout-warning, callout-example) là où ils font gagner du temps : 2 à 4 par chapitre.
-- Les tableaux comparatifs sont encouragés quand ils remplacent trois paragraphes d'explication.
-- Termine chaque chapitre par un encadré <div class="callout callout-info"> intitulé « À retenir » : 3 à 5 points actionnables.
+- Termine chaque chapitre par une courte section « À retenir » : 3 à 5 points actionnables (en encadré callout-info si la mise en forme le permet, sinon en liste).
 - Écris à la deuxième personne (« vous »), avec des verbes d'action.`;
   }
 
@@ -146,7 +144,6 @@ export function workTypeWritingRules(workType: WorkType, genre: BookGenre): stri
 - Chapitres brefs et denses : pas de délayage, pas de longue mise en contexte.
 - Un sous-titre <h2> tous les 3 à 4 paragraphes pour que la page reste scannable.
 - Paragraphes courts (3 à 5 lignes). Les listes à puces sont assumées.
-- 1 à 2 encadrés maximum par chapitre, et un chiffre-clé <div class="key-figure"> seulement s'il est vraiment marquant.
 - Termine chaque chapitre par UNE action concrète que le lecteur peut faire aujourd'hui.`;
   }
 
@@ -154,7 +151,6 @@ export function workTypeWritingRules(workType: WorkType, genre: BookGenre): stri
 - La PROSE porte le propos. Développe tes idées en paragraphes construits et enchaînés, avec des transitions écrites.
 - Les listes à puces sont l'exception, pas la règle : au maximum UNE liste courte par chapitre, et seulement si elle remplace vraiment un paragraphe indigeste. N'énumère pas ce qui se raconte.
 - AUCUN tableau de données, AUCUNE checklist, AUCUNE section « À retenir », AUCUNE étape numérotée : ces éléments appartiennent au guide pratique et cassent la lecture d'un livre.
-- Au maximum UN encadré (<div class="callout">) ou UNE citation détachée (<div class="pull-quote">) par chapitre — et seulement quand la phrase mérite vraiment d'être isolée.
 - Illustre par des exemples RACONTÉS (une situation, une personne, une scène), pas par des tableaux comparatifs.
 - Sous-titres <h2> avec parcimonie : deux à quatre par chapitre, formulés comme des idées, pas comme des rubriques de manuel.`;
 }

@@ -47,6 +47,25 @@ export interface BookBible {
   recurringExamples: string[];
   /** Ce que le livre s'interdit (sujets hors périmètre, travers à éviter). */
   outOfScope: string[];
+  /**
+   * LA PLUME du livre : ce qui rend son écriture reconnaissable d'un chapitre
+   * à l'autre et différente de tous les autres livres. Absente des jobs
+   * créés avant son ajout.
+   */
+  pen?: BookPen;
+}
+
+export interface BookPen {
+  /** Qui parle, d'où, avec quelle légitimité. */
+  narrator: string;
+  /** Signature rythmique des phrases et des paragraphes. */
+  rhythm: string;
+  /** Le réservoir d'images propre au livre (d'où viennent ses métaphores). */
+  imagery: string;
+  /** Procédés récurrents qui rendent le livre reconnaissable. */
+  signature: string;
+  /** Tics et facilités que ce livre s'interdit. */
+  avoid: string;
 }
 
 export const EMPTY_BIBLE: BookBible = {
@@ -83,8 +102,13 @@ export function buildBiblePrompt(input: {
   outline?: string;
   workType: WorkType;
   genre: BookGenre;
+  /** Analyse du style de l'auteur (textes fournis) : la plume en découle. */
+  authorStyle?: string;
 }): string {
   const meta = WORK_TYPE_META[input.workType];
+  const penSource = input.authorStyle?.trim()
+    ? `\nL'auteur a fourni des textes qu'il a écrits ; voici l'analyse de SA plume. La section PLUME doit la décrire fidèlement (c'est lui qui signe le livre) :\n${input.authorStyle.trim().slice(0, 3000)}\n`
+    : "";
   return `Tu es directeur éditorial. Avant que la rédaction ne commence, tu établis la FICHE DE RÉFÉRENCE de cet ouvrage : le document que le rédacteur gardera sous les yeux pour chaque chapitre.
 
 Ouvrage :
@@ -95,7 +119,7 @@ ${input.subtitle ? `Sous-titre : ${input.subtitle}\n` : ""}Catégorie : ${input.
 Lecteur visé : ${input.audience || "—"}
 Ton souhaité : ${input.tone || "—"}
 Sujet : ${input.synopsis || "—"}
-${input.instructions ? `Consignes de l'auteur : ${input.instructions}\n` : ""}${input.outline ? `\nStructure prévue :\n${input.outline}\n` : ""}
+${input.instructions ? `Consignes de l'auteur : ${input.instructions}\n` : ""}${input.outline ? `\nStructure prévue :\n${input.outline}\n` : ""}${penSource}
 
 Réponds EXACTEMENT dans ce format, une section par ligne, sans introduction ni commentaire :
 
@@ -104,8 +128,13 @@ PROMESSE: [ce que le lecteur saura, saura faire ou aura vécu en refermant le li
 LECTEUR: [qui il est, où il en est, ce qu'il a déjà essayé, ce qui le bloque. Deux phrases maximum.]
 VOIX: [personne employée (tu/vous/il), registre, rapport au lecteur, rythme. Une phrase.]
 GLOSSAIRE: [3 à 6 termes ou concepts propres à cet ouvrage, séparés par « | ». Chacun sous la forme « terme = définition courte ». Ces termes devront être employés de façon rigoureusement constante d'un chapitre à l'autre.]
-EXEMPLES: [3 à 6 exemples, figures ou cas concrets que le livre pourra mobiliser, séparés par « | ». Chacun sera réservé à UN seul chapitre pour éviter les redites.]
-HORS-SUJET: [3 à 5 choses que ce livre ne doit PAS faire : sujets hors périmètre, travers de style, facilités à éviter. Séparés par « | ».]`;
+EXEMPLES: [3 à 6 exemples, cas ou situations concrètes que le livre pourra mobiliser, séparés par « | ». Tirés du monde du LECTEUR visé (personnes ordinaires avec un prénom, lieux et métiers de son quotidien) plutôt que de célébrités mondiales ressassées. Chacun sera réservé à UN seul chapitre.]
+HORS-SUJET: [3 à 5 choses que ce livre ne doit PAS faire : sujets hors périmètre, travers de style, facilités à éviter. Séparés par « | ».]
+PLUME_NARRATEUR: [qui parle dans ce livre, d'où, avec quelle expérience et quel rapport au lecteur. Une phrase concrète — un vrai point de vue, pas « un expert bienveillant ».]
+PLUME_RYTHME: [la signature des phrases et des paragraphes propre à CE livre. Une phrase.]
+PLUME_IMAGES: [le domaine d'où ce livre tire ses images et métaphores, pris dans l'univers de son sujet et de son lecteur (jamais phare, boussole, voyage, clé). Une phrase.]
+PLUME_SIGNATURE: [deux ou trois procédés récurrents qui rendront ce livre reconnaissable entre tous (façon d'ouvrir les chapitres, type d'exemples, humour, adresse au lecteur…). Séparés par « | ».]
+PLUME_A_EVITER: [les tics et facilités que ce livre s'interdit, adaptés à son sujet. Séparés par « | ».]`;
 }
 
 function pickLine(text: string, key: string): string {
@@ -135,7 +164,19 @@ export function parseBible(text: string): BookBible {
     glossary: pickList(text, "GLOSSAIRE"),
     recurringExamples: pickList(text, "EXEMPLES"),
     outOfScope: pickList(text, "HORS-SUJET"),
+    pen: parsePen(text),
   };
+}
+
+function parsePen(text: string): BookPen | undefined {
+  const pen: BookPen = {
+    narrator: pickLine(text, "PLUME_NARRATEUR"),
+    rhythm: pickLine(text, "PLUME_RYTHME"),
+    imagery: pickLine(text, "PLUME_IMAGES"),
+    signature: pickList(text, "PLUME_SIGNATURE").join(" ; "),
+    avoid: pickList(text, "PLUME_A_EVITER").join(" ; "),
+  };
+  return Object.values(pen).some((v) => v) ? pen : undefined;
 }
 
 /**
@@ -167,6 +208,17 @@ export function renderBible(bible: BookBible | null | undefined): string {
   }
   if (b.outOfScope.length) {
     parts.push(`Ce que ce livre ne fait PAS :\n${b.outOfScope.map((o) => `  · ${o}`).join("\n")}`);
+  }
+  const pen = b.pen;
+  if (pen && Object.values(pen).some((v) => v)) {
+    const penLines = [
+      pen.narrator && `  · Qui parle : ${pen.narrator}`,
+      pen.rhythm && `  · Rythme : ${pen.rhythm}`,
+      pen.imagery && `  · Réservoir d'images : ${pen.imagery}`,
+      pen.signature && `  · Signature : ${pen.signature}`,
+      pen.avoid && `  · À éviter : ${pen.avoid}`,
+    ].filter(Boolean);
+    parts.push(`LA PLUME DE CE LIVRE (identique dans chaque chapitre — c'est elle qui rend le texte unique) :\n${penLines.join("\n")}`);
   }
   parts.push("--- FIN DE LA FICHE DE RÉFÉRENCE ---");
   return parts.join("\n");

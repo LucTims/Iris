@@ -53,10 +53,21 @@ describe("bodyFormattingRules", () => {
     expect(rules).toMatch(/callout/i); // named as forbidden
     expect(rules).toMatch(/\[Source/i); // sources named as forbidden
   });
-  it("allows callouts and tables in non-fiction", () => {
-    const rules = bodyFormattingRules("nonfiction");
+  it("allows callouts and tables in a practical guide", () => {
+    const rules = bodyFormattingRules("nonfiction", "guide");
     expect(rules).toMatch(/callout-info/);
     expect(rules).toMatch(/<table>/);
+  });
+  it("keeps a non-fiction book sober by default (at most one highlight, no table, no stars)", () => {
+    const rules = bodyFormattingRules("nonfiction", "livre");
+    expect(rules).toMatch(/AU PLUS UN passage/);
+    expect(rules).toMatch(/Pas de tableau/);
+    expect(rules).toMatch(/AUCUN séparateur décoratif/);
+  });
+  it("honours the author's choice of pure prose", () => {
+    const rules = bodyFormattingRules("nonfiction", "guide", null, "aucune");
+    expect(rules).toMatch(/PROSE PURE/);
+    expect(rules).not.toMatch(/<table>/);
   });
 });
 
@@ -89,14 +100,31 @@ describe("buildChapterSystemPrompt", () => {
     expect(prompt).toMatch(/INTERDIT ABSOLU/i); // fiction body rules applied
   });
 
-  it("keeps callouts available for non-fiction", () => {
+  it("keeps callouts available for a practical guide", () => {
     const prompt = buildChapterSystemPrompt({
       genre: "nonfiction",
+      workType: "guide",
       title: "Investir en bourse",
       chapterNumber: 1,
       chapterTitle: "Les bases",
     });
     expect(prompt).toMatch(/callout-info/);
     expect(prompt).toMatch(/PREMIER chapitre/i);
+  });
+
+  it("injects the writing charter, the emotional direction and the author's own pen", () => {
+    const prompt = buildChapterSystemPrompt({
+      genre: "nonfiction",
+      title: "Mon premier emploi",
+      tone: "Inspirant et Motivationnel",
+      chapterNumber: 1,
+      chapterTitle: "Le premier matin",
+      authorStyle: "**Voix** : tutoiement, phrases courtes, humour pince-sans-rire.",
+    });
+    expect(prompt).toMatch(/CHARTE D'ÉCRITURE/);
+    expect(prompt).toMatch(/FORMULES INTERDITES/);
+    expect(prompt).toMatch(/DIRECTION ÉMOTIONNELLE/);
+    expect(prompt).toMatch(/LA PLUME DE L'AUTEUR/);
+    expect(prompt).toMatch(/humour pince-sans-rire/);
   });
 });

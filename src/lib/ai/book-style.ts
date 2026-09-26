@@ -20,6 +20,9 @@ import { factualityRules, keyFigureRule } from "@/lib/ai/factuality";
 import type { BookBible } from "@/lib/book/book-bible";
 import { renderBible, renderChapterScope } from "@/lib/book/book-bible";
 import { buildStorybookChapterPrompt } from "@/lib/ai/storybook-prompts";
+import { craftCharter, emotionDirective } from "@/lib/ai/writing-craft";
+import { defaultEnrichment, enrichmentRules, type EnrichmentLevel } from "@/lib/book/enrichment";
+import { defaultTypographyId, getTypographyPreset } from "@/lib/book/typography";
 
 export type BookGenre = "fiction" | "nonfiction";
 
@@ -109,41 +112,45 @@ export function chapterStructureRules(chapterHeading: string): string {
 }
 
 /**
- * Règles de mise en forme selon le genre. En fiction : PROSE PURE — aucun
- * encadré, aucune statistique, aucune source, aucun tableau. En non-fiction :
- * la panoplie complète (encadrés, chiffres clés, tableaux).
+ * Règles de mise en forme selon le genre et le niveau de mise en forme choisi
+ * (voir enrichment.ts). En fiction : PROSE — aucun encadré, aucune
+ * statistique, aucune source. En non-fiction : structure claire, et seulement
+ * les éléments mis en valeur que le niveau autorise.
  */
 export function bodyFormattingRules(
   genre: BookGenre,
   workType: WorkType = "livre",
-  searchContext?: string | null
+  searchContext?: string | null,
+  enrichment?: EnrichmentLevel
 ): string {
-  // La FORME (livre / guide / ebook) prime sur la palette de balises : c'est
-  // elle qui décide si l'appareil éditorial (encadrés, tableaux, checklists) a
-  // sa place. Sans ça, un livre de développement personnel héritait de toute la
-  // panoplie du guide pratique et se lisait comme une formation.
+  // La FORME (livre / guide / ebook) décide de la structure ; le NIVEAU de
+  // mise en forme décide des encadrés. Sans cette séparation, un livre de
+  // développement personnel héritait des encadrés du guide pratique.
   const formRules = workTypeWritingRules(genre === "fiction" ? "livre" : workType, genre);
+  const level = enrichment ?? defaultEnrichment(genre, workType);
 
   if (genre === "fiction") {
     return `Style de RÉCIT (fiction / narration) — le texte doit se lire comme un vrai roman publié :
 - Rédige en prose immersive avec des balises <p>. Titres de section <h2> uniquement si le chapitre en a réellement besoin (rare en fiction).
 - Pour un dialogue, utilise des paragraphes <p> avec tirets cadratins (« — ») ou guillemets français (« … »).
-- Pour une citation ou une phrase marquante à détacher, tu PEUX utiliser <div class="pull-quote">…</div> (maximum 1 par chapitre, avec parcimonie).
-- Pour une transition entre deux scènes, tu PEUX utiliser <div class="section-divider section-divider-stars"></div>.
 - Pour l'ouverture du chapitre, tu PEUX utiliser une lettrine sur le premier paragraphe : <p class="drop-cap">…</p> (1 seule fois, au tout début).
 - INTERDIT ABSOLU en fiction : les encadrés <div class="callout">, les <div class="key-figure">, les listes à puces d'analyse, les tableaux de données, et TOUTE citation de source du type « [Source: …] ». On ne commente jamais sa propre histoire et on ne cite jamais de statistiques dans un roman.
-- Montre, ne raconte pas : privilégie l'action, les sensations, les dialogues et les détails concrets plutôt que le résumé.
+
+${enrichmentRules(level === "riche" ? "sobre" : level, genre)}
 
 ${formRules}`;
   }
-  return `Style d'OUVRAGE PRATIQUE (non-fiction) :
-- Structure claire avec paragraphes <p>, sous-titres <h2>/<h3>, et listes <ul>/<ol> quand c'est pertinent.
-- Comparaison de critères NON chiffrés (avantages/inconvénients, cas d'usage) : un tableau HTML (<table>, <thead>, <tbody>, <tr>, <th>, <td>) est possible. Ne fabrique jamais un tableau de données chiffrées.
-- Points clés : encadrés <div class="callout callout-info">…</div> (info), callout-warning (mise en garde), callout-tip (conseil), callout-example (exemple). 1 à 3 par chapitre maximum, seulement quand ça apporte de la valeur.
-- Citation forte tirée du texte lui-même : <div class="pull-quote">…</div> (1 max).
-${keyFigureRule(searchContext)}
-- Transition : <div class="section-divider section-divider-stars"></div> (ou ornament, line, dots), avec parcimonie.
+  const tables =
+    level === "riche"
+      ? `- Comparaison de critères NON chiffrés (avantages/inconvénients, cas d'usage) : un tableau HTML (<table>, <thead>, <tbody>, <tr>, <th>, <td>) est possible. Ne fabrique jamais un tableau de données chiffrées.`
+      : `- Pas de tableau : explique en prose.`;
+  return `Style d'OUVRAGE NON ROMANESQUE :
+- Paragraphes <p> construits, sous-titres <h2>/<h3> formulés comme des idées (pas comme des rubriques de manuel), listes <ul>/<ol> seulement quand la forme de l'ouvrage le justifie.
+${tables}
+${level === "aucune" ? "" : keyFigureRule(searchContext)}
 - Lettrine possible en ouverture : <p class="drop-cap">…</p> (1 max).
+
+${enrichmentRules(level, genre)}
 
 ${formRules}
 
@@ -228,6 +235,15 @@ export function buildChapterSystemPrompt(opts: {
   storybookAssets?: Array<{ file_url: string; ai_analysis?: string | null }>;
   /** Public visé — pilote la tranche d'âge de l'album. */
   audience?: string;
+  /** Niveau de mise en forme choisi par l'auteur (défaut : selon le type d'ouvrage). */
+  enrichment?: EnrichmentLevel;
+  /**
+   * Analyse du style d'écriture de l'AUTEUR (textes qu'il a fournis) : la
+   * plume à reproduire. Priorité sur toute autre consigne de style.
+   */
+  authorStyle?: string;
+  /** Notes tirées d'un document de référence (connaissances, idées). */
+  referenceNotes?: string;
 }): string {
   const {
     genre,
@@ -251,6 +267,9 @@ export function buildChapterSystemPrompt(opts: {
     wordsTarget,
     storybookAssets,
     audience,
+    enrichment,
+    authorStyle,
+    referenceNotes,
   } = opts;
 
   // Titre définitif : celui calculé en amont, sinon composition de repli.
@@ -288,80 +307,56 @@ Commence par <h1>${heading}</h1>, puis enchaîne directement les blocs <div clas
   const hasPrevious = !!(previousSummary && previousSummary.trim());
   const bibleLabel = genre === "fiction" ? "Bible des personnages / univers" : "Concepts et éléments clés";
 
-  return `Tu es un auteur professionnel de best-sellers. Ta mission est de rédiger un chapitre COMPLET, du niveau d'un livre réellement publié.
+  const authorStyleBlock = authorStyle?.trim()
+    ? `--- LA PLUME DE L'AUTEUR (priorité absolue sur toute autre consigne de style) ---
+L'auteur t'a confié des textes qu'il a écrits. Écris COMME LUI : même longueur de phrases, même registre, même rapport au lecteur, mêmes tournures, même humour ou même gravité. Le lecteur ne doit pas sentir de changement de main.
+${authorStyle.trim().slice(0, 3500)}
+--- FIN DE LA PLUME DE L'AUTEUR ---\n\n`
+    : "";
+  const referenceBlock = referenceNotes?.trim()
+    ? `Matière fournie par l'auteur (document de référence) — puise-y idées, faits et exemples pertinents pour CE chapitre, sans recopier :\n${referenceNotes.trim().slice(0, 3000)}\n\n`
+    : "";
+
+  return `Tu es un écrivain de métier : ${genre === "fiction" ? "romancier" : "auteur"} publié, reconnu pour une plume qui a de la personnalité. Tu rédiges un chapitre COMPLET de ce livre, au niveau d'un ouvrage réellement édité — et tu écris pour être lu jusqu'au bout, pas pour remplir des pages.
 Le texte que tu génères sera inséré directement dans le manuscrit de l'auteur.
 
 Livre :
 Titre : ${title}
 Synopsis global : ${synopsis || "Non défini"}
-Ton / Style : ${tone || "Professionnel et engageant"}
-
-${bibleBlock ? `${bibleBlock}\n\n` : ""}${scopeBlock ? `${scopeBlock}\n\n` : ""}${characters ? `${bibleLabel} (à respecter scrupuleusement, sans changer les noms ni les faits établis) :\n${characters}\n` : ""}${!scopeBlock && bookOutline ? `Plan / sommaire du livre (reste dans le périmètre de CE chapitre, sans empiéter sur les autres) :\n${bookOutline}\n` : ""}${hasPrevious ? `Résumé des chapitres précédents (pour la cohérence) :\n${previousSummary}\n` : ""}${chapterBrief ? `Ce chapitre doit couvrir précisément : ${chapterBrief}\n` : ""}${instructions ? `CONSIGNES SPÉCIFIQUES DE L'AUTEUR (priorité maximale) :\n${instructions}\n` : ""}
+Ton : ${tone || "à déduire du sujet et du lecteur"}
+${audience ? `Lecteur visé : ${audience}\n` : ""}
+${authorStyleBlock}${bibleBlock ? `${bibleBlock}\n\n` : ""}${referenceBlock}${scopeBlock ? `${scopeBlock}\n\n` : ""}${characters ? `${bibleLabel} (à respecter scrupuleusement, sans changer les noms ni les faits établis) :\n${characters}\n` : ""}${!scopeBlock && bookOutline ? `Plan / sommaire du livre (reste dans le périmètre de CE chapitre, sans empiéter sur les autres) :\n${bookOutline}\n` : ""}${hasPrevious ? `Résumé des chapitres précédents (pour la cohérence) :\n${previousSummary}\n` : ""}${chapterBrief ? `Ce chapitre doit couvrir précisément : ${chapterBrief}\n` : ""}${instructions ? `CONSIGNES SPÉCIFIQUES DE L'AUTEUR (priorité maximale) :\n${instructions}\n` : ""}
 Chapitre à rédiger :
 ${heading}
 
 ${continuityDirective(genre, heading, hasPrevious)}
 ${searchContext || ""}
 
-Longueur : ${wordsTarget ? `vise environ ${wordsTarget} mots (±20 %).` : "vise au moins 800 à 1500 mots."}
+Longueur : ${wordsTarget ? `vise environ ${wordsTarget} mots (±20 %).` : "vise au moins 800 à 1500 mots."} La longueur ne justifie jamais le remplissage : développe par des scènes, des exemples et des nuances, pas par des répétitions.
+
+${craftCharter(genre, workType)}
+
+${emotionDirective(tone, genre)}
 
 Structure du chapitre :
 ${chapterStructureRules(heading)}
 
-${bodyFormattingRules(genre, workType, searchContext)}`;
+${bodyFormattingRules(genre, workType, searchContext, enrichment)}`;
 }
 
 /**
- * Palette typographique par STYLE de livre — pour un rendu riche et adapté à
- * chaque genre (le catalogue Iris ne se limite pas aux romans). Renvoie des
- * clés pdfmake (voir fontRegistry) : `body` = corps, `display` = titres.
- *
- * Toutes les familles citées sont embarquées en TTF, donc réellement rendues à
- * l'export. On repère le style via des mots-clés de catégorie (et le ton en
- * repli), avec un défaut littéraire pour la fiction et sobre pour la non-fiction.
+ * Palette typographique du livre : le couple choisi par l'auteur (preset de
+ * typography.ts) s'il existe, sinon le couple conseillé pour sa catégorie.
+ * Renvoie des clés pdfmake (voir fontRegistry) : `body` = corps, `display` =
+ * titres. Toutes sont embarquées en TTF, donc réellement rendues à l'export.
  */
 export function bookFontPairing(
   category?: string | null,
-  tone?: string | null
+  tone?: string | null,
+  typography?: string | null
 ): { body: string; display: string } {
-  const hay = `${category || ""} ${tone || ""}`
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  const has = (...kws: string[]) => kws.some((k) => hay.includes(k));
-
-  // Jeunesse / enfants : chaleureux et rond.
-  if (has("jeunesse", "enfant", "young adult", "conte")) {
-    return { body: "Nunito", display: "Poppins" };
-  }
-  // Romance / sentimental : élégant.
-  if (has("romance", "sentimental")) {
-    return { body: "Lora", display: "CormorantGaramond" };
-  }
-  // Thriller / policier / horreur : serif dense + titres modernes serrés.
-  if (has("thriller", "policier", "polar", "suspense", "horreur")) {
-    return { body: "PTSerif", display: "Montserrat" };
-  }
-  // Poésie : garamond classique.
-  if (has("poesie", "poeme")) {
-    return { body: "EBGaramond", display: "EBGaramond" };
-  }
-  // Business / finance / management : sobre et professionnel.
-  if (has("business", "finance", "management", "entreprise", "marketing", "economie")) {
-    return { body: "Merriweather", display: "Montserrat" };
-  }
-  // Développement personnel / self-help : accueillant.
-  if (has("developpement personnel", "bien-etre", "bien etre", "self", "motivation", "coaching")) {
-    return { body: "SourceSerif4", display: "Poppins" };
-  }
-  // Académique / essai / histoire / science / technique : rigoureux.
-  if (has("academique", "essai", "histoire", "science", "technique", "manuel", "education", "scolaire", "guide")) {
-    return { body: "PTSerif", display: "PTSerif" };
-  }
-  // Fiction générale (roman, aventure, fantasy, SF, drame…) : littéraire.
-  if (detectGenre(category, tone) === "fiction") {
-    return { body: "Lora", display: "PlayfairDisplay" };
-  }
-  // Non-fiction par défaut.
-  return { body: "Merriweather", display: "Montserrat" };
+  const chosen = getTypographyPreset(typography);
+  const preset =
+    chosen || getTypographyPreset(defaultTypographyId(category, tone, detectGenre(category, tone) === "fiction"));
+  return preset ? { body: preset.body, display: preset.display } : { body: "Merriweather", display: "Montserrat" };
 }

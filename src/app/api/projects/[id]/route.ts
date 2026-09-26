@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { readStyleSettings } from "@/lib/book/writing-profile";
 import { createClient } from "@/lib/supabase/server";
 import { evaluateCompletion, resolveBookStatus } from "@/lib/book/completion";
 
@@ -95,6 +96,29 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (body.subtitle !== undefined) updates.subtitle = body.subtitle;
     if (body.category !== undefined) updates.category = body.category;
     if (body.cover_url !== undefined) updates.cover_url = body.cover_url;
+
+    // Style du livre (mise en forme, typographie, plume) : fusion avec l'existant.
+    // Une valeur vide ou nulle retire le réglage correspondant.
+    if (body.style_settings && typeof body.style_settings === "object") {
+      const { data: current, error: readError } = await supabase
+        .from("projects")
+        .select("style_settings")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (readError) {
+        return NextResponse.json(
+          { error: "Le style du livre ne peut pas encore être enregistré (mise à jour de la base en attente)." },
+          { status: 503 }
+        );
+      }
+      const merged: Record<string, unknown> = { ...readStyleSettings(current?.style_settings) };
+      for (const [key, value] of Object.entries(body.style_settings as Record<string, unknown>)) {
+        if (value === null || value === "") delete merged[key];
+        else merged[key] = value;
+      }
+      updates.style_settings = readStyleSettings(merged);
+    }
 
     // Statut du livre. Deux garde-fous :
     //  1. seules les valeurs connues sont acceptées (sinon n'importe quelle

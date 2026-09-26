@@ -132,7 +132,8 @@ function buildDocDefinition(
   coverImage: string | null,
   category: string | undefined,
   format: "digital" | "print" = "digital",
-  workTypeInput?: string | null
+  workTypeInput?: string | null,
+  typography?: string | null
 ): any {
   // MISE EN PAGE PAR FORME D'OUVRAGE. Un livre s'habille comme un livre
   // (titre centré haut de page, fleuron, texte justifié, page de fin) ; un
@@ -145,7 +146,7 @@ function buildDocDefinition(
   const layout = workTypeLayout(workType, genre);
   // Palette typographique riche, choisie selon le STYLE du livre (roman,
   // jeunesse, thriller, business, académique…) — pas seulement fiction/non-fiction.
-  const { body: bodyFont, display: displayFont } = bookFontPairing(category);
+  const { body: bodyFont, display: displayFont } = bookFontPairing(category, undefined, typography);
   // Dimensions de page selon le format (impression 6×9" ou A4 numérique).
   const pageW = format === "print" ? 432 : 595;
   const pageH = format === "print" ? 648 : 842;
@@ -358,6 +359,8 @@ export interface BookPdfInput {
   coverUrl?: string | null;
   format?: "digital" | "print";
   workType?: string | null;
+  /** Preset typographique choisi par l'auteur (voir typography.ts). */
+  typography?: string | null;
 }
 
 export async function renderBookPdf(input: BookPdfInput): Promise<Buffer> {
@@ -380,7 +383,8 @@ export async function renderBookPdf(input: BookPdfInput): Promise<Buffer> {
     coverImage,
     input.category || undefined,
     input.format === "print" ? "print" : "digital",
-    input.workType
+    input.workType,
+    input.typography
   );
   return streamToBuffer(printer.createPdfKitDocument(docDefinition));
 }

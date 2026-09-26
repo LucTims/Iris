@@ -121,6 +121,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       onStopGeneration,
       onFileSelected,
       category,
+      typography,
       canvasHeader,
       documentVariant = "book",
     },
@@ -128,7 +129,7 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   ) {
   // Palette typographique de l'export, appliquée à l'aperçu (WYSIWYG) : l'auteur
   // voit dans l'éditeur les mêmes polices corps/titres que dans le PDF final.
-  const { body: bodyPdfKey, display: displayPdfKey } = bookFontPairing(category);
+  const { body: bodyPdfKey, display: displayPdfKey } = bookFontPairing(category, undefined, typography);
   const bookBodyFont = cssFamilyForPdfKey(bodyPdfKey);
   const bookDisplayFont = cssFamilyForPdfKey(displayPdfKey);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);

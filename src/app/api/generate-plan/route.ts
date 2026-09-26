@@ -164,6 +164,8 @@ Consignes :
 3. Pour CHAQUE chapitre, mets le titre du chapitre dans une balise <strong>, suivi d'un tiret «— » puis d'un **aperçu de 1 à 2 phrases** décrivant ce que le chapitre couvrira. Exemple : <li><strong>Chapitre 1 : Le titre</strong> — Aperçu en une ou deux phrases de ce que contiendra ce chapitre.</li>
 4. N'écris AUCUN contenu de chapitre, aucun paragraphe de corps de texte, aucune balise <hr data-page-break>. Uniquement le titre <h1> puis la liste.
 5. NE NUMÉROTE PAS toi-même les entrées « Chapitre 1 », « Chapitre 2 »… : écris uniquement le TITRE de chaque partie. La numérotation est appliquée automatiquement ensuite, et un double préfixe (« Chapitre 5 : Chapitre 3 : … ») est le défaut le plus visible d'un livre mal fabriqué. Les seules exceptions sont « Introduction » et « Conclusion », qui gardent leur nom.
+6. DES TITRES QUI DONNENT ENVIE. Chaque titre est propre à CE livre : une image, une tension, une promesse ou un moment précis tiré du sujet et du monde du lecteur. Bannis les titres interchangeables (« Comprendre les bases », « Les clés du succès », « Passer à l'action », « Aller plus loin ») et les métaphores usées (phare, boussole, voyage, clé).
+7. DES APERÇUS PRÉCIS. Chaque aperçu dit ce que le chapitre apporte de NOUVEAU (une idée, une scène, un exemple concret, une bascule), pas une généralité. Deux chapitres ne doivent jamais se recouvrir.
 
 ${outlineRules}`;
     } else {

@@ -15,6 +15,7 @@ import { visionInstruction } from "@/lib/book/book-blueprint";
 import { assignChapterLabels } from "@/lib/book/chapter-heading";
 import type { BookBible } from "@/lib/book/book-bible";
 import { demoteUnsourcedKeyFigures } from "@/lib/ai/factuality";
+import { defaultEnrichment, enforceEnrichment, isEnrichmentLevel, type EnrichmentLevel } from "@/lib/book/enrichment";
 import { auditChapter, buildRepairPrompt, wordCount as countWords } from "@/lib/book/chapter-audit";
 import { advanceBookJob, checkBookJobLease, stopBookJob, type BookJobStatus } from "@/lib/ai/book-job-lease";
 
@@ -74,6 +75,20 @@ export interface BookJobSettings {
    * modèle réutiliserait les mêmes visuels d'un chapitre à l'autre.
    */
   imageUrls?: string[];
+  /** Niveau de mise en forme (encadrés, citations) choisi pour le livre. */
+  enrichment?: EnrichmentLevel;
+  /** Plume de l'auteur (analyse de ses propres textes), lue depuis le projet. */
+  authorStyle?: string;
+  /** Matière d'un document de référence, lue depuis le projet. */
+  referenceNotes?: string;
+}
+
+/** Niveau de mise en forme effectif d'un job (choix de l'auteur, sinon défaut du type). */
+function enrichmentFor(settings: BookJobSettings): EnrichmentLevel {
+  if (isEnrichmentLevel(settings.enrichment)) return settings.enrichment;
+  const genre = detectGenre(settings.category, settings.tone);
+  const workType = resolveWorkType({ explicit: settings.workType, category: settings.category, title: settings.title });
+  return defaultEnrichment(genre, workType);
 }
 
 /**
@@ -169,6 +184,9 @@ function buildSystemPrompt(
     wordsTarget: wordsTarget || undefined,
     storybookAssets: storybookAssets && storybookAssets.length ? storybookAssets : undefined,
     audience: settings.audience,
+    enrichment: enrichmentFor(settings),
+    authorStyle: settings.authorStyle,
+    referenceNotes: settings.referenceNotes,
   });
 }
 
@@ -369,9 +387,11 @@ export async function processNextChapter(
       // stocké est déjà propre pour l'éditeur ET pour tous les exports.
       // Nettoyage puis garde-fou factuel : un chiffre non sourcé mis en exergue
       // dans un encadré est bien pire qu'un chiffre noyé dans un paragraphe.
-      let text = demoteUnsourcedKeyFigures(
-        sanitizeGeneratedHtml(result.text || "", { expectedHeading: chapterHeading }),
-        searchContext
+      const enrichment = enrichmentFor(settings);
+      let text = enforceEnrichment(
+        demoteUnsourcedKeyFigures(sanitizeGeneratedHtml(result.text || "", { expectedHeading: chapterHeading }), searchContext),
+        enrichment,
+        genre
       );
 
       // RELECTURE. L'audit est déterministe et gratuit : il ne détecte que des
@@ -399,9 +419,10 @@ export async function processNextChapter(
             system,
             prompt: buildRepairPrompt(text, defects, chapterHeading),
           });
-          const cleaned = demoteUnsourcedKeyFigures(
-            sanitizeGeneratedHtml(repaired.text || "", { expectedHeading: chapterHeading }),
-            searchContext
+          const cleaned = enforceEnrichment(
+            demoteUnsourcedKeyFigures(sanitizeGeneratedHtml(repaired.text || "", { expectedHeading: chapterHeading }), searchContext),
+            enrichment,
+            genre
           );
           // On ne garde la révision que si elle laisse un chapitre au moins
           // aussi substantiel : une reprise qui ampute le texte est un recul.

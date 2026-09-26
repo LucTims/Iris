@@ -48,6 +48,8 @@ export interface RichManuscriptEditorProps {
   /** Catégorie du livre : sert à afficher, dans l'éditeur, la MÊME palette
    * typographique que l'export (aperçu WYSIWYG). */
   category?: string;
+  /** Preset typographique choisi par l'auteur (prioritaire sur la catégorie). */
+  typography?: string;
 }
 
 export type PageFormatType = "A4" | "A5";

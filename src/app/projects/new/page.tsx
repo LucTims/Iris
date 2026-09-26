@@ -7,6 +7,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
 import { SIZE_PRESETS, BOOK_MODELS, LENGTH_OPTIONS, estimatePagesCoins, lengthToSizeKey, coinsPerPage } from "@/lib/book/generationPresets";
 import { BOOK_CATEGORIES, BOOK_TONES, EMPTY_IDEA_ANALYSIS, type IdeaAnalysis } from "@/lib/book/ideaAnalysis";
+import { ENRICHMENT_LEVELS, defaultEnrichment, type EnrichmentLevel } from "@/lib/book/enrichment";
+import { TYPOGRAPHY_PRESETS, defaultTypographyId } from "@/lib/book/typography";
+import { detectGenre } from "@/lib/ai/book-style";
 import { useUser } from "@/hooks/useUser";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { WORK_TYPES, WORK_TYPE_META, type WorkType } from "@/lib/book/work-type";
@@ -119,6 +122,15 @@ export default function NewBookWizard() {
       return BOOK_MODELS[0].id;
     }
   });
+
+  // Mise en forme et typographie : « conseillé » tant que l'auteur ne choisit pas.
+  const [enrichmentChoice, setEnrichmentChoice] = useState<EnrichmentLevel | null>(null);
+  const [typographyChoice, setTypographyChoice] = useState<string | null>(null);
+  const wizardGenre = detectGenre(formData.category, formData.tone);
+  const wizardWorkType = formData.blueprintId === "roman" ? "livre" : formData.workType;
+  const effectiveEnrichment = enrichmentChoice || defaultEnrichment(wizardGenre, wizardWorkType);
+  const effectiveTypography =
+    typographyChoice || defaultTypographyId(formData.category, formData.tone, wizardGenre === "fiction", wizardWorkType);
 
   /* ------------------------------------------------------------------ *
    * IRIS ANALYSE L'IDÉE — catégorie, public, ton et style proposés.
@@ -385,6 +397,7 @@ export default function NewBookWizard() {
           ...submitted,
           blueprintId: formData.blueprintId,
           model: selectedModel,
+          styleSettings: { enrichment: effectiveEnrichment, typography: effectiveTypography },
           referenceDocument: referenceDoc || undefined,
         })
       });
@@ -893,7 +906,7 @@ export default function NewBookWizard() {
                                 {[
                                   { id: "inspiration", label: "S'inspirer", icon: "lightbulb" },
                                   { id: "learn", label: "Apprendre", icon: "school" },
-                                  { id: "style", label: "Style / Ton", icon: "brush" },
+                                  { id: "style", label: "Ma plume", icon: "brush" },
                                   { id: "reference", label: "Référence", icon: "menu_book" },
                                 ].map((opt) => (
                                   <button
@@ -1103,6 +1116,38 @@ export default function NewBookWizard() {
                         <Sparkles className="w-8 h-8 text-[#C84B31] mb-1" />
                         <span className="text-base font-bold text-[#C84B31]">Votre album — {uploadedImages.length} pages illustrées</span>
                         <p className="text-xs text-[#C84B31]/80 max-w-sm">Chaque image que vous avez importée deviendra une page richement décrite de votre conte.</p>
+                      </div>
+                    )}
+
+                    {!isStorybook && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Mise en forme du texte</label>
+                          <select
+                            value={effectiveEnrichment}
+                            onChange={(e) => setEnrichmentChoice(e.target.value as EnrichmentLevel)}
+                            className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] cursor-pointer"
+                          >
+                            {ENRICHMENT_LEVELS.map((l) => (
+                              <option key={l.id} value={l.id}>{l.label} — {l.description}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Typographie</label>
+                          <select
+                            value={effectiveTypography}
+                            onChange={(e) => setTypographyChoice(e.target.value)}
+                            className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] cursor-pointer"
+                          >
+                            {TYPOGRAPHY_PRESETS.map((p) => (
+                              <option key={p.id} value={p.id}>{p.label} — {p.hint}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <p className="sm:col-span-2 text-[11px] text-neutral-500 leading-snug">
+                          Réglages conseillés d&apos;après votre idée ; modifiables à tout moment dans l&apos;éditeur (bouton « Style »), où vous pouvez aussi donner vos propres textes à Iris pour qu&apos;elle écrive avec votre plume.
+                        </p>
                       </div>
                     )}
 

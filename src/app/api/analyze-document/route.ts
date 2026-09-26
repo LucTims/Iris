@@ -83,7 +83,25 @@ export async function POST(req: Request) {
     const purposeInstruction =
       PURPOSE_INSTRUCTIONS[purpose] || PURPOSE_INSTRUCTIONS.reference;
 
-    const system = `Tu es un analyste littéraire et éditorial expert. On te donne le contenu d'un document fourni par un auteur qui écrit un livre.
+    // « Ma plume » : l'auteur fournit SES textes pour que les chapitres soient
+    // écrits comme lui. On produit une fiche de style exploitable par le
+    // rédacteur (et non un résumé du contenu), avec de courts extraits
+    // représentatifs : rien n'aide mieux un modèle à imiter une voix.
+    const styleSystem = `Tu es un éditeur littéraire qui sait reconnaître une plume. On te donne des textes écrits par un auteur ; il veut que ses prochains livres soient écrits COMME LUI.
+
+Produis une FICHE DE PLUME en français, dense et directement exploitable par un rédacteur, avec ces sections (titres en gras suivis de deux-points) :
+- **Voix** : qui parle, à quelle personne, quel rapport au lecteur (complicité, autorité, confidence…).
+- **Phrases** : longueur typique, construction, ponctuation favorite, rythme.
+- **Vocabulaire** : registre, mots et expressions qui reviennent, niveau de langue, régionalismes éventuels.
+- **Images et humour** : d'où viennent ses métaphores, sa façon d'être drôle ou grave.
+- **Structure** : comment il ouvre, développe et termine un passage.
+- **Tics à conserver** : les tournures qui le rendent reconnaissable.
+- **À ne jamais faire** : ce qui trahirait que ce n'est pas lui qui écrit.
+- **Extraits représentatifs** : trois à cinq phrases COURTES recopiées mot pour mot du texte, choisies parce qu'elles sonnent le plus comme lui.
+
+Décris la manière d'écrire, pas le sujet. N'invente rien. Réponds UNIQUEMENT avec la fiche.`;
+
+    const system = purpose === "style" ? styleSystem : `Tu es un analyste littéraire et éditorial expert. On te donne le contenu d'un document fourni par un auteur qui écrit un livre.
 ${purposeInstruction}
 
 Produis une ANALYSE STRUCTURÉE, dense et directement exploitable, en français, avec ces sections (titres en gras suivis de deux-points) :

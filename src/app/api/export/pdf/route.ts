@@ -13,7 +13,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Accès non autorisé. Veuillez vous connecter." }, { status: 401 });
     }
 
-    const { title, subtitle, category, chapters, coverUrl, format, workType } = await req.json();
+    const { title, subtitle, category, chapters, coverUrl, format, workType, typography } = await req.json();
     if (!Array.isArray(chapters) || chapters.length === 0) {
       return NextResponse.json({ error: "Aucun chapitre à exporter." }, { status: 400 });
     }
@@ -26,6 +26,7 @@ export async function POST(req: Request) {
       coverUrl,
       format: format === "print" ? "print" : "digital",
       workType,
+      typography: typeof typography === "string" ? typography : undefined,
     });
 
     return new Response(new Uint8Array(buffer), {

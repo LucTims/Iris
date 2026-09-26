@@ -18,6 +18,7 @@ const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { 
 const GeoScoreModal = dynamic(() => import("@/components/GeoScoreModal"), { ssr: false });
 
 const ChapterGenerateModal = dynamic(() => import("@/components/ChapterGenerateModal"), { ssr: false });
+const BookStyleModal = dynamic(() => import("@/components/BookStyleModal"), { ssr: false });
 
 // Lazy-load parsers only when needed (mammoth ~600KB, jszip ~140KB)
 const loadParser = () => import("@/lib/parser");
@@ -93,6 +94,9 @@ import { useUser } from "@/hooks/useUser";
 import { resolveWorkType, chapterNounFor } from "@/lib/book/work-type";
 import { assignChapterLabels } from "@/lib/book/chapter-heading";
 import { detectGenre } from "@/lib/ai/book-style";
+import { defaultEnrichment, enforceEnrichment } from "@/lib/book/enrichment";
+import { defaultTypographyId } from "@/lib/book/typography";
+import { readStyleSettings, type ProjectStyleSettings } from "@/lib/book/writing-profile";
 import { findUnwrittenSections, canResume } from "@/lib/book/unwritten";
 import { bookJobFailureMessage, type BookJobSnapshot } from "@/lib/book/generation-job";
 
@@ -1099,6 +1103,15 @@ function RedactionContent() {
     length: projectData?.length,
   });
 
+  // STYLE DU LIVRE : typographie, mise en forme et plume (voir BookStyleModal).
+  const [isStyleModalOpen, setIsStyleModalOpen] = useState(false);
+  const styleSettings: ProjectStyleSettings = readStyleSettings(projectData?.style_settings);
+  const bookGenre = detectGenre(projectData?.category, projectData?.tone);
+  const defaultBookTypography = defaultTypographyId(projectData?.category, projectData?.tone, bookGenre === "fiction", bookWorkType);
+  const bookTypography = styleSettings.typography || defaultBookTypography;
+  const defaultBookEnrichment = defaultEnrichment(bookGenre, bookWorkType);
+  const bookEnrichment = styleSettings.enrichment || defaultBookEnrichment;
+
   // Le chapitre-sommaire, s'il existe (sinon null → mode prototype).
   const findSommaireChapter = () => chapters.find((c) => /sommaire|table des mati/i.test(c.title || "")) || null;
 
@@ -1806,6 +1819,17 @@ function RedactionContent() {
         }
       }
 
+      // Mise en forme choisie pour le livre (encadrés, citations, couleurs) :
+      // appliquée aussi aux réécritures, qui arrivent en flux direct.
+      if (txt.trim()) {
+        txt = enforceEnrichment(txt, bookEnrichment, bookGenre);
+        setChapters((prev) => {
+          const u = [...prev];
+          if (u[index]) u[index] = { ...u[index], content: txt };
+          return u;
+        });
+      }
+
       if (pId && typeof chap.id === "string" && txt.trim()) {
         try {
           await fetch(`/api/projects/${pId}/chapters/${chap.id}`, {
@@ -2178,6 +2202,15 @@ function RedactionContent() {
         <span>Couverture</span>
       </button>
       <button
+        onClick={() => setIsStyleModalOpen(true)}
+        className={`${actionBtn} bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200/80 text-neutral-800 dark:text-neutral-200`}
+        title="Typographie, mise en forme et « Ma plume » (écrire dans votre style)"
+      >
+        <span className="material-symbols-outlined text-base">brush</span>
+        <span>Style</span>
+        {styleSettings.authorStyle && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-label="Plume enregistrée" />}
+      </button>
+      <button
         onClick={openExport}
         className={`${actionBtn} bg-neutral-900 hover:bg-neutral-800 text-white dark:bg-white dark:text-neutral-900`}
         title="Télécharger le livre (PDF, EPUB, DOCX…)"
@@ -2479,6 +2512,7 @@ function RedactionContent() {
               canvasHeader={canvasHeader}
               documentVariant={isOutlineView ? "outline" : "book"}
               category={projectData?.category}
+              typography={bookTypography}
               initialContent={currentChapter.content}
               chapterTitle={currentChapter.title}
               onTitleChange={(newTitle) => {
@@ -2907,6 +2941,7 @@ function RedactionContent() {
           // sur la composition générique, quelle que soit la nature du livre.
           category: projectData?.category || undefined,
           work_type: bookWorkType,
+          typography: bookTypography,
           cover_url: (projectData as any)?.cover_url || undefined,
           chapters: chapters
         }}
@@ -2920,6 +2955,18 @@ function RedactionContent() {
         bookTitle={bookTitle}
         bookContent={chapters.map(c => c.content).join("\n\n")}
       />
+
+      {isStyleModalOpen && (
+        <BookStyleModal
+          isOpen={isStyleModalOpen}
+          onClose={() => setIsStyleModalOpen(false)}
+          projectId={currentProjectId}
+          current={styleSettings}
+          defaultTypography={defaultBookTypography}
+          defaultEnrichment={defaultBookEnrichment}
+          onSaved={(next) => setProjectData((prev: typeof projectData) => (prev ? { ...prev, style_settings: next } : prev))}
+        />
+      )}
 
       <ChapterGenerateModal
         key={`chapmodal-${activeChapterIndex}-${isChapterModalOpen}`}

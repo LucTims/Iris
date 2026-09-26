@@ -149,7 +149,7 @@ describe("bascule du prompt système de chapitre", () => {
 
   it("conserve le prompt générique sans visuel", () => {
     const prompt = buildChapterSystemPrompt({ ...base, wordsTarget: 1500 });
-    expect(prompt).toContain("best-sellers");
+    expect(prompt).toContain("écrivain de métier");
     expect(prompt).toContain("1500 mots");
   });
 
@@ -160,7 +160,7 @@ describe("bascule du prompt système de chapitre", () => {
       storybookAssets: [asset(1)],
       wordsTarget: 1500,
     });
-    expect(prompt).toContain("best-sellers");
+    expect(prompt).toContain("écrivain de métier");
   });
 
   it("reprend le titre canonique du chapitre", () => {

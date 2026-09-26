@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { WORK_TYPES } from "@/lib/book/work-type";
 import { evaluateCompletion, resolveBookStatus } from "@/lib/book/completion";
+import { readStyleSettings } from "@/lib/book/writing-profile";
 
 /** Valeurs acceptées par les contraintes CHECK de `projects`. */
 const VALID_WORK_TYPES: string[] = WORK_TYPES;
@@ -55,7 +56,8 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { title, subtitle, category, audience, synopsis, tone, characters, length, instructions, referenceDocument, workType, blueprintId, model } = body;
+    const { title, subtitle, category, audience, synopsis, tone, characters, length, instructions, referenceDocument, workType, blueprintId, model, styleSettings } = body;
+    const style = readStyleSettings(styleSettings);
 
     if (!title) {
       return NextResponse.json({ error: "Le titre du projet est requis" }, { status: 400 });
@@ -103,14 +105,17 @@ export async function POST(req: Request) {
       // Modèle de rédaction choisi une fois pour toutes dans l'assistant :
       // l'éditeur le réutilise sans redemander.
       ...(writingModel ? { writing_model: writingModel } : {}),
+      // Mise en forme et typographie choisies à la création.
+      ...(Object.keys(style).some((k) => style[k as keyof typeof style] !== undefined) ? { style_settings: style } : {}),
     };
 
     let { data: project, error: projectError } = await supabase.from("projects").insert(row).select().single();
     // Base pas encore migrée (colonne writing_model absente) : on crée le
     // projet sans elle plutôt que de bloquer l'auteur. L'éditeur retombe
     // alors sur le choix mémorisé localement.
-    if (projectError && writingModel && /writing_model/.test(projectError.message || "")) {
+    if (projectError && /writing_model|style_settings/.test(projectError.message || "")) {
       delete row.writing_model;
+      delete row.style_settings;
       ({ data: project, error: projectError } = await supabase.from("projects").insert(row).select().single());
     }
 
