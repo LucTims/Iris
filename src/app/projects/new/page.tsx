@@ -5,22 +5,33 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
-import { SIZE_PRESETS, BOOK_MODELS, estimatePagesCoins } from "@/lib/book/generationPresets";
-import type { BookSizeKey } from "@/lib/book/generationPresets";
+import { SIZE_PRESETS, BOOK_MODELS, LENGTH_OPTIONS, estimatePagesCoins, lengthToSizeKey, coinsPerPage } from "@/lib/book/generationPresets";
+import { BOOK_CATEGORIES, BOOK_TONES, EMPTY_IDEA_ANALYSIS, type IdeaAnalysis } from "@/lib/book/ideaAnalysis";
 import { useUser } from "@/hooks/useUser";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { WORK_TYPES, WORK_TYPE_META, type WorkType } from "@/lib/book/work-type";
 import { BLUEPRINT_LIST, type BlueprintId } from "@/lib/book/book-blueprint";
-import { BookOpen, Compass, FileText, Sparkles, Mic, MicOff, Check, ArrowRight, ArrowLeft, Upload, X, Rocket, Layers } from "lucide-react";
+import { BookOpen, Compass, FileText, Sparkles, Mic, MicOff, Check, ArrowRight, ArrowLeft, Upload, X, ImagePlay, MessageCircleQuestion, AlertTriangle, ChevronDown, Coins } from "lucide-react";
 import { IrisMark } from "@/components/IrisLogo";
 
-// Associe le libellé de longueur du formulaire à une clé de preset.
-const lengthToSizeKey = (length: string): BookSizeKey =>
-  /court/i.test(length) ? "court" : /long/i.test(length) ? "long" : "moyen";
+/** Catégorie cohérente avec le type d'ouvrage, quand Iris n'a rien pu proposer. */
+const categoryForBlueprint = (id: BlueprintId): string =>
+  id === "roman" ? "Roman / Fiction" : id === "guide" ? "Guide Pratique" : id === "storybook" ? "Roman / Fiction" : "Business & Entrepreneuriat";
+
+/** La catégorie proposée par Iris contredit-elle le type d'ouvrage choisi à l'étape 1 ? */
+const blueprintMismatch = (id: BlueprintId, category: string): string | null => {
+  if (!category) return null;
+  const isFiction = category === "Roman / Fiction";
+  if (id === "roman" && !isFiction) return `Votre idée ressemble plutôt à un ouvrage « ${category} » alors que vous avez choisi Roman.`;
+  if ((id === "guide" || id === "ebook") && isFiction) return "Votre idée ressemble plutôt à une fiction alors que vous avez choisi un ouvrage pratique.";
+  return null;
+};
+
+const MODEL_STORAGE_KEY = "iris_book_gen_model";
 
 export default function NewBookWizard() {
   const router = useRouter();
-  const { walletBalance } = useUser();
+  const { walletBalance, loading: userLoading } = useUser();
   const [step, setStep] = useState(1);
   const totalSteps = 4;
   const formContainerRef = useRef<HTMLDivElement>(null);
@@ -33,7 +44,7 @@ export default function NewBookWizard() {
     synopsis: "",
     tone: "",
     characters: "",
-    length: "Court (Nouvelle / Lead Magnet)",
+    length: LENGTH_OPTIONS[1].value,
     instructions: "",
     includeToc: true,
     workType: "ebook" as WorkType,
@@ -65,11 +76,15 @@ export default function NewBookWizard() {
     }, 50);
   };
 
-  const nextStep = () => {
-    if (step < totalSteps) {
-      setStep(step + 1);
-      scrollToTop();
+  const nextStep = async () => {
+    if (step >= totalSteps) return;
+    // En quittant l'étape « idée », Iris choisit catégorie, public, ton et
+    // style : l'auteur les retrouve pré-remplis (et modifiables) à l'étape 4.
+    if (step === 3 && formData.blueprintId !== "storybook") {
+      await analyzeIdea();
     }
+    setStep(step + 1);
+    scrollToTop();
   };
 
   const prevStep = () => {
@@ -93,8 +108,125 @@ export default function NewBookWizard() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showModelModal, setShowModelModal] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("gemini-3.6-flash");
+  // Modèle d'écriture choisi UNE fois, ici, puis enregistré sur le projet :
+  // l'éditeur ne redemande plus ni la longueur ni le modèle.
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    if (typeof window === "undefined") return BOOK_MODELS[0].id;
+    try {
+      const saved = localStorage.getItem(MODEL_STORAGE_KEY);
+      return saved && BOOK_MODELS.some((m) => m.id === saved) ? saved : BOOK_MODELS[0].id;
+    } catch {
+      return BOOK_MODELS[0].id;
+    }
+  });
+
+  /* ------------------------------------------------------------------ *
+   * IRIS ANALYSE L'IDÉE — catégorie, public, ton et style proposés.
+   * ------------------------------------------------------------------ */
+  const [ideaAnalysis, setIdeaAnalysis] = useState<IdeaAnalysis | null>(null);
+  const [analyzedFor, setAnalyzedFor] = useState("");
+  const [ideaStatus, setIdeaStatus] = useState<"idle" | "working" | "error">("idle");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  // Questions facultatives d'Iris pour préciser une idée floue.
+  const [questions, setQuestions] = useState<string[]>([]);
+  const [answers, setAnswers] = useState<string[]>([]);
+  const [questionsStatus, setQuestionsStatus] = useState<"idle" | "working" | "error">("idle");
+  // Document déposé comme idée principale.
+  const ideaDocInputRef = useRef<HTMLInputElement>(null);
+  const [ideaDocStatus, setIdeaDocStatus] = useState<"idle" | "working" | "error">("idle");
+  const [ideaDocName, setIdeaDocName] = useState("");
+  const [ideaDocError, setIdeaDocError] = useState("");
+
+  const ideaKey = `${formData.title}|${formData.subtitle}|${formData.synopsis}`;
+
+  /** Applique la proposition d'Iris aux champs encore vides (l'auteur garde la main). */
+  const applyIdeaAnalysis = (a: IdeaAnalysis, opts: { replaceSynopsis?: boolean } = {}) => {
+    setIdeaAnalysis(a);
+    setFormData((prev) => ({
+      ...prev,
+      category: a.category || prev.category || categoryForBlueprint(prev.blueprintId),
+      audience: prev.audience || a.audience,
+      tone: a.tone || prev.tone || "Familier et Accessible",
+      characters: prev.characters || a.characters,
+      synopsis: opts.replaceSynopsis && a.synopsis ? a.synopsis : prev.synopsis,
+    }));
+  };
+
+  const callAnalyzeIdea = async (payload: Record<string, unknown>) => {
+    const res = await fetch("/api/analyze-idea", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: formData.title, subtitle: formData.subtitle, bookType: formData.blueprintId, ...payload }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || "Analyse impossible.");
+    return data;
+  };
+
+  const analyzeIdea = async (): Promise<void> => {
+    if (analyzedFor === ideaKey && ideaAnalysis) return;
+    setIdeaStatus("working");
+    try {
+      const data = await callAnalyzeIdea({ idea: formData.synopsis });
+      applyIdeaAnalysis({ ...EMPTY_IDEA_ANALYSIS, ...(data.analysis || {}) });
+      setAnalyzedFor(ideaKey);
+      setIdeaStatus("idle");
+    } catch {
+      // Jamais bloquant : l'auteur choisira lui-même à l'étape suivante.
+      setFormData((prev) => ({
+        ...prev,
+        category: prev.category || categoryForBlueprint(prev.blueprintId),
+        tone: prev.tone || "Familier et Accessible",
+      }));
+      setIdeaStatus("error");
+    }
+  };
+
+  const askIrisQuestions = async () => {
+    setQuestionsStatus("working");
+    try {
+      const data = await callAnalyzeIdea({ mode: "questions", idea: formData.synopsis });
+      const list: string[] = Array.isArray(data.questions) ? data.questions : [];
+      setQuestions(list);
+      setAnswers(list.map(() => ""));
+      setQuestionsStatus(list.length ? "idle" : "error");
+    } catch {
+      setQuestionsStatus("error");
+    }
+  };
+
+  const addAnswersToIdea = () => {
+    const qa = questions
+      .map((q, i) => (answers[i]?.trim() ? `${q} ${answers[i].trim()}` : ""))
+      .filter(Boolean)
+      .join("\n");
+    if (!qa) return;
+    setFormData((prev) => ({ ...prev, synopsis: [prev.synopsis.trim(), qa].filter(Boolean).join("\n\n") }));
+    setQuestions([]);
+    setAnswers([]);
+  };
+
+  const handleIdeaDocument = async (file: File | null) => {
+    if (!file) return;
+    setIdeaDocStatus("working");
+    setIdeaDocError("");
+    try {
+      const { extractDocumentText } = await import("@/lib/parser/extractText");
+      const { text } = await extractDocumentText(file);
+      if (!text || text.trim().length < 20) throw new Error("Ce document ne contient pas assez de texte.");
+      const data = await callAnalyzeIdea({ documentText: text, idea: formData.synopsis });
+      const analysis: IdeaAnalysis = { ...EMPTY_IDEA_ANALYSIS, ...(data.analysis || {}) };
+      if (!analysis.synopsis) analysis.synopsis = text.trim().slice(0, 2500);
+      applyIdeaAnalysis(analysis, { replaceSynopsis: true });
+      setIdeaDocName(file.name);
+      setIdeaDocStatus("idle");
+      // La clé d'analyse suit la nouvelle idée : pas de seconde analyse inutile.
+      setAnalyzedFor(`${formData.title}|${formData.subtitle}|${analysis.synopsis}`);
+    } catch (err) {
+      setIdeaDocError(err instanceof Error ? err.message : "Lecture du document impossible.");
+      setIdeaDocStatus("error");
+    }
+  };
 
   // Document de référence
   const referenceInputRef = useRef<HTMLInputElement>(null);
@@ -208,7 +340,8 @@ export default function NewBookWizard() {
     }
   };
 
-  // Intercept the final submit to show the modal first
+  // Une seule validation : le bouton « Créer mon livre » de l'étape 4 crée le
+  // projet directement (plus de fenêtre de choix du modèle en second).
   const handlePreSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isStorybook && uploadedImages.length < 2) {
@@ -216,16 +349,28 @@ export default function NewBookWizard() {
       setStep(3); // Step 3 is where the images are
       return;
     }
-    setShowModelModal(true);
+    void handleSubmit();
   };
 
   const handleSubmit = async () => {
-    setShowModelModal(false);
     setIsSubmitting(true);
 
     try {
-      const projectContext = {
+      try {
+        localStorage.setItem(MODEL_STORAGE_KEY, selectedModel);
+      } catch {
+        /* stockage indisponible : le modèle reste enregistré sur le projet */
+      }
+      // Le style recommandé par Iris accompagne les consignes de l'auteur.
+      const styleNote = ideaAnalysis?.style ? `Style d'écriture recommandé : ${ideaAnalysis.style}` : "";
+      const submitted = {
         ...formData,
+        category: formData.category || categoryForBlueprint(formData.blueprintId),
+        tone: formData.tone || "Familier et Accessible",
+        instructions: [formData.instructions.trim(), styleNote].filter(Boolean).join("\n"),
+      };
+      const projectContext = {
+        ...submitted,
         model: selectedModel,
         referenceDocument: referenceDoc || undefined,
         blueprintId: formData.blueprintId,
@@ -237,8 +382,9 @@ export default function NewBookWizard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
+          ...submitted,
           blueprintId: formData.blueprintId,
+          model: selectedModel,
           referenceDocument: referenceDoc || undefined,
         })
       });
@@ -251,6 +397,11 @@ export default function NewBookWizard() {
       const data = await res.json();
       if (data.project?.id) {
         localStorage.setItem("iris_current_project_id", data.project.id);
+        try {
+          localStorage.setItem(`iris_project_model_${data.project.id}`, selectedModel);
+        } catch {
+          /* ignore */
+        }
 
         if (isStorybook && uploadedImages.length > 0) {
           try {
@@ -334,15 +485,15 @@ export default function NewBookWizard() {
             </span>
             <h1 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 dark:text-neutral-100 leading-tight">
               {step === 1 && "Quel livre voulez-vous créer ?"}
-              {step === 2 && "Détails du projet"}
-              {step === 3 && (isStorybook ? "Vos illustrations" : "Sujet & Direction éditoriale")}
-              {step === 4 && "Format & Paramètres"}
+              {step === 2 && "Le titre de votre livre"}
+              {step === 3 && (isStorybook ? "Vos illustrations" : "Votre idée")}
+              {step === 4 && (isStorybook ? "Format & Paramètres" : "Réglages & lancement")}
             </h1>
             <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1 leading-snug">
               {step === 1 && "Choisissez le type d'ouvrage qui correspond le mieux à votre projet."}
               {step === 2 && "Les informations fondamentales pour calibrer votre futur ouvrage."}
-              {step === 3 && (isStorybook ? "Importez les images qui composeront votre conte." : "Définissez les thèmes, le ton et le contexte pour guider la rédaction IA.")}
-              {step === 4 && "Ajustez le volume et la structure avant de démarrer."}
+              {step === 3 && (isStorybook ? "Importez les images qui composeront votre conte." : "Décrivez votre livre avec vos mots — Iris s'occupe du reste.")}
+              {step === 4 && (isStorybook ? "Ajustez le volume et la structure avant de démarrer." : "Vérifiez les choix d'Iris, la longueur et le moteur d'écriture.")}
             </p>
           </div>
 
@@ -440,38 +591,24 @@ export default function NewBookWizard() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {!isStorybook && (
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Catégorie *</label>
-                          <select
-                            required
-                            value={formData.category}
-                            onChange={(e) => updateForm("category", e.target.value)}
-                            className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all appearance-none cursor-pointer"
-                          >
-                            <option value="" disabled>Sélectionner...</option>
-                            <option value="Roman / Fiction">Roman / Fiction</option>
-                            <option value="Business & Entrepreneuriat">Business & Entrepreneuriat</option>
-                            <option value="Développement Personnel">Développement Personnel</option>
-                            <option value="Guide Pratique">Guide Pratique / Formation</option>
-                            <option value="Biographie">Biographie</option>
-                          </select>
-                        </div>
-                      )}
-                      
-                      <div className={`space-y-1.5 ${isStorybook ? 'sm:col-span-2' : ''}`}>
+                    {isStorybook ? (
+                      <div className="space-y-1.5">
                         <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Public cible *</label>
                         <input
                           type="text"
                           required
                           value={formData.audience}
                           onChange={(e) => updateForm("audience", e.target.value)}
-                          placeholder="Ex: Professionnels, grand public..."
+                          placeholder="Ex: Enfants de 4 à 7 ans"
                           className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
                         />
                       </div>
-                    </div>
+                    ) : (
+                      <p className="flex items-start gap-2 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200/70 dark:border-neutral-800 rounded-xl px-3 py-2.5">
+                        <Sparkles className="w-3.5 h-3.5 text-[#C84B31] shrink-0 mt-0.5" />
+                        <span>Pas besoin de choisir la catégorie, le public ni le ton : à l&apos;étape suivante, vous décrivez votre idée et Iris les choisit pour vous.</span>
+                      </p>
+                    )}
 
                     {isStorybook && (
                       <div className="space-y-1.5">
@@ -596,30 +733,27 @@ export default function NewBookWizard() {
                     ) : (
                       <>
                         <div className="space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
-                              Synopsis &amp; Idée principale *
-                            </label>
-                            <button type="button" className="text-[11px] flex items-center gap-1 font-semibold text-[#C84B31] bg-[#FDF3F1] px-2.5 py-0.5 rounded-full border border-[#F4C5BC]/60">
-                              <Sparkles className="w-3 h-3 text-[#C84B31]" />
-                              <span>Assistant IA</span>
-                            </button>
-                          </div>
+                          <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                            Votre idée principale *
+                          </label>
+                          <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
+                            Écrivez librement, avec vos mots : le sujet, le message, ce que le lecteur doit retenir. Iris choisira ensuite la catégorie, le public, le ton et le style.
+                          </p>
                           <div className="relative">
                             <textarea
                               required
                               value={formData.synopsis}
                               onChange={(e) => updateForm("synopsis", e.target.value)}
-                              placeholder="De quoi parle votre livre ? Idée directrice, message clé, thèmes abordés ou résumé de l'intrigue..."
-                              rows={5}
-                              className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 pb-12 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all resize-none"
+                              placeholder="Ex : Je veux aider les jeunes diplômés d'Afrique francophone à trouver leur premier emploi grâce au numérique, avec des méthodes concrètes et des témoignages…"
+                              rows={6}
+                              className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all pb-12 resize-none"
                             />
-                            <button 
-                              type="button" 
+                            <button
+                              type="button"
                               onClick={toggleListening}
                               className={`absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm ${
-                                isListening 
-                                  ? 'bg-red-500 text-white animate-pulse' 
+                                isListening
+                                  ? 'bg-red-500 text-white animate-pulse'
                                   : 'bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-[#C84B31] hover:border-[#F4C5BC] hover:bg-[#FDF3F1]'
                               }`}
                               disabled={!isSpeechSupported}
@@ -641,106 +775,186 @@ export default function NewBookWizard() {
                           )}
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Ton &amp; Style *</label>
-                            <select
-                              required
-                              value={formData.tone}
-                              onChange={(e) => updateForm("tone", e.target.value)}
-                              className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all appearance-none cursor-pointer"
-                            >
-                              <option value="" disabled>Sélectionner...</option>
-                              <option value="Sérieux et Didactique">Sérieux &amp; Pédagogique</option>
-                              <option value="Inspirant et Motivationnel">Inspirant &amp; Motivationnel</option>
-                              <option value="Humoristique et Décalé">Humoristique &amp; Décalé</option>
-                              <option value="Épique et Descriptif">Épique &amp; Descriptif</option>
-                              <option value="Familier et Accessible">Familier &amp; Accessible</option>
-                            </select>
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Concepts ou Personnages</label>
-                            <input
-                              type="text"
-                              value={formData.characters}
-                              onChange={(e) => updateForm("characters", e.target.value)}
-                              placeholder="Optionnel (ex: Héros, notions clés...)"
-                              className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Document de référence */}
-                        <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 space-y-2.5">
-                          <div className="flex items-center justify-between">
-                            <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Document source (Optionnel)</label>
-                            <span className="text-[10px] font-medium text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-md">20 crédits / analyse</span>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            {[
-                              { id: "inspiration", label: "S'inspirer", icon: "lightbulb" },
-                              { id: "learn", label: "Apprendre", icon: "school" },
-                              { id: "style", label: "Style / Ton", icon: "brush" },
-                              { id: "reference", label: "Référence", icon: "menu_book" },
-                            ].map((opt) => (
-                              <button
-                                key={opt.id}
-                                type="button"
-                                onClick={() => setRefPurpose(opt.id as typeof refPurpose)}
-                                className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                                  refPurpose === opt.id
-                                    ? "border-[#C84B31] bg-[#FDF3F1] text-[#C84B31]"
-                                    : "border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:border-neutral-300"
-                                }`}
-                              >
-                                <span className="material-symbols-outlined text-base">{opt.icon}</span>
-                                <span>{opt.label}</span>
-                              </button>
-                            ))}
-                          </div>
-
+                        {/* Idée déjà écrite ailleurs : le document devient l'idée principale. */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <input
-                            ref={referenceInputRef}
+                            ref={ideaDocInputRef}
                             type="file"
                             accept=".pdf,.docx,.epub,.txt,.md,.markdown"
                             className="hidden"
-                            onChange={(e) => { handleReferenceFile(e.target.files?.[0] || null); e.target.value = ""; }}
+                            onChange={(e) => { handleIdeaDocument(e.target.files?.[0] || null); e.target.value = ""; }}
                           />
+                          <button
+                            type="button"
+                            onClick={() => ideaDocInputRef.current?.click()}
+                            disabled={ideaDocStatus === "working"}
+                            className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl border border-dashed border-neutral-300 hover:border-[#C84B31]/50 text-neutral-700 dark:text-neutral-300 hover:text-[#C84B31] text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 bg-neutral-50/50 hover:bg-[#FDF3F1]/40"
+                          >
+                            {ideaDocStatus === "working" ? (
+                              <>
+                                <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                                <span>Iris lit votre document…</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-3.5 h-3.5" />
+                                <span>Utiliser un document comme idée principale</span>
+                              </>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={askIrisQuestions}
+                            disabled={questionsStatus === "working" || !formData.title.trim()}
+                            className="flex items-center justify-center gap-2 py-3 px-3 rounded-xl border border-[#F4C5BC]/70 bg-[#FDF3F1]/60 text-[#C84B31] text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 hover:bg-[#FDF3F1]"
+                          >
+                            {questionsStatus === "working" ? (
+                              <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                            ) : (
+                              <MessageCircleQuestion className="w-3.5 h-3.5" />
+                            )}
+                            <span>Iris me pose des questions (facultatif)</span>
+                          </button>
+                        </div>
+                        {ideaDocName && ideaDocStatus === "idle" && (
+                          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700">
+                            <Check className="w-3.5 h-3.5" />
+                            Idée tirée de « {ideaDocName} » — relisez-la et ajustez-la si besoin.
+                          </p>
+                        )}
+                        {ideaDocStatus === "error" && ideaDocError && (
+                          <p className="text-xs text-red-600 font-medium">{ideaDocError}</p>
+                        )}
+                        {questionsStatus === "error" && (
+                          <p className="text-xs text-red-600 font-medium">Iris n&apos;a pas pu préparer de questions. Réessayez dans un instant.</p>
+                        )}
 
-                          {referenceDoc && refStatus === "done" ? (
-                            <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                                <span className="text-xs font-semibold text-emerald-900 truncate">{referenceDoc.name}</span>
+                        {questions.length > 0 && (
+                          <div className="rounded-2xl border border-[#F4C5BC]/70 bg-[#FDF3F1]/40 p-4 space-y-3">
+                            <p className="text-xs font-bold text-[#C84B31]">Répondez à celles qui vous inspirent, Iris complètera votre idée :</p>
+                            {questions.map((q, i) => (
+                              <div key={i} className="space-y-1">
+                                <label className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">{q}</label>
+                                <input
+                                  type="text"
+                                  value={answers[i] || ""}
+                                  onChange={(e) => setAnswers((prev) => prev.map((v, k) => (k === i ? e.target.value : v)))}
+                                  className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all py-2"
+                                />
                               </div>
-                              <button type="button" onClick={() => { setReferenceDoc(null); setRefStatus("idle"); }} className="text-neutral-400 hover:text-red-500 transition-colors p-1" title="Supprimer">
-                                <X className="w-4 h-4" />
+                            ))}
+                            <div className="flex items-center justify-end gap-2">
+                              <button type="button" onClick={() => { setQuestions([]); setAnswers([]); }} className="text-xs font-semibold text-neutral-500 px-3 py-2">
+                                Ignorer
+                              </button>
+                              <button
+                                type="button"
+                                onClick={addAnswersToIdea}
+                                disabled={!answers.some((a) => a.trim())}
+                                className="text-xs font-bold text-white bg-[#C84B31] hover:bg-[#B83E26] rounded-xl px-3.5 py-2 disabled:opacity-50"
+                              >
+                                Ajouter mes réponses à l&apos;idée
                               </button>
                             </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => referenceInputRef.current?.click()}
-                              disabled={refStatus === "working"}
-                              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-neutral-300 hover:border-[#C84B31]/50 text-neutral-600 dark:text-neutral-400 hover:text-[#C84B31] text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 bg-neutral-50/50 hover:bg-[#FDF3F1]/40"
-                            >
-                              {refStatus === "working" ? (
-                                <>
-                                  <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
-                                  <span>Analyse en cours…</span>
-                                </>
+                          </div>
+                        )}
+
+                        {/* Précisions facultatives, repliées par défaut. */}
+                        <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800">
+                          <button
+                            type="button"
+                            onClick={() => setShowAdvanced((v) => !v)}
+                            className="w-full flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+                            aria-expanded={showAdvanced}
+                          >
+                            <span>Affiner (facultatif) : personnages, document de référence</span>
+                            <ChevronDown className={`w-4 h-4 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+                          </button>
+                          {showAdvanced && (
+                            <div className="mt-3 space-y-4">
+                              <div className="space-y-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Concepts ou Personnages</label>
+                                <input
+                                  type="text"
+                                  value={formData.characters}
+                                  onChange={(e) => updateForm("characters", e.target.value)}
+                                  placeholder="Optionnel (ex: Héros, notions clés...)"
+                                  className="w-full bg-neutral-50/80 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
+                                />
+                              </div>
+                            {/* Document de référence */}
+                            <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 space-y-2.5">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Document de référence (inspiration, style…)</label>
+                                <span className="text-[10px] font-medium text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-md">20 crédits / analyse</span>
+                              </div>
+                          
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                {[
+                                  { id: "inspiration", label: "S'inspirer", icon: "lightbulb" },
+                                  { id: "learn", label: "Apprendre", icon: "school" },
+                                  { id: "style", label: "Style / Ton", icon: "brush" },
+                                  { id: "reference", label: "Référence", icon: "menu_book" },
+                                ].map((opt) => (
+                                  <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => setRefPurpose(opt.id as typeof refPurpose)}
+                                    className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                                      refPurpose === opt.id
+                                        ? "border-[#C84B31] bg-[#FDF3F1] text-[#C84B31]"
+                                        : "border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:border-neutral-300"
+                                    }`}
+                                  >
+                                    <span className="material-symbols-outlined text-base">{opt.icon}</span>
+                                    <span>{opt.label}</span>
+                                  </button>
+                                ))}
+                              </div>
+
+                              <input
+                                ref={referenceInputRef}
+                                type="file"
+                                accept=".pdf,.docx,.epub,.txt,.md,.markdown"
+                                className="hidden"
+                                onChange={(e) => { handleReferenceFile(e.target.files?.[0] || null); e.target.value = ""; }}
+                              />
+
+                              {referenceDoc && refStatus === "done" ? (
+                                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                                    <span className="text-xs font-semibold text-emerald-900 truncate">{referenceDoc.name}</span>
+                                  </div>
+                                  <button type="button" onClick={() => { setReferenceDoc(null); setRefStatus("idle"); }} className="text-neutral-400 hover:text-red-500 transition-colors p-1" title="Supprimer">
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
                               ) : (
-                                <>
-                                  <Upload className="w-3.5 h-3.5" />
-                                  <span>Importer un document source (.pdf, .docx, .txt...)</span>
-                                </>
+                                <button
+                                  type="button"
+                                  onClick={() => referenceInputRef.current?.click()}
+                                  disabled={refStatus === "working"}
+                                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-neutral-300 hover:border-[#C84B31]/50 text-neutral-600 dark:text-neutral-400 hover:text-[#C84B31] text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 bg-neutral-50/50 hover:bg-[#FDF3F1]/40"
+                                >
+                                  {refStatus === "working" ? (
+                                    <>
+                                      <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                                      <span>Analyse en cours…</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Upload className="w-3.5 h-3.5" />
+                                      <span>Importer un document source (.pdf, .docx, .txt...)</span>
+                                    </>
+                                  )}
+                                </button>
                               )}
-                            </button>
-                          )}
-                          {refStatus === "error" && refError && (
-                            <p className="text-xs text-red-600 font-medium">{refError}</p>
+                              {refStatus === "error" && refError && (
+                                <p className="text-xs text-red-600 font-medium">{refError}</p>
+                              )}
+                            </div>
+                            </div>
                           )}
                         </div>
                       </>
@@ -752,53 +966,138 @@ export default function NewBookWizard() {
                   <>
                     {!isStorybook ? (
                       <>
-                        <div className="space-y-2">
-                      <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Longueur estimée *</label>
-                      <div className="grid grid-cols-3 gap-3">
-                        {[
-                          { id: "Court (Nouvelle / Lead Magnet)", label: "Court", pages: "~50 pages" },
-                          { id: "Moyen (Roman standard)", label: "Moyen", pages: "~150 pages" },
-                          { id: "Long (Fresque / Manuel)", label: "Long", pages: "~300 pages" },
-                        ].map((opt) => {
-                          const selected = formData.length === opt.id;
-                          return (
-                            <div 
-                              key={opt.id}
-                              onClick={() => updateForm("length", opt.id)}
-                              className={`border rounded-2xl p-4 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 ${
-                                selected 
-                                  ? 'border-[#C84B31] bg-[#FDF3F1]/60 shadow-2xs' 
-                                  : 'border-neutral-200 bg-white hover:bg-neutral-50/60'
-                              }`}
-                            >
-                              <span className={`text-sm font-bold ${selected ? 'text-[#C84B31]' : 'text-neutral-800'}`}>{opt.label}</span>
-                              <span className="text-xs text-neutral-400 font-medium">{opt.pages}</span>
+                        {/* Réglages choisis par Iris à partir de l'idée — modifiables. */}
+                        <div className="rounded-2xl border border-[#F4C5BC]/70 bg-[#FDF3F1]/40 p-4 space-y-3">
+                          <div className="flex items-start gap-2">
+                            <Sparkles className="w-4 h-4 text-[#C84B31] shrink-0 mt-0.5" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-neutral-900 dark:text-neutral-100">Iris a choisi pour vous</p>
+                              <p className="text-[11px] text-neutral-600 dark:text-neutral-400 leading-snug">
+                                {ideaStatus === "error"
+                                  ? "Iris n'a pas pu analyser votre idée : vérifiez ces réglages."
+                                  : ideaAnalysis?.reason || "D'après votre idée. Vous pouvez tout modifier."}
+                              </p>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Devis épuré */}
-                    {(() => {
-                      const preset = SIZE_PRESETS[lengthToSizeKey(formData.length)];
-                      const pages = preset.pagesEstimate;
-                      return (
-                        <div className="rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-800/40 p-4 space-y-2.5">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-semibold text-neutral-700 dark:text-neutral-300">Volume estimé</span>
-                            <span className="font-bold text-neutral-900 dark:text-neutral-100">~{pages} pages ({preset.pages})</span>
                           </div>
-                          <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-200/60 dark:border-neutral-700/60">
-                            <span className="font-semibold text-neutral-700 dark:text-neutral-300">Coût estimé</span>
-                            <span className="font-bold text-[#C84B31] text-sm">
-                              {estimatePagesCoins(pages, "gemini-3.6-flash").toLocaleString("fr-FR")} à {estimatePagesCoins(pages, "claude-sonnet-5").toLocaleString("fr-FR")} crédits
-                            </span>
+
+                          {blueprintMismatch(formData.blueprintId, formData.category) && (
+                            <div className="flex items-start gap-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                              <span className="flex-1">{blueprintMismatch(formData.blueprintId, formData.category)}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleBlueprintSelect(formData.category === "Roman / Fiction" ? "roman" : "guide")}
+                                className="font-bold underline shrink-0"
+                              >
+                                {formData.category === "Roman / Fiction" ? "Passer en Roman" : "Passer en Guide"}
+                              </button>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">Catégorie</label>
+                              <select value={formData.category} onChange={(e) => updateForm("category", e.target.value)} className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all appearance-none cursor-pointer">
+                                <option value="" disabled>Sélectionner...</option>
+                                {BOOK_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                              </select>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">Ton</label>
+                              <select value={formData.tone} onChange={(e) => updateForm("tone", e.target.value)} className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all appearance-none cursor-pointer">
+                                <option value="" disabled>Sélectionner...</option>
+                                {BOOK_TONES.map((t) => <option key={t} value={t}>{t.replace(" et ", " & ")}</option>)}
+                              </select>
+                            </div>
+                            <div className="space-y-1 sm:col-span-2">
+                              <label className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">Public cible</label>
+                              <input
+                                type="text"
+                                value={formData.audience}
+                                onChange={(e) => updateForm("audience", e.target.value)}
+                                placeholder="Ex: Jeunes diplômés, entrepreneurs débutants…"
+                                className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#C84B31]/30 focus:border-[#C84B31] transition-all"
+                              />
+                            </div>
+                          </div>
+                          {ideaAnalysis?.style && (
+                            <p className="text-[11px] text-neutral-600 dark:text-neutral-400"><span className="font-bold">Style :</span> {ideaAnalysis.style}</p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Longueur</label>
+                          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                            {LENGTH_OPTIONS.map((opt) => {
+                              const preset = SIZE_PRESETS[opt.sizeKey];
+                              const selected = lengthToSizeKey(formData.length) === opt.sizeKey;
+                              return (
+                                <button
+                                  type="button"
+                                  key={opt.value}
+                                  onClick={() => updateForm("length", opt.value)}
+                                  className={`border rounded-2xl p-3 sm:p-4 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-0.5 ${
+                                    selected
+                                      ? 'border-[#C84B31] bg-[#FDF3F1]/60 shadow-2xs'
+                                      : 'border-neutral-200 bg-white hover:bg-neutral-50/60'
+                                  }`}
+                                >
+                                  <span className={`text-sm font-bold ${selected ? 'text-[#C84B31]' : 'text-neutral-800'}`}>{preset.label}</span>
+                                  <span className="text-[11px] text-neutral-500 font-medium">{preset.pages}</span>
+                                  <span className="hidden sm:block text-[10px] text-neutral-400">{preset.desc}</span>
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
-                      );
-                    })()}
-                  </>
+
+                        {/* Modèle d'écriture : choisi ici, une seule fois. */}
+                        {(() => {
+                          const pages = SIZE_PRESETS[lengthToSizeKey(formData.length)].pagesEstimate;
+                          const cost = estimatePagesCoins(pages, selectedModel);
+                          const balance = userLoading ? null : walletBalance;
+                          return (
+                            <div className="space-y-2">
+                              <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Moteur d&apos;écriture</label>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                {BOOK_MODELS.map((m) => {
+                                  const selected = selectedModel === m.id;
+                                  return (
+                                    <button
+                                      type="button"
+                                      key={m.id}
+                                      onClick={() => setSelectedModel(m.id)}
+                                      className={`text-left border rounded-2xl p-3 transition-all cursor-pointer ${
+                                        selected ? 'border-[#C84B31] bg-[#FDF3F1]/60 shadow-2xs' : 'border-neutral-200 bg-white hover:bg-neutral-50/60'
+                                      }`}
+                                    >
+                                      <span className={`block text-sm font-bold ${selected ? 'text-[#C84B31]' : 'text-neutral-800'}`}>{m.label}</span>
+                                      <span className="block text-[11px] text-neutral-500">{m.hint}</span>
+                                      <span className="block text-[11px] font-semibold text-neutral-700 mt-1">
+                                        {coinsPerPage(m.id)} pièces / page · ≈ {estimatePagesCoins(pages, m.id).toLocaleString("fr-FR")}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              <div className="rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-800/40 p-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <span className="flex items-center gap-1.5 font-semibold text-neutral-700 dark:text-neutral-300">
+                                  <Coins className="w-3.5 h-3.5 text-[#C84B31]" />
+                                  Coût estimé du livre (~{pages} pages)
+                                </span>
+                                <span className="font-bold text-[#C84B31] text-sm">≈ {cost.toLocaleString("fr-FR")} pièces</span>
+                                {balance !== null && (
+                                  <span className={`w-full text-[11px] ${balance < cost ? "text-amber-700 font-semibold" : "text-neutral-500"}`}>
+                                    Votre solde : {balance.toLocaleString("fr-FR")} pièces
+                                    {balance < cost ? " — rechargez avant de lancer la rédaction du livre (la création et le sommaire restent possibles)." : "."}
+                                    {" "}Iris prépare d&apos;abord le sommaire ; vous lancez ensuite la rédaction depuis l&apos;éditeur et suivez les pièces utilisées en direct.
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </>
                     ) : (
                       <div className="rounded-2xl border border-[#C84B31] bg-[#FDF3F1]/60 p-5 flex flex-col items-center justify-center text-center gap-2">
                         <Sparkles className="w-8 h-8 text-[#C84B31] mb-1" />
@@ -855,8 +1154,8 @@ export default function NewBookWizard() {
 
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className={`bg-[#C84B31] hover:bg-[#B83E26] text-white px-7 py-3 rounded-full font-bold text-sm shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                disabled={isSubmitting || ideaStatus === "working" || ideaDocStatus === "working"}
+                className={`bg-[#C84B31] hover:bg-[#B83E26] text-white px-6 sm:px-7 py-3 rounded-full font-bold text-sm shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed`}
               >
                 {step === totalSteps ? (
                   isSubmitting ? (
@@ -866,10 +1165,15 @@ export default function NewBookWizard() {
                     </div>
                   ) : (
                     <>
-                      <span>Générer mon livre</span>
+                      <span>Créer mon livre</span>
                       <Sparkles className="w-4 h-4" />
                     </>
                   )
+                ) : ideaStatus === "working" ? (
+                  <>
+                    <span>Iris analyse votre idée…</span>
+                    <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                  </>
                 ) : (
                   <>
                     <span>Continuer</span>
@@ -882,113 +1186,6 @@ export default function NewBookWizard() {
 
         </div>
         
-        {/* Model Selection Modal */}
-        <AnimatePresence>
-          {showModelModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm"
-            >
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl border border-neutral-200 dark:border-neutral-800 max-w-md w-full max-h-[85vh] overflow-y-auto p-5 sm:p-6 relative"
-              >
-                <button
-                  onClick={() => setShowModelModal(false)}
-                  className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-
-                <div className="text-center mb-5">
-                  <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-neutral-900 dark:text-neutral-100 mb-1">Moteur d&apos;Écriture IA</h2>
-                  <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
-                    Sélectionnez l&apos;intelligence artificielle qui rédigera votre ouvrage.
-                  </p>
-                </div>
-
-                <div className="space-y-2.5 mb-6">
-                  <div 
-                    onClick={() => setSelectedModel("gemini-3.6-flash")}
-                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
-                      selectedModel === "gemini-3.6-flash" 
-                        ? "border-[#C84B31] bg-[#FDF3F1]/40 shadow-xs" 
-                        : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 bg-white dark:bg-neutral-900"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-neutral-900 dark:text-neutral-100">Gemini 2.5 Flash</span>
-                      <span className="text-[10px] font-semibold text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-md">
-                        Rapide &amp; Économique
-                      </span>
-                    </div>
-                    <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-snug">
-                      Modèle vif et direct, idéal pour les ébauches et les guides synthétiques.
-                    </p>
-                  </div>
-
-                  <div 
-                    onClick={() => setSelectedModel("gpt-4o")}
-                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
-                      selectedModel === "gpt-4o" 
-                        ? "border-[#C84B31] bg-[#FDF3F1]/40 shadow-xs" 
-                        : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 bg-white dark:bg-neutral-900"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-neutral-900 dark:text-neutral-100">ChatGPT (GPT-4o mini)</span>
-                      <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                        Équilibré
-                      </span>
-                    </div>
-                    <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-snug">
-                      Excellente nuance d&apos;analyse et logique rigoureuse pour les manuels et essais.
-                    </p>
-                  </div>
-
-                  <div 
-                    onClick={() => setSelectedModel("claude-sonnet-5")}
-                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
-                      selectedModel === "claude-sonnet-5" 
-                        ? "border-[#C84B31] bg-[#FDF3F1]/40 shadow-xs" 
-                        : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 bg-white dark:bg-neutral-900"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-neutral-900 dark:text-neutral-100">Claude 3.5 Sonnet</span>
-                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                        Style Littéraire Supérieur
-                      </span>
-                    </div>
-                    <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-snug">
-                      Vocabulaire riche, sens du rythme narratif et élégance d&apos;écriture d&apos;exception.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setShowModelModal(false)}
-                    className="flex-1 px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 font-bold text-sm hover:bg-neutral-50 dark:bg-neutral-800/50 transition-colors cursor-pointer"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    className="flex-1 bg-[#C84B31] hover:bg-[#B83E26] text-white px-5 py-3 rounded-xl font-bold text-sm shadow-sm hover:shadow-md transition-all flex justify-center items-center gap-2 cursor-pointer"
-                  >
-                    <span>Lancer la création</span>
-                    <Rocket className="w-4 h-4" />
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </main>
       </div>
     </div>

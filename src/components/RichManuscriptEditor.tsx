@@ -113,10 +113,6 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       onContentChange,
       onWordCountChange,
       onContinueWithAi,
-      onGenerateFullChapter,
-      onGenerateWholeBook,
-      bookViewMode = "full",
-      onGenerateChapter,
       onContextualAiAction,
       onSendSelectionToChat,
       isGenerating = false,
@@ -125,6 +121,8 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       onStopGeneration,
       onFileSelected,
       category,
+      canvasHeader,
+      documentVariant = "book",
     },
     ref
   ) {
@@ -934,7 +932,10 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
       )}
 
       {/* ================= 4. EDITOR CANVAS WITH TIPTAP PRO PAGES ================= */}
-      <div className="editor-scroll-container relative flex-1 overflow-y-auto overflow-x-auto flex flex-col items-center bg-[#F3F4F6] p-2 sm:p-8">
+      <div className={`editor-scroll-container relative flex-1 overflow-y-auto overflow-x-auto flex flex-col items-center p-2 sm:p-8 ${documentVariant === "outline" ? "iris-outline-mode bg-[#FBF6F1]" : "bg-[#F3F4F6]"}`}>
+        {/* En-tête de canevas (hors document, jamais enregistré) : emplacement
+            de couverture, bandeau « ceci est le sommaire »… fourni par la page. */}
+        {canvasHeader && <div className="w-full max-w-[794px] mb-4 sm:mb-6 shrink-0">{canvasHeader}</div>}
         
         {/* Enveloppe de compensation du zoom.
          *
@@ -1091,6 +1092,14 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
 
             .tiptap:focus {
               outline: none;
+            }
+
+            /* SOMMAIRE : présenté comme un PLAN de travail (fiche pointillée,
+               teinte chaude), pour qu'il ne soit jamais pris pour le livre. */
+            .iris-outline-mode .tiptap-page {
+              background-color: #FFFDF9;
+              border: 2px dashed #F4C5BC;
+              box-shadow: none;
             }
 
             .tiptap a {
@@ -1351,38 +1360,6 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           ` }} />
         </div>
         </div>
-      </div>
-
-      {/* ================= FLOATING AI BUTTON (contextuel) ================= */}
-      {/* Un SEUL bouton flottant, dont le rôle dépend de la vue :
-          - vue livre complet / sommaire  → « Générer tout le livre »
-          - vue d'un chapitre découpé      → « Générer le chapitre » (popup d'instructions) */}
-      <div className="absolute bottom-24 right-4 md:bottom-6 md:right-8 flex flex-col gap-3 z-30">
-        {bookViewMode === "chapter" && onGenerateChapter ? (
-          <button
-            onClick={onGenerateChapter}
-            disabled={isGenerating}
-            className={`bg-secondary hover:bg-orange-600 text-white font-bold text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-4 rounded-2xl transition-all shadow-xl flex items-center gap-2 group cursor-pointer ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title="Rédiger ou modifier uniquement ce chapitre avec l'IA"
-          >
-            <span className={`material-symbols-outlined text-lg sm:text-xl ${isGenerating ? 'animate-spin' : 'group-hover:scale-110 transition-transform'}`}>
-              {isGenerating ? 'sync' : 'auto_fix_high'}
-            </span>
-            <span>{isGenerating ? "Génération..." : "Générer le chapitre"}</span>
-          </button>
-        ) : onGenerateWholeBook ? (
-          <button
-            onClick={onGenerateWholeBook}
-            disabled={isGenerating}
-            className={`bg-[#C84B31] hover:bg-[#B83E26] text-white font-bold text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-4 rounded-2xl transition-all shadow-xl flex items-center gap-2 group cursor-pointer ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title="Rédiger automatiquement tout le livre à partir du sommaire"
-          >
-            <span className={`material-symbols-outlined text-lg sm:text-xl ${isGenerating ? 'animate-spin' : 'group-hover:scale-110 transition-transform'}`}>
-              {isGenerating ? 'sync' : 'auto_stories'}
-            </span>
-            <span>{isGenerating ? "Génération..." : "Générer tout le livre"}</span>
-          </button>
-        ) : null}
       </div>
 
       {/* Hidden Manuscript Input */}

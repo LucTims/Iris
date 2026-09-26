@@ -144,6 +144,7 @@ export const MODEL_RATES_USD: Record<string, { in: number; out: number }> = {
   "gpt-4o": { in: 5, out: 15 },
   "gpt-4o-mini": { in: 0.15, out: 0.6 },
   "claude-3-5-sonnet-20240620": { in: 3, out: 15 },
+  "claude-sonnet-5": { in: 3, out: 15 },
 };
 
 /**
@@ -164,4 +165,29 @@ export function estimateBookCoins(words: number, model: string, chapters: number
 /** Coût (pièces) pour un nombre de pages donné avec un modèle — devis direct. */
 export function estimatePagesCoins(pages: number, model: string): number {
   return Math.max(1, Math.max(1, Math.round(pages)) * coinsPerPage(model));
+}
+
+/**
+ * Montant EXACT débité pour un chapitre rédigé : pages × tarif/page du modèle,
+ * c'est-à-dire exactement le prix annoncé à l'auteur avant la génération.
+ *
+ * Le garde-fou « coût réel » ne s'applique que si l'appel API coûte plus que
+ * ce prix avec la marge minimale (COIN_MARGIN) — cas pathologique d'un contexte
+ * énorme pour peu de texte. L'ancien plancher appliquait le levier
+ * COINS_PER_USD (×23) et facturait un chapitre Gemini ~165 pièces au lieu
+ * des ~60 annoncées.
+ */
+export function chapterChargeCoins(
+  modelId: string,
+  usage: unknown,
+  outputText: string | undefined | null
+): { amount: number; pages: number; pageCoins: number; costFloorCoins: number } {
+  const pages = pagesFromText(outputText);
+  const pageCoins = Math.max(1, pages * coinsPerPage(modelId));
+  const { input, output } = readUsageTokens(usage);
+  const effOutput = output > 0 ? output : estimateTokensFromText(outputText);
+  const rate = MODEL_RATES_USD[modelId] || MODEL_RATES_USD[DEFAULT_WRITING_MODEL];
+  const tokenUsd = (input * rate.in + effOutput * rate.out) / 1_000_000;
+  const costFloorCoins = Math.ceil((tokenUsd / COIN_UNIT_USD) * COIN_MARGIN);
+  return { amount: Math.max(pageCoins, costFloorCoins, 1), pages, pageCoins, costFloorCoins };
 }

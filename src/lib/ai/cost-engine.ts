@@ -5,9 +5,7 @@ import {
   readUsageTokens,
   estimateTokensFromText,
   coinsPerPage,
-  pagesFromText,
-  usdToCoins,
-  MODEL_RATES_USD,
+  chapterChargeCoins,
 } from "@/lib/ai/pricing";
 
 /**
@@ -109,11 +107,9 @@ async function traceBillingFailure(
 }
 
 /**
- * Débite le coût d'un CHAPITRE de livre à la PAGE (tarification à la valeur).
- *
- * Le montant = nombre de pages rédigées × tarif/page du modèle (20/30/50…),
- * avec un PLANCHER au coût token réel (garde-fou : on ne facture jamais moins
- * que ce que l'appel API nous coûte). Le client ne voit que des pièces.
+ * Débite le coût d'un CHAPITRE de livre à la PAGE (tarification à la valeur) :
+ * pages rédigées × tarif/page du modèle (20/30/50…) — le prix annoncé à
+ * l'auteur. Voir `chapterChargeCoins` pour le garde-fou coût réel.
  */
 export async function deductChapterCost(
   userId: string,
@@ -122,18 +118,7 @@ export async function deductChapterCost(
   description: string,
   opts: { projectId?: string | null; outputText?: string; client?: SupabaseClient } = {}
 ): Promise<boolean> {
-  const pages = pagesFromText(opts.outputText);
-  const pageCoins = Math.max(1, pages * coinsPerPage(modelId));
-
-  // Plancher token (sécurité) — estimé depuis les tarifs approximatifs, sans
-  // lecture BDD. Avec nos modèles, le prix à la page domine toujours.
-  const { input, output } = readUsageTokens(usage);
-  const effOutput = output > 0 ? output : estimateTokensFromText(opts.outputText);
-  const rate = MODEL_RATES_USD[modelId] || MODEL_RATES_USD["gemini-3.6-flash"];
-  const tokenUsd = (input * rate.in + effOutput * rate.out) / 1_000_000;
-  const tokenCoins = usdToCoins(tokenUsd);
-
-  const amount = Math.max(pageCoins, tokenCoins, 1);
+  const { amount, pages, pageCoins, costFloorCoins } = chapterChargeCoins(modelId, usage, opts.outputText);
 
   return deductFixedCoins(
     userId,
@@ -144,7 +129,7 @@ export async function deductChapterCost(
       pages,
       coins_per_page: coinsPerPage(modelId),
       page_coins: pageCoins,
-      token_coins: tokenCoins,
+      cost_floor_coins: costFloorCoins,
       ...(opts.projectId ? { project_id: opts.projectId } : {}),
     },
     opts.client
