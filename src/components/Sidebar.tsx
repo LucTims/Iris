@@ -31,6 +31,7 @@ export default function Sidebar() {
   const { signOut, displayName, isAdmin } = useUser();
   const [collapsed, setCollapsed] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -140,37 +141,58 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom Footer Links & Collapse Toggle */}
-      <div className="p-3 border-t border-neutral-100 dark:border-neutral-800 space-y-1 bg-white dark:bg-neutral-950 mt-auto">
-        {bottomNavItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              title={collapsed ? item.label : undefined}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
-                isActive
-                  ? "bg-[#C84B31]/10 text-[#C84B31] font-bold shadow-2xs"
-                  : "text-neutral-600 dark:text-neutral-400 hover:bg-[#C84B31]/5 hover:text-[#C84B31] dark:hover:text-[#C84B31]"
-              }`}
-            >
-              <div className="shrink-0 transition-transform group-hover:scale-110 text-inherit flex items-center justify-center">
-                {item.icon}
-              </div>
-              {!collapsed && <span className="truncate">{item.label}</span>}
-            </Link>
-          );
-        })}
-
-        <div className="pt-2 mt-2 border-t border-neutral-100 dark:border-neutral-800">
+      <div className="p-3 border-t border-neutral-100 dark:border-neutral-800 space-y-1 bg-white dark:bg-neutral-950 mt-auto relative">
         <button
-          onClick={signOut}
-          title={collapsed ? "Se déconnecter" : undefined}
-          className="w-full flex items-center gap-1 px-3.5 py-2.5 text-sm font-bold text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
+          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+          title={collapsed ? "Paramètres & Profil" : undefined}
+          className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+            isSettingsOpen 
+              ? "bg-[#C84B31]/10 text-[#C84B31] font-bold shadow-2xs" 
+              : "text-neutral-600 dark:text-neutral-400 hover:bg-[#C84B31]/5 hover:text-[#C84B31] dark:hover:text-[#C84B31]"
+          }`}
         >
-          <LogOut strokeWidth={1.5} className="w-[22px] h-[22px] shrink-0" />
-          {!collapsed && <span className="truncate">Se déconnecter</span>}
+          <div className="shrink-0 transition-transform group-hover:scale-110 text-inherit flex items-center justify-center">
+            <Settings strokeWidth={1.5} className="w-[22px] h-[22px]" />
+          </div>
+          {!collapsed && <span className="truncate flex-1 text-left">Paramètres & Profil</span>}
         </button>
+
+        {isSettingsOpen && (
+          <div className={`absolute bottom-full left-3 mb-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl z-50 p-2 ${collapsed ? 'w-[calc(100%+80px)]' : 'w-[calc(100%-24px)]'}`}>
+            <div className="px-2 py-1.5 mb-1 border-b border-neutral-100 dark:border-neutral-800">
+               <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Mon Compte</span>
+            </div>
+            {bottomNavItems.map((item) => {
+              const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  onClick={() => setIsSettingsOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group ${
+                    isActive
+                      ? "bg-[#C84B31]/10 text-[#C84B31] font-bold"
+                      : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                  }`}
+                >
+                  <div className="shrink-0 text-inherit flex items-center justify-center">
+                    {item.icon}
+                  </div>
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              );
+            })}
+            <div className="pt-1 mt-1 border-t border-neutral-100 dark:border-neutral-800">
+              <button
+                onClick={signOut}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-bold text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
+              >
+                <LogOut strokeWidth={1.5} className="w-[20px] h-[20px] shrink-0" />
+                <span className="truncate">Se déconnecter</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         <button
           onClick={toggleCollapsed}
@@ -183,7 +205,6 @@ export default function Sidebar() {
           )}
           {!collapsed && <span>Réduire le menu</span>}
         </button>
-      </div>
       </div>
     </aside>
 

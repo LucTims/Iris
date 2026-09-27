@@ -134,7 +134,7 @@ function RedactionContent() {
   // Chat Panel Resizing & Collapsing State
   const [chatWidth, setChatWidth] = useState(420); // Default 420px
   const [isResizing, setIsResizing] = useState(false);
-  const [isChatCollapsed, setIsChatCollapsed] = useState(false);
+  const [isChatCollapsed, setIsChatCollapsed] = useState(true);
   const [selectedAiModel, setSelectedAiModel] = useState("gemini-3.6-flash");
   const [useWebSearch, setUseWebSearch] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -724,6 +724,7 @@ function RedactionContent() {
   const handleSendSelectionToChat = (selection: { text: string; from: number; to: number }) => {
     setAttachedSelection(selection);
     setMobileView("chat");
+    setIsChatCollapsed(false);
   };
 
   // Édition ciblée : ne réécrit QUE le passage sélectionné, à sa position exacte
@@ -804,6 +805,7 @@ function RedactionContent() {
     if (!textToSend) setChatInput("");
     setIsAiThinking(true);
     setMobileView("chat");
+    setIsChatCollapsed(false);
 
     const chatRequest = async () => {
       try {
@@ -1265,7 +1267,7 @@ function RedactionContent() {
     if (isBatchGenerating) return;
     if (!userLoading && walletBalance < bookCostEstimate) {
       if (confirm(`La rédaction de ce livre coûte environ ${fmtCoins(bookCostEstimate)} pièces et votre solde est de ${fmtCoins(walletBalance)} pièces.\n\nRecharger maintenant ?`)) {
-        router.push("/pricing");
+        router.push("/billing");
       }
       return;
     }
@@ -2159,24 +2161,6 @@ function RedactionContent() {
       )}
 
       <div className="hidden sm:block w-px h-6 bg-neutral-200 dark:bg-neutral-700 shrink-0 mx-0.5" />
-
-      <button
-        onClick={() => manuscriptInputRef.current?.click()}
-        disabled={isAnyGeneration}
-        className={`${actionBtn} bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200/80 text-neutral-800 dark:text-neutral-200`}
-        title="Importer un manuscrit (.docx, .epub)"
-      >
-        <span className="material-symbols-outlined text-base">file_upload</span>
-        <span>Importer</span>
-      </button>
-      <button
-        onClick={goToCoverStudio}
-        className={`${actionBtn} bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200/80 text-neutral-800 dark:text-neutral-200`}
-        title="Créer ou modifier la couverture dans le studio, puis revenir ici"
-      >
-        <span className="material-symbols-outlined text-base">palette</span>
-        <span>Couverture</span>
-      </button>
       <button
         onClick={openExport}
         className={`${actionBtn} bg-neutral-900 hover:bg-neutral-800 text-white dark:bg-white dark:text-neutral-900`}
@@ -2231,34 +2215,37 @@ function RedactionContent() {
     </div>
   ) : showCoverSlot ? (
     coverUrl ? (
-      <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3 sm:p-4 flex items-center gap-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={coverUrl} alt="Couverture du livre" className="w-16 sm:w-20 aspect-[2/3] object-cover rounded-lg shadow-md shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-neutral-900 dark:text-neutral-100">Couverture du livre</p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">Elle sera placée en première page à l&apos;export.</p>
+      <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
+        <div className="bg-white dark:bg-neutral-900 rounded-[2rem] border border-neutral-200 dark:border-neutral-800 shadow-xl p-8 sm:p-12 max-w-lg w-full flex flex-col items-center text-center gap-6">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={coverUrl} alt="Couverture du livre" className="w-40 sm:w-52 aspect-[2/3] object-cover rounded-2xl shadow-2xl border border-neutral-200/60" />
+          <div>
+            <p className="text-lg sm:text-xl font-heading font-extrabold text-neutral-900 dark:text-neutral-100 mb-2">Couverture du livre</p>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">Cette couverture sera placée en première page lors de l&apos;export de votre manuscrit.</p>
+          </div>
+          <button onClick={goToCoverStudio} className={`${actionBtn} bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200/80 text-neutral-800 dark:text-neutral-200 text-sm px-6 py-3`}>
+            <span className="material-symbols-outlined text-base">palette</span>
+            <span>Modifier la couverture</span>
+          </button>
         </div>
-        <button onClick={goToCoverStudio} className={`${actionBtn} bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200/80 text-neutral-800 dark:text-neutral-200`}>
-          <span className="material-symbols-outlined text-base">palette</span>
-          <span>Modifier la couverture</span>
-        </button>
       </div>
     ) : (
-      <div className="rounded-2xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 bg-white/70 dark:bg-neutral-900/70 p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-        <div className="w-16 sm:w-20 aspect-[2/3] rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center shrink-0">
-          <span className="material-symbols-outlined text-3xl text-neutral-400">image</span>
+      <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
+        <div className="bg-white dark:bg-neutral-900 rounded-[2rem] border-2 border-dashed border-neutral-300 dark:border-neutral-700 shadow-lg p-8 sm:p-12 max-w-lg w-full flex flex-col items-center text-center gap-6">
+          <div className="w-32 sm:w-40 aspect-[2/3] rounded-2xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center">
+            <span className="material-symbols-outlined text-5xl text-neutral-300 dark:text-neutral-600">image</span>
+          </div>
+          <div>
+            <p className="text-lg sm:text-xl font-heading font-extrabold text-neutral-900 dark:text-neutral-100 mb-2">Emplacement de la couverture</p>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-sm mx-auto">
+              La couverture n&apos;est pas générée automatiquement. Créez-la dans le Studio de Couverture et elle apparaîtra ici en première page.
+            </p>
+          </div>
+          <button onClick={goToCoverStudio} className={`${actionBtn} bg-[#C84B31] hover:bg-[#B83E26] text-white shadow-md text-sm px-6 py-3`}>
+            <span className="material-symbols-outlined text-base">palette</span>
+            <span>Créer la couverture</span>
+          </button>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-neutral-900 dark:text-neutral-100">Emplacement de la couverture</p>
-          <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-snug mt-1">
-            La couverture n&apos;est pas générée automatiquement. Créez-la quand vous voulez dans le Studio couverture :
-            une fois appliquée, vous revenez ici et elle apparaît à cet endroit.
-          </p>
-        </div>
-        <button onClick={goToCoverStudio} className={`${actionBtn} bg-[#C84B31] hover:bg-[#B83E26] text-white shadow-sm`}>
-          <span className="material-symbols-outlined text-base">palette</span>
-          <span>Créer la couverture</span>
-        </button>
       </div>
     )
   ) : null;
@@ -2379,7 +2366,7 @@ function RedactionContent() {
 
             <div className="flex items-center gap-2">
               <Link 
-                href="/pricing" 
+                href="/billing" 
                 className="flex items-center gap-1.5 bg-neutral-50 dark:bg-neutral-800/50 hover:bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:border-neutral-300 group" 
                 title="Gérer mes crédits d'écriture"
               >
@@ -2395,6 +2382,16 @@ function RedactionContent() {
                 )}
               </Link>
               
+              {isChatCollapsed && (
+                <button
+                  onClick={() => setIsChatCollapsed(false)}
+                  className="hidden xl:flex items-center gap-1.5 bg-[#FDF3F1] dark:bg-neutral-800 border border-[#F4C5BC]/60 dark:border-neutral-700 hover:bg-[#F4C5BC]/30 text-[#C84B31] dark:text-neutral-200 text-xs font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-2xs"
+                  title="Ouvrir le chat IA"
+                >
+                  <span className="material-symbols-outlined text-[18px]">forum</span>
+                  <span>Ouvrir Chat IA</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -2454,7 +2451,10 @@ function RedactionContent() {
           </button>
 
           <button
-            onClick={() => setMobileView("chat")}
+            onClick={() => {
+              setMobileView("chat");
+              setIsChatCollapsed(false);
+            }}
             className={`flex-1 py-2 px-2 sm:px-4 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-2 relative ${
               mobileView === "chat"
                 ? "bg-secondary text-white shadow-2xs"
@@ -2498,6 +2498,7 @@ function RedactionContent() {
               onWordCountChange={(count) => setLiveWordCount(count)}
               onContinueWithAi={() => {
                 setMobileView("chat");
+                setIsChatCollapsed(false);
                 handleSendMessage("Rédiger la suite de ce chapitre avec l'IA");
               }}
               onGenerateFullChapter={handleGenerateFullChapter}

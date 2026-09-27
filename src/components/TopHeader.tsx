@@ -72,7 +72,7 @@ export default function TopHeader() {
         </Link>
         
         <Link 
-          href="/pricing" 
+          href="/billing" 
           className="flex items-center gap-2 bg-neutral-50 dark:bg-neutral-900 hover:bg-neutral-100/80 dark:hover:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:border-neutral-300 dark:hover:border-neutral-600 group" 
           title="Gérer mes crédits d'écriture"
         >

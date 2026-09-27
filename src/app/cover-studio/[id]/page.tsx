@@ -189,12 +189,40 @@ export default function CoverStudioEditorPage() {
     return canvas;
   };
 
-  const handleDownloadHD = () => {
-    const canvas = generateCanvas();
-    const link = document.createElement("a");
-    link.download = `Couverture_${(title || "Livre").replace(/\s+/g, "_")}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+  const handleDownloadHD = async () => {
+    if (coverImage) {
+      try {
+        // Si c'est déjà un base64 (upload local)
+        if (coverImage.startsWith("data:")) {
+          const link = document.createElement("a");
+          link.download = `Couverture_${(title || "Livre").replace(/\s+/g, "_")}.png`;
+          link.href = coverImage;
+          link.click();
+        } else {
+          // Si c'est une URL distante, on la fetch pour forcer le téléchargement sans ouvrir de nouvel onglet
+          const response = await fetch(coverImage, { mode: "cors" });
+          if (!response.ok) throw new Error("Impossible de récupérer l'image via fetch (CORS ou réseau).");
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.download = `Couverture_${(title || "Livre").replace(/\s+/g, "_")}.png`;
+          link.href = objectUrl;
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        }
+      } catch (err) {
+        console.error("Erreur de téléchargement du blob, ouverture dans un nouvel onglet :", err);
+        // Fallback de sécurité si les règles CORS du CDN bloquent le fetch()
+        window.open(coverImage, "_blank");
+      }
+    } else {
+      // Fallback sur le dessin de base (si aucune image IA/uploadée)
+      const canvas = generateCanvas();
+      const link = document.createElement("a");
+      link.download = `Couverture_${(title || "Livre").replace(/\s+/g, "_")}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
   };
 
   // Applique la couverture au livre (enregistre cover_url en base). Retourne l'URL

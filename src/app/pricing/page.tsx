@@ -101,11 +101,9 @@ function PricingInner() {
 
   const PageContent = (
     <div className="w-full flex flex-col justify-between min-h-screen">
-      {!user && (
-        <div className="w-full">
-          <TopHeader />
-        </div>
-      )}
+      <div className="w-full">
+        <TopHeader />
+      </div>
 
       <main className={`flex-1 flex flex-col items-center pt-16 ${user ? "pb-16" : "pb-32"} px-4 relative`}>
         {/* Background decorative elements */}
@@ -352,10 +350,6 @@ function PricingInner() {
       {!user && <Footer />}
     </div>
   );
-
-  if (user) {
-    return <AppLayout>{PageContent}</AppLayout>;
-  }
 
   return PageContent;
 }
