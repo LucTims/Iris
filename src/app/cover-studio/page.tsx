@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUser";
 import { Plus, Sparkles, BookOpen } from "lucide-react";
@@ -99,7 +100,7 @@ function CoverStudioHubContent() {
                     {/* Fake Cover Preview Area */}
                     <div className="aspect-[2/3] bg-neutral-100 dark:bg-neutral-800 relative overflow-hidden">
                       {project.cover_url ? (
-                        <img src={project.cover_url} alt="Couverture" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                        <Image src={project.cover_url} alt="Couverture" fill sizes="(max-width: 640px) 100vw, 300px" className="object-cover transition-transform duration-500 group-hover:scale-105" />
                       ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-3 transition-transform duration-500 group-hover:scale-105">
                           <BookOpen className="w-10 h-10 text-neutral-300" strokeWidth={1.5} />
@@ -139,3 +140,4 @@ export default function CoverStudioHubPage() {
     </Suspense>
   );
 }
+

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import type { RichManuscriptEditorHandle } from "@/components/RichManuscriptEditor";
@@ -2217,8 +2218,7 @@ function RedactionContent() {
     coverUrl ? (
       <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
         <div className="bg-white dark:bg-neutral-900 rounded-[2rem] border border-neutral-200 dark:border-neutral-800 shadow-xl p-8 sm:p-12 max-w-lg w-full flex flex-col items-center text-center gap-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={coverUrl} alt="Couverture du livre" className="w-40 sm:w-52 aspect-[2/3] object-cover rounded-2xl shadow-2xl border border-neutral-200/60" />
+          <div className="relative w-40 sm:w-52 aspect-[2/3] rounded-2xl shadow-2xl border border-neutral-200/60 overflow-hidden"><Image src={coverUrl} alt="Couverture du livre" fill sizes="(max-width: 640px) 160px, 208px" className="object-cover" /></div>
           <div>
             <p className="text-lg sm:text-xl font-heading font-extrabold text-neutral-900 dark:text-neutral-100 mb-2">Couverture du livre</p>
             <p className="text-sm text-neutral-500 dark:text-neutral-400">Cette couverture sera placée en première page lors de l&apos;export de votre manuscrit.</p>
@@ -2949,3 +2949,4 @@ export default function RedactionPage() {
     </Suspense>
   );
 }
+

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import Image from "next/image";
 import AppLayout from "@/components/AppLayout";
 import { useProjects } from "@/hooks/useProjects";
 
@@ -262,11 +263,7 @@ export default function ProjectsPage() {
                       
                       {/* Cover Image Container */}
                       <div className="relative w-full h-full rounded-r-md rounded-l-[3px] overflow-hidden border border-black/10 shadow-[2px_2px_8px_rgba(0,0,0,0.15)] z-10 bg-white dark:bg-neutral-900">
-                        <img
-                          src={book.cover_url || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop"}
-                          alt={book.title}
-                          className="w-full h-full object-cover"
-                        />
+                        <Image src={book.cover_url || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop"} alt={book.title} fill sizes="(max-width: 768px) 150px, 200px" className="object-cover" />
                         {/* Hinge / Spine Gradient Overlay */}
                         <div className="absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-black/30 via-black/5 to-transparent mix-blend-multiply"></div>
                         <div className="absolute inset-y-0 left-[1px] w-[1px] bg-white dark:bg-neutral-900/40"></div>
@@ -388,8 +385,8 @@ export default function ProjectsPage() {
 
                   {/* Titre */}
                   <div className="col-span-6 flex items-center gap-4 min-w-0">
-                    <div className="w-14 h-10 sm:w-16 sm:h-12 rounded-lg bg-neutral-200 overflow-hidden shrink-0 border border-neutral-200 dark:border-neutral-800 shadow-2xs">
-                      <img src={book.cover_url || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop"} alt={book.title} className="w-full h-full object-cover" />
+                    <div className="relative w-14 h-10 sm:w-16 sm:h-12 rounded-lg bg-neutral-200 overflow-hidden shrink-0 border border-neutral-200 dark:border-neutral-800 shadow-2xs">
+                      <Image src={book.cover_url || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop"} alt={book.title} fill sizes="(max-width: 768px) 150px, 200px" className="object-cover" />
                     </div>
                     <div className="min-w-0 space-y-0.5">
                       <h3 className="font-heading font-extrabold text-sm text-neutral-900 dark:text-neutral-100 truncate">
@@ -499,3 +496,5 @@ export default function ProjectsPage() {
     </AppLayout>
   );
 }
+
+

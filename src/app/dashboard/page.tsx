@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import Image from "next/image";
 import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUser";
 import { useProjects } from "@/hooks/useProjects";
@@ -225,9 +226,9 @@ function DashboardContent() {
                 className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 p-4 sm:p-5 shadow-2xs hover:border-neutral-300 transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
               >
                 <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                  <div className="w-11 h-14 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 flex items-center justify-center text-neutral-400 shrink-0 overflow-hidden shadow-2xs">
+                  <div className="relative w-11 h-14 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 flex items-center justify-center text-neutral-400 shrink-0 overflow-hidden shadow-2xs">
                     {book.cover_url ? (
-                      <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
+                      <Image src={book.cover_url} alt={book.title} fill sizes="44px" className="object-cover" />
                     ) : (
                       <BookOpen className="w-5 h-5 text-neutral-400" />
                     )}
@@ -355,3 +356,4 @@ export default function DashboardPage() {
     </Suspense>
   );
 }
+
