@@ -142,7 +142,7 @@ export default function AutomationsPage() {
           </p>
           <div>
             <Link
-              href="/docs/automations"
+              href="/docs/automations" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-xs font-bold text-brand bg-[#FDF3F1] hover:bg-[#FCE7E1] border border-[#FCE7E1] px-4 py-2.5 rounded-xl transition-colors"
             >
               <BookOpen className="w-4 h-4" />
@@ -334,3 +334,4 @@ export default function AutomationsPage() {
     </AppLayout>
   );
 }
+
