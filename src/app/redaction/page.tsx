@@ -2381,23 +2381,22 @@ function RedactionContent() {
                   </span>
                 )}
               </Link>
-              
-              {isChatCollapsed && (
-                <button
-                  onClick={() => setIsChatCollapsed(false)}
-                  className="hidden xl:flex items-center gap-1.5 bg-[#FDF3F1] dark:bg-neutral-800 border border-[#F4C5BC]/60 dark:border-neutral-700 hover:bg-[#F4C5BC]/30 text-[#C84B31] dark:text-neutral-200 text-xs font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-2xs"
-                  title="Ouvrir le chat IA"
-                >
-                  <span className="material-symbols-outlined text-[18px]">forum</span>
-                  <span>Ouvrir Chat IA</span>
-                </button>
-              )}
             </div>
           </div>
-        </div>
+        </div>          <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-1 sm:ml-2 border-l border-neutral-100 dark:border-neutral-800 pl-2 sm:pl-4">
+            {isChatCollapsed && (
+              <button
+                onClick={() => setIsChatCollapsed(false)}
+                className="flex items-center gap-1.5 bg-[#FDF3F1] dark:bg-neutral-800 border border-[#F4C5BC]/60 dark:border-neutral-700 hover:bg-[#F4C5BC]/30 text-[#C84B31] dark:text-neutral-200 text-xs font-bold px-2 sm:px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-2xs shrink-0"
+                title="Ouvrir le chat IA"
+              >
+                <span className="material-symbols-outlined text-[18px]">forum</span>
+                <span className="hidden sm:inline">Ouvrir Chat IA</span>
+              </button>
+            )}
 
-        {/* Profile Menu Toggle - Now Outside the scroll container */}
-        <div className="relative shrink-0 pl-2 sm:pl-4 border-l border-neutral-100 dark:border-neutral-800 ml-2">
+            {/* Profile Menu Toggle - Now Outside the scroll container */}
+            <div className="relative shrink-0">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="w-8.5 h-8.5 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200/80 border border-neutral-200/90 flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold text-xs shadow-2xs cursor-pointer transition-all"
@@ -2433,6 +2432,7 @@ function RedactionContent() {
                   </div>
                 </div>
               )}
+            </div>
             </div>
         </header>
 
@@ -2949,4 +2949,7 @@ export default function RedactionPage() {
     </Suspense>
   );
 }
+
+
+
 
