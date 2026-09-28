@@ -231,7 +231,7 @@ export default function FAQPage() {
               
               {/* Facebook */}
               <a
-                href="https://facebook.com/irisboom"
+                href="https://www.facebook.com/share/1H4jzDT6AU/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-white dark:bg-neutral-900 rounded-2xl p-4.5 border border-neutral-200/80 dark:border-neutral-800 shadow-2xs hover:border-blue-300 hover:shadow-sm transition-all flex items-center justify-between group cursor-pointer"
@@ -277,7 +277,7 @@ export default function FAQPage() {
 
               {/* TikTok */}
               <a
-                href="https://tiktok.com/@irisboom"
+                href="https://www.tiktok.com/@irisboom.online?lang=fr"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-white dark:bg-neutral-900 rounded-2xl p-4.5 border border-neutral-200/80 dark:border-neutral-800 shadow-2xs hover:border-neutral-400 hover:shadow-sm transition-all flex items-center justify-between group cursor-pointer"
@@ -442,3 +442,4 @@ export default function FAQPage() {
     </AppLayout>
   );
 }
+
