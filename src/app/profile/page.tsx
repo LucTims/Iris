@@ -257,66 +257,7 @@ export default function ProfilePage() {
                 </div>
               </section>
 
-              {/* Social Links Card */}
-              <section className="bg-white rounded-3xl border border-neutral-200/80 shadow-2xs overflow-hidden">
-                <div className="p-6 sm:p-8 space-y-6">
-                  <div>
-                    <h2 className="font-heading text-xl font-extrabold text-neutral-900">Présence en ligne</h2>
-                    <p className="text-xs text-neutral-500 mt-1">Ajoutez vos liens pour renforcer votre profil public d'auteur.</p>
-                  </div>
 
-                  <div className="space-y-4">
-                    
-                    <div>
-                      <label className="flex items-center gap-2 text-xs font-bold text-neutral-700 mb-2 uppercase tracking-wider">
-                        <Globe className="w-4 h-4 text-neutral-400" />
-                        Site Web Personnel
-                      </label>
-                      <input 
-                        type="url" 
-                        value={websiteUrl}
-                        onChange={(e) => setWebsiteUrl(e.target.value)}
-                        placeholder="https://www.mon-site.com"
-                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all" 
-                      />
-                    </div>
-
-                    <div>
-                      <label className="flex items-center gap-2 text-xs font-bold text-neutral-700 mb-2 uppercase tracking-wider">
-                        <AtSign className="w-4 h-4 text-blue-400" />
-                        Profil X (Twitter)
-                      </label>
-                      <div className="flex">
-                        <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-neutral-200 bg-neutral-50 text-neutral-500 text-sm font-medium">
-                          x.com/
-                        </span>
-                        <input 
-                          type="text" 
-                          value={twitterUrl}
-                          onChange={(e) => setTwitterUrl(e.target.value)}
-                          placeholder="votre_pseudo"
-                          className="flex-1 px-4 py-3 rounded-r-xl border border-neutral-200 dark:border-neutral-800 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all" 
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="flex items-center gap-2 text-xs font-bold text-neutral-700 mb-2 uppercase tracking-wider">
-                        <ShoppingCart className="w-4 h-4 text-amber-500" />
-                        Page Auteur Amazon
-                      </label>
-                      <input 
-                        type="url" 
-                        value={amazonUrl}
-                        onChange={(e) => setAmazonUrl(e.target.value)}
-                        placeholder="https://www.amazon.fr/author/..."
-                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-sm font-medium focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-all" 
-                      />
-                    </div>
-
-                  </div>
-                </div>
-              </section>
 
               {/* Action Bar */}
               <div className="flex justify-end pb-8">
