@@ -1,14 +1,16 @@
-﻿import useSWR from 'swr';
+import useSWR, { preload } from 'swr';
 
 const fetcher = (url: string) => fetch(url).then(res => {
   if (!res.ok) throw new Error('Erreur de chargement');
   return res.json();
 });
 
+export const preloadProjects = () => preload('/api/projects', fetcher);
+
 export function useProjects() {
   const { data, error, isLoading, mutate } = useSWR('/api/projects', fetcher, {
     revalidateOnFocus: true,
-    dedupingInterval: 5000,
+    dedupingInterval: 30000,
   });
 
   return {

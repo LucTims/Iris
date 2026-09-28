@@ -1,5 +1,6 @@
 import Sidebar from "@/components/Sidebar";
 import TopHeader from "@/components/TopHeader";
+import { preloadProjects } from "@/hooks/useProjects";
 import WelcomeModal from "@/components/WelcomeModal";
 
 interface AppLayoutProps {
@@ -7,6 +8,7 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
+  preloadProjects();
   return (
     <div className="flex h-screen overflow-hidden bg-[#F9FAFB] dark:bg-neutral-950 font-body text-neutral-900 dark:text-neutral-100">
       {/* Sidebar is fixed on the left (Desktop) and at the bottom (Mobile) */}
@@ -29,3 +31,4 @@ export default function AppLayout({ children }: AppLayoutProps) {
     </div>
   );
 }
+

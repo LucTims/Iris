@@ -85,7 +85,7 @@ export default function Sidebar() {
     >
       {/* Sidebar Header (Seamless top section with Iris Typography & Enhanced Toggle Button) */}
       <div className="px-5 py-4 flex items-center justify-between h-16 shrink-0">
-        <Link href="/dashboard" className="flex items-center gap-1 overflow-hidden group">
+        <Link prefetch={true} href="/dashboard" className="flex items-center gap-1 overflow-hidden group">
           <IrisMark size={30} className="text-brand shrink-0 rotate-6 transition-transform" />
           {!collapsed && (
             <span className="font-heading font-extrabold text-2xl tracking-tight text-neutral-900 dark:text-neutral-100 group-hover:text-secondary transition-colors">ris</span>
@@ -112,9 +112,7 @@ export default function Sidebar() {
             (item.href !== "/dashboard" && pathname.startsWith(item.href)) ||
             (item.href === "/projects" && pathname.startsWith("/redaction"));
           return (
-            <Link
-              key={item.id}
-              href={item.href}
+            <Link key={item.id} href={item.href} prefetch={true}
               title={collapsed ? item.label : undefined}
               className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
                 isActive
@@ -165,9 +163,7 @@ export default function Sidebar() {
             {bottomNavItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
               return (
-                <Link
-                  key={item.id}
-                  href={item.href}
+                <Link key={item.id} href={item.href} prefetch={true}
                   onClick={() => setIsSettingsOpen(false)}
                   className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group ${
                     isActive
@@ -214,11 +210,11 @@ export default function Sidebar() {
           <LayoutDashboard strokeWidth={1.5} className="w-5 h-5" />
           <span className="text-[10px]">Accueil</span>
         </Link>
-        <Link href="/projects" className={`flex flex-col items-center gap-1 ${pathname.startsWith("/projects") || pathname.startsWith("/redaction") ? "text-secondary font-bold" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100"}`}>
+        <Link prefetch={true} href="/projects" className={`flex flex-col items-center gap-1 ${pathname.startsWith("/projects") || pathname.startsWith("/redaction") ? "text-secondary font-bold" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100"}`}>
           <Library strokeWidth={1.5} className="w-5 h-5" />
           <span className="text-[10px]">Mes Livres</span>
         </Link>
-        <Link href="/cover-studio" className={`flex flex-col items-center gap-1 ${pathname.startsWith("/cover-studio") ? "text-secondary font-bold" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100"}`}>
+        <Link prefetch={true} href="/cover-studio" className={`flex flex-col items-center gap-1 ${pathname.startsWith("/cover-studio") ? "text-secondary font-bold" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100"}`}>
           <Palette strokeWidth={1.5} className="w-5 h-5" />
           <span className="text-[10px]">Couverture</span>
         </Link>
@@ -247,9 +243,7 @@ export default function Sidebar() {
 
             <div className="grid grid-cols-2 gap-3">
               {[...navItems, ...bottomNavItems].map((item) => (
-                <Link
-                  key={item.id}
-                  href={item.href}
+                <Link key={item.id} href={item.href} prefetch={true}
                   onClick={() => setIsMobileDrawerOpen(false)}
                   className={`p-3 rounded-2xl border flex flex-col gap-2 transition-all ${
                     pathname === item.href
@@ -283,3 +277,4 @@ export default function Sidebar() {
     </>
   );
 }
+

@@ -53,7 +53,7 @@ export default function TopHeader() {
       
       {/* Mobile Header Title */}
       <div className="flex items-center gap-2 md:hidden">
-        <Link href="/dashboard" className="font-heading font-extrabold text-2xl text-neutral-900 dark:text-neutral-100 tracking-tight">
+        <Link prefetch={true} href="/dashboard" className="font-heading font-extrabold text-2xl text-neutral-900 dark:text-neutral-100 tracking-tight">
           Iris
         </Link>
       </div>
@@ -63,8 +63,7 @@ export default function TopHeader() {
 
       {/* Right Header Actions */}
       <div className="flex items-center gap-2.5 relative">
-        <Link 
-          href="/projects/new" 
+        <Link prefetch={true} href="/projects/new" 
           className="flex items-center gap-1.5 bg-[#C84B31] hover:bg-[#B83E26] text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition-all shadow-2xs hover:shadow-xs"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -209,16 +208,14 @@ export default function TopHeader() {
                   <span className="material-symbols-outlined text-base text-neutral-400">person</span>
                   <span>Mon profil</span>
                 </Link>
-                <Link 
-                  href="/dashboard" 
+                <Link prefetch={true} href="/dashboard" 
                   onClick={() => setUserMenuOpen(false)}
                   className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800/50 dark:hover:bg-neutral-800/50 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100"
                 >
                   <span className="material-symbols-outlined text-base text-neutral-400">dashboard</span>
                   <span>Tableau de bord</span>
                 </Link>
-                <Link 
-                  href="/projects" 
+                <Link prefetch={true} href="/projects" 
                   onClick={() => setUserMenuOpen(false)}
                   className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800/50 dark:hover:bg-neutral-800/50 hover:text-neutral-900 dark:text-neutral-100 dark:hover:text-neutral-100"
                 >
@@ -262,3 +259,4 @@ export default function TopHeader() {
     </header>
   );
 }
+
