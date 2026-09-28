@@ -29,10 +29,12 @@ export async function GET() {
 
     const enriched = (projects || []).map((project) => {
       const completion = evaluateCompletion(project.chapter_list || []);
+      const total_words = (project.chapter_list || []).reduce((sum: number, ch: any) => sum + (ch.word_count || 0), 0);
       const { chapter_list: _chapterList, ...rest } = project;
       return {
         ...rest,
         completion,
+        total_words,
         status: resolveBookStatus(project.status, completion),
       };
     });

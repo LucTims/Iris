@@ -13,7 +13,7 @@ const QuillAnimation = dynamic(() => import("@/components/QuillAnimation"), { ss
 const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
 
 function DashboardContent() {
-  const { user, displayName, refreshWalletBalance } = useUser();
+  const { user, displayName, walletBalance, refreshWalletBalance } = useUser();
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedProjectForExport, setSelectedProjectForExport] = useState<any | null>(null);
   const [syncBanner, setSyncBanner] = useState<{ show: boolean; message: string; type: "success" | "info" } | null>(null);
@@ -141,10 +141,10 @@ function DashboardContent() {
 
         {/* 3. CORE METRICS — Only when projects exist */}
         {hasProjects && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
           
           {/* Card 1: Books in progress */}
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 sm:p-6 border border-neutral-200/80 dark:border-neutral-800 shadow-2xs flex flex-col justify-between">
+          <div className="col-span-2 sm:col-span-1 bg-white dark:bg-neutral-900 rounded-2xl p-5 sm:p-6 border border-neutral-200/80 dark:border-neutral-800 shadow-2xs flex flex-col justify-between">
             <div className="flex items-center justify-between mb-3">
               <div className="w-9 h-9 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-700 dark:text-neutral-300">
                 <BookOpen className="w-4 h-4" />
@@ -157,43 +157,45 @@ function DashboardContent() {
               <span className="font-heading font-bold text-2xl text-neutral-900 dark:text-neutral-100 block mb-0.5">
                 {projects.length} {projects.length > 1 ? "ouvrages" : "ouvrage"}
               </span>
-              <span className="text-xs text-neutral-500 dark:text-neutral-400">Projets en cours de rédaction</span>
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">Projets de livres</span>
             </div>
           </div>
 
-          {/* Card 2: Time Saved */}
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 sm:p-6 border border-neutral-200/80 dark:border-neutral-800 shadow-2xs flex flex-col justify-between">
+          {/* Card 2: Words Generated */}
+          <div className="col-span-1 bg-white dark:bg-neutral-900 rounded-2xl p-4 sm:p-6 border border-neutral-200/80 dark:border-neutral-800 shadow-2xs flex flex-col justify-between">
             <div className="flex items-center justify-between mb-3">
-              <div className="w-9 h-9 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-700 dark:text-neutral-300">
-                <Clock className="w-4 h-4" />
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-700 dark:text-neutral-300">
+                <Sparkles className="w-4 h-4" />
               </div>
-              <span className="text-[11px] font-medium text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-md">
-                Estimation
+              <span className="text-[10px] sm:text-[11px] font-medium text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-md truncate max-w-[80px] sm:max-w-none text-right">
+                Volume
               </span>
             </div>
             <div>
-              <span className="font-heading font-bold text-2xl text-neutral-900 dark:text-neutral-100 block mb-0.5">
-                ~{projects.length * 40} h
+              <span className="font-heading font-bold text-xl sm:text-2xl text-neutral-900 dark:text-neutral-100 block mb-0.5 truncate">
+                {projects.reduce((sum: number, p: any) => sum + (p.total_words || 0), 0).toLocaleString("fr-FR")}
               </span>
-              <span className="text-xs text-neutral-500 dark:text-neutral-400">Temps de rédaction économisé</span>
+              <span className="text-[10px] sm:text-xs text-neutral-500 dark:text-neutral-400">Mots générés</span>
             </div>
           </div>
 
-          {/* Card 3: Completed Books */}
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-5 sm:p-6 border border-neutral-200/80 dark:border-neutral-800 shadow-2xs flex flex-col justify-between">
+          {/* Card 3: Coin Balance */}
+          <div className="col-span-1 bg-white dark:bg-neutral-900 rounded-2xl p-4 sm:p-6 border border-neutral-200/80 dark:border-neutral-800 shadow-2xs flex flex-col justify-between">
             <div className="flex items-center justify-between mb-3">
-              <div className="w-9 h-9 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-700 dark:text-neutral-300">
-                <CheckCircle2 className="w-4 h-4" />
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#C84B31]/10 flex items-center justify-center text-[#C84B31]">
+                <span className="material-symbols-outlined text-lg">monetization_on</span>
               </div>
-              <span className="text-[11px] font-medium text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-md">
-                Publiables
-              </span>
+              <Link href="/billing">
+                <span className="text-[10px] sm:text-[11px] font-medium text-[#C84B31] bg-[#C84B31]/10 px-2 py-0.5 rounded-md hover:bg-[#C84B31]/20 transition-colors cursor-pointer truncate max-w-[70px] sm:max-w-none text-right">
+                  Recharger
+                </span>
+              </Link>
             </div>
             <div>
-              <span className="font-heading font-bold text-2xl text-neutral-900 dark:text-neutral-100 block mb-0.5">
-                {projects.filter(p => p.status === "Terminé").length}
+              <span className="font-heading font-bold text-xl sm:text-2xl text-neutral-900 dark:text-neutral-100 block mb-0.5 truncate">
+                {walletBalance !== null ? Number(walletBalance).toLocaleString("fr-FR") : "..."}
               </span>
-              <span className="text-xs text-neutral-500 dark:text-neutral-400">Livres finalisés</span>
+              <span className="text-[10px] sm:text-xs text-neutral-500 dark:text-neutral-400">Pièces restantes</span>
             </div>
           </div>
 
