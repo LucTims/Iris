@@ -8,13 +8,15 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:admin": "tsx tests/admin/runner.ts"
+    "test:admin": "tsx tests/admin/runner.ts",
+    "higgsfield:seedance": "tsx --env-file=.env.local scripts/higgsfield-seedance.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.39",
     "@ai-sdk/google": "^4.0.24",
     "@ai-sdk/openai": "^4.0.42",
     "@floating-ui/dom": "^1.8.0",
+    "@higgsfield/client": "^0.2.6",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@next/third-parties": "^16.3.2",
     "@supabase/ssr": "^0.12.3",
@@ -85,6 +87,7 @@
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
     "tailwindcss-typography": "^3.1.0",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^3.2.7"
   }
