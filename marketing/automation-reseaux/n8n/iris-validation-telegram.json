@@ -1,0 +1,423 @@
+{
+  "name": "Iris – Validation Telegram & publication Buffer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "iris-video",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "name": "Webhook nouvelle vidéo",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "iris-video"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enregistre la vidéo reçue en attente de validation (mémoire du workflow).\nconst data = $getWorkflowStaticData('global');\ndata.pending = data.pending || {};\n\nconst body = $json.body || {};\nif (!body.video_url) {\n  throw new Error('video_url manquant dans la requête');\n}\nconst id = String(body.id || Date.now().toString(36));\ndata.pending[id] = { ...body, id, receivedAt: new Date().toISOString() };\n\nreturn [{ json: { ...body, id } }];\n"
+      },
+      "name": "Enregistrer en attente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.video_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "name": "Télécharger la vidéo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "REMPLACER_PAR_TON_CHAT_ID_TELEGRAM",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✅ Publier",
+                    "additionalFields": {
+                      "callback_data": "=approve:{{ $('Enregistrer en attente').first().json.id }}"
+                    }
+                  },
+                  {
+                    "text": "❌ Rejeter",
+                    "additionalFields": {
+                      "callback_data": "=reject:{{ $('Enregistrer en attente').first().json.id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "caption": "=🎬 {{ $('Enregistrer en attente').first().json.hook || 'Nouvelle vidéo Iris' }}"
+        }
+      },
+      "name": "Telegram : vidéo + boutons",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prépare le message texte (légendes + brouillons pour les groupes Facebook).\nconst v = $('Enregistrer en attente').first().json;\nconst groups = (v.group_posts || [])\n  .map((g, i) => `👥 Groupe ${i + 1} – ${g.group || ''}\\n${g.text || ''}`)\n  .join('\\n\\n');\n\nconst text = [\n  `🎬 ${v.id} | angle : ${v.angle || '?'} | ton : ${v.ton || '?'} | format : ${v.format || '?'}`,\n  '',\n  '📘 Facebook :', v.caption_facebook || '-',\n  '',\n  '🎵 TikTok :', v.caption_tiktok || '-',\n  '',\n  '▶️ YouTube :', `${v.title_youtube || '-'}\\n${v.description_youtube || ''}`,\n  '',\n  groups ? '— Brouillons groupes FB (à poster toi-même) —\\n\\n' + groups : '',\n].join('\\n');\n\n// Telegram limite un message à 4096 caractères : on découpe si besoin.\nconst chunks = [];\nfor (let i = 0; i < text.length; i += 4000) chunks.push(text.slice(i, i + 4000));\nreturn chunks.map((t) => ({ json: { text: t } }));\n"
+      },
+      "name": "Préparer les textes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "REMPLACER_PAR_TON_CHAT_ID_TELEGRAM",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "name": "Telegram : légendes",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "name": "Telegram : clic bouton",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "iris-telegram-callback"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lit le clic sur un bouton Telegram (approve:ID / reject:ID).\nconst ALLOWED_CHAT_ID = 'REMPLACER_PAR_TON_CHAT_ID_TELEGRAM';\nconst cq = $json.callback_query;\nif (!cq || String(cq.from.id) !== ALLOWED_CHAT_ID) {\n  return []; // clic d'une autre personne : ignoré\n}\n\nconst [action, id] = String(cq.data || '').split(':');\nconst data = $getWorkflowStaticData('global');\ndata.pending = data.pending || {};\ndata.history = data.history || [];\n\nconst item = data.pending[id];\nif (!item) {\n  return [{ json: { action: 'unknown', id, callbackId: cq.id } }];\n}\ndelete data.pending[id];\n\n// Historique utilisé par Claude pour apprendre de tes choix.\ndata.history.push({\n  id,\n  action,\n  date: new Date().toISOString(),\n  angle: item.angle,\n  ton: item.ton,\n  format: item.format,\n  hook: item.hook,\n});\ndata.history = data.history.slice(-60);\n\nreturn [{ json: { ...item, action, id, callbackId: cq.id } }];\n"
+      },
+      "name": "Lire la décision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "callback",
+        "queryId": "={{ $json.callbackId }}",
+        "additionalFields": {
+          "text": "={{ $json.action === 'approve' ? 'Publication en cours…' : $json.action === 'reject' ? 'Rejetée, c’est noté.' : 'Vidéo introuvable (déjà traitée ?)' }}"
+        }
+      },
+      "name": "Répondre au clic",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $('Lire la décision').first().json.action }}",
+              "value2": "approve"
+            }
+          ]
+        }
+      },
+      "name": "Publier ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Une requête Buffer par réseau. Remplace les IDs de canaux Buffer.\nconst CHANNELS = {\n  facebook: 'REMPLACER_ID_CANAL_FACEBOOK',\n  tiktok: 'REMPLACER_ID_CANAL_TIKTOK',\n  youtube: 'REMPLACER_ID_CANAL_YOUTUBE',\n};\n\nconst MUTATION = `mutation CreatePost($input: CreatePostInput!) {\n  createPost(input: $input) {\n    ... on PostActionSuccess { post { id } }\n    ... on MutationError { message }\n  }\n}`;\n\nconst v = $('Lire la décision').first().json;\nconst texts = {\n  facebook: v.caption_facebook,\n  tiktok: v.caption_tiktok,\n  youtube: `${v.title_youtube || ''}\\n\\n${v.description_youtube || ''}`.trim(),\n};\n\nreturn Object.entries(CHANNELS)\n  .filter(([, channelId]) => channelId && !channelId.startsWith('REMPLACER'))\n  .map(([network, channelId]) => ({\n    json: {\n      network,\n      body: {\n        query: MUTATION,\n        variables: {\n          input: {\n            text: texts[network] || v.caption_facebook || '',\n            channelId,\n            schedulingType: 'automatic',\n            mode: 'addToQueue',\n            assets: [{ video: { url: v.video_url } }],\n          },\n        },\n      },\n    },\n  }));\n"
+      },
+      "name": "Préparer posts Buffer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.buffer.com",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "name": "Buffer : createPost",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Résume ce que Buffer a accepté ou refusé.\nconst lines = $input.all().map((it, i) => {\n  const network = $('Préparer posts Buffer').all()[i]?.json.network || '?';\n  const r = it.json?.data?.createPost;\n  const err = it.json?.errors?.[0]?.message || r?.message;\n  return err ? `❌ ${network} : ${err}` : `✅ ${network} : programmé (post ${r?.post?.id || '?'})`;\n});\nconst id = $('Lire la décision').first().json.id;\nreturn [{ json: { text: `Vidéo ${id}\\n` + (lines.join('\\n') || 'Aucun canal configuré.') } }];\n"
+      },
+      "name": "Résumer le résultat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "REMPLACER_PAR_TON_CHAT_ID_TELEGRAM",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "name": "Telegram : confirmation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "iris-feedback",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook historique",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        600
+      ],
+      "webhookId": "iris-feedback"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Renvoie l'historique des décisions à Claude.\nconst data = $getWorkflowStaticData('global');\nreturn [{\n  json: {\n    history: data.history || [],\n    pending: Object.keys(data.pending || {}),\n  },\n}];\n"
+      },
+      "name": "Lire l'historique",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        600
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook nouvelle vidéo": {
+      "main": [
+        [
+          {
+            "node": "Enregistrer en attente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enregistrer en attente": {
+      "main": [
+        [
+          {
+            "node": "Télécharger la vidéo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Télécharger la vidéo": {
+      "main": [
+        [
+          {
+            "node": "Telegram : vidéo + boutons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram : vidéo + boutons": {
+      "main": [
+        [
+          {
+            "node": "Préparer les textes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer les textes": {
+      "main": [
+        [
+          {
+            "node": "Telegram : légendes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram : clic bouton": {
+      "main": [
+        [
+          {
+            "node": "Lire la décision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire la décision": {
+      "main": [
+        [
+          {
+            "node": "Répondre au clic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Répondre au clic": {
+      "main": [
+        [
+          {
+            "node": "Publier ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publier ?": {
+      "main": [
+        [
+          {
+            "node": "Préparer posts Buffer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Préparer posts Buffer": {
+      "main": [
+        [
+          {
+            "node": "Buffer : createPost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buffer : createPost": {
+      "main": [
+        [
+          {
+            "node": "Résumer le résultat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Résumer le résultat": {
+      "main": [
+        [
+          {
+            "node": "Telegram : confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook historique": {
+      "main": [
+        [
+          {
+            "node": "Lire l'historique",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
