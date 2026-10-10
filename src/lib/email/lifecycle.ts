@@ -1,5 +1,6 @@
 import {
   DEFAULT_WRITING_MODEL,
+  OUTLINE_MAX_COINS,
   PLAN_MAX_COINS,
   estimateChapterCoins,
   maxChargeForQuote,
@@ -52,7 +53,8 @@ export function chooseLifecycleEmail(c: LifecycleCandidate, now: Date = new Date
 /** Nombre de chapitres (modèle par défaut, pire cas) que couvre un solde, plan éventuellement inclus. */
 export function chaptersCoveredBy(balance: number, includePlan: boolean): number {
   const chapterMax = maxChargeForQuote(estimateChapterCoins(800, DEFAULT_WRITING_MODEL));
-  const available = Math.max(0, balance - (includePlan ? PLAN_MAX_COINS : 0));
+  // Prudence : on réserve aussi la structure du livre, comme le tableau de bord.
+  const available = Math.max(0, balance - (includePlan ? PLAN_MAX_COINS + OUTLINE_MAX_COINS : 0));
   return Math.floor(available / chapterMax);
 }
 

@@ -184,6 +184,13 @@ export function maxChargeForQuote(quote: number): number {
 export const PLAN_MAX_COINS = 150;
 export const OUTLINE_MAX_COINS = 60;
 
+/**
+ * Pièces offertes à l'inscription. Miroir (affichage uniquement) du solde
+ * initial créé par le trigger SQL d'inscription : le crédit réel reste fait
+ * en base, cette constante sert aux textes d'accueil et au parcours guidé.
+ */
+export const WELCOME_COINS = 500;
+
 /** Coût (pièces) pour un nombre de pages donné avec un modèle — devis direct. */
 export function estimatePagesCoins(pages: number, model: string): number {
   return Math.max(1, Math.max(1, Math.round(pages)) * coinsPerPage(model));

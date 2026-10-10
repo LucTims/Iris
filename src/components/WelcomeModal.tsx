@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, X, BookOpen, Sparkles, Coins } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { PLAN_MAX_COINS, WELCOME_COINS } from "@/lib/ai/pricing";
+import { FIRST_CHAPTER_MAX_COINS, REFERENCE_CHAPTER_WORDS, welcomeChaptersCovered } from "@/lib/onboarding/firstBook";
+
+const fmt = (n: number) => n.toLocaleString("fr-FR");
+const CHAPTERS_COVERED = welcomeChaptersCovered();
 
 export default function WelcomeModal() {
   const router = useRouter();
@@ -103,12 +108,16 @@ export default function WelcomeModal() {
               <div className="flex items-center justify-center gap-2">
                 <Coins className="w-5 h-5 text-secondary" />
                 <span className="font-heading font-bold text-lg text-neutral-900 dark:text-neutral-100 tracking-tight">
-                  500 crédits offerts
+                  {fmt(WELCOME_COINS)} pièces offertes
                 </span>
               </div>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-snug">
-                Disponibles immédiatement pour démarrer votre premier ouvrage !
+                De quoi générer le plan de votre livre et en rédiger les {CHAPTERS_COVERED} premiers chapitres.
               </p>
+              <ul className="text-[11px] text-neutral-600 dark:text-neutral-400 pt-1 space-y-0.5">
+                <li>Plan détaillé : {fmt(PLAN_MAX_COINS)} pièces max</li>
+                <li>Chapitre d&apos;environ {fmt(REFERENCE_CHAPTER_WORDS)} mots : {fmt(FIRST_CHAPTER_MAX_COINS)} pièces max</li>
+              </ul>
             </div>
 
             {/* Action Buttons */}

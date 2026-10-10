@@ -8,13 +8,14 @@ import Image from "next/image";
 import AppLayout from "@/components/AppLayout";
 import { useUser } from "@/hooks/useUser";
 import { useProjects } from "@/hooks/useProjects";
+import FirstBookChecklist from "@/components/FirstBookChecklist";
 import { BookOpen, Clock, CheckCircle2, ArrowRight, Download, Palette, Sparkles } from "lucide-react";
 
 const QuillAnimation = dynamic(() => import("@/components/QuillAnimation"), { ssr: false });
 const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
 
 function DashboardContent() {
-  const { user, displayName, walletBalance, refreshWalletBalance } = useUser();
+  const { user, displayName, walletBalance, refreshWalletBalance, loading: userLoading } = useUser();
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedProjectForExport, setSelectedProjectForExport] = useState<any | null>(null);
   const [syncBanner, setSyncBanner] = useState<{ show: boolean; message: string; type: "success" | "info" } | null>(null);
@@ -22,7 +23,7 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const paymentCompleted = searchParams.get("payment_completed") === "true";
 
-  const { projects } = useProjects();
+  const { projects, isLoading: projectsLoading, error: projectsError } = useProjects();
 
   // Utilisateur pour lequel la synchro a déjà été lancée : l'effet ci-dessous
   // peut se rejouer à chaque rendu, mais la synchro ne part qu'une fois par visite.
@@ -134,6 +135,16 @@ function DashboardContent() {
               : "Commencez la rédaction de votre tout premier livre dès aujourd'hui."}
           </p>
         </div>
+
+        {/* PARCOURS GUIDÉ « MON PREMIER LIVRE » — étapes déduites des projets réels */}
+        {userId && !projectsLoading && !projectsError && (
+          <FirstBookChecklist
+            key={userId}
+            userId={userId}
+            projects={projects}
+            walletBalance={userLoading ? null : Number(walletBalance)}
+          />
+        )}
 
         {/* QUILL ANIMATION — Empty State Hero */}
         {!hasProjects && (
