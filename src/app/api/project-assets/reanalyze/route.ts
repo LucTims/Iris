@@ -101,7 +101,16 @@ export async function POST(req: Request) {
       }
       failedAssets = data || [];
     } else {
-      // Pour le wizard (stateless)
+      // Pour le wizard (stateless). Le téléchargement passe par le client
+      // service-role : on n'accepte que les fichiers rangés sous le dossier
+      // de l'utilisateur, sinon n'importe qui pourrait faire décrire les
+      // images privées d'un autre compte.
+      const ownPrefix = `${user.id}/`;
+      const isOwnPath = (p: unknown): p is string =>
+        typeof p === "string" && p.startsWith(ownPrefix) && !p.includes("..");
+      if (!Array.isArray(paths) || !paths.every(isOwnPath)) {
+        return NextResponse.json({ error: "Chemin d'image non autorisé." }, { status: 403 });
+      }
       failedAssets = paths.map((p: string) => ({
         storage_path: p,
         file_name: p.split("/").pop(),

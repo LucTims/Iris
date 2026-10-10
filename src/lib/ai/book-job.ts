@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import * as Sentry from "@sentry/nextjs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { checkMinimumBalance, deductChapterCost } from "@/lib/ai/cost-engine";
 import { estimateChapterCoins } from "@/lib/ai/pricing";
@@ -491,5 +492,6 @@ export async function processNextChapter(
   }
 
   const message = lastError instanceof Error ? lastError.message : String(lastError);
+  Sentry.captureException(lastError, { tags: { area: "book-job" }, extra: { jobId: job.id, chapter: chapter.number } });
   return stop("failed", message.slice(0, 500));
 }

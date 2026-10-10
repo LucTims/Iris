@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+import * as Sentry from "@sentry/nextjs";
 import { coinsForPurchase } from "@/lib/coinPacks";
 import { creditWalletCoins } from "@/lib/payments/creditWallet";
 
@@ -304,6 +305,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ received: true, status: "ignored" });
   } catch (error: any) {
     console.error("Erreur Webhook SebPay:", error);
+    Sentry.captureException(error);
     return NextResponse.json({ error: "Erreur Serveur Webhook" }, { status: 500 });
   }
 }
