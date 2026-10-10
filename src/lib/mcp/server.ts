@@ -1,9 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { MCP_COINS_PER_PAGE, WORDS_PER_PAGE } from "@/lib/ai/pricing";
+import { COVER_IMAGE_COINS, MCP_COINS_PER_PAGE, WORDS_PER_PAGE } from "@/lib/ai/pricing";
 import { renderBookPdf } from "@/lib/export/pdfBook";
 import { writeChapterWithBilling } from "@/lib/mcp/writeChapter";
+import { generateCoverForUser } from "@/lib/cover/generateCover";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.irisboom.online";
 const MCP_PRICE_NOTE = `L'écriture via MCP coûte ${MCP_COINS_PER_PAGE} pièces par page ajoutée (1 page ≈ ${WORDS_PER_PAGE} mots) ; réenregistrer ou corriger un chapitre sans l'allonger est gratuit.`;
@@ -281,58 +282,48 @@ export function buildMcpServer(userId: string): McpServer {
     {
       book_id: z.string().describe("ID du projet"),
       prompt: z.string().optional().describe("Description visuelle optionnelle pour guider la génération de l'image (ex: 'Un paysage africain au coucher du soleil')"),
-      engine: z.enum(["free", "premium"]).optional().describe("Moteur de génération : 'free' (par défaut) ou 'premium' (coûte des crédits)"),
+      engine: z.enum(["free", "premium"]).optional().describe(`Moteur de génération : 'free' (par défaut, seule la direction artistique IA est facturée, quelques pièces) ou 'premium' (${COVER_IMAGE_COINS} pièces)`),
     },
     async ({ book_id, prompt, engine }) => {
-      // Vérifier que le projet appartient à l'utilisateur
-      const { data: project } = await supabase
-        .from("projects")
-        .select("id, title")
-        .eq("id", book_id)
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (!project) {
-        return { content: [{ type: "text", text: "Projet introuvable." }], isError: true };
-      }
-
-      // Appeler l'API interne de génération de couverture
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL?.replace('.supabase.co', '') || 'http://localhost:3000';
+      // Appel DIRECT de la logique partagée, avec l'identité de la clé API :
+      // l'ancien fetch vers /api/generate-cover partait sans cookies et la
+      // route, qui exige une session, répondait 401 à chaque appel MCP.
+      // Propriété du projet, solde, débit des pièces (client service-role
+      // explicite) et application de la couverture sont gérés par
+      // generateCoverForUser.
+      const requested = engine === "premium" ? "premium" : "free";
       try {
-        const res = await fetch(`${siteUrl}/api/generate-cover`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            projectId: book_id,
-            engine: engine || "free",
-            prompt: prompt || undefined,
-          }),
-        });
+        const result = await generateCoverForUser(
+          userId,
+          { projectId: book_id, engine: requested, prompt: prompt || undefined },
+          { db: supabase, storage: supabase, applyToProject: true }
+        );
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: "Erreur inconnue" }));
-          return { content: [{ type: "text", text: `Erreur de génération : ${err.error || res.statusText}` }], isError: true };
+        if (!result.ok) {
+          const hint = result.status === 402 ? ` Rechargez des pièces sur ${SITE_URL}/pricing puis réessayez.` : "";
+          return { content: [{ type: "text", text: `Erreur de génération : ${result.error}${hint}` }], isError: true };
         }
 
-        const data = await res.json();
-        const coverUrl = data.url;
-
-        // Appliquer la couverture au projet
-        const { error: updateError } = await supabase
-          .from("projects")
-          .update({ cover_url: coverUrl })
-          .eq("id", book_id)
-          .eq("user_id", userId);
-
-        if (updateError) {
-          return { content: [{ type: "text", text: `Couverture générée mais erreur lors de l'application : ${updateError.message}. URL : ${coverUrl}` }], isError: true };
+        if (!result.applied) {
+          return {
+            content: [{
+              type: "text",
+              text: `Couverture générée mais erreur lors de l'application : ${result.applyError || "raison inconnue"}. URL : ${result.url}`,
+            }],
+            isError: true,
+          };
         }
 
+        const billing = result.charged > 0
+          ? `${result.charged} pièces débitées`
+          : result.downgraded
+            ? "aucun moteur premium disponible : image du moteur gratuit, forfait premium non débité"
+            : "moteur gratuit (seule la direction artistique IA est facturée, quelques pièces)";
         return {
           content: [{
             type: "text",
-            text: `Couverture générée et appliquée avec succès au projet "${project.title}" ! Moteur utilisé : ${data.model || engine || "free"}.`
-          }]
+            text: `Couverture générée et appliquée avec succès au projet "${result.project?.title ?? book_id}" ! Moteur utilisé : ${result.model} ; ${billing}. URL : ${result.url}`,
+          }],
         };
       } catch (e) {
         return { content: [{ type: "text", text: `Erreur lors de la génération : ${e instanceof Error ? e.message : String(e)}` }], isError: true };

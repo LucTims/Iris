@@ -162,6 +162,28 @@ export function estimateBookCoins(words: number, model: string, chapters: number
   return Math.max(1, pagesFromWords(totalWords) * coinsPerPage(model));
 }
 
+/**
+ * Option A — PRIX PLAFONNÉ. L'IA écrit souvent 2 à 3× plus long que la cible :
+ * facturer la longueur réelle faisait payer l'auteur bien plus que le devis,
+ * et laissait passer des chapitres impayés (solde vérifié sur le devis, débit
+ * échoué ensuite). On ne facture donc jamais plus que le devis + 25 %, et on
+ * exige ce plafond AVANT de générer : rien n'est produit sans être payable.
+ */
+export const QUOTE_TOLERANCE = 1.25;
+
+/** Montant maximal facturable pour un devis donné (devis + 25 %). */
+export function maxChargeForQuote(quote: number): number {
+  return Math.max(1, Math.ceil(Math.max(0, quote) * QUOTE_TOLERANCE));
+}
+
+/**
+ * Plafonds des générations facturées au token (plan / sommaire). Dimensionnés
+ * pour que les 500 pièces offertes à l'inscription couvrent le plan + au moins
+ * deux chapitres avec le modèle par défaut (150 + 2 × 75 = 300).
+ */
+export const PLAN_MAX_COINS = 150;
+export const OUTLINE_MAX_COINS = 60;
+
 /** Coût (pièces) pour un nombre de pages donné avec un modèle — devis direct. */
 export function estimatePagesCoins(pages: number, model: string): number {
   return Math.max(1, Math.max(1, Math.round(pages)) * coinsPerPage(model));
@@ -180,7 +202,8 @@ export function estimatePagesCoins(pages: number, model: string): number {
 export function chapterChargeCoins(
   modelId: string,
   usage: unknown,
-  outputText: string | undefined | null
+  outputText: string | undefined | null,
+  quotedCoins?: number
 ): { amount: number; pages: number; pageCoins: number; costFloorCoins: number } {
   const pages = pagesFromText(outputText);
   const pageCoins = Math.max(1, pages * coinsPerPage(modelId));
@@ -189,5 +212,8 @@ export function chapterChargeCoins(
   const rate = MODEL_RATES_USD[modelId] || MODEL_RATES_USD[DEFAULT_WRITING_MODEL];
   const tokenUsd = (input * rate.in + effOutput * rate.out) / 1_000_000;
   const costFloorCoins = Math.ceil((tokenUsd / COIN_UNIT_USD) * COIN_MARGIN);
-  return { amount: Math.max(pageCoins, costFloorCoins, 1), pages, pageCoins, costFloorCoins };
+  const raw = Math.max(pageCoins, costFloorCoins, 1);
+  // Devis connu : jamais plus que devis + 25 % (voir QUOTE_TOLERANCE).
+  const amount = quotedCoins && quotedCoins > 0 ? Math.min(raw, maxChargeForQuote(quotedCoins)) : raw;
+  return { amount, pages, pageCoins, costFloorCoins };
 }
