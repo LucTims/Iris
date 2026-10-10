@@ -16,6 +16,28 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [usePassword, setUsePassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [canResend, setCanResend] = useState(false);
+  const [resending, setResending] = useState(false);
+
+  // Les liens envoyés par e-mail passent par /auth/callback, qui échange le
+  // code PKCE contre une session (sinon l'utilisateur revient non connecté).
+  const authRedirect = () => `${window.location.origin}/auth/callback?next=/dashboard`;
+
+  const handleResendConfirmation = async () => {
+    setResending(true);
+    setError("");
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: authRedirect() },
+    });
+    setResending(false);
+    if (error) setError(error.message);
+    else {
+      setCanResend(false);
+      setMessage("E-mail de confirmation renvoyé. Pensez à vérifier vos spams.");
+    }
+  };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -50,7 +72,12 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setError(error.message);
+        if (error.code === "email_not_confirmed" || /email not confirmed/i.test(error.message)) {
+          setError("Votre adresse e-mail n'est pas encore confirmée. Cliquez sur le lien reçu par e-mail.");
+          setCanResend(true);
+        } else {
+          setError(error.message);
+        }
         setLoading(false);
       } else {
         window.location.href = "/dashboard";
@@ -60,7 +87,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`
+          emailRedirectTo: authRedirect()
         }
       });
 
@@ -172,6 +199,16 @@ export default function LoginPage() {
               <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-3 rounded-xl text-sm font-semibold">
                 {message}
               </div>
+            )}
+            {canResend && (
+              <button
+                type="button"
+                onClick={handleResendConfirmation}
+                disabled={resending}
+                className="w-full text-sm font-bold text-secondary underline underline-offset-4 disabled:opacity-50"
+              >
+                {resending ? "Envoi en cours…" : "Je n'ai pas reçu l'e-mail : le renvoyer"}
+              </button>
             )}
 
             <div>

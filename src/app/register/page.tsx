@@ -16,6 +16,26 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [canResend, setCanResend] = useState(false);
+  const [resending, setResending] = useState(false);
+
+  // Le lien de l'e-mail doit passer par /auth/callback : c'est là que le
+  // code PKCE est échangé contre une session. Vers /dashboard directement,
+  // le middleware renvoyait l'utilisateur, non connecté, sur /login.
+  const confirmRedirect = () => `${window.location.origin}/auth/callback?next=/dashboard`;
+
+  const handleResendConfirmation = async () => {
+    setResending(true);
+    setError("");
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: confirmRedirect() },
+    });
+    setResending(false);
+    if (error) setError(error.message);
+    else setMessage("E-mail de confirmation renvoyé. Pensez à vérifier vos spams.");
+  };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -50,7 +70,7 @@ export default function RegisterPage() {
         data: {
           full_name: name,
         },
-        emailRedirectTo: `${window.location.origin}/dashboard`
+        emailRedirectTo: confirmRedirect()
       }
     });
 
@@ -58,7 +78,8 @@ export default function RegisterPage() {
     if (error) {
       setError(error.message);
     } else {
-      setMessage("Compte créé avec succès ! Un e-mail de confirmation vous a été envoyé pour valider votre compte.");
+      setMessage("Compte créé avec succès ! Un e-mail de confirmation vous a été envoyé pour valider votre compte (pensez à vérifier vos spams).");
+      setCanResend(true);
       
       // Pixel Client
       if (typeof window !== "undefined" && (window as any).fbq) {
@@ -177,6 +198,16 @@ export default function RegisterPage() {
               <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-3 rounded-xl text-sm font-semibold">
                 {message}
               </div>
+            )}
+            {canResend && (
+              <button
+                type="button"
+                onClick={handleResendConfirmation}
+                disabled={resending}
+                className="w-full text-sm font-bold text-secondary underline underline-offset-4 disabled:opacity-50"
+              >
+                {resending ? "Envoi en cours…" : "Je n'ai pas reçu l'e-mail : le renvoyer"}
+              </button>
             )}
 
             <div>
