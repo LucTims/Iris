@@ -1,11 +1,11 @@
-﻿-- Migration pour le popup de bienvenue et le bonus de 500 pièces
+-- Migration pour le popup de bienvenue et le bonus de 500 pièces
 -- 1. Ajout du champ has_seen_welcome_modal sur la table profiles
 ALTER TABLE public.profiles 
 ADD COLUMN IF NOT EXISTS has_seen_welcome_modal BOOLEAN NOT NULL DEFAULT false;
 
 -- 2. Mise à jour du trigger à l'inscription pour créditer 500 pièces et tracer la transaction de bienvenue
 CREATE OR REPLACE FUNCTION public.handle_new_user_wallet()
-RETURNS TRIGGER AS 
+RETURNS TRIGGER AS $$
 DECLARE
   v_wallet_id UUID;
 BEGIN
@@ -29,4 +29,4 @@ BEGIN
 
   RETURN NEW;
 END;
- LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

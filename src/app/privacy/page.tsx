@@ -122,8 +122,8 @@ export default function PrivacyPage() {
         </p>
         <ul className="list-disc pl-5 space-y-1.5 mt-2">
           <li><strong>Droit d'accès et de rectification</strong> : Modifiez vos données depuis votre tableau de bord.</li>
-          <li><strong>Droit à la portabilité</strong> : Exportez vos manuscrits (PDF, DOCX, EPUB) à tout moment.</li>
-          <li><strong>Droit à l'effacement</strong> : Supprimez un livre ou votre compte complet d'un simple clic.</li>
+          <li><strong>Droit à la portabilité</strong> : Exportez vos manuscrits (PDF, DOCX, EPUB) à tout moment, et l'ensemble de vos données depuis <em>Paramètres → Mes données</em>.</li>
+          <li><strong>Droit à l'effacement</strong> : Supprimez un livre, ou votre compte complet depuis <em>Paramètres → Mes données</em>.</li>
         </ul>
         <p className="mt-3">
           Pour exercer un droit spécifique qui ne serait pas réalisable depuis l'interface, contactez notre équipe technique via le support intégré.

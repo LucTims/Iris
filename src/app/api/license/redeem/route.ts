@@ -9,6 +9,7 @@ import {
   normalizeLicenseKey,
 } from "@/lib/payments/chariowApi";
 import { creditPurchaseOnce } from "@/lib/payments/purchaseCredit";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 /**
  * Activation manuelle d'une clé de licence Chariow (page Portefeuille).
@@ -35,6 +36,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "Veuillez vous connecter pour activer une clé de licence." },
         { status: 401 }
+      );
+    }
+
+    // Limite les essais de clés (force brute sur des clés de licence).
+    const rate = await checkRateLimit(`license_redeem_${user.id}`, 10, 15 * 60 * 1000);
+    if (!rate.success) {
+      return NextResponse.json(
+        { error: "Trop de tentatives. Réessayez dans quelques minutes." },
+        { status: 429 }
       );
     }
 

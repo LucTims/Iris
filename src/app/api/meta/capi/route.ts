@@ -1,22 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendToCAPI } from "@/lib/meta/capi";
+import { checkRateLimit } from "@/lib/ratelimit";
 import crypto from "crypto";
+
+// Route publique (appelée à l'inscription, avant toute session) : seuls les
+// événements listés ici sont relayés à Meta. Les achats (Purchase) partent
+// uniquement du serveur, depuis le webhook de paiement ; un client ne peut
+// donc plus envoyer de faux achats ni de valeur/devise arbitraire.
+const ALLOWED_EVENTS = new Set(["CompleteRegistration"]);
 
 export async function POST(req: NextRequest) {
   try {
-    const { eventName, email, customData, eventId } = await req.json();
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
 
-    if (!eventName) {
-      return NextResponse.json({ error: "eventName is required" }, { status: 400 });
+    const rate = await checkRateLimit(`capi_${ip ?? "unknown"}`, 10, 60 * 60 * 1000);
+    if (!rate.success) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
-    const hashedEmail = email
-      ? crypto.createHash("sha256").update(email.trim().toLowerCase()).digest("hex")
-      : undefined;
+    const { eventName, email, eventId } = await req.json();
 
-    // Optional: Extract user agent and IP from request
+    if (typeof eventName !== "string" || !ALLOWED_EVENTS.has(eventName)) {
+      return NextResponse.json({ error: "Événement non autorisé" }, { status: 400 });
+    }
+
+    const hashedEmail =
+      typeof email === "string" && email.trim()
+        ? crypto.createHash("sha256").update(email.trim().toLowerCase()).digest("hex")
+        : undefined;
+
     const userAgent = req.headers.get("user-agent") || undefined;
-    const ip = req.headers.get("x-forwarded-for") || req.ip || undefined;
 
     await sendToCAPI([{
       event_name: eventName,
@@ -27,8 +40,7 @@ export async function POST(req: NextRequest) {
         client_user_agent: userAgent,
         client_ip_address: ip,
       },
-      custom_data: customData,
-      event_id: eventId || `${eventName}_${Date.now()}`
+      event_id: typeof eventId === "string" && eventId ? eventId.slice(0, 100) : `${eventName}_${Date.now()}`,
     }]);
 
     return NextResponse.json({ success: true });
