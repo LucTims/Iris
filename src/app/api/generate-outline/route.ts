@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
+import { OUTLINE_MAX_COINS } from "@/lib/ai/pricing";
 import { generateWithFallback } from "@/lib/ai/model-fallback";
 import { detectGenre } from "@/lib/ai/book-style";
 import { resolveWorkType, workTypeOutlineRules, WORK_TYPE_META } from "@/lib/book/work-type";
@@ -81,7 +82,8 @@ export async function POST(req: Request) {
     const workType = resolveWorkType({ explicit: requestedWorkType, category, title, length });
     const outlineRules = workTypeOutlineRules(workType, detectGenre(category, tone));
 
-    const hasEnoughCoins = await checkMinimumBalance(user.id, 20);
+    // Option A : la structure coûte au plus OUTLINE_MAX_COINS, exigé avant.
+    const hasEnoughCoins = await checkMinimumBalance(user.id, OUTLINE_MAX_COINS);
     if (!hasEnoughCoins) {
       return NextResponse.json(
         { error: "Fonds insuffisants pour préparer la structure du livre." },
@@ -150,7 +152,7 @@ N'ajoute AUCUNE numérotation, AUCUN titre général, AUCUNE ligne vide, AUCUN t
         result.modelUsed,
         result.usage,
         `Structure du livre : ${title || ""}`,
-        { projectId, outputText: result.text }
+        { projectId, outputText: result.text, maxCoins: OUTLINE_MAX_COINS }
       );
     }
 

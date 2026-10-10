@@ -116,9 +116,14 @@ export async function deductChapterCost(
   modelId: string,
   usage: unknown,
   description: string,
-  opts: { projectId?: string | null; outputText?: string; client?: SupabaseClient } = {}
+  opts: { projectId?: string | null; outputText?: string; client?: SupabaseClient; quotedCoins?: number } = {}
 ): Promise<boolean> {
-  const { amount, pages, pageCoins, costFloorCoins } = chapterChargeCoins(modelId, usage, opts.outputText);
+  const { amount, pages, pageCoins, costFloorCoins } = chapterChargeCoins(
+    modelId,
+    usage,
+    opts.outputText,
+    opts.quotedCoins
+  );
 
   return deductFixedCoins(
     userId,
@@ -130,6 +135,7 @@ export async function deductChapterCost(
       coins_per_page: coinsPerPage(modelId),
       page_coins: pageCoins,
       cost_floor_coins: costFloorCoins,
+      ...(opts.quotedCoins ? { quoted_coins: opts.quotedCoins } : {}),
       ...(opts.projectId ? { project_id: opts.projectId } : {}),
     },
     opts.client
@@ -152,7 +158,14 @@ export async function deductGenerationCost(
   modelId: string,
   usage: unknown,
   description: string,
-  opts: { projectId?: string | null; outputText?: string; inputText?: string; client?: SupabaseClient } = {}
+  opts: {
+    projectId?: string | null;
+    outputText?: string;
+    inputText?: string;
+    client?: SupabaseClient;
+    /** Plafond (option A) : jamais plus que ce montant, vérifié avant génération. */
+    maxCoins?: number;
+  } = {}
 ): Promise<boolean> {
   const { input, output } = readUsageTokens(usage);
 
@@ -182,7 +195,8 @@ export async function deductGenerationCost(
     effOutput,
     description,
     opts.projectId ?? null,
-    opts.client
+    opts.client,
+    opts.maxCoins
   );
 }
 
@@ -193,7 +207,8 @@ export async function deductCost(
   outputTokens: number | undefined,
   description: string,
   projectId?: string | null,
-  client?: SupabaseClient
+  client?: SupabaseClient,
+  maxCoins?: number
 ): Promise<boolean> {
   // Le SDK IA peut renvoyer des compteurs de tokens indéfinis (selon le provider/la
   // version) ; on ne doit jamais laisser un NaN se propager jusqu'au RPC de débit.
@@ -225,6 +240,7 @@ export async function deductCost(
 
   // Enforce a minimum of 1 coin if it was a very small request
   if (costInCoins < 1) costInCoins = 1;
+  if (maxCoins && maxCoins > 0) costInCoins = Math.min(costInCoins, maxCoins);
 
   // 4. Deduct using RPC
   const { error: rpcError } = await supabase.rpc("process_ai_cost", {

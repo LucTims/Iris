@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
+import { PLAN_MAX_COINS } from "@/lib/ai/pricing";
 import { generateWithFallback } from "@/lib/ai/model-fallback";
 import { fetchSearchContext } from "@/lib/ai/search-context";
 import { detectGenre, shouldGroundWithWebSearch } from "@/lib/ai/book-style";
@@ -118,7 +119,8 @@ export async function POST(req: Request) {
     const visionBlock = hasCachedAnalyses ? "" : visionInstruction(workType, visionImages.length);
 
     // Check coins
-    const hasEnoughCoins = await checkMinimumBalance(user.id, 50);
+    // Option A : le plan coûte au plus PLAN_MAX_COINS, exigé avant de générer.
+    const hasEnoughCoins = await checkMinimumBalance(user.id, PLAN_MAX_COINS);
     if (!hasEnoughCoins) {
       return NextResponse.json(
         { error: "Fonds insuffisants. Veuillez acheter des pièces pour générer le plan." },
@@ -291,7 +293,7 @@ ${factualityRules(searchContext)}`;
       generated.modelUsed,
       generated.usage,
       `Génération du Plan: ${title}`,
-      { projectId, outputText: generated.text }
+      { projectId, outputText: generated.text, maxCoins: PLAN_MAX_COINS }
     );
 
     return new Response(generated.text, {
