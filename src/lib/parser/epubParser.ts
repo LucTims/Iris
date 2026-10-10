@@ -12,7 +12,7 @@ function getDOMParser(): typeof DOMParser {
   }
   try {
     // Fallback for Node.js test environment
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const xmldom = require('@xmldom/xmldom');
     return xmldom.DOMParser;
   } catch {
@@ -188,7 +188,7 @@ export async function parseEpubFile(file: File | Blob | ArrayBuffer): Promise<Ep
       } else {
         const SerializerClass = typeof XMLSerializer !== 'undefined'
           ? XMLSerializer
-          : // eslint-disable-next-line @typescript-eslint/no-var-requires
+          : // eslint-disable-next-line @typescript-eslint/no-require-imports
             require('@xmldom/xmldom').XMLSerializer;
         const serializer = new SerializerClass();
         const children = Array.from(bodyEl.childNodes || []);

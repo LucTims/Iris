@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, getAdminClient, getAuthUsersMap } from "@/lib/admin/isAdmin";
+import { requireAdmin, getAdminClient, getAuthUsersMap, type AuthUsersMap } from "@/lib/admin/isAdmin";
 
 export async function GET() {
   try {
@@ -21,8 +21,8 @@ export async function GET() {
 
       // Mapper wallet_id vers user_id via la table wallets
       const walletIds = [...new Set((rawLedger || []).map((l) => l.wallet_id).filter(Boolean))];
-      let walletToUser: Record<string, string> = {};
-      let profilesMap: Record<string, { full_name?: string; email?: string }> = {};
+      const walletToUser: Record<string, string> = {};
+      const profilesMap: Record<string, { full_name?: string; email?: string }> = {};
 
       if (walletIds.length > 0) {
         const { data: wallets } = await admin
@@ -36,7 +36,7 @@ export async function GET() {
 
         const userIds = [...new Set(Object.values(walletToUser))];
         const [authMap, profilesRes] = await Promise.all([
-          getAuthUsersMap(admin).catch(() => ({})),
+          getAuthUsersMap(admin).catch((): AuthUsersMap => ({})),
           userIds.length > 0
             ? admin.from("profiles").select("id, full_name, email").in("id", userIds)
             : Promise.resolve({ data: [] })

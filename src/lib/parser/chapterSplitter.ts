@@ -8,7 +8,7 @@ function getDOMParser(): typeof DOMParser {
     return DOMParser;
   }
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const xmldom = require('@xmldom/xmldom');
     return xmldom.DOMParser;
   } catch {
@@ -29,7 +29,7 @@ function serializeElement(el: Element): string {
     try {
       const SerializerClass = typeof XMLSerializer !== 'undefined'
         ? XMLSerializer
-        : // eslint-disable-next-line @typescript-eslint/no-var-requires
+        : // eslint-disable-next-line @typescript-eslint/no-require-imports
           require('@xmldom/xmldom').XMLSerializer;
       html = new SerializerClass().serializeToString(el);
     } catch {

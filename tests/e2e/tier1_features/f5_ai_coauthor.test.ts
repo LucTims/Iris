@@ -89,7 +89,7 @@ export async function runF5AiCoauthorTests(): Promise<{ suite: string; passed: n
     handle.setContent(originalText);
 
     // Save previous snapshot for undo
-    let previousContentSnapshot: string | undefined = handle.getContent();
+    const previousContentSnapshot: string | undefined = handle.getContent();
     let currentContent: string = originalText;
 
     // AI applies modification

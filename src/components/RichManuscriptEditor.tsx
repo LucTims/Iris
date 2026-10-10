@@ -968,9 +968,11 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           {editor && (
             <BubbleMenu
               editor={editor}
-              tippyOptions={{
+              // Tiptap v3 positionne le menu avec Floating UI (`options`), et non plus
+              // Tippy (`tippyOptions`, ignoré et transmis tel quel au DOM).
+              options={{
                 placement: 'top',
-                offset: [0, typeof window !== "undefined" && window.innerWidth < 768 ? 65 : 8]
+                offset: typeof window !== "undefined" && window.innerWidth < 768 ? 65 : 8,
               }}
               className="flex flex-col bg-white dark:bg-neutral-900/95 backdrop-blur-md border border-neutral-200/90 shadow-2xl rounded-2xl px-2 py-1.5 z-50 overflow-hidden max-w-[92vw]"
             >

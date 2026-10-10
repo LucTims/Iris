@@ -20,6 +20,7 @@ Object.defineProperty(Element.prototype, 'style', {
 
 Object.defineProperty(Element.prototype, 'classList', {
   get() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- capturé par les closures du mock
     const el = this;
     return {
       add: (...classes: string[]) => {

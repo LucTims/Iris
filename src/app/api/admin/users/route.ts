@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, getAdminClient, getAuthUsersMap } from "@/lib/admin/isAdmin";
+import { requireAdmin, getAdminClient, getAuthUsersMap, type AuthUsersMap } from "@/lib/admin/isAdmin";
 
 // GET /api/admin/users — liste enrichie (solde, pièces dépensées, projets…).
 export async function GET() {
@@ -11,7 +11,7 @@ export async function GET() {
 
     // 1. Récupérer les profils et les utilisateurs auth en parallèle
     const [authMap, { data: profiles, error: profilesErr }] = await Promise.all([
-      getAuthUsersMap(admin).catch(() => ({})),
+      getAuthUsersMap(admin).catch((): AuthUsersMap => ({})),
       admin
         .from("profiles")
         .select("id, full_name, email, role, plan, created_at")
@@ -49,7 +49,7 @@ export async function GET() {
     }
 
     // 4. Calculer les pièces dépensées par utilisateur via coin_transactions
-    let spentMap: Record<string, number> = {};
+    const spentMap: Record<string, number> = {};
     try {
       const { data: debits } = await admin
         .from("coin_transactions")

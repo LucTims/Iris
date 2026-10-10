@@ -81,7 +81,7 @@ export async function runB5AiBoundariesTests(): Promise<{ suite: string; passed:
     const rawLlmResponse = "```html\n<h1>Chapitre 1 : L'Aube</h1>\n<p>Le soleil se levait sur l'empire.</p>\n```";
 
     // Sanitization logic used in /api/chat
-    let cleanedHtml = rawLlmResponse
+    const cleanedHtml = rawLlmResponse
       .replace(/^```html\s*/i, "")
       .replace(/^```\s*/i, "")
       .replace(/```\s*$/, "")

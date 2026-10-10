@@ -141,7 +141,7 @@ Instructions impératives :
       { projectId, outputText: genResult.text }
     );
 
-    let cleaned = (genResult.text || "")
+    const cleaned = (genResult.text || "")
       .replace(/^```html\s*/i, "")
       .replace(/^```\s*/i, "")
       .replace(/```\s*$/i, "")

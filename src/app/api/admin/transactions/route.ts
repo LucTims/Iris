@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, getAdminClient, getAuthUsersMap } from "@/lib/admin/isAdmin";
+import { requireAdmin, getAdminClient, getAuthUsersMap, type AuthUsersMap } from "@/lib/admin/isAdmin";
 
 export async function GET() {
   try {
@@ -19,7 +19,7 @@ export async function GET() {
     // Joindre les profils et emails
     const userIds = [...new Set((rawTx || []).map((t) => t.user_id).filter(Boolean))];
     const [authMap, profilesRes] = await Promise.all([
-      getAuthUsersMap(admin).catch(() => ({})),
+      getAuthUsersMap(admin).catch((): AuthUsersMap => ({})),
       userIds.length > 0
         ? admin.from("profiles").select("id, full_name, email").in("id", userIds)
         : Promise.resolve({ data: [] })

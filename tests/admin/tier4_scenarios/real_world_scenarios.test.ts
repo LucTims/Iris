@@ -69,7 +69,7 @@ export async function runTier4ScenariosTests(): Promise<{
     assertEqual(author.plan, 'pro', 'Step 2: Upgraded to Pro');
 
     // Step 3: Author creates manuscript project
-    let project: AdminProject = {
+    const project: AdminProject = {
       id: 'proj_new_001',
       title: 'Les Dunes Silencieuses de Chinguetti',
       author_id: author.id,
@@ -208,7 +208,7 @@ export async function runTier4ScenariosTests(): Promise<{
   runTest('S5: Maintenance Window Activation -> Top-Bar Broadcast Banner -> Services Diagnostics Ping', () => {
     // Step 1: Super-Admin enables maintenance banner in Settings
     const scheduledMessage = 'Arrêt technique planifié : Dimanche 24 Août de 02h00 à 04h00 GMT';
-    let settings: AdminSettingsState = {
+    const settings: AdminSettingsState = {
       ...mockAdminSettings,
       maintenance_banner: {
         enabled: true,

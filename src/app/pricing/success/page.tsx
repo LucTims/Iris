@@ -37,8 +37,6 @@ function PaymentPendingContent() {
   useEffect(() => {
     if (!txId) return;
 
-    let intervalId: NodeJS.Timeout;
-
     const checkTransactionStatus = async () => {
       try {
         const { data, error } = await supabase
@@ -72,7 +70,7 @@ function PaymentPendingContent() {
     };
 
     // Poll every 3 seconds
-    intervalId = setInterval(checkTransactionStatus, 3000);
+    const intervalId = setInterval(checkTransactionStatus, 3000);
     checkTransactionStatus();
 
     return () => clearInterval(intervalId);
