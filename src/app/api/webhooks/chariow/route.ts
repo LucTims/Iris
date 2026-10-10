@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+import * as Sentry from "@sentry/nextjs";
 import { chariowProductIssuesLicense, getPackByChariowProductId, type CoinPack } from "@/lib/coinPacks";
 import { verifyChariowSignature } from "@/lib/payments/chariowSignature";
 import {
@@ -237,6 +238,7 @@ export async function POST(req: NextRequest) {
     // le réessai de Chariow serait écarté comme « déjà traité » et l'achat
     // ne serait jamais crédité.
     const failTransient = async (message: string) => {
+      Sentry.captureMessage(`[Webhook Chariow] ${message}`, { level: "error", extra: { event, saleId: facts.saleId } });
       if (deliveryRecorded && deliveryId) {
         await supabase.from("webhook_deliveries").delete().eq("provider", "chariow").eq("delivery_id", deliveryId);
       }
@@ -263,6 +265,7 @@ export async function POST(req: NextRequest) {
         // 200 et non 4xx : un refus ferait réessayer Chariow puis désactiver
         // automatiquement le Pulse au 5e échec, bloquant TOUS les achats.
         console.error("[Webhook Chariow] Aucun compte Iris pour la vente:", facts.saleId, facts.customerEmail);
+        Sentry.captureMessage("[Webhook Chariow] Vente payée sans compte Iris", { level: "warning", extra: { saleId: facts.saleId } });
         return NextResponse.json({ received: true, status: "user_not_found" });
       }
 
@@ -294,6 +297,7 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       // L'acheteur pourra saisir sa clé dans « Portefeuille & Pièces ».
       console.error("[Webhook Chariow] Aucun compte Iris pour la licence:", facts.licenseKey, facts.customerEmail);
+      Sentry.captureMessage("[Webhook Chariow] Licence payée sans compte Iris", { level: "warning", extra: { licenseKey: facts.licenseKey } });
       return NextResponse.json({ received: true, status: "user_not_found" });
     }
 
@@ -318,6 +322,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, status: outcome.status });
   } catch (error: any) {
     console.error("[Webhook Chariow] Erreur non gérée:", error?.message || error);
+    Sentry.captureException(error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }
