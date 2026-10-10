@@ -505,7 +505,9 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   const handleInsertLinkSubmit = () => {
     if (!editor || !linkUrlInput) return;
     if (linkTextInput) {
-      editor.chain().focus().insertContent(`<a href="${linkUrlInput}">${linkTextInput}</a>`).run();
+      // Texte et URL échappés : un « < » ou un guillemet saisi cassait le HTML
+      // inséré (lien tronqué, balises parasites dans le manuscrit).
+      editor.chain().focus().insertContent(`<a href="${escapeHtml(linkUrlInput)}">${escapeHtml(linkTextInput)}</a>`).run();
     } else {
       editor.chain().focus().setLink({ href: linkUrlInput }).run();
     }
@@ -515,8 +517,21 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   };
 
   const insertImageIntoDOM = (src: string) => {
-    if (editor) {
-      editor.chain().focus().setImage({ src }).run();
+    const url = src.trim();
+    if (editor && url) {
+      // Image + paragraphe vide juste après, curseur placé dans ce paragraphe.
+      // Avec `setImage` seul, l'image restait SÉLECTIONNÉE après l'insertion :
+      // la frappe suivante la remplaçait (l'image « disparaissait »), et en fin
+      // de chapitre il n'existait aucune ligne sous l'image où continuer à
+      // écrire.
+      editor
+        .chain()
+        .focus()
+        .insertContent([
+          { type: 'image', attrs: { src: url } },
+          { type: 'paragraph' },
+        ])
+        .run();
     }
     setIsImageModalOpen(false);
     setImageUrlInput("");
