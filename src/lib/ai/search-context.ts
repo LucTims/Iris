@@ -1,7 +1,7 @@
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { generateText } from "ai";
+import { generateText, type ToolSet } from "ai";
 
 /**
  * Web search grounding helpers (zero additional cost).
@@ -65,7 +65,7 @@ export function getSearchTools(modelId: string, useWebSearch: boolean) {
   try {
     const tools = (google as unknown as { tools?: { googleSearch?: (args: object) => unknown } }).tools;
     if (tools && typeof tools.googleSearch === "function") {
-      return { google_search: tools.googleSearch({}) } as Record<string, unknown>;
+      return { google_search: tools.googleSearch({}) } as ToolSet;
     }
   } catch (err) {
     console.warn("Google Search tool unavailable, continuing without grounding:", err);

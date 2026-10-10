@@ -176,7 +176,6 @@ export async function POST(req: Request) {
 
     const form = await req.formData();
     const projectId = (form.get("projectId") as string | null) || null;
-    const blueprintId = (form.get("blueprintId") as string | null) || null;
     const files = form.getAll("files").filter((f): f is File => f instanceof File);
 
     if (files.length === 0) {
@@ -317,46 +316,8 @@ export async function POST(req: Request) {
     // rattachées juste après via PATCH).
     let finalAssets: any[] = [];
     if (projectId) {
-      const { google } = await import("@ai-sdk/google");
-      const { generateText } = await import("ai");
-      
-      let buildImageAnalysisPrompt = () => "Analysez cette image.";
-      try {
-        const prompts = await import("@/lib/ai/storybook-prompts");
-        if (prompts.buildImageAnalysisPrompt) buildImageAnalysisPrompt = prompts.buildImageAnalysisPrompt;
-      } catch (e) {}
-
       const rows = [];
       for (const u of uploaded) {
-        let aiAnalysis = null;
-        if (blueprintId === "storybook") {
-          try {
-            const analysisPrompt = (typeof buildImageAnalysisPrompt === "function")
-              ? buildImageAnalysisPrompt({
-                  title: "Album illustré",
-                  audience: "Enfants",
-                  imageIndex: u.position + 1,
-                  totalImages: uploaded.length,
-                })
-              : "Analyse cette image en détail pour un album illustré pour enfants.";
-            const { text } = await generateText({
-              model: google("gemini-2.5-flash"),
-              messages: [
-                {
-                  role: "user",
-                  content: [
-                    { type: "text", text: analysisPrompt },
-                    { type: "image", image: new URL(u.url) },
-                  ],
-                },
-              ],
-            });
-            aiAnalysis = text;
-          } catch (aiError) {
-            console.error("[project-assets] Erreur d'analyse AI:", aiError);
-          }
-        }
-        
         rows.push({
           project_id: projectId,
           user_id: user.id,

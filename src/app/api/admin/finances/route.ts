@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { mockAdminTransactions } from "@/lib/admin/mockData";
 import { AdminTransaction } from "@/lib/admin/types";
-import { requireAdmin, getAdminClient, getAuthUsersMap } from "@/lib/admin/isAdmin";
+import { requireAdmin, getAdminClient, getAuthUsersMap, type AuthUsersMap } from "@/lib/admin/isAdmin";
 
 export async function GET(req: Request) {
   try {
@@ -22,11 +22,11 @@ export async function GET(req: Request) {
       if (!txError && dbTransactions && dbTransactions.length > 0) {
         // Récupérer les profils pour associer les noms et emails
         const userIds = [...new Set(dbTransactions.map((t) => t.user_id).filter(Boolean))];
-        let profilesMap: Record<string, { full_name?: string; email?: string }> = {};
+        const profilesMap: Record<string, { full_name?: string; email?: string }> = {};
 
         if (userIds.length > 0) {
           const [authMap, profilesRes] = await Promise.all([
-            getAuthUsersMap(supabaseAdmin).catch(() => ({})),
+            getAuthUsersMap(supabaseAdmin).catch((): AuthUsersMap => ({})),
             supabaseAdmin.from("profiles").select("id, full_name, email").in("id", userIds)
           ]);
 

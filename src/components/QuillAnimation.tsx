@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
@@ -93,9 +93,13 @@ export default function QuillAnimation() {
     }
   }, [mounted]);
 
-  // Direct DOM manipulation in animation loop for 60fps frame-perfect progressive reveal
-  const animate = useCallback(
-    (timestamp: number) => {
+  // Direct DOM manipulation in animation loop for 60fps frame-perfect progressive reveal.
+  // La boucle est définie DANS l'effet : une fonction locale peut se rappeler
+  // elle-même via requestAnimationFrame sans être lue avant sa déclaration.
+  useEffect(() => {
+    if (!mounted || pathLength === 0) return;
+
+    const animate = (timestamp: number) => {
       if (!pathRef.current || pathLength === 0) {
         animRef.current = requestAnimationFrame(animate);
         return;
@@ -141,16 +145,11 @@ export default function QuillAnimation() {
       }
 
       animRef.current = requestAnimationFrame(animate);
-    },
-    [pathLength]
-  );
+    };
 
-  useEffect(() => {
-    if (mounted && pathLength > 0) {
-      animRef.current = requestAnimationFrame(animate);
-      return () => cancelAnimationFrame(animRef.current);
-    }
-  }, [mounted, pathLength, animate]);
+    animRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [mounted, pathLength]);
 
   return (
     <div

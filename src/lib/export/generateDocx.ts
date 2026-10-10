@@ -121,7 +121,7 @@ function parseTextRuns(html: string, options?: { forceBold?: boolean; size?: num
   const runs: TextRun[] = [];
 
   // Remove block-level opening tags to avoid creating runs for them
-  let cleaned = html.replace(/<(?:p|h[1-6]|li|blockquote|div|table|thead|tbody|tr|td|th)[^>]*>/gi, "");
+  const cleaned = html.replace(/<(?:p|h[1-6]|li|blockquote|div|table|thead|tbody|tr|td|th)[^>]*>/gi, "");
 
   // Split by styling tags
   const segments = cleaned.split(/(<\/?(?:strong|b|em|i|span)[^>]*>)/gi);
