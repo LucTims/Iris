@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { IrisMark } from "@/components/IrisLogo";
@@ -38,6 +38,13 @@ export default function LoginPage() {
       setMessage("E-mail de confirmation renvoyé. Pensez à vérifier vos spams.");
     }
   };
+
+  // Retour de /auth/confirm avec un lien expiré ou déjà utilisé.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("error") === "lien_invalide") {
+      setError("Ce lien a expiré ou a déjà été utilisé. Connectez-vous, ou demandez un nouvel e-mail.");
+    }
+  }, []);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
