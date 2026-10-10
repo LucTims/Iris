@@ -63,7 +63,7 @@ export default function RegisterPage() {
     setError("");
     setMessage("");
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -77,6 +77,10 @@ export default function RegisterPage() {
     setLoading(false);
     if (error) {
       setError(error.message);
+    } else if (data.user && data.user.identities?.length === 0) {
+      // Adresse déjà inscrite (e-mail ou Google) : Supabase répond « succès »
+      // sans envoyer de mail, pour ne pas révéler les comptes existants.
+      setError("Un compte existe déjà avec cette adresse. Connectez-vous, ou utilisez « Continuer avec Google » si vous vous étiez inscrit ainsi.");
     } else {
       setMessage("Compte créé avec succès ! Un e-mail de confirmation vous a été envoyé pour valider votre compte (pensez à vérifier vos spams).");
       setCanResend(true);
