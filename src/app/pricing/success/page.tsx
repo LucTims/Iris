@@ -83,7 +83,7 @@ function PaymentPendingContent() {
           <span className="material-symbols-outlined text-secondary text-6xl animate-spin mb-6">hourglass_top</span>
           <h1 className="font-heading text-3xl font-extrabold text-neutral-900 dark:text-neutral-100 mb-4">En attente de paiement...</h1>
           <p className="text-neutral-600 dark:text-neutral-400 mb-8 max-w-md">
-            Veuillez valider le paiement sur votre téléphone (Mobile Money) ou finaliser la transaction sur la page Sebpay.
+            Veuillez valider le paiement sur votre téléphone (Mobile Money) ou finaliser la transaction sécurisée.
             Cette page s'actualisera automatiquement une fois le paiement confirmé.
           </p>
           {(isDev || isAdmin) && txId && (

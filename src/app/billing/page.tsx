@@ -71,7 +71,7 @@ export default function BillingPage() {
 
             {/* Informations Card */}
             <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 shadow-2xs p-6 space-y-4">
-              <h3 className="font-heading font-bold text-base text-neutral-900 dark:text-neutral-100">Moyens de Paiement Acceptés sur SebPay</h3>
+              <h3 className="font-heading font-bold text-base text-neutral-900 dark:text-neutral-100">Moyens de Paiement Acceptés</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3 border border-neutral-200 dark:border-neutral-800 rounded-xl flex items-center justify-center font-bold text-xs text-orange-600 bg-orange-50/50">
                   Orange Money
