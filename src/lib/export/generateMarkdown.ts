@@ -15,14 +15,26 @@ function htmlToMarkdown(html: string): string {
     .replace(/<h1[^>]*>(.*?)<\/h1>/gi, "\n# $1\n")
     .replace(/<h2[^>]*>(.*?)<\/h2>/gi, "\n## $1\n")
     .replace(/<h3[^>]*>(.*?)<\/h3>/gi, "\n### $1\n")
-    // Bold and italic
-    .replace(/<(?:strong|b)>(.*?)<\/(?:strong|b)>/gi, "**$1**")
-    .replace(/<(?:em|i)>(.*?)<\/(?:em|i)>/gi, "*$1*")
+    // Bold and italic (with or without inline attributes like style or class)
+    .replace(/<(?:strong|b)[^>]*>(.*?)<\/(?:strong|b)>/gi, "**$1**")
+    .replace(/<(?:em|i)[^>]*>(.*?)<\/(?:em|i)>/gi, "*$1*")
+    // Strikethrough
+    .replace(/<(?:s|strike|del)[^>]*>(.*?)<\/(?:s|strike|del)>/gi, "~~$1~~")
+    // Underline
+    .replace(/<u[^>]*>(.*?)<\/u>/gi, "<u>$1</u>")
+    // Images
+    .replace(/<img[^>]*src=["']([^"']+)["'][^>]*alt=["']([^"']*)["'][^>]*>/gi, "\n![$2]($1)\n")
+    .replace(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi, "\n![]($1)\n")
+    // Special blocks
+    .replace(/<div[^>]*class="[^"]*callout[^"]*"[^>]*>([\s\S]*?)<\/div>/gi, "\n> **Note :** $1\n")
+    .replace(/<div[^>]*class="[^"]*key-figure[^"]*"[^>]*>([\s\S]*?)<\/div>/gi, "\n> **$1**\n")
+    .replace(/<div[^>]*class="[^"]*pull-quote[^"]*"[^>]*>([\s\S]*?)<\/div>/gi, "\n> *$1*\n")
+    .replace(/<div[^>]*class="[^"]*section-divider[^"]*"[^>]*>[\s\S]*?<\/div>/gi, "\n\n---\n\n")
+    // Blockquotes
+    .replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gi, "\n> $1\n")
     // Lists
     .replace(/<li[^>]*>(.*?)<\/li>/gi, "- $1\n")
     .replace(/<\/?(ul|ol)[^>]*>/gi, "\n")
-    // Blockquotes
-    .replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gi, "\n> $1\n")
     // Line breaks and paragraphs
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>/gi, "\n\n")
@@ -38,6 +50,9 @@ function htmlToMarkdown(html: string): string {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&rsquo;/g, "'")
+    .replace(/&laquo;/g, "«")
+    .replace(/&raquo;/g, "»")
     // Clean up whitespace
     .replace(/\n{3,}/g, "\n\n")
     .trim();

@@ -84,8 +84,11 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
           coverUrl = data.project?.cover_url || coverUrl;
           if (data.chapters && data.chapters.length > 0) {
             finalChapters = toExportChapters(data.chapters).map((saved) => {
-              const local = hasUnsavedChanges ? chaptersData.find((c) => c.id === saved.id) : undefined;
-              return local ? { ...saved, title: local.title, content: local.content } : saved;
+              const local = chaptersData.find((c) => c.id === saved.id);
+              if (local && (hasUnsavedChanges || (!saved.content && local.content))) {
+                return { ...saved, title: local.title, content: local.content };
+              }
+              return saved;
             });
           }
         }

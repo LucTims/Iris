@@ -85,51 +85,119 @@ function normalizeColor(raw: string): string | undefined {
   return undefined;
 }
 
-/** Parse an inline HTML fragment into pdfmake text runs (bold/italic/color/font). */
-function parseInlineRuns(
+export function parseFontSize(val: string, unit?: string): number | undefined {
+  const num = parseFloat(val);
+  if (isNaN(num) || num <= 0) return undefined;
+  const u = (unit || "").toLowerCase();
+  if (u === "pt") return num;
+  if (u === "em" || u === "rem") return Math.round(num * 11.5 * 10) / 10;
+  // px or unitless: standard web conversion (16px in editor -> 12pt in PDF)
+  return Math.round(num * 0.75 * 10) / 10;
+}
+
+/** Parse an inline HTML fragment into pdfmake text runs (bold/italic/underline/strike/color/font/size/background). */
+export function parseInlineRuns(
   html: string,
-  opts?: { bold?: boolean; italics?: boolean }
+  opts?: { bold?: boolean; italics?: boolean; defaultFontSize?: number }
 ): PdfNode[] {
   const runs: PdfNode[] = [];
   const cleaned = html.replace(
     /<(?:p|h[1-6]|li|blockquote|div|table|thead|tbody|tr|td|th|ul|ol)[^>]*>/gi,
     ""
   );
-  const segments = cleaned.split(/(<\/?(?:strong|b|em|i|span)[^>]*>)/gi);
+  const segments = cleaned.split(/(<\/?(?:strong|b|em|i|u|s|strike|del|mark|sub|sup|span)[^>]*>)/gi);
 
-  let bold = opts?.bold || false;
-  let italics = opts?.italics || false;
+  const boldStack: boolean[] = [opts?.bold || false];
+  const italicsStack: boolean[] = [opts?.italics || false];
+  const underlineStack: boolean[] = [false];
+  const strikeStack: boolean[] = [false];
+  const subStack: boolean[] = [false];
+  const supStack: boolean[] = [false];
   const colorStack: (string | undefined)[] = [undefined];
   const fontStack: (string | undefined)[] = [undefined];
+  const fontSizeStack: (number | undefined)[] = [opts?.defaultFontSize];
+  const bgStack: (string | undefined)[] = [undefined];
 
   for (const seg of segments) {
     if (!seg) continue;
     const l = seg.toLowerCase();
 
-    if (l.startsWith("<strong") || l.startsWith("<b")) { bold = true; continue; }
-    if (l === "</strong>" || l === "</b>") { bold = opts?.bold || false; continue; }
-    if (l.startsWith("<em") || l.startsWith("<i")) { italics = true; continue; }
-    if (l === "</em>" || l === "</i>") { italics = false; continue; }
-    if (l.startsWith("<span")) {
-      const cm = seg.match(/color:\s*([^;"'>]+)/i);
+    if (/^<strong\b/i.test(l) || /^<b\b/i.test(l)) { boldStack.push(true); continue; }
+    if (l === "</strong>" || l === "</b>") { if (boldStack.length > 1) boldStack.pop(); continue; }
+    if (/^<em\b/i.test(l) || /^<i\b/i.test(l)) { italicsStack.push(true); continue; }
+    if (l === "</em>" || l === "</i>") { if (italicsStack.length > 1) italicsStack.pop(); continue; }
+    if (/^<u\b/i.test(l)) { underlineStack.push(true); continue; }
+    if (l === "</u>") { if (underlineStack.length > 1) underlineStack.pop(); continue; }
+    if (/^<s\b/i.test(l) || /^<strike\b/i.test(l) || /^<del\b/i.test(l)) { strikeStack.push(true); continue; }
+    if (l === "</s>" || l === "</strike>" || l === "</del>") { if (strikeStack.length > 1) strikeStack.pop(); continue; }
+    if (/^<sub\b/i.test(l)) { subStack.push(true); continue; }
+    if (l === "</sub>") { if (subStack.length > 1) subStack.pop(); continue; }
+    if (/^<sup\b/i.test(l)) { supStack.push(true); continue; }
+    if (l === "</sup>") { if (supStack.length > 1) supStack.pop(); continue; }
+
+    if (/^<mark\b/i.test(l)) {
+      const bgm = seg.match(/background(?:-color)?:\s*([^;"'>]+)/i) || seg.match(/data-color=["']([^"']+)["']/i);
+      bgStack.push(bgm ? normalizeColor(bgm[1]) : "#fef08a");
+      continue;
+    }
+    if (l === "</mark>") {
+      if (bgStack.length > 1) bgStack.pop();
+      continue;
+    }
+
+    if (/^<span\b/i.test(l)) {
+      const cm = seg.match(/(?:^|;|\s)color:\s*([^;"'>]+)/i);
       const fm = seg.match(/font-family:\s*([^;"'>]+)/i);
+      const sm = seg.match(/font-size:\s*([0-9.]+)\s*(px|pt|em|rem)?/i);
+      const bgm = seg.match(/background(?:-color)?:\s*([^;"'>]+)/i);
+      const tdm = seg.match(/text-decoration:\s*([^;"'>]+)/i);
+      const bm = seg.match(/font-weight:\s*(bold|[789]00)/i);
+      const im = seg.match(/font-style:\s*italic/i);
+
       colorStack.push(cm ? normalizeColor(cm[1]) : colorStack[colorStack.length - 1]);
       fontStack.push(fm ? mapFont(fm[1]) : fontStack[fontStack.length - 1]);
+      fontSizeStack.push(sm ? parseFontSize(sm[1], sm[2]) : fontSizeStack[fontSizeStack.length - 1]);
+      bgStack.push(bgm ? normalizeColor(bgm[1]) : bgStack[bgStack.length - 1]);
+      underlineStack.push(tdm && /underline/i.test(tdm[1]) ? true : underlineStack[underlineStack.length - 1]);
+      strikeStack.push(tdm && /line-through/i.test(tdm[1]) ? true : strikeStack[strikeStack.length - 1]);
+      boldStack.push(bm ? true : boldStack[boldStack.length - 1]);
+      italicsStack.push(im ? true : italicsStack[italicsStack.length - 1]);
       continue;
     }
     if (l === "</span>") {
       if (colorStack.length > 1) colorStack.pop();
       if (fontStack.length > 1) fontStack.pop();
+      if (fontSizeStack.length > 1) fontSizeStack.pop();
+      if (bgStack.length > 1) bgStack.pop();
+      if (underlineStack.length > 1) underlineStack.pop();
+      if (strikeStack.length > 1) strikeStack.pop();
+      if (boldStack.length > 1) boldStack.pop();
+      if (italicsStack.length > 1) italicsStack.pop();
       continue;
     }
 
     const text = decodeEntities(seg.replace(/<[^>]*>/g, ""));
     if (text) {
-      const run: PdfNode = { text, bold, italics };
+      const isBold = boldStack[boldStack.length - 1];
+      const isItalic = italicsStack[italicsStack.length - 1];
+      const isUnder = underlineStack[underlineStack.length - 1];
+      const isStrike = strikeStack[strikeStack.length - 1];
+      const run: PdfNode = { text };
+      if (isBold) run.bold = true;
+      if (isItalic) run.italics = true;
       const color = colorStack[colorStack.length - 1];
       const font = fontStack[fontStack.length - 1];
+      const fontSize = fontSizeStack[fontSizeStack.length - 1];
+      const bg = bgStack[bgStack.length - 1];
       if (color) run.color = color;
       if (font) run.font = font;
+      if (fontSize) run.fontSize = fontSize;
+      if (bg) run.background = bg;
+      if (isUnder && isStrike) run.decoration = ["underline", "lineThrough"];
+      else if (isUnder) run.decoration = "underline";
+      else if (isStrike) run.decoration = "lineThrough";
+      if (subStack[subStack.length - 1]) run.sub = true;
+      if (supStack[supStack.length - 1]) run.sup = true;
       runs.push(run);
     }
   }
@@ -469,13 +537,27 @@ export function htmlToPdfmakeContent(
         let imgMatch: RegExpExecArray | null;
         while ((imgMatch = imgRegex.exec(trimmed)) !== null) {
           if (isEmbeddableImage(imgMatch[1])) {
-            push({ image: imgMatch[1], width: 400, alignment: "center", margin: [0, 10, 0, 10] });
+            const widthAttr = parseFloat(imgMatch[0].match(/\swidth=["']?(\d+(?:\.\d+)?)/i)?.[1] || "");
+            const alignAttr = imgMatch[0].match(/data-align=["']?(left|center|right)/i)?.[1]?.toLowerCase() || "center";
+            const w = Number.isFinite(widthAttr) && widthAttr > 0 ? Math.min(460, widthAttr) : 400;
+            push({ image: imgMatch[1], width: w, alignment: alignAttr, margin: [0, 10, 0, 10] });
           }
         }
 
         const withoutImg = trimmed.replace(/<img[^>]*>/gi, "");
         const plainText = decodeEntities(withoutImg.replace(/<[^>]*>/g, "")).trim();
         if (!plainText) continue;
+
+        // Block-level style attributes: alignment, line-height, font-size
+        const alignMatch = trimmed.match(/text-align:\s*(left|center|right|justify)/i) ||
+                           trimmed.match(/class=["'][^"']*has-text-align-(left|center|right|justify)/i);
+        const blockAlign = alignMatch ? (alignMatch[1].toLowerCase() as any) : undefined;
+
+        const lhMatch = trimmed.match(/line-height:\s*([0-9.]+)/i);
+        const blockLineHeight = lhMatch ? parseFloat(lhMatch[1]) : undefined;
+
+        const fsBlockMatch = trimmed.match(/<(?:p|h[1-6]|blockquote)[^>]*style="[^"]*font-size:\s*([0-9.]+)\s*(px|pt|em|rem)?/i);
+        const defaultFontSize = fsBlockMatch ? parseFontSize(fsBlockMatch[1], fsBlockMatch[2]) : undefined;
 
         const dropCap = /<p[^>]*class="[^"]*\bdrop-cap\b/i.test(withoutImg);
         const h1 = /<h1[^>]*>/i.test(withoutImg);
@@ -489,12 +571,12 @@ export function htmlToPdfmakeContent(
           // premier paragraphe s'écoulant À SA DROITE (mise en colonnes), au
           // lieu d'une grosse lettre seule sur sa ligne suivie d'un retour à la
           // ligne — ce qui n'était pas professionnel.
-          const runs = parseInlineRuns(withoutImg);
+          const runs = parseInlineRuns(withoutImg, { defaultFontSize });
           // Retire la 1re lettre du flux (elle devient la lettrine).
           if (runs.length && typeof runs[0].text === "string" && runs[0].text.length) {
             runs[0] = { ...runs[0], text: runs[0].text.replace(/^\s+/, "").slice(1) };
           }
-          push({
+          const colNode: PdfNode = {
             columns: [
               {
                 width: "auto",
@@ -504,24 +586,53 @@ export function htmlToPdfmakeContent(
                 color: "#1a1a1a",
                 margin: [0, 2, 6, 0],
               },
-              { width: "*", text: runs, style: "paragraph" },
+              { width: "*", text: runs, style: "paragraph", ...(blockAlign ? { alignment: blockAlign } : {}), ...(blockLineHeight ? { lineHeight: blockLineHeight } : {}) },
             ],
             columnGap: 2,
             margin: [0, 0, 0, 8],
-          });
+          };
+          push(colNode);
         } else if (h1) {
           // Un <h1> marque un nouveau chapitre : il DOIT commencer sur une
           // nouvelle page (sauf s'il ouvre le document ou si un saut de page
           // est déjà en attente). Garantit la pagination même quand les
           // marqueurs <hr> ont disparu du contenu.
           if (out.length > 0) pendingBreak = true;
-          push({ text: parseInlineRuns(withoutImg, { bold: true }), style: "h1", margin: [0, 40, 0, 12] });
+          const node: PdfNode = { text: parseInlineRuns(withoutImg, { bold: true, defaultFontSize }), style: "h1", margin: [0, 40, 0, 12] };
+          if (blockAlign) node.alignment = blockAlign;
+          if (blockLineHeight) node.lineHeight = blockLineHeight;
+          push(node);
         }
-        else if (h2) push({ text: parseInlineRuns(withoutImg, { bold: true }), style: "h2" });
-        else if (h3) push({ text: parseInlineRuns(withoutImg, { bold: true }), style: "h3" });
-        else if (bq) push({ text: parseInlineRuns(withoutImg, { italics: true }), style: "blockquote", margin: [24, 6, 0, 6] });
-        else if (li) push({ text: [{ text: "•  " }, ...parseInlineRuns(withoutImg)], margin: [12, 2, 0, 2] });
-        else push({ text: parseInlineRuns(withoutImg), style: "paragraph" });
+        else if (h2) {
+          const node: PdfNode = { text: parseInlineRuns(withoutImg, { bold: true, defaultFontSize }), style: "h2" };
+          if (blockAlign) node.alignment = blockAlign;
+          if (blockLineHeight) node.lineHeight = blockLineHeight;
+          push(node);
+        }
+        else if (h3) {
+          const node: PdfNode = { text: parseInlineRuns(withoutImg, { bold: true, defaultFontSize }), style: "h3" };
+          if (blockAlign) node.alignment = blockAlign;
+          if (blockLineHeight) node.lineHeight = blockLineHeight;
+          push(node);
+        }
+        else if (bq) {
+          const node: PdfNode = { text: parseInlineRuns(withoutImg, { italics: true, defaultFontSize }), style: "blockquote", margin: [24, 6, 0, 6] };
+          if (blockAlign) node.alignment = blockAlign;
+          if (blockLineHeight) node.lineHeight = blockLineHeight;
+          push(node);
+        }
+        else if (li) {
+          const node: PdfNode = { text: [{ text: "•  " }, ...parseInlineRuns(withoutImg, { defaultFontSize })], margin: [12, 2, 0, 2] };
+          if (blockAlign) node.alignment = blockAlign;
+          if (blockLineHeight) node.lineHeight = blockLineHeight;
+          push(node);
+        }
+        else {
+          const node: PdfNode = { text: parseInlineRuns(withoutImg, { defaultFontSize }), style: "paragraph" };
+          if (blockAlign) node.alignment = blockAlign;
+          if (blockLineHeight) node.lineHeight = blockLineHeight;
+          push(node);
+        }
       }
     }
   }
