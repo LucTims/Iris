@@ -38,7 +38,7 @@ Avec une balise `<picture>` pour servir la bonne image selon l'écran :
   <picture>
     <source media="(min-width: 1000px)" srcset="iris-banner-desktop.png">
     <source media="(min-width: 600px)" srcset="iris-banner-tablet.png">
-    <img src="iris-banner-mobile.png" alt="Iris : votre savoir mérite un livre. Iris l'écrit avec vous." style="width:100%;height:auto;display:block">
+    <img src="iris-banner-mobile.png" alt="Nouveau chez BoomBooks : vous lisez des livres, et si vous écriviez le vôtre ? Découvrir Iris." style="width:100%;height:auto;display:block">
   </picture>
 </a>
 ```
