@@ -4,7 +4,8 @@ import { google } from "@ai-sdk/google";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { deductGenerationCost } from "@/lib/ai/cost-engine";
+import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
+import { MIN_AI_CALL_COINS } from "@/lib/ai/pricing";
 
 export const runtime = "nodejs";
 export const maxDuration = 120; // 2 minutes max pour analyser plusieurs images en lots
@@ -120,6 +121,13 @@ export async function POST(req: Request) {
 
     if (failedAssets.length === 0) {
       return NextResponse.json({ message: "Aucune image en échec à ré-analyser.", results: [] });
+    }
+
+    // Chaque analyse est un appel IA facturé : liste bornée et dédoublonnée,
+    // et solde suffisant exigé pour l'ensemble AVANT de lancer quoi que ce soit.
+    failedAssets = Array.from(new Map(failedAssets.map((a) => [a.storage_path, a])).values()).slice(0, 20);
+    if (!(await checkMinimumBalance(user.id, MIN_AI_CALL_COINS * failedAssets.length))) {
+      return NextResponse.json({ error: "Fonds insuffisants (pièces) pour analyser ces images." }, { status: 402 });
     }
 
     const db = admin();

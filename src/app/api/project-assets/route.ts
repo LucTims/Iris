@@ -4,7 +4,8 @@ import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { deductGenerationCost } from "@/lib/ai/cost-engine";
+import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
+import { MIN_AI_CALL_COINS } from "@/lib/ai/pricing";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -205,6 +206,8 @@ export async function POST(req: Request) {
     // `analyze=1` déclenche la description visuelle (flux Vision-to-Story du
     // blueprint Storybook). Les autres blueprints n'en ont pas besoin et ne
     // doivent donc pas payer un appel de vision par image.
+    // L'analyse visuelle est un appel IA facturé : sans solde suffisant pour
+    // toutes les images, on importe sans analyser (relance possible ensuite).
     const shouldAnalyze = form.get("analyze") === "1";
 
     const db = admin();
@@ -280,7 +283,11 @@ export async function POST(req: Request) {
     // Un échec d'analyse n'annule JAMAIS l'import : l'auteur garde son image
     // et le statut `failed` permet de relancer. Perdre une photo parce que le
     // modèle de vision a hoqueté serait absurde.
-    if (shouldAnalyze) {
+    const canPayAnalysis =
+      shouldAnalyze &&
+      uploaded.length > 0 &&
+      (await checkMinimumBalance(user.id, MIN_AI_CALL_COINS * uploaded.length));
+    if (canPayAnalysis) {
       const CONCURRENCY = 4;
       for (let start = 0; start < uploaded.length; start += CONCURRENCY) {
         const batch = uploaded.slice(start, start + CONCURRENCY);

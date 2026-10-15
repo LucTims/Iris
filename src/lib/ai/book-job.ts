@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/nextjs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { checkMinimumBalance, deductChapterCost } from "@/lib/ai/cost-engine";
-import { estimateChapterCoins, maxChargeForQuote } from "@/lib/ai/pricing";
+import { canonicalModelId, estimateChapterCoins, maxChargeForQuote } from "@/lib/ai/pricing";
 import { fetchSearchContext } from "@/lib/ai/search-context";
 import { generateWithFallback } from "@/lib/ai/model-fallback";
 import {
@@ -287,7 +287,7 @@ export async function processNextChapter(
   const chapter = job.plan[job.current_index];
   const settings = job.settings;
   const wordsTarget = Math.max(400, Math.min(4000, Number(settings.targetWords) || 800));
-  const selectedModelName = settings.model || "gemini-3.6-flash";
+  const selectedModelName = canonicalModelId(settings.model);
 
   const requiredCoins = estimateChapterCoins(wordsTarget, selectedModelName);
   // Option A : solde vérifié sur le montant maximal facturable (devis + 25 %).

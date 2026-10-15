@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance } from "@/lib/ai/cost-engine";
-import { estimateChapterCoins } from "@/lib/ai/pricing";
+import { canonicalModelId, estimateChapterCoins } from "@/lib/ai/pricing";
 import { getServiceRoleClient, type BookJobChapterPlan, type BookJobSettings } from "@/lib/ai/book-job";
 import type { LeasedBookJob } from "@/lib/ai/book-job-lease";
 import { driveBookJob } from "@/lib/ai/book-job-runner";
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
     }
 
     const wordsTarget = Math.max(400, Math.min(4000, Number(settings.targetWords) || 800));
-    const requiredCoins = estimateChapterCoins(wordsTarget, settings.model || "gemini-3.6-flash");
+    const requiredCoins = estimateChapterCoins(wordsTarget, canonicalModelId(settings.model));
     const hasEnoughCoins = await checkMinimumBalance(user.id, requiredCoins);
     if (!hasEnoughCoins) {
       return NextResponse.json(

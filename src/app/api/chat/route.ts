@@ -1,10 +1,11 @@
 import { streamText, generateObject } from "ai";
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
 import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
+import { canonicalModelId, estimateCallCoins, estimateTokensFromText, MIN_AI_CALL_COINS } from "@/lib/ai/pricing";
 import {
   detectIntent,
   resolveTargetChapter,
@@ -18,6 +19,24 @@ import {
 import { factualityRules } from "@/lib/ai/factuality";
 
 export const maxDuration = 60;
+
+/** Historique envoyé au modèle : borné pour que le coût d'entrée reste prévisible. */
+const MAX_HISTORY_MESSAGES = 20;
+const MAX_MESSAGE_CHARS = 8000;
+/** Sortie maximale d'une réponse conversationnelle. */
+const CHAT_MAX_OUTPUT_TOKENS = 4000;
+/**
+ * Longueur de réponse retenue pour la vérification de solde : une réponse
+ * typique, pas le pire cas (qui bloquerait l'assistant pour un solde
+ * modeste). L'éventuel dépassement est prélevé sur le solde restant.
+ */
+const CHAT_EXPECTED_OUTPUT_TOKENS = 1500;
+
+const insufficientFunds = () =>
+  NextResponse.json(
+    { error: "Fonds insuffisants. Rechargez des pièces pour continuer à utiliser l'assistant." },
+    { status: 402 }
+  );
 
 export async function POST(req: Request) {
   try {
@@ -42,7 +61,7 @@ export async function POST(req: Request) {
 
     const body: ExtendedChatApiRequest = await req.json();
     const {
-      messages = [],
+      messages: rawMessages = [],
       context,
       chapters: bodyChapters,
       activeChapterIndex,
@@ -51,12 +70,20 @@ export async function POST(req: Request) {
       useWebSearch = true,
     } = body;
 
-    if (!Array.isArray(messages) || messages.length === 0) {
+    if (!Array.isArray(rawMessages) || rawMessages.length === 0) {
       return NextResponse.json(
         { error: "La liste des messages est requise." },
         { status: 400 }
       );
     }
+
+    // Historique borné (nombre ET taille) : un client ne peut plus envoyer un
+    // historique géant pour faire exploser le coût d'un seul message.
+    const messages = rawMessages.slice(-MAX_HISTORY_MESSAGES).map((msg: any) => ({
+      ...msg,
+      text: typeof msg?.text === "string" ? msg.text.slice(0, MAX_MESSAGE_CHARS) : msg?.text,
+      content: typeof msg?.content === "string" ? msg.content.slice(0, MAX_MESSAGE_CHARS) : msg?.content,
+    }));
 
     // Extract last user prompt (needed early for intent detection & search decision)
     const userMessages = messages.filter(
@@ -97,7 +124,7 @@ export async function POST(req: Request) {
         .eq("user_id", user.id)
         .gte("created_at", (() => { const d = new Date(); d.setUTCDate(1); d.setUTCHours(0,0,0,0); return d.toISOString(); })()),
       // 3. Balance check
-      checkMinimumBalance(user.id, 5),
+      checkMinimumBalance(user.id, MIN_AI_CALL_COINS),
       // 4. Chapters fetch (si pas fournis dans le body)
       (Array.isArray(bodyChapters) && bodyChapters.length > 0) || !projectId
         ? Promise.resolve({ data: null })
@@ -109,7 +136,8 @@ export async function POST(req: Request) {
     const userRole = profile?.role || "user";
 
     // Server Whitelist: Force gemini-3.6-flash for free users attempting gemini-2.5-pro
-    let selectedModelName = chosenModel || "gemini-3.6-flash";
+    // Modèle canonique = modèle réellement appelé ET facturé.
+    let selectedModelName = canonicalModelId(chosenModel);
     if (selectedModelName === "gemini-2.5-pro" && userPlan === "free" && userRole !== "admin") {
       selectedModelName = "gemini-3.6-flash";
     }
@@ -128,12 +156,7 @@ export async function POST(req: Request) {
     }
 
     // Balance check
-    if (!balanceOk) {
-      return NextResponse.json(
-        { error: "Fonds insuffisants. Rechargez des pièces pour continuer à utiliser l'assistant." },
-        { status: 402 }
-      );
-    }
+    if (!balanceOk) return insufficientFunds();
 
     // Detect Intent (with conversation history for confirmations like "oui va y", "tu peux le faire sur le livre ?")
     const intent = detectIntent(lastUserMessage, messages);
@@ -234,8 +257,21 @@ Consignes de génération :
 5. Rédige un court résumé des modifications (1-2 phrases) pour la propriété 'summary'.
 6. Rédige un message chaleureux et explicatif pour la propriété 'chatSummary' (destiné au fil de discussion).`;
 
+      // Le chapitre est renvoyé EN ENTIER : sortie ≈ chapitre actuel + ajouts.
+      // On exige le coût maximal de l'appel avant de le lancer (avant : 5
+      // pièces suffisaient, le débit échouait ensuite et la réécriture était
+      // livrée gratuitement).
+      const modifyMaxOutput = Math.min(
+        16000,
+        Math.max(2000, Math.ceil(estimateTokensFromText(resolved.targetContent) * 1.6) + 1500)
+      );
+      if (!(await checkMinimumBalance(user.id, estimateCallCoins(selectedModelName, editPrompt, modifyMaxOutput)))) {
+        return insufficientFunds();
+      }
+
       const modificationResult = await generateObject({
         model: getAiModel(selectedModelName),
+        maxOutputTokens: modifyMaxOutput,
         schema: z.object({
           chatSummary: z.string().describe("Message conversationnel explicatif pour l'auteur dans le chat"),
           summary: z.string().describe("Résumé synthétique court des modifications effectuées (1 à 2 phrases)"),
@@ -287,7 +323,13 @@ Consignes de génération :
       && !SKIP_SEARCH_PATTERNS.test(lastUserMessage.trim());
 
     const searchContext = shouldSearch
-      ? await fetchSearchContext(selectedModelName, true, lastUserMessage)
+      ? await fetchSearchContext(selectedModelName, true, lastUserMessage, (usage, text) =>
+          deductGenerationCost(user.id, "gemini-3.6-flash", usage, "Assistant IA — recherche web", {
+            projectId: projectId || null,
+            outputText: text,
+            inputText: lastUserMessage,
+          })
+        )
       : "";
 
     const systemPrompt = `Tu es Iris IA : à la fois un assistant de recherche/connaissance complet ET le co-auteur du livre de l'auteur. Tu es cultivé, curieux et compétent sur TOUS les sujets (histoire, économie, sciences, marchés financiers, actualité, etc.), exactement comme un grand modèle de langage généraliste.
@@ -327,10 +369,16 @@ Consignes de style :
       content: msg.text || msg.content || "",
     }));
 
+    const chatInput = systemPrompt + aiMessages.map((m: any) => m.content).join("\n");
+    if (!(await checkMinimumBalance(user.id, estimateCallCoins(selectedModelName, chatInput, CHAT_EXPECTED_OUTPUT_TOKENS)))) {
+      return insufficientFunds();
+    }
+
     const result = streamText({
       model: getAiModel(selectedModelName),
       system: systemPrompt,
       messages: aiMessages,
+      maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
       async onFinish({ usage, text }) {
         await deductGenerationCost(
           user.id,
@@ -344,6 +392,13 @@ Consignes de style :
         );
       },
     });
+
+    // Le débit vit dans onFinish, qui ne s'exécute que si le flux est lu
+    // jusqu'au bout. Sans cela, couper la connexion juste avant la fin
+    // donnait une réponse complète… gratuite. On consomme donc le flux côté
+    // serveur, indépendamment du client, et after() garde la fonction en vie
+    // jusqu'au débit.
+    after(Promise.resolve(result.consumeStream()));
 
     return result.toTextStreamResponse();
   } catch (error) {

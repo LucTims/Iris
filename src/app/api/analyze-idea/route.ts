@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { generateWithFallback } from "@/lib/ai/model-fallback";
-import { DEFAULT_WRITING_MODEL } from "@/lib/ai/pricing";
+import { DEFAULT_WRITING_MODEL, IDEA_ANALYSIS_COINS } from "@/lib/ai/pricing";
+import { checkMinimumBalance, deductFixedCoins } from "@/lib/ai/cost-engine";
 import {
   buildIdeaAnalysisPrompt,
   buildIdeaQuestionsPrompt,
@@ -16,8 +17,8 @@ export const maxDuration = 60;
  * POST /api/analyze-idea — Iris lit l'idée de l'auteur (texte libre ou
  * document) et propose catégorie, public, ton et style (`mode: "analyze"`),
  * ou lui pose quelques questions pour préciser une idée floue
- * (`mode: "questions"`). Appel court sur le modèle économique : offert à
- * l'auteur (non facturé), limité en fréquence.
+ * (`mode: "questions"`). Appel court sur le modèle économique, facturé au
+ * forfait (IDEA_ANALYSIS_COINS) : plus aucune génération IA n'est gratuite.
  */
 export async function POST(req: Request) {
   try {
@@ -49,8 +50,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Décrivez un peu plus votre idée pour qu'Iris puisse l'analyser." }, { status: 400 });
     }
 
+    if (!(await checkMinimumBalance(user.id, IDEA_ANALYSIS_COINS))) {
+      return NextResponse.json(
+        { error: `Fonds insuffisants : ${IDEA_ANALYSIS_COINS} pièces requises pour l'analyse de l'idée.` },
+        { status: 402 }
+      );
+    }
+
     const prompt = mode === "questions" ? buildIdeaQuestionsPrompt(input) : buildIdeaAnalysisPrompt(input);
     const result = await generateWithFallback({ preferred: DEFAULT_WRITING_MODEL, prompt, maxAttempts: 2 });
+
+    await deductFixedCoins(
+      user.id,
+      IDEA_ANALYSIS_COINS,
+      mode === "questions" ? "Questions sur l'idée du livre" : "Analyse de l'idée du livre",
+      { model_id: result.modelUsed, mode }
+    );
 
     if (mode === "questions") {
       const questions = parseIdeaQuestions(result.text);

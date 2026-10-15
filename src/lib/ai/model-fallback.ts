@@ -10,6 +10,8 @@
  * modèle qui a RÉELLEMENT produit le texte.
  */
 
+import { canonicalModelId } from "./pricing";
+
 export type Provider = "google" | "openai" | "anthropic";
 
 /** Fournisseur d'un identifiant de modèle (même logique que getAiModel). */
@@ -32,7 +34,9 @@ const DEFAULT_BY_PROVIDER: Record<Provider, string> = {
  * fournisseur (une clé morte n'affecte jamais qu'un seul fournisseur).
  */
 export function fallbackChain(preferred: string): string[] {
-  const wanted = preferred || DEFAULT_BY_PROVIDER.google;
+  // Identifiant canonique : `modelUsed` (donc la facturation) désigne toujours
+  // le modèle réellement appelé, jamais un alias envoyé par le client.
+  const wanted = preferred ? canonicalModelId(preferred) : DEFAULT_BY_PROVIDER.google;
   const own = providerOf(wanted);
   const others: Provider[] = (["openai", "google", "anthropic"] as Provider[]).filter((p) => p !== own);
   const chain = [wanted, ...others.map((p) => DEFAULT_BY_PROVIDER[p])];
