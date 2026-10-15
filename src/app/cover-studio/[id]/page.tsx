@@ -108,7 +108,11 @@ export default function CoverStudioEditorPage() {
         }),
       });
       if (res.status === 402) {
-        alert("Pièces insuffisantes pour une couverture premium. Choisissez le mode gratuit ou rechargez votre solde.");
+        alert(
+          coverEngine === "premium"
+            ? "Pièces insuffisantes pour une couverture premium (200 pièces). Choisissez le mode standard (20 pièces) ou rechargez votre solde."
+            : "Pièces insuffisantes pour une couverture standard (20 pièces). Rechargez votre solde."
+        );
         return;
       }
       const data = await res.json().catch(() => null);
@@ -127,7 +131,7 @@ export default function CoverStudioEditorPage() {
       // produit l'image. On prévient l'auteur quand il a reçu l'image gratuite.
       if (data.downgraded) {
         alert(
-          "Les moteurs premium sont momentanément indisponibles : une couverture en qualité gratuite a été générée et aucune pièce n'a été débitée."
+          "Les moteurs premium sont momentanément indisponibles : une couverture en qualité standard a été générée et seul le tarif standard (20 pièces) a été débité."
         );
       }
     } catch (err) {
@@ -498,7 +502,7 @@ export default function CoverStudioEditorPage() {
                       onClick={() => setCoverEngine("free")}
                       className={`text-xs font-bold px-3 py-1.5 rounded-md transition-all ${coverEngine === "free" ? "bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 shadow-sm" : "text-neutral-500 dark:text-neutral-400"}`}
                     >
-                      Gratuit
+                      Standard · 20
                     </button>
                     <button
                       onClick={() => setCoverEngine("premium")}

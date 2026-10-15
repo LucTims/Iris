@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductChapterCost } from "@/lib/ai/cost-engine";
 import { generateWithFallback } from "@/lib/ai/model-fallback";
-import { estimateChapterCoins, maxChargeForQuote } from "@/lib/ai/pricing";
+import { canonicalModelId, estimateChapterCoins, maxChargeForQuote } from "@/lib/ai/pricing";
 import { fetchSearchContext } from "@/lib/ai/search-context";
 import { detectGenre, shouldGroundWithWebSearch, buildChapterSystemPrompt } from "@/lib/ai/book-style";
 import { sanitizeGeneratedHtml } from "@/lib/ai/sanitize-html";
@@ -123,7 +123,7 @@ export async function POST(req: Request) {
     // des chapitres démesurés qui dépasseraient la limite de temps de 60 s.
     const wordsTarget = Math.max(400, Math.min(4000, Number(targetWords) || 0));
 
-    const selectedModelName = chosenModel || "gemini-3.6-flash";
+    const selectedModelName = canonicalModelId(chosenModel);
 
     // Garde-fou : on exige le coût ESTIMÉ du chapitre (pages × tarif/page) AVANT
     // de générer, pour s'arrêter proprement quand les pièces manquent — sans

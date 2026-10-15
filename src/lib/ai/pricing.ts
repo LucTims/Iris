@@ -104,6 +104,42 @@ export function pagesFromText(text: string | undefined | null): number {
 export const COVER_IMAGE_COINS = 200;
 
 /**
+ * Coût FIXE d'une couverture en mode « standard » (moteur économique). Elle
+ * était gratuite : rien n'empêchait un compte d'en produire des milliers par
+ * jour. Toute génération coûte désormais des pièces.
+ */
+export const COVER_STANDARD_COINS = 20;
+
+/** Coût FIXE de l'analyse d'une idée de livre (assistant de création). */
+export const IDEA_ANALYSIS_COINS = 5;
+
+/**
+ * Plancher facturé pour TOUT appel IA au token (chat, action contextuelle,
+ * GEO, analyse d'image…). Sans lui, une action très courte coûtait 1 pièce et
+ * l'assistant devenait quasi gratuit à l'usage.
+ */
+export const MIN_AI_CALL_COINS = 3;
+
+/**
+ * Identifiant CANONIQUE du modèle réellement appelé pour un identifiant reçu
+ * du client — exactement le même routage que `getAiModel`. On facture
+ * toujours ce modèle-là : un client qui envoie « o3 », « gpt-5 » ou
+ * « claude-x » obtient gpt-4o / claude-sonnet-5, et doit les payer comme tels
+ * (avant, ces identifiants inconnus de la table de prix passaient gratis).
+ */
+export function canonicalModelId(modelId: string | null | undefined): string {
+  const m = String(modelId || "").trim().toLowerCase();
+  if (!m) return DEFAULT_WRITING_MODEL;
+  if (m.startsWith("gpt-") || m.startsWith("chatgpt") || m.startsWith("o1") || m.startsWith("o3")) {
+    return m.includes("mini") ? "gpt-4o-mini" : "gpt-4o";
+  }
+  if (m.startsWith("claude")) {
+    return m.includes("haiku") ? "claude-haiku-4-5-20251001" : "claude-sonnet-5";
+  }
+  return m.includes("pro") ? "gemini-2.5-pro" : "gemini-3.6-flash";
+}
+
+/**
  * Extrait les tokens (entrée/sortie) d'un objet `usage` renvoyé par le SDK IA,
  * de façon TOLÉRANTE au nommage. Le SDK `ai` a renommé ces champs en v5 :
  *   - v4 : `promptTokens` / `completionTokens`
@@ -145,7 +181,39 @@ export const MODEL_RATES_USD: Record<string, { in: number; out: number }> = {
   "gpt-4o-mini": { in: 0.15, out: 0.6 },
   "claude-3-5-sonnet-20240620": { in: 3, out: 15 },
   "claude-sonnet-5": { in: 3, out: 15 },
+  "claude-haiku-4-5-20251001": { in: 1, out: 5 },
 };
+
+/**
+ * Tarif USD/1M tokens d'un modèle, SANS jamais renvoyer « inconnu ». Sert de
+ * filet au moteur de débit quand la table `ai_models` n'a pas la ligne : c'est
+ * précisément ce qui rendait gratuit tout appel au modèle par défaut
+ * (gemini-3.6-flash absent de la table → débit abandonné en silence).
+ */
+export function ratesForModel(modelId: string): { in: number; out: number } {
+  return (
+    MODEL_RATES_USD[modelId] ||
+    MODEL_RATES_USD[canonicalModelId(modelId)] ||
+    MODEL_RATES_USD["gpt-4o"] // inconnu : tarif le plus élevé, jamais gratuit
+  );
+}
+
+/** Pièces facturées pour un appel IA au token (marge incluse, plancher MIN_AI_CALL_COINS). */
+export function tokenCallCoins(modelId: string, inputTokens: number, outputTokens: number): number {
+  const rate = ratesForModel(modelId);
+  const usd = (Math.max(0, inputTokens) * rate.in + Math.max(0, outputTokens) * rate.out) / 1_000_000;
+  return Math.max(MIN_AI_CALL_COINS, Math.ceil(usd * COINS_PER_USD));
+}
+
+/**
+ * Montant à exiger AVANT un appel IA au token : coût de l'entrée (connue) +
+ * sortie maximale autorisée. Vérifier un solde fixe de 5 pièces laissait
+ * passer une réécriture de chapitre sur Claude (~700 pièces) avec 5 pièces
+ * en poche : le débit échouait ensuite et le texte était livré gratuitement.
+ */
+export function estimateCallCoins(modelId: string, inputText: string, maxOutputTokens: number): number {
+  return tokenCallCoins(modelId, estimateTokensFromText(inputText), maxOutputTokens);
+}
 
 /**
  * Coût (pièces) d'un chapitre d'environ `words` mots avec `model` — désormais

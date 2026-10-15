@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
-import { OUTLINE_MAX_COINS } from "@/lib/ai/pricing";
+import { OUTLINE_MAX_COINS, canonicalModelId } from "@/lib/ai/pricing";
 import { generateWithFallback } from "@/lib/ai/model-fallback";
 import { detectGenre } from "@/lib/ai/book-style";
 import { resolveWorkType, workTypeOutlineRules, WORK_TYPE_META } from "@/lib/book/work-type";
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
       workType: requestedWorkType,
     } = await req.json();
 
-    const selectedModelName = chosenModel || "gemini-3.6-flash";
+    const selectedModelName = canonicalModelId(chosenModel);
     const nbChapters = Math.max(3, Math.min(24, Number(targetChapters) || 8));
     // La forme de l'ouvrage décide du découpage : un guide s'articule en
     // étapes opérationnelles, un livre en chapitres thématiques.

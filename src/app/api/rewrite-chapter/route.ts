@@ -1,10 +1,10 @@
 import { streamText } from "ai";
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
 import { checkMinimumBalance, deductChapterCost } from "@/lib/ai/cost-engine";
-import { estimatePagesCoins, maxChargeForQuote, pagesFromText } from "@/lib/ai/pricing";
+import { canonicalModelId, estimatePagesCoins, maxChargeForQuote, pagesFromText } from "@/lib/ai/pricing";
 import {
   getAiModel,
   fetchSearchContext,
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     const userPlan = profile?.plan || "free";
     const userRole = profile?.role || "user";
 
-    let selectedModelName = model || "gemini-3.6-flash";
+    let selectedModelName = canonicalModelId(model);
     if (selectedModelName === "gemini-2.5-pro" && userPlan === "free" && userRole !== "admin") {
       selectedModelName = "gemini-3.6-flash";
     }
@@ -138,6 +138,10 @@ ${factualityRules(searchContext)}`,
         );
       },
     });
+
+    // Débit dans onFinish : on lit le flux côté serveur jusqu'au bout, même si
+    // le client coupe la connexion avant la fin (sinon réécriture gratuite).
+    after(Promise.resolve(result.consumeStream()));
 
     return result.toTextStreamResponse();
   } catch (error) {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
-import { PLAN_MAX_COINS } from "@/lib/ai/pricing";
+import { PLAN_MAX_COINS, canonicalModelId } from "@/lib/ai/pricing";
 import { generateWithFallback } from "@/lib/ai/model-fallback";
 import { fetchSearchContext } from "@/lib/ai/search-context";
 import { detectGenre, shouldGroundWithWebSearch } from "@/lib/ai/book-style";
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       imageUrls,
     } = await req.json();
 
-    const selectedModelName = chosenModel || "gemini-3.6-flash";
+    const selectedModelName = canonicalModelId(chosenModel);
     const genre = detectGenre(category, tone);
     const webSearchEnabled = shouldGroundWithWebSearch(genre, useWebSearch);
     // Forme de l'ouvrage : elle décide du DÉCOUPAGE (un guide se découpe en

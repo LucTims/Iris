@@ -2,8 +2,8 @@ import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { createClient as createAdminClient, type SupabaseClient } from "@supabase/supabase-js";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { checkMinimumBalance, deductFixedCoins, deductGenerationCost } from "@/lib/ai/cost-engine";
-import { COVER_IMAGE_COINS } from "@/lib/ai/pricing";
+import { checkMinimumBalance, deductFixedCoins } from "@/lib/ai/cost-engine";
+import { COVER_IMAGE_COINS, COVER_STANDARD_COINS } from "@/lib/ai/pricing";
 import {
   buildCoverPrompt,
   pollinationsUrl,
@@ -592,16 +592,14 @@ export async function generateCoverForUser(
 
   const basePrompt = buildCoverPrompt({ ...meta, userPrompt });
 
-  // Vérification du solde avant pour le mode premium
-  if (engine === "premium") {
-    const ok = await checkMinimumBalance(userId, COVER_IMAGE_COINS, db);
-    if (!ok) {
-      return {
-        ok: false,
-        status: 402,
-        error: `Fonds insuffisants : ${COVER_IMAGE_COINS} pièces requises pour une couverture premium.`,
-      };
-    }
+  // Vérification du solde AVANT toute génération — les deux modes sont payants.
+  const requiredCoins = engine === "premium" ? COVER_IMAGE_COINS : COVER_STANDARD_COINS;
+  if (!(await checkMinimumBalance(userId, requiredCoins, db))) {
+    return {
+      ok: false,
+      status: 402,
+      error: `Fonds insuffisants : ${requiredCoins} pièces requises pour une couverture ${engine === "premium" ? "premium" : "standard"}.`,
+    };
   }
 
   // Direction artistique IA via Gemini : traduit et enrichit le prompt en
@@ -609,12 +607,10 @@ export async function generateCoverForUser(
   // gratuit le prompt voyage dans une URL GET, et un pavé de 1 500 caractères
   // faisait rejeter la requête par Pollinations.
   let finalPrompt = basePrompt;
-  let artDirectionUsage: unknown = undefined;
-  let artDirectionText = "";
   try {
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), 9000);
-    const { text, usage } = await generateText({
+    const { text } = await generateText({
       model: google(ART_DIRECTION_MODEL),
       abortSignal: controller.signal,
       prompt: `You are a world-renowned visual art director and master concept artist creating multimillion-dollar bestseller book covers and cinematic movie posters.
@@ -635,8 +631,6 @@ Essential Requirements:
     clearTimeout(t);
     if (text.trim()) {
       finalPrompt = truncatePrompt(text.trim());
-      artDirectionUsage = usage;
-      artDirectionText = text;
     }
   } catch (e) {
     console.warn("[generate-cover] enrichissement prompt ignoré:", e);
@@ -682,46 +676,28 @@ Essential Requirements:
     url = `data:${generated.contentType};base64,${generated.bytes.toString("base64")}`;
   }
 
-  // 3) Débit des pièces : UNIQUEMENT si un moteur réellement premium a produit
-  //    l'image. Auparavant, quand aucune clé premium n'était configurée (ou
-  //    que tous les moteurs échouaient), le pipeline retombait en silence sur
-  //    Pollinations — gratuit — mais facturait quand même 200 pièces. L'auteur
-  //    payait le prix premium pour l'image du mode gratuit.
+  // 3) Débit des pièces. Premium (200) uniquement si un moteur réellement
+  //    premium a produit l'image ; sinon tarif standard (20), qui couvre aussi
+  //    la direction artistique IA. Le mode « gratuit » n'existe plus : rien
+  //    n'empêchait un compte de générer des milliers d'images par jour.
   const billedPremium = engine === "premium" && generated.premium;
-  if (billedPremium) {
-    await deductFixedCoins(
-      userId,
-      COVER_IMAGE_COINS,
-      `Couverture premium (${generated.usedModel})`,
-      { project_id: projectId || null, engine: generated.usedModel },
-      db
+  const chargedCoins = billedPremium ? COVER_IMAGE_COINS : COVER_STANDARD_COINS;
+  if (engine === "premium" && !billedPremium) {
+    // Diagnostic explicite dans les logs : sans cela, une clé premium
+    // manquante restait totalement invisible côté exploitation.
+    console.error(
+      "[generate-cover] Mode premium demandé mais AUCUN moteur premium disponible — " +
+        "image standard servie, tarif standard débité. Causes :",
+      generated.failures.join(" | ") || "inconnue"
     );
-  } else {
-    if (engine === "premium") {
-      // Diagnostic explicite dans les logs : sans cela, une clé premium
-      // manquante restait totalement invisible côté exploitation.
-      console.error(
-        "[generate-cover] Mode premium demandé mais AUCUN moteur premium disponible — " +
-          "image gratuite servie, aucune pièce débitée. Causes :",
-        generated.failures.join(" | ") || "inconnue"
-      );
-    }
-
-    // Même une couverture « gratuite » consomme un appel IA réel : la
-    // direction artistique Gemini qui traduit et enrichit le prompt. Elle
-    // n'était facturée nulle part. On la débite ici au coût token réel
-    // (quelques pièces) pour qu'AUCUN appel IA ne reste gratuit.
-    // En premium, ce coût est déjà couvert par le forfait de 200 pièces.
-    if (artDirectionText) {
-      await deductGenerationCost(
-        userId,
-        ART_DIRECTION_MODEL,
-        artDirectionUsage,
-        "Direction artistique de couverture",
-        { projectId: projectId || null, outputText: artDirectionText, inputText: basePrompt, client: db }
-      );
-    }
   }
+  await deductFixedCoins(
+    userId,
+    chargedCoins,
+    `Couverture ${billedPremium ? "premium" : "standard"} (${generated.usedModel})`,
+    { project_id: projectId || null, engine: generated.usedModel },
+    db
+  );
 
   // Traçabilité best-effort
   try {
@@ -753,7 +729,7 @@ Essential Requirements:
     engine: billedPremium ? "premium" : "free",
     requestedEngine: engine,
     downgraded: engine === "premium" && !billedPremium,
-    charged: billedPremium ? COVER_IMAGE_COINS : 0,
+    charged: chargedCoins,
     width: COVER_WIDTH,
     height: COVER_HEIGHT,
     model: generated.usedModel,

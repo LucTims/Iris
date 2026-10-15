@@ -5,8 +5,17 @@ import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
 import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
 import { getAiModel } from "@/lib/ai/search-context";
+import { canonicalModelId, estimateCallCoins, estimateTokensFromText } from "@/lib/ai/pricing";
 
 export const maxDuration = 60;
+
+/**
+ * Taille maximale d'une sélection traitée par une action contextuelle. Au-delà
+ * (un chapitre entier, voire le livre), c'est le rôle de « Réécrire le
+ * chapitre », facturé à la page.
+ */
+const MAX_SELECTION_CHARS = 30000;
+const MAX_INSTRUCTION_CHARS = 2000;
 
 export async function POST(req: Request) {
   try {
@@ -45,6 +54,12 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+    if (String(selectedText).length > MAX_SELECTION_CHARS) {
+      return NextResponse.json(
+        { error: "Sélection trop longue pour une action rapide. Utilisez « Réécrire le chapitre »." },
+        { status: 413 }
+      );
+    }
 
     // 1. Fetch user profile & plan
     const { data: profile } = await supabase
@@ -57,7 +72,8 @@ export async function POST(req: Request) {
     const userRole = profile?.role || "user";
 
     // 2. Server Whitelist: Force gemini-3.6-flash for free users attempting gemini-2.5-pro
-    let selectedModelName = chosenModel || "gemini-3.6-flash";
+    // Modèle canonique = modèle réellement appelé ET facturé.
+    let selectedModelName = canonicalModelId(chosenModel);
     if (selectedModelName === "gemini-2.5-pro" && userPlan === "free" && userRole !== "admin") {
       selectedModelName = "gemini-3.6-flash";
     }
@@ -68,14 +84,6 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: `Quota mensuel d'IA atteint. Passez à un plan supérieur.` },
         { status: 429 }
-      );
-    }
-
-    // 3b. Vérifie le solde de pièces
-    if (!(await checkMinimumBalance(user.id, 5))) {
-      return NextResponse.json(
-        { error: "Fonds insuffisants (pièces) pour cette action IA." },
-        { status: 402 }
       );
     }
 
@@ -95,7 +103,7 @@ export async function POST(req: Request) {
     // Une instruction libre (venue du chat ou du mini-champ inline) prime sur
     // les actions prédéfinies de la bulle.
     if (customInstruction && String(customInstruction).trim()) {
-      instruction = `Applique la consigne suivante de l'auteur au texte, en ne modifiant QUE ce passage : "${String(customInstruction).trim()}"`;
+      instruction = `Applique la consigne suivante de l'auteur au texte, en ne modifiant QUE ce passage : "${String(customInstruction).trim().slice(0, MAX_INSTRUCTION_CHARS)}"`;
     } else {
       switch (actionType) {
         case "reformuler":
@@ -127,10 +135,23 @@ Instructions impératives :
 2. Respecte le format de la sélection : si c'est un fragment de phrase (pas un paragraphe entier), renvoie du texte au fil du texte SANS balise <p> autour, pour qu'il s'insère proprement là où était la sélection. Conserve le formatage inline présent (<strong>, <em>). Utilise des balises de bloc (<p>, <h2>, <ul>...) uniquement si la sélection couvrait déjà plusieurs blocs.
 3. Ne réponds qu'avec le résultat final de la transformation, rien d'autre.`;
 
+    const prompt = `Voici le texte à traiter :\n\n${selectedText}`;
+
+    // Sortie bornée (≈ 3× la sélection, pour « étendre ») et solde exigé sur
+    // ce coût maximal AVANT l'appel : plus de génération livrée impayée.
+    const maxOutputTokens = Math.min(8000, Math.max(800, Math.ceil(estimateTokensFromText(String(selectedText)) * 3)));
+    if (!(await checkMinimumBalance(user.id, estimateCallCoins(selectedModelName, systemPrompt + prompt, maxOutputTokens)))) {
+      return NextResponse.json(
+        { error: "Fonds insuffisants (pièces) pour cette action IA." },
+        { status: 402 }
+      );
+    }
+
     const genResult = await generateText({
       model: getAiModel(selectedModelName),
       system: systemPrompt,
-      prompt: `Voici le texte à traiter :\n\n${selectedText}`,
+      prompt,
+      maxOutputTokens,
     });
 
     await deductGenerationCost(

@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { COVER_IMAGE_COINS, MCP_COINS_PER_PAGE, WORDS_PER_PAGE } from "@/lib/ai/pricing";
+import { COVER_IMAGE_COINS, COVER_STANDARD_COINS, MCP_COINS_PER_PAGE, WORDS_PER_PAGE } from "@/lib/ai/pricing";
 import { renderBookPdf } from "@/lib/export/pdfBook";
 import { writeChapterWithBilling } from "@/lib/mcp/writeChapter";
 import { generateCoverForUser } from "@/lib/cover/generateCover";
@@ -278,11 +278,11 @@ export function buildMcpServer(userId: string): McpServer {
 
   server.tool(
     "generate_cover",
-    "Générer une couverture IA pour un livre et l'appliquer automatiquement au projet. Utilise le moteur gratuit par défaut.",
+    `Générer une couverture IA pour un livre et l'appliquer automatiquement au projet. Utilise le moteur standard par défaut (${COVER_STANDARD_COINS} pièces).`,
     {
       book_id: z.string().describe("ID du projet"),
       prompt: z.string().optional().describe("Description visuelle optionnelle pour guider la génération de l'image (ex: 'Un paysage africain au coucher du soleil')"),
-      engine: z.enum(["free", "premium"]).optional().describe(`Moteur de génération : 'free' (par défaut, seule la direction artistique IA est facturée, quelques pièces) ou 'premium' (${COVER_IMAGE_COINS} pièces)`),
+      engine: z.enum(["free", "premium"]).optional().describe(`Moteur de génération : 'free' (par défaut, moteur standard, ${COVER_STANDARD_COINS} pièces) ou 'premium' (${COVER_IMAGE_COINS} pièces)`),
     },
     async ({ book_id, prompt, engine }) => {
       // Appel DIRECT de la logique partagée, avec l'identité de la clé API :
@@ -317,8 +317,8 @@ export function buildMcpServer(userId: string): McpServer {
         const billing = result.charged > 0
           ? `${result.charged} pièces débitées`
           : result.downgraded
-            ? "aucun moteur premium disponible : image du moteur gratuit, forfait premium non débité"
-            : "moteur gratuit (seule la direction artistique IA est facturée, quelques pièces)";
+            ? `aucun moteur premium disponible : image du moteur standard, tarif standard (${COVER_STANDARD_COINS} pièces) débité au lieu du forfait premium`
+            : `moteur standard (${COVER_STANDARD_COINS} pièces)`;
         return {
           content: [{
             type: "text",

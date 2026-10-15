@@ -6,6 +6,9 @@ import {
   estimateTokensFromText,
   coinsPerPage,
   chapterChargeCoins,
+  canonicalModelId,
+  ratesForModel,
+  MIN_AI_CALL_COINS,
 } from "@/lib/ai/pricing";
 
 /**
@@ -66,10 +69,52 @@ export async function deductFixedCoins(
 
   if (rpcError) {
     console.error("Error deducting fixed coins:", rpcError);
-    await traceBillingFailure(supabase, userId, p_amount, description, rpcError.message, metadata);
+    const drained = await drainOnInsufficientFunds(supabase, userId, p_amount, description, rpcError.message, metadata);
+    await traceBillingFailure(supabase, userId, p_amount, description, rpcError.message, {
+      ...metadata,
+      drained_coins: drained,
+    });
     return false;
   }
   return true;
+}
+
+/**
+ * Le contenu est DÉJÀ produit (et payé au fournisseur) quand le débit échoue
+ * pour solde insuffisant — typiquement plusieurs générations lancées en
+ * parallèle qui passent toutes la vérification de solde. Plutôt que de livrer
+ * gratuitement, on prélève ce qui reste sur le wallet (jusqu'au montant dû).
+ * Le reliquat impayé reste tracé dans `ai_usage` (billing_failed).
+ *
+ * Renvoie le nombre de pièces effectivement prélevées (0 si rien).
+ */
+async function drainOnInsufficientFunds(
+  supabase: SupabaseClient,
+  userId: string,
+  amountDue: number,
+  description: string,
+  reason: string,
+  metadata: Record<string, unknown>
+): Promise<number> {
+  if (!/insufficient funds/i.test(reason)) return 0;
+  try {
+    const { data: wallet } = await supabase
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", userId)
+      .single();
+    const remaining = Math.min(Math.floor(Number(wallet?.balance) || 0), amountDue);
+    if (remaining <= 0) return 0;
+    const { error } = await supabase.rpc("process_ai_cost", {
+      p_user_id: userId,
+      p_amount: remaining,
+      p_description: `${description} (solde insuffisant — prélèvement partiel)`,
+      p_metadata: { ...metadata, partial: true, amount_due: amountDue },
+    });
+    return error ? 0 : remaining;
+  } catch {
+    return 0;
+  }
 }
 
 /**
@@ -217,49 +262,64 @@ export async function deductCost(
 
   const supabase = client ?? (await createClient());
 
-  // 1. Get model costs
-  const { data: model, error: modelError } = await supabase
+  // Toujours facturer le modèle RÉELLEMENT appelé (même routage que getAiModel).
+  const billedModel = canonicalModelId(modelId);
+
+  // 1. Tarifs du modèle : la table `ai_models` fait foi ; à défaut, les tarifs
+  //    de référence du code. Avant, une ligne manquante (cas du modèle par
+  //    défaut gemini-3.6-flash) faisait ABANDONNER le débit sans aucune trace :
+  //    tout l'assistant IA de l'éditeur était gratuit.
+  let inRate: number;
+  let outRate: number;
+  const { data: model } = await supabase
     .from("ai_models")
     .select("input_cost_per_1m, output_cost_per_1m")
-    .eq("model_id", modelId)
-    .single();
+    .eq("model_id", billedModel)
+    .maybeSingle();
 
-  if (modelError || !model) {
-    console.error("Error fetching model costs:", modelError);
-    return false;
+  if (model) {
+    inRate = Number(model.input_cost_per_1m);
+    outRate = Number(model.output_cost_per_1m);
+  } else {
+    const fallback = ratesForModel(billedModel);
+    inRate = fallback.in;
+    outRate = fallback.out;
+    console.warn(`[cost-engine] ${billedModel} absent de ai_models — tarif de référence utilisé`);
   }
 
   // 2. Calculate cost in USD
-  const inputCostUsd = (safeInputTokens / 1_000_000) * Number(model.input_cost_per_1m);
-  const outputCostUsd = (safeOutputTokens / 1_000_000) * Number(model.output_cost_per_1m);
+  const inputCostUsd = (safeInputTokens / 1_000_000) * inRate;
+  const outputCostUsd = (safeOutputTokens / 1_000_000) * outRate;
   const totalCostUsd = inputCostUsd + outputCostUsd;
 
-  // 3. Convert to Coins — marge incluse. La constante vit dans @/lib/ai/pricing
-  // (source unique de l'économie des pièces, ajustable x4 → x5).
-  let costInCoins = Math.ceil(totalCostUsd * COINS_PER_USD);
-
-  // Enforce a minimum of 1 coin if it was a very small request
-  if (costInCoins < 1) costInCoins = 1;
+  // 3. Conversion en pièces — marge incluse (COINS_PER_USD, @/lib/ai/pricing),
+  //    avec un plancher par appel : aucune génération ne coûte ~0.
+  let costInCoins = Math.max(MIN_AI_CALL_COINS, Math.ceil(totalCostUsd * COINS_PER_USD));
   if (maxCoins && maxCoins > 0) costInCoins = Math.min(costInCoins, maxCoins);
+
+  const metadata = {
+    model_id: billedModel,
+    ...(billedModel !== modelId ? { requested_model: modelId } : {}),
+    input_tokens: safeInputTokens,
+    output_tokens: safeOutputTokens,
+    usd_cost: totalCostUsd,
+    ...(projectId ? { project_id: projectId } : {}),
+  };
 
   // 4. Deduct using RPC
   const { error: rpcError } = await supabase.rpc("process_ai_cost", {
     p_user_id: userId,
     p_amount: costInCoins,
     p_description: description,
-    p_metadata: {
-      model_id: modelId,
-      input_tokens: safeInputTokens,
-      output_tokens: safeOutputTokens,
-      usd_cost: totalCostUsd,
-      ...(projectId ? { project_id: projectId } : {}),
-    }
+    p_metadata: metadata,
   });
 
   if (rpcError) {
     console.error("Error deducting cost:", rpcError);
+    const drained = await drainOnInsufficientFunds(supabase, userId, costInCoins, description, rpcError.message, metadata);
     await traceBillingFailure(supabase, userId, costInCoins, description, rpcError.message, {
       project_id: projectId,
+      drained_coins: drained,
     });
     return false;
   }

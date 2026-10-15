@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { COVER_IMAGE_COINS } from "@/lib/ai/pricing";
+import { COVER_IMAGE_COINS, COVER_STANDARD_COINS } from "@/lib/ai/pricing";
 import { sha256Hex } from "@/lib/mcp/hash";
 import { createFakeSupabase, IRIS_TABLES } from "./helpers/fakeSupabase";
 
@@ -103,7 +103,7 @@ describe("MCP generate_cover", () => {
 
   const calledUrls = () => fetchMock.mock.calls.map(([input]) => String(input instanceof Request ? input.url : input));
 
-  it("gratuit : génère sans passer par /api/generate-cover, applique la couverture et facture la direction artistique", async () => {
+  it("standard : génère sans passer par /api/generate-cover, applique la couverture et débite le tarif standard", async () => {
     const result = await callTool("generate_cover", { book_id: BOOK });
 
     expect(result.isError).toBe(false);
@@ -114,10 +114,10 @@ describe("MCP generate_cover", () => {
     expect(storedPath.startsWith(`covers/${USER}/${BOOK}-`)).toBe(true);
     expect(fake.table("projects").find((p) => p.id === BOOK)?.cover_url).toBe(`https://storage.test/${storedPath}`);
 
-    // Même en gratuit, l'appel Gemini de direction artistique est débité.
+    // Plus de mode gratuit : forfait standard (direction artistique comprise).
     expect(fake.debits()).toHaveLength(1);
-    expect(fake.debits()[0].description).toBe("Direction artistique de couverture");
-    expect(fake.balanceOf(USER)).toBeLessThan(1000);
+    expect(fake.debits()[0].description).toBe("Couverture standard (pollinations/flux)");
+    expect(fake.balanceOf(USER)).toBe(1000 - COVER_STANDARD_COINS);
     expect(fake.table("ai_usage")).toContainEqual(
       expect.objectContaining({ user_id: USER, project_id: BOOK, action: "generate_cover_free" })
     );
@@ -144,6 +144,17 @@ describe("MCP generate_cover", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(fake.debits()).toHaveLength(0);
     expect(fake.table("projects").find((p) => p.id === BOOK)?.cover_url).toBeUndefined();
+  });
+
+  it("standard avec solde insuffisant : rien n'est généré ni débité", async () => {
+    fake.table("wallets")[0].balance = COVER_STANDARD_COINS - 1;
+    const result = await callTool("generate_cover", { book_id: BOOK });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("Fonds insuffisants");
+    expect(generateText).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fake.debits()).toHaveLength(0);
   });
 
   it("refuse le livre d'un autre compte, avant toute génération ou facturation", async () => {
