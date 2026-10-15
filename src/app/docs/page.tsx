@@ -3,8 +3,8 @@ import Link from "next/link";
 import { Zap, Key, Code2, Bot, BookOpen } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Introduction - Iris Docs",
-  description: "Bienvenue sur Iris - La plateforme tout-en-un pour la co-création littéraire",
+  title: "Introduction - Documentation",
+  description: "Bienvenue sur Iris - La plateforme tout-en-un pour la co-création littéraire assistée par IA.",
 };
 
 export default function DocsPage() {

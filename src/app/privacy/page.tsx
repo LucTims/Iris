@@ -2,8 +2,8 @@ import LegalPageLayout, { LegalSection } from "@/components/LegalPageLayout";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Politique de confidentialité - Iris",
-  description: "Comment nous protégeons vos données et vos manuscrits.",
+  title: "Politique de confidentialité",
+  description: "Comment nous protégeons vos données, vos projets et la propriété intellectuelle de vos manuscrits sur Iris.",
 };
 
 export default function PrivacyPage() {
