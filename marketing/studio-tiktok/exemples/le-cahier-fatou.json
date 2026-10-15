@@ -1,0 +1,40 @@
+{
+  "titre": "Le cahier",
+  "format": "Récit sans visage",
+  "voix": "Fatou",
+  "voice_audio": "voix.mp3",
+  "hook": { "text": "Il y a un cahier, quelque part chez toi|…", "until": 2 },
+  "chunks": [
+    { "text": "Il y a un cahier," },
+    { "text": "quelque part chez toi." },
+    { "text": "Dedans :" },
+    { "text": "des années d’expérience.", "hl": ["expérience."] },
+    { "text": "Des choses que tu sais" },
+    { "text": "mieux que personne.", "hl": ["personne."] },
+    { "text": "Et ce cahier…" },
+    { "text": "dort.", "hl": ["dort."] },
+    { "text": "Pendant ce temps," },
+    { "text": "quelqu’un, quelque part," },
+    { "text": "aurait eu besoin" },
+    { "text": "exactement de ce que tu sais.", "hl": ["tu", "sais."] },
+    { "text": "Ton savoir mérite" },
+    { "text": "d’être lu.", "hl": ["d’être", "lu."] },
+    { "text": "Avec tes mots,", "hl": ["mots,"] },
+    { "text": "ta voix.", "hl": ["voix."] },
+    { "text": "Iris t’aide" },
+    { "text": "à en faire un vrai livre.", "hl": ["vrai", "livre."] },
+    { "text": "Et c’est toi", "hl": ["toi"] },
+    { "text": "qui tiens la plume.", "hl": ["plume."] }
+  ],
+  "scenes": [
+    { "type": "video", "src": "plans/cahier-nuit.mp4", "from": 0 },
+    { "type": "image", "src": "plans/mains-notes.png", "from": 2 },
+    { "type": "image", "src": "plans/experte.png", "from": 4 },
+    { "type": "image", "src": "plans/cahier-poussiere.png", "from": 6 },
+    { "type": "image", "src": "plans/jeune-telephone.png", "from": 8 },
+    { "type": "video", "src": "plans/lectrice-fiere.mp4", "from": 12 },
+    { "type": "image", "src": "plans/plume.png", "from": 16 }
+  ],
+  "endcard": { "l1": "Ton savoir,", "l2": "ton livre.", "cta": "Écris « DÉMO » sur WhatsApp" },
+  "legende": "Ton savoir mérite d'être lu 📖 Quel savoir dort dans ton cahier ? Dis-le en commentaire 👇\n#écrire #livre #auteur #ebook #transmettre #afrique"
+}
