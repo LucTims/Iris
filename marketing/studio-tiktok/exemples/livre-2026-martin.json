@@ -1,0 +1,369 @@
+{
+ "titre": "Comment créer un livre en 2026",
+ "format": "Avatar Martin + inserts",
+ "voix": "Martin (Krys Martin-1)",
+ "voice_audio": "voixA.mp3",
+ "uppercase": true,
+ "hook": {
+  "text": "Créer un livre en |2026",
+  "until": 4
+ },
+ "badge": {
+  "name": "Martin",
+  "role": "Fondateur d'Iris",
+  "from": 4,
+  "until": 7
+ },
+ "subscribe": {
+  "from": 52
+ },
+ "chunks": [
+  {
+   "text": "Écrire un livre",
+   "hl": []
+  },
+  {
+   "text": "en 2026…",
+   "hl": [
+    "2026…"
+   ]
+  },
+  {
+   "text": "tu fais encore",
+   "hl": []
+  },
+  {
+   "text": "comme ça ?",
+   "hl": []
+  },
+  {
+   "text": "Avant, c'était",
+   "hl": []
+  },
+  {
+   "text": "le parcours",
+   "hl": []
+  },
+  {
+   "text": "du combattant.",
+   "hl": [
+    "combattant."
+   ]
+  },
+  {
+   "text": "Tu demandais",
+   "hl": []
+  },
+  {
+   "text": "à ChatGPT",
+   "hl": [
+    "ChatGPT"
+   ]
+  },
+  {
+   "text": "d'écrire un chapitre.",
+   "hl": []
+  },
+  {
+   "text": "Tu copiais.",
+   "hl": [
+    "copiais."
+   ]
+  },
+  {
+   "text": "Tu collais",
+   "hl": [
+    "collais"
+   ]
+  },
+  {
+   "text": "dans Canva.",
+   "hl": [
+    "Canva."
+   ]
+  },
+  {
+   "text": "Tu remettais",
+   "hl": []
+  },
+  {
+   "text": "tout en page…",
+   "hl": []
+  },
+  {
+   "text": "et tu recommençais,",
+   "hl": [
+    "recommençais,"
+   ]
+  },
+  {
+   "text": "chapitre",
+   "hl": []
+  },
+  {
+   "text": "après chapitre.",
+   "hl": [
+    "chapitre."
+   ]
+  },
+  {
+   "text": "Et au milieu",
+   "hl": []
+  },
+  {
+   "text": "de tout ça,",
+   "hl": []
+  },
+  {
+   "text": "l'IA inventait",
+   "hl": [
+    "inventait"
+   ]
+  },
+  {
+   "text": "parfois des choses.",
+   "hl": []
+  },
+  {
+   "text": "Des chiffres faux,",
+   "hl": [
+    "faux,"
+   ]
+  },
+  {
+   "text": "des exemples",
+   "hl": []
+  },
+  {
+   "text": "qui n'existent pas.",
+   "hl": [
+    "n'existent",
+    "pas."
+   ]
+  },
+  {
+   "text": "Résultat :",
+   "hl": []
+  },
+  {
+   "text": "un livre",
+   "hl": []
+  },
+  {
+   "text": "pas toujours juste…",
+   "hl": [
+    "juste…"
+   ]
+  },
+  {
+   "text": "et des nuits",
+   "hl": [
+    "nuits"
+   ]
+  },
+  {
+   "text": "entières",
+   "hl": []
+  },
+  {
+   "text": "à tout vérifier.",
+   "hl": [
+    "vérifier."
+   ]
+  },
+  {
+   "text": "Aujourd'hui,",
+   "hl": []
+  },
+  {
+   "text": "il y a Iris.",
+   "hl": [
+    "Iris."
+   ]
+  },
+  {
+   "text": "Une seule",
+   "hl": [
+    "seule"
+   ]
+  },
+  {
+   "text": "plateforme",
+   "hl": [
+    "plateforme"
+   ]
+  },
+  {
+   "text": "pour écrire,",
+   "hl": []
+  },
+  {
+   "text": "corriger,",
+   "hl": []
+  },
+  {
+   "text": "créer ta couverture",
+   "hl": []
+  },
+  {
+   "text": "et exporter",
+   "hl": []
+  },
+  {
+   "text": "ton livre.",
+   "hl": [
+    "livre."
+   ]
+  },
+  {
+   "text": "Et surtout :",
+   "hl": []
+  },
+  {
+   "text": "tu modifies",
+   "hl": [
+    "modifies"
+   ]
+  },
+  {
+   "text": "ton texte",
+   "hl": []
+  },
+  {
+   "text": "à volonté.",
+   "hl": [
+    "volonté."
+   ]
+  },
+  {
+   "text": "Un paragraphe,",
+   "hl": []
+  },
+  {
+   "text": "un chapitre,",
+   "hl": []
+  },
+  {
+   "text": "le ton…",
+   "hl": []
+  },
+  {
+   "text": "tu demandes,",
+   "hl": []
+  },
+  {
+   "text": "c'est fait.",
+   "hl": [
+    "fait."
+   ]
+  },
+  {
+   "text": "Et c'est toi",
+   "hl": [
+    "toi"
+   ]
+  },
+  {
+   "text": "qui gardes",
+   "hl": []
+  },
+  {
+   "text": "le dernier mot.",
+   "hl": [
+    "mot."
+   ]
+  },
+  {
+   "text": "Abonne-toi",
+   "hl": [
+    "Abonne-toi"
+   ]
+  },
+  {
+   "text": "pour plus d'astuces…",
+   "hl": [
+    "d'astuces…"
+   ]
+  },
+  {
+   "text": "et écris enfin",
+   "hl": []
+  },
+  {
+   "text": "ton livre en 2026.",
+   "hl": [
+    "2026."
+   ]
+  }
+ ],
+ "scenes": [
+  {
+   "type": "wide",
+   "from": 0
+  },
+  {
+   "type": "close",
+   "from": 4
+  },
+  {
+   "type": "image",
+   "src": "old1.png",
+   "from": 7
+  },
+  {
+   "type": "wide",
+   "from": 15
+  },
+  {
+   "type": "image",
+   "src": "old3.png",
+   "from": 18
+  },
+  {
+   "type": "image",
+   "src": "old2.png",
+   "from": 25
+  },
+  {
+   "type": "ad",
+   "offset": 13.6,
+   "from": 31
+  },
+  {
+   "type": "ad",
+   "offset": 19.6,
+   "from": 33
+  },
+  {
+   "type": "ad",
+   "offset": 22.0,
+   "from": 37
+  },
+  {
+   "type": "wide",
+   "from": 40
+  },
+  {
+   "type": "ad",
+   "offset": 15.8,
+   "from": 44
+  },
+  {
+   "type": "close",
+   "from": 49
+  },
+  {
+   "type": "wide",
+   "from": 52
+  }
+ ],
+ "endcard": {
+  "l1": "Ton savoir,",
+  "l2": "ton livre.",
+  "cta": "Abonne-toi pour plus d'astuces"
+ },
+ "legende": "Écrire un livre en 2026… tu fais encore comme ça ? 😅 Copier-coller entre plusieurs outils, vérifier chaque chapitre… Avec Iris, tout se passe au même endroit, et tu modifies ton texte comme tu veux ✍️\nAbonne-toi pour plus d'astuces 📌\n#ebook #écrireunlivre #auteur #ia #produitdigital #astuces #2026",
+ "avatar_video": "avatar.mp4",
+ "ad_video": "iris-ad.mp4",
+ "endcard_duration": 2.0
+}

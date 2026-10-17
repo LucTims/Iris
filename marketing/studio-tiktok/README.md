@@ -32,7 +32,7 @@ Notes : (facultatif : public visé, appel à l'action, ton)
 | Voix | Identifiant | Usage |
 |---|---|---|
 | **Fatou** (voix principale) | `Vza9yt3uSx3RXnRx6YfI` | Récits, émotion, transmission |
-| **Martin** | à confirmer | Prises de parole du fondateur, coulisses |
+| **Martin** (Krys Martin-1) | `vUpkYZ9fJEqGnCZ9YThw` | Avatar face caméra, prises de parole du fondateur |
 
 ## Charte
 Terracotta `#BF6345`, blanc cassé `#F8F8F7` et noir `#161616`. Titres en Newsreader, sous-titres en Plus Jakarta Sans très gras. Décor chaud : bois, crème, terracotta, lumière dorée, personnes d'Afrique francophone. Aucun texte lisible ni logo dans les images générées.
@@ -40,6 +40,10 @@ Terracotta `#BF6345`, blanc cassé `#F8F8F7` et noir `#161616`. Titres en Newsre
 ## Outils (`outils/`)
 - `habillage.mjs` : accroche, badge, sous-titres et écran de fin à partir du fichier `spec.json`.
 - `montage.py` : aligne la voix sur le texte (faster-whisper), enchaîne les plans, pose l'habillage et ajoute l'écran de fin.
+- Types de plans du fichier `spec.json` : `wide` / `close` (avatar en plan large ou serré, synchronisé sur la voix), `image` (zoom lent), `video`, `ad` (extrait de la vidéo promo `public/iris-motion-ad.mp4`, sur fond sombre).
 - `envoyer-telegram.sh` : envoie la vidéo et la légende. Le jeton est lu dans `~/.iris_tg_token` et la discussion dans `~/.iris_tg_chat`. **Ils ne sont jamais versionnés.**
 
 Ces outils tournent dans l'espace de travail Higgsfield (ffmpeg, Playwright, faster-whisper déjà installés). `exemples/le-cahier-fatou.json` montre un fichier `spec.json` complet.
+
+## Avatar Martin
+Image de départ : Martin assis à son bureau dans le studio (générée dans Higgsfield à partir de ses looks HeyGen), animée par HeyGen `create_video_from_image` sur la voix ElevenLabs. Exemple complet : `exemples/livre-2026-martin.json`.

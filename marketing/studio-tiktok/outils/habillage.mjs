@@ -21,10 +21,11 @@ const page = (body, bg = 'transparent') => `<!doctype html><html><head><meta cha
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 // Sous-titre : mots surlignés en terracotta (liste spec.chunks[i].hl).
+const upper = spec.uppercase ? 'text-transform:uppercase;letter-spacing:-0.01em;' : '';
 const cap = (text, hl = []) => {
   const html = text.split(' ').map((w) => hl.includes(w)
     ? `<span style="background:${C.brand};padding:0 14px;border-radius:12px;white-space:nowrap">${esc(w)}</span>` : esc(w)).join(' ');
-  return page(`<div style="position:absolute;left:72px;right:150px;top:1150px;text-align:center;font-weight:800;font-size:70px;line-height:1.25;color:#fff;text-shadow:0 3px 20px rgba(0,0,0,.55),0 0 2px rgba(0,0,0,.6)">${html}</div>`);
+  return page(`<div style="position:absolute;left:72px;right:150px;top:1150px;text-align:center;font-weight:800;font-size:70px;line-height:1.25;color:#fff;${upper}text-shadow:0 3px 20px rgba(0,0,0,.55),0 0 2px rgba(0,0,0,.6)">${html}</div>`);
 };
 // Accroche : la dernière partie (après « | ») passe en italique terracotta.
 const hook = (text) => {
@@ -34,6 +35,10 @@ const hook = (text) => {
 };
 const badge = (name, role) => page(`<div style="position:absolute;left:72px;top:250px;display:flex;align-items:center;gap:16px;padding:16px 28px 16px 20px;border-radius:999px;background:rgba(248,248,247,.95)">
   ${mark(44)}<div><div style="font-size:30px;font-weight:800;line-height:1;color:${C.ink}">${esc(name)}</div><div style="font-size:21px;font-weight:600;color:${C.muted};margin-top:5px">${esc(role)}</div></div></div>`);
+// Rappel « Abonne-toi » en haut de l'écran.
+const subscribe = () => page(`<div style="position:absolute;left:72px;top:250px;display:flex;align-items:center;gap:18px;padding:18px 34px 18px 22px;border-radius:999px;background:${C.brand};box-shadow:0 10px 30px rgba(0,0,0,.25)">
+  <div style="width:56px;height:56px;border-radius:50%;background:${C.ground};display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:800;color:${C.brand};line-height:1">+</div>
+  <div><div style="font-size:34px;font-weight:800;line-height:1;color:#fff">Abonne-toi</div><div style="font-size:22px;font-weight:600;color:rgba(255,255,255,.85);margin-top:6px">pour plus d'astuces d'écriture</div></div></div>`);
 const end = (l1, l2, cta) => page(`<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:50px;padding-bottom:220px">
   ${mark(250)}<div style="font-family:N;font-size:96px;text-align:center;line-height:1.04;color:${C.ink}">${esc(l1)}<br><em style="color:${C.brand}">${esc(l2)}</em></div>
   <div style="font-size:34px;font-weight:800;padding:24px 40px;border-radius:999px;border:3px solid ${C.ink};color:${C.ink}">${esc(cta)}</div></div>`, C.ground);
@@ -47,6 +52,7 @@ const shot = async (html, file, omit = true) => {
 fs.mkdirSync(out, { recursive: true });
 if (spec.hook) await shot(hook(spec.hook.text), 'hook.png');
 if (spec.badge) await shot(badge(spec.badge.name, spec.badge.role), 'badge.png');
+if (spec.subscribe) await shot(subscribe(), 'subscribe.png');
 const e = spec.endcard || {};
 await shot(end(e.l1 || 'Ton savoir,', e.l2 || 'ton livre.', e.cta || 'Écris « DÉMO » sur WhatsApp'), 'end.png', false);
 for (const [i, c] of spec.chunks.entries()) await shot(cap(c.text, c.hl), `cap${i}.png`);

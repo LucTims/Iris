@@ -56,7 +56,7 @@ dur = float(subprocess.check_output(
     ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", audio]))
 st = align()
 END_AUDIO = dur + 0.3
-ENDCARD = 2.5
+ENDCARD = spec.get("endcard_duration", 2.5)
 TOTAL = END_AUDIO + ENDCARD
 
 # Plans : chacun commence au morceau de sous-titre « from » et dure jusqu'au plan suivant.
@@ -66,7 +66,17 @@ for k, sc in enumerate(scenes):
     t0 = st[sc["from"]]
     t1 = st[scenes[k + 1]["from"]] if k + 1 < len(scenes) else END_AUDIO
     d = t1 - t0
-    if sc["type"] == "video":
+    if sc["type"] in ("wide", "close"):  # avatar face caméra, synchronisé sur la voix
+        inputs += ["-ss", f"{t0:.3f}", "-i", spec["avatar_video"]]
+        crop = spec.get("close_crop", "720:1280:180:120")
+        pre = f"crop={crop}," if sc["type"] == "close" else ""
+        filt.append(f"[{k}:v]{pre}{N},tpad=stop_mode=clone:stop_duration=30,trim=duration={d:.3f},setpts=PTS-STARTPTS[s{k}]")
+    elif sc["type"] == "ad":  # extrait 16:9 de la vidéo promo, en carte sur fond sombre (sous-titres lisibles)
+        inputs += ["-ss", str(sc["offset"]), "-i", spec["ad_video"]]
+        filt.append(f"[{k}:v]crop=1000:720:140:0,scale=1080:778,setsar=1,fps=25,"
+                    f"pad=1080:1920:0:300:color=0x161616,format=yuv420p,"
+                    f"tpad=stop_mode=clone:stop_duration=30,trim=duration={d:.3f},setpts=PTS-STARTPTS[s{k}]")
+    elif sc["type"] == "video":
         inputs += ["-ss", str(sc.get("offset", 0)), "-i", sc["src"]]
         filt.append(f"[{k}:v]{N},tpad=stop_mode=clone:stop_duration=30,trim=duration={d:.3f},setpts=PTS-STARTPTS[s{k}]")
     else:  # image fixe animée par un zoom lent, alterné avant/arrière
@@ -87,6 +97,8 @@ if "hook" in spec:
     over.append(("hook.png", 0, st[first_cap] - 0.05))
 if "badge" in spec:
     over.append(("badge.png", st[spec["badge"].get("from", 0)], st[spec["badge"].get("until", len(CH) - 1)]))
+if "subscribe" in spec:
+    over.append(("subscribe.png", st[spec["subscribe"]["from"]], END_AUDIO))
 for i in range(first_cap, len(CH)):
     over.append((f"cap{i}.png", st[i], st[i + 1] - 0.03 if i + 1 < len(CH) else END_AUDIO))
 idx, cur = n + 1, "base"
