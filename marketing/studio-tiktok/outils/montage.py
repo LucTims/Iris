@@ -97,6 +97,9 @@ if "hook" in spec:
     over.append(("hook.png", 0, st[first_cap] - 0.05))
 if "badge" in spec:
     over.append(("badge.png", st[spec["badge"].get("from", 0)], st[spec["badge"].get("until", len(CH) - 1)]))
+for x in spec.get("extra", []):  # habillages propres à la vidéo (cartes, pastilles…)
+    end = END_AUDIO if x["until"] == "end" else st[x["until"]] - 0.03
+    over.append((x["png"], st[x["from"]], end))
 if "subscribe" in spec:
     over.append(("subscribe.png", st[spec["subscribe"]["from"]], END_AUDIO))
 for i in range(first_cap, len(CH)):

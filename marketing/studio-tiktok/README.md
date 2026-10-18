@@ -46,4 +46,7 @@ Terracotta `#BF6345`, blanc cassé `#F8F8F7` et noir `#161616`. Titres en Newsre
 Ces outils tournent dans l'espace de travail Higgsfield (ffmpeg, Playwright, faster-whisper déjà installés). `exemples/le-cahier-fatou.json` montre un fichier `spec.json` complet.
 
 ## Avatar Martin
-Image de départ : Martin assis à son bureau dans le studio (générée dans Higgsfield à partir de ses looks HeyGen), animée par HeyGen `create_video_from_image` sur la voix ElevenLabs. Exemple complet : `exemples/livre-2026-martin.json`.
+Image de départ : Martin assis à son bureau dans le studio (générée dans Higgsfield à partir de ses looks HeyGen), animée par HeyGen `create_video_from_image` sur la voix ElevenLabs. Exemples complets : `exemples/livre-2026-martin.json` et `exemples/ebooks-500k-martin.json`.
+
+## Habillages propres à une vidéo
+La clé `extra` du fichier `spec.json` pose des PNG supplémentaires : `{ "png": "card1.png", "from": 8, "until": 12 }` (numéros de morceaux de sous-titres, `"until": "end"` pour aller jusqu'à la fin de la voix). Exemple de générateur : `exemples/ebooks-500k-habillage.mjs`.

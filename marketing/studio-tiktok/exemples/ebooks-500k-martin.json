@@ -1,0 +1,468 @@
+{
+ "titre": "3 ebooks à lancer en Afrique pour viser 500K par mois",
+ "format": "Avatar Martin + illustrations + écrans Iris",
+ "voix": "Martin (Krys Martin-1)",
+ "voice_audio": "voixA.mp3",
+ "avatar_video": "avatar.mp4",
+ "ad_video": "iris-ad.mp4",
+ "uppercase": true,
+ "endcard_duration": 2.0,
+ "hook": {
+  "text": "3 ebooks pour viser |500K / mois",
+  "until": 6
+ },
+ "badge": {
+  "name": "Martin",
+  "role": "Fondateur d'Iris",
+  "from": 17,
+  "until": 20
+ },
+ "extra": [
+  {
+   "png": "save.png",
+   "from": 6,
+   "until": 8
+  },
+  {
+   "png": "card1.png",
+   "from": 8,
+   "until": 12
+  },
+  {
+   "png": "card2.png",
+   "from": 20,
+   "until": 23
+  },
+  {
+   "png": "card3.png",
+   "from": 32,
+   "until": 36
+  },
+  {
+   "png": "cta.png",
+   "from": 56,
+   "until": "end"
+  }
+ ],
+ "chunks": [
+  {
+   "text": "Voici 3 idées d'ebooks",
+   "hl": [
+    "3"
+   ]
+  },
+  {
+   "text": "à lancer en Afrique",
+   "hl": [
+    "Afrique"
+   ]
+  },
+  {
+   "text": "pour viser les 500 000 francs",
+   "hl": [
+    "500",
+    "000"
+   ]
+  },
+  {
+   "text": "par mois…",
+   "hl": []
+  },
+  {
+   "text": "et le troisième,",
+   "hl": []
+  },
+  {
+   "text": "presque personne n'y pense.",
+   "hl": [
+    "personne"
+   ]
+  },
+  {
+   "text": "Pense à enregistrer cette vidéo",
+   "hl": [
+    "enregistrer"
+   ]
+  },
+  {
+   "text": "pour surtout pas la perdre.",
+   "hl": []
+  },
+  {
+   "text": "Allez, on commence",
+   "hl": []
+  },
+  {
+   "text": "avec le premier ebook,",
+   "hl": [
+    "premier"
+   ]
+  },
+  {
+   "text": "qui est un guide pour vendre",
+   "hl": [
+    "vendre"
+   ]
+  },
+  {
+   "text": "sur WhatsApp, TikTok et Facebook.",
+   "hl": [
+    "WhatsApp,",
+    "TikTok",
+    "Facebook."
+   ]
+  },
+  {
+   "text": "Regarde autour de toi :",
+   "hl": []
+  },
+  {
+   "text": "tout le monde vend quelque chose…",
+   "hl": [
+    "vend"
+   ]
+  },
+  {
+   "text": "mais beaucoup perdent leurs clients",
+   "hl": [
+    "perdent"
+   ]
+  },
+  {
+   "text": "dès qu'on leur dit",
+   "hl": []
+  },
+  {
+   "text": "« c'est trop cher ».",
+   "hl": [
+    "trop",
+    "cher"
+   ]
+  },
+  {
+   "text": "Ton guide leur apprend",
+   "hl": []
+  },
+  {
+   "text": "à conclure la vente.",
+   "hl": [
+    "conclure"
+   ]
+  },
+  {
+   "text": "Et ça, ça se paie.",
+   "hl": [
+    "paie."
+   ]
+  },
+  {
+   "text": "Le deuxième est un guide",
+   "hl": [
+    "deuxième"
+   ]
+  },
+  {
+   "text": "pour gérer son argent",
+   "hl": [
+    "argent"
+   ]
+  },
+  {
+   "text": "avec un petit revenu.",
+   "hl": []
+  },
+  {
+   "text": "On sait tous",
+   "hl": []
+  },
+  {
+   "text": "comment c'est difficile",
+   "hl": [
+    "difficile"
+   ]
+  },
+  {
+   "text": "d'épargner dans nos pays…",
+   "hl": [
+    "d'épargner"
+   ]
+  },
+  {
+   "text": "alors ton livre résout",
+   "hl": [
+    "résout"
+   ]
+  },
+  {
+   "text": "exactement ce problème :",
+   "hl": []
+  },
+  {
+   "text": "montrer comment répartir son argent,",
+   "hl": [
+    "répartir"
+   ]
+  },
+  {
+   "text": "même avec un petit revenu.",
+   "hl": []
+  },
+  {
+   "text": "Ce livre-là,",
+   "hl": []
+  },
+  {
+   "text": "c'est un vrai soulagement.",
+   "hl": [
+    "soulagement."
+   ]
+  },
+  {
+   "text": "Et le troisième,",
+   "hl": [
+    "troisième,"
+   ]
+  },
+  {
+   "text": "celui qu'on oublie :",
+   "hl": [
+    "oublie"
+   ]
+  },
+  {
+   "text": "un guide pour gagner sa vie",
+   "hl": [
+    "gagner"
+   ]
+  },
+  {
+   "text": "avec des petits services en ligne.",
+   "hl": [
+    "services"
+   ]
+  },
+  {
+   "text": "Des milliers de jeunes",
+   "hl": [
+    "milliers"
+   ]
+  },
+  {
+   "text": "ont un téléphone et du temps,",
+   "hl": []
+  },
+  {
+   "text": "mais ne savent pas",
+   "hl": []
+  },
+  {
+   "text": "par où commencer.",
+   "hl": []
+  },
+  {
+   "text": "Toi, tu leur montres le chemin…",
+   "hl": [
+    "chemin…"
+   ]
+  },
+  {
+   "text": "et le besoin en Afrique",
+   "hl": []
+  },
+  {
+   "text": "est simplement immense.",
+   "hl": [
+    "immense."
+   ]
+  },
+  {
+   "text": "Mais je sais ce que tu te dis :",
+   "hl": []
+  },
+  {
+   "text": "« Écrire un livre, moi ?",
+   "hl": [
+    "moi"
+   ]
+  },
+  {
+   "text": "Je n'ai pas le temps,",
+   "hl": [
+    "temps,"
+   ]
+  },
+  {
+   "text": "je ne sais pas par où commencer. »",
+   "hl": []
+  },
+  {
+   "text": "C'est là que la plupart abandonnent.",
+   "hl": [
+    "abandonnent."
+   ]
+  },
+  {
+   "text": "J'ai une solution pour toi.",
+   "hl": [
+    "solution"
+   ]
+  },
+  {
+   "text": "Avec Iris, tu choisis ton sujet,",
+   "hl": [
+    "Iris,"
+   ]
+  },
+  {
+   "text": "Iris te propose un plan approfondi,",
+   "hl": [
+    "plan"
+   ]
+  },
+  {
+   "text": "écrit chaque chapitre avec toi",
+   "hl": [
+    "chapitre"
+   ]
+  },
+  {
+   "text": "et crée ta couverture.",
+   "hl": [
+    "couverture."
+   ]
+  },
+  {
+   "text": "Et tu peux tout modifier pas à pas,",
+   "hl": [
+    "modifier"
+   ]
+  },
+  {
+   "text": "comme tu veux,",
+   "hl": []
+  },
+  {
+   "text": "sans tout relancer.",
+   "hl": [
+    "relancer."
+   ]
+  },
+  {
+   "text": "Pour le tester ?",
+   "hl": []
+  },
+  {
+   "text": "Écris « 500K » en commentaire,",
+   "hl": [
+    "500K"
+   ]
+  },
+  {
+   "text": "et je t'envoie le lien.",
+   "hl": [
+    "lien."
+   ]
+  }
+ ],
+ "scenes": [
+  {
+   "type": "close",
+   "from": 0
+  },
+  {
+   "type": "wide",
+   "from": 6
+  },
+  {
+   "type": "image",
+   "src": "img0.png",
+   "from": 8
+  },
+  {
+   "type": "video",
+   "src": "vendeuse.mp4",
+   "from": 12
+  },
+  {
+   "type": "image",
+   "src": "img4.png",
+   "from": 14
+  },
+  {
+   "type": "close",
+   "from": 17
+  },
+  {
+   "type": "image",
+   "src": "img1.png",
+   "from": 20
+  },
+  {
+   "type": "image",
+   "src": "img5.png",
+   "from": 23
+  },
+  {
+   "type": "wide",
+   "from": 30
+  },
+  {
+   "type": "image",
+   "src": "img2.png",
+   "from": 32
+  },
+  {
+   "type": "video",
+   "src": "etudiant.mp4",
+   "from": 36
+  },
+  {
+   "type": "image",
+   "src": "img7.png",
+   "from": 40
+  },
+  {
+   "type": "close",
+   "from": 43
+  },
+  {
+   "type": "wide",
+   "from": 48
+  },
+  {
+   "type": "ad",
+   "offset": 13.6,
+   "from": 49
+  },
+  {
+   "type": "ad",
+   "offset": 19.6,
+   "from": 50
+  },
+  {
+   "type": "ad",
+   "offset": 15.8,
+   "from": 51
+  },
+  {
+   "type": "ad",
+   "offset": 22.0,
+   "from": 52
+  },
+  {
+   "type": "ad",
+   "offset": 16.4,
+   "from": 53
+  },
+  {
+   "type": "close",
+   "from": 56
+  }
+ ],
+ "endcard": {
+  "l1": "Ton savoir,",
+  "l2": "ton livre.",
+  "cta": "Écris « 500K » en commentaire"
+ },
+ "legende": "3 idées d'ebooks à lancer en Afrique pour viser 500K par mois 📚 Enregistre cette vidéo 📌\nTu veux tester Iris ? Écris « 500K » en commentaire 👇\n#ebook #afrique #businessenligne #entrepreneuriat #produitdigital #revenusenligne #iris"
+}
