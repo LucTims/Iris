@@ -1,0 +1,450 @@
+{
+  "titre": "5 plateformes pour vendre ton ebook",
+  "format": "Avatar",
+  "voix": "Martin (Krys Martin-1)",
+  "voice_audio": "voixA.mp3",
+  "avatar_video": "avatar.mp4",
+  "uppercase": true,
+  "hook": {
+    "text": "5 plateformes pour |vendre ton ebook",
+    "until": 6
+  },
+  "badge": {
+    "name": "Martin",
+    "role": "Fondateur d'Iris",
+    "from": 8,
+    "until": 10
+  },
+  "extra": [
+    {
+      "png": "save.png",
+      "from": 6,
+      "until": 8
+    },
+    {
+      "png": "card1.png",
+      "from": 10,
+      "until": 13
+    },
+    {
+      "png": "card2.png",
+      "from": 20,
+      "until": 23
+    },
+    {
+      "png": "card3.png",
+      "from": 28,
+      "until": 31
+    },
+    {
+      "png": "card4.png",
+      "from": 37,
+      "until": 40
+    },
+    {
+      "png": "card5.png",
+      "from": 44,
+      "until": 47
+    },
+    {
+      "png": "comment.png",
+      "from": 52,
+      "until": "end"
+    }
+  ],
+  "chunks": [
+    {
+      "text": "Voici 5 plateformes",
+      "hl": [
+        "5"
+      ]
+    },
+    {
+      "text": "pour vendre ton ebook",
+      "hl": [
+        "ebook"
+      ]
+    },
+    {
+      "text": "depuis l'Afrique."
+    },
+    {
+      "text": "Et la dernière…",
+      "hl": [
+        "dernière…"
+      ]
+    },
+    {
+      "text": "très peu de gens d'ici"
+    },
+    {
+      "text": "y pensent."
+    },
+    {
+      "text": "Enregistre cette vidéo,",
+      "hl": [
+        "Enregistre"
+      ]
+    },
+    {
+      "text": "tu vas en avoir besoin."
+    },
+    {
+      "text": "On commence directement"
+    },
+    {
+      "text": "avec la première :",
+      "hl": [
+        "première"
+      ]
+    },
+    {
+      "text": "c'est Chariow.",
+      "hl": [
+        "Chariow."
+      ]
+    },
+    {
+      "text": "Elle a été pensée"
+    },
+    {
+      "text": "pour les créateurs africains :",
+      "hl": [
+        "africains"
+      ]
+    },
+    {
+      "text": "ton client paie"
+    },
+    {
+      "text": "avec son mobile money,",
+      "hl": [
+        "mobile",
+        "money,"
+      ]
+    },
+    {
+      "text": "et toi, tu reçois ton argent",
+      "hl": [
+        "argent"
+      ]
+    },
+    {
+      "text": "sur ton mobile money.",
+      "hl": [
+        "mobile",
+        "money."
+      ]
+    },
+    {
+      "text": "Tu ouvres ta boutique",
+      "hl": [
+        "boutique"
+      ]
+    },
+    {
+      "text": "en quelques minutes,",
+      "hl": [
+        "minutes,"
+      ]
+    },
+    {
+      "text": "sans abonnement.",
+      "hl": [
+        "abonnement."
+      ]
+    },
+    {
+      "text": "La deuxième, c'est Maketou.",
+      "hl": [
+        "Maketou."
+      ]
+    },
+    {
+      "text": "Même idée,"
+    },
+    {
+      "text": "et très simple à prendre en main :",
+      "hl": [
+        "simple"
+      ]
+    },
+    {
+      "text": "tu mets ton ebook en ligne,",
+      "hl": [
+        "en",
+        "ligne,"
+      ]
+    },
+    {
+      "text": "tu partages ton lien",
+      "hl": [
+        "lien"
+      ]
+    },
+    {
+      "text": "sur WhatsApp ou sur TikTok,",
+      "hl": [
+        "WhatsApp",
+        "TikTok,"
+      ]
+    },
+    {
+      "text": "et tes clients paient"
+    },
+    {
+      "text": "directement par mobile money.",
+      "hl": [
+        "mobile",
+        "money."
+      ]
+    },
+    {
+      "text": "La troisième, c'est Systeme.io.",
+      "hl": [
+        "Systeme.io."
+      ]
+    },
+    {
+      "text": "Là, on passe"
+    },
+    {
+      "text": "au niveau supérieur :",
+      "hl": [
+        "supérieur"
+      ]
+    },
+    {
+      "text": "page de vente,",
+      "hl": [
+        "vente,"
+      ]
+    },
+    {
+      "text": "e-mails automatiques,",
+      "hl": [
+        "automatiques,"
+      ]
+    },
+    {
+      "text": "tunnel de vente…",
+      "hl": [
+        "tunnel"
+      ]
+    },
+    {
+      "text": "tout est au même endroit.",
+      "hl": [
+        "même",
+        "endroit."
+      ]
+    },
+    {
+      "text": "C'est parfait si tu veux"
+    },
+    {
+      "text": "construire une vraie liste de clients.",
+      "hl": [
+        "liste"
+      ]
+    },
+    {
+      "text": "La quatrième, c'est Selar.",
+      "hl": [
+        "Selar."
+      ]
+    },
+    {
+      "text": "Elle est très utilisée"
+    },
+    {
+      "text": "au Nigeria et au Ghana,",
+      "hl": [
+        "Nigeria",
+        "Ghana,"
+      ]
+    },
+    {
+      "text": "et elle te permet de vendre"
+    },
+    {
+      "text": "bien au-delà de ton pays.",
+      "hl": [
+        "au-delà"
+      ]
+    },
+    {
+      "text": "Ton savoir",
+      "hl": [
+        "savoir"
+      ]
+    },
+    {
+      "text": "traverse les frontières.",
+      "hl": [
+        "frontières."
+      ]
+    },
+    {
+      "text": "Et la cinquième,",
+      "hl": [
+        "cinquième,"
+      ]
+    },
+    {
+      "text": "celle qu'on oublie :",
+      "hl": [
+        "oublie"
+      ]
+    },
+    {
+      "text": "Amazon Kindle.",
+      "hl": [
+        "Amazon",
+        "Kindle."
+      ]
+    },
+    {
+      "text": "Ton livre est en vente",
+      "hl": [
+        "vente"
+      ]
+    },
+    {
+      "text": "dans le monde entier,",
+      "hl": [
+        "monde",
+        "entier,"
+      ]
+    },
+    {
+      "text": "à côté des plus grands auteurs.",
+      "hl": [
+        "grands",
+        "auteurs."
+      ]
+    },
+    {
+      "text": "Imagine dire à ta famille :",
+      "hl": [
+        "famille"
+      ]
+    },
+    {
+      "text": "« Mon livre est sur Amazon. »",
+      "hl": [
+        "Amazon."
+      ]
+    },
+    {
+      "text": "Dis-moi en commentaire :",
+      "hl": [
+        "commentaire"
+      ]
+    },
+    {
+      "text": "lequel de ces outils"
+    },
+    {
+      "text": "tu connaissais déjà ?",
+      "hl": [
+        "déjà"
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "type": "close",
+      "from": 0
+    },
+    {
+      "type": "wide",
+      "from": 6
+    },
+    {
+      "type": "close",
+      "from": 9
+    },
+    {
+      "type": "image",
+      "src": "img0.png",
+      "from": 13
+    },
+    {
+      "type": "video",
+      "src": "web-chariow.mp4",
+      "from": 17
+    },
+    {
+      "type": "wide",
+      "from": 20
+    },
+    {
+      "type": "video",
+      "src": "web-maketou.mp4",
+      "from": 23
+    },
+    {
+      "type": "image",
+      "src": "img1.png",
+      "from": 25
+    },
+    {
+      "type": "close",
+      "from": 28
+    },
+    {
+      "type": "image",
+      "src": "img2.png",
+      "from": 31
+    },
+    {
+      "type": "video",
+      "src": "web-systeme.mp4",
+      "from": 35
+    },
+    {
+      "type": "wide",
+      "from": 37
+    },
+    {
+      "type": "video",
+      "src": "web-selar.mp4",
+      "from": 40
+    },
+    {
+      "type": "image",
+      "src": "img3.png",
+      "from": 42
+    },
+    {
+      "type": "close",
+      "from": 44
+    },
+    {
+      "type": "video",
+      "src": "web-kdp.mp4",
+      "from": 47
+    },
+    {
+      "type": "image",
+      "src": "img5.png",
+      "from": 49
+    },
+    {
+      "type": "image",
+      "src": "img4.png",
+      "from": 50
+    },
+    {
+      "type": "close",
+      "from": 52
+    }
+  ],
+  "endcard": {
+    "l1": "Ton savoir,",
+    "l2": "ton livre.",
+    "cta": "Abonne-toi pour la suite"
+  },
+  "legende": "5 plateformes pour vendre ton ebook depuis l'Afrique 📚 Enregistre la vidéo 📌\nLaquelle tu connaissais déjà ? Dis-le en commentaire 👇\n#ebook #afrique #vendreenligne #produitdigital #mobilemoney #entrepreneuriat #iris"
+}
