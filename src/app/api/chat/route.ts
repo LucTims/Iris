@@ -52,7 +52,7 @@ const insufficientFunds = (required: number, balance: number, tip?: string) =>
 
 /** Conseil affiché quand une MODIFICATION de chapitre dépasse le solde. */
 const MODIFY_TIP =
-  "Astuce : pour une modification ciblée, sélectionnez le passage concerné dans l'éditeur et utilisez les actions d'Iris sur la sélection — c'est bien moins coûteux que de faire réécrire tout le chapitre. Sinon, rechargez des pièces.";
+  "Astuce : la modification réécrit tout le chapitre. Pour une modification ciblée, sélectionnez le passage concerné dans l'éditeur et utilisez les actions d'Iris sur la sélection ; si tout le livre est d'un seul tenant, « Découper en chapitres » (menu des chapitres) limite la réécriture au chapitre visé. Sinon, rechargez des pièces.";
 
 /** Aucun fournisseur d'IA n'a répondu (crédit épuisé, panne…). */
 const aiUnavailable = () =>
