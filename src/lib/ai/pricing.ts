@@ -245,6 +245,22 @@ export function maxChargeForQuote(quote: number): number {
 }
 
 /**
+ * Montant MAXIMAL facturable pour rédiger `chapterCount` chapitres d'environ
+ * `wordsPerChapter` mots : somme des plafonds par chapitre (devis du chapitre
+ * + 25 %), exactement ce que le débit peut prélever chapitre après chapitre.
+ *
+ * C'est ce montant qu'il faut annoncer et exiger avant de lancer un livre.
+ * L'ancien devis arrondissait les pages sur le livre entier (« 9 chapitres de
+ * 700 mots ≈ 23 pages ≈ 1 150 pièces ») alors que chaque chapitre est facturé
+ * séparément jusqu'à son plafond (9 × 188 = 1 692 pièces) : avec un solde
+ * entre les deux, la rédaction démarrait puis s'arrêtait en plein livre.
+ */
+export function bookChargeCeiling(chapterCount: number, wordsPerChapter: number, model: string): number {
+  const chapters = Math.max(1, Math.round(chapterCount) || 1);
+  return chapters * maxChargeForQuote(estimateChapterCoins(wordsPerChapter, model));
+}
+
+/**
  * Plafonds des générations facturées au token (plan / sommaire). Dimensionnés
  * pour que les 500 pièces offertes à l'inscription couvrent le plan + au moins
  * deux chapitres avec le modèle par défaut (150 + 2 × 75 = 300).

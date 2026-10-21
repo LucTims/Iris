@@ -2,8 +2,8 @@ import { NextResponse, after } from "next/server";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { checkMinimumBalance } from "@/lib/ai/cost-engine";
-import { canonicalModelId, estimateChapterCoins } from "@/lib/ai/pricing";
+import { formatCoins, getWalletBalance } from "@/lib/ai/cost-engine";
+import { bookChargeCeiling, canonicalModelId } from "@/lib/ai/pricing";
 import { getServiceRoleClient, type BookJobChapterPlan, type BookJobSettings } from "@/lib/ai/book-job";
 import type { LeasedBookJob } from "@/lib/ai/book-job-lease";
 import { driveBookJob } from "@/lib/ai/book-job-runner";
@@ -115,11 +115,28 @@ export async function POST(req: Request) {
     }
 
     const wordsTarget = Math.max(400, Math.min(4000, Number(settings.targetWords) || 800));
-    const requiredCoins = estimateChapterCoins(wordsTarget, canonicalModelId(settings.model));
-    const hasEnoughCoins = await checkMinimumBalance(user.id, requiredCoins);
-    if (!hasEnoughCoins) {
+    // On exige le coût MAXIMAL de TOUS les chapitres demandés, pas d'un seul :
+    // vérifier un seul chapitre laissait démarrer un livre que le solde ne
+    // pouvait pas finir, et la rédaction s'arrêtait en plein milieu
+    // (« insufficient_funds »), après avoir déjà débité l'auteur.
+    const requiredCoins = bookChargeCeiling(chapters.length, wordsTarget, canonicalModelId(settings.model));
+    const balance = await getWalletBalance(user.id, supabase);
+    if (balance === null) {
       return NextResponse.json(
-        { error: "Fonds insuffisants pour démarrer la génération du livre." },
+        { error: "Impossible de vérifier votre solde pour le moment. Réessayez dans un instant." },
+        { status: 503 }
+      );
+    }
+    if (balance < requiredCoins) {
+      const n = chapters.length;
+      return NextResponse.json(
+        {
+          error:
+            `La rédaction de ${n} chapitre${n > 1 ? "s" : ""} peut coûter jusqu'à ${formatCoins(requiredCoins)} pièces ` +
+            `et votre solde est de ${formatCoins(balance)} pièces. Rechargez votre portefeuille pour lancer la rédaction.`,
+          required: requiredCoins,
+          balance,
+        },
         { status: 402 }
       );
     }

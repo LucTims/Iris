@@ -55,9 +55,9 @@ async function loadProjectImageUrls(
   return Array.isArray(fallback) ? fallback.filter(isHttpUrl) : [];
 }
 import { splitHtmlIntoChapters } from "@/lib/parser/splitChapters";
-import { SIZE_PRESETS, lengthToSizeKey, estimatePagesCoins, modelLabel, BOOK_MODELS } from "@/lib/book/generationPresets";
+import { SIZE_PRESETS, lengthToSizeKey, modelLabel, BOOK_MODELS } from "@/lib/book/generationPresets";
 import type { BookSizeKey } from "@/lib/book/generationPresets";
-import { WORDS_PER_PAGE, DEFAULT_WRITING_MODEL } from "@/lib/ai/pricing";
+import { bookChargeCeiling, DEFAULT_WRITING_MODEL } from "@/lib/ai/pricing";
 import { mergeChaptersHtml, MERGED_BOOK_TITLE, isOutlineTitle } from "@/lib/book/mergeBook";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import ReactMarkdown from "react-markdown";
@@ -1253,10 +1253,10 @@ function RedactionContent() {
   }, [currentProjectId]);
   const projectModel: string = projectData?.writing_model || storedModel || DEFAULT_WRITING_MODEL;
   const projectSizeKey: BookSizeKey = lengthToSizeKey(projectData?.length);
-  const bookPagesEstimate = sommaireChapterCount
-    ? Math.max(1, Math.round((sommaireChapterCount * SIZE_PRESETS[projectSizeKey].wordsPerChapter) / WORDS_PER_PAGE))
-    : SIZE_PRESETS[projectSizeKey].pagesEstimate;
-  const bookCostEstimate = estimatePagesCoins(bookPagesEstimate, projectModel);
+  const bookChapterCount = sommaireChapterCount || SIZE_PRESETS[projectSizeKey].chaptersIfNoSommaire;
+  // Montant maximal facturable (devis + 25 % par chapitre) : c'est ce que le
+  // serveur exige avant de lancer la rédaction, donc ce qu'on annonce.
+  const bookCostEstimate = bookChargeCeiling(bookChapterCount, SIZE_PRESETS[projectSizeKey].wordsPerChapter, projectModel);
   const plainLength = (html: string | null | undefined) =>
     (html || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().length;
   const bookHasWrittenBody = chapters.some((c) => !isOutlineTitle(c.title) && plainLength(c.content) > 200);
@@ -1267,14 +1267,14 @@ function RedactionContent() {
   const handleGenerateWholeBook = () => {
     if (isBatchGenerating) return;
     if (!userLoading && walletBalance < bookCostEstimate) {
-      if (confirm(`La rédaction de ce livre coûte environ ${fmtCoins(bookCostEstimate)} pièces et votre solde est de ${fmtCoins(walletBalance)} pièces.\n\nRecharger maintenant ?`)) {
+      if (confirm(`La rédaction de ce livre peut coûter jusqu'à ${fmtCoins(bookCostEstimate)} pièces et votre solde est de ${fmtCoins(walletBalance)} pièces.\n\nRecharger maintenant ?`)) {
         router.push("/billing");
       }
       return;
     }
     if (
       bookHasWrittenBody &&
-      !confirm(`Votre livre contient déjà du texte. Le régénérer remplacera tout le contenu actuel (≈ ${fmtCoins(bookCostEstimate)} pièces). Continuer ?`)
+      !confirm(`Votre livre contient déjà du texte. Le régénérer remplacera tout le contenu actuel (jusqu'à ${fmtCoins(bookCostEstimate)} pièces). Continuer ?`)
     ) {
       return;
     }
@@ -1472,7 +1472,8 @@ function RedactionContent() {
       });
 
       if (startResp.status === 402) {
-        alert("Fonds insuffisants pour démarrer la génération du livre.");
+        const err = await startResp.json().catch(() => null);
+        alert(err?.error || "Fonds insuffisants pour démarrer la génération du livre.");
         return;
       }
       if (!startResp.ok) {
@@ -1580,12 +1581,7 @@ function RedactionContent() {
     setBatchProgress(null);
     setIsBatchGenerating(true);
     batchStartBalanceRef.current = userLoading ? null : walletBalance;
-    setBatchCoinPlan(
-      estimatePagesCoins(
-        Math.max(1, Math.round((targets.length * SIZE_PRESETS[projectSizeKey].wordsPerChapter) / WORDS_PER_PAGE)),
-        model
-      )
-    );
+    setBatchCoinPlan(bookChargeCeiling(targets.length, SIZE_PRESETS[projectSizeKey].wordsPerChapter, model));
     setBatchLabel("Reprise de la rédaction…");
     try {
       const sommaire =
@@ -1643,7 +1639,11 @@ function RedactionContent() {
       });
 
       if (startResp.status === 402) {
-        alert("Pièces insuffisantes pour continuer. Rechargez votre solde puis cliquez à nouveau sur « Continuer la rédaction ».");
+        const err = await startResp.json().catch(() => null);
+        alert(
+          (err?.error ? `${err.error}\n\n` : "Pièces insuffisantes pour continuer. ") +
+            "Une fois rechargé, cliquez à nouveau sur « Continuer la rédaction »."
+        );
         return;
       }
       if (!startResp.ok) {
@@ -2134,7 +2134,7 @@ function RedactionContent() {
     >
       <span className="material-symbols-outlined text-base">auto_stories</span>
       <span>{bookHasWrittenBody ? "Régénérer le livre" : "Générer le livre"}</span>
-      <span className="font-semibold text-white/85 tabular-nums">· ≈ {fmtCoins(bookCostEstimate)} pièces</span>
+      <span className="font-semibold text-white/85 tabular-nums">· max. {fmtCoins(bookCostEstimate)} pièces</span>
     </button>
   );
 
@@ -2158,7 +2158,7 @@ function RedactionContent() {
           <Coins className="w-3.5 h-3.5 text-secondary" />
           {batchProgress ? `Chapitre ${Math.min(batchProgress.current + 1, batchProgress.total)}/${batchProgress.total} · ` : ""}
           {coinsUsedLive !== null ? `${fmtCoins(coinsUsedLive)} pièces utilisées` : "Rédaction en cours"}
-          {batchCoinPlan ? ` / ≈ ${fmtCoins(batchCoinPlan)}` : ""}
+          {batchCoinPlan ? ` / max. ${fmtCoins(batchCoinPlan)}` : ""}
         </span>
       )}
 
@@ -2211,7 +2211,7 @@ function RedactionContent() {
           className={`${actionBtn} justify-center bg-[#C84B31] hover:bg-[#B83E26] text-white shadow-sm self-stretch sm:self-auto`}
         >
           <span className="material-symbols-outlined text-base">auto_stories</span>
-          <span>Générer le livre · ≈ {fmtCoins(bookCostEstimate)} pièces</span>
+          <span>Générer le livre · max. {fmtCoins(bookCostEstimate)} pièces</span>
         </button>
       )}
     </div>

@@ -4,7 +4,8 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
-import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
+import { deductGenerationCost, formatCoins, getWalletBalance } from "@/lib/ai/cost-engine";
+import { fallbackChain, streamTextWithFallback } from "@/lib/ai/model-fallback";
 import { canonicalModelId, estimateCallCoins, estimateTokensFromText, MIN_AI_CALL_COINS } from "@/lib/ai/pricing";
 import {
   detectIntent,
@@ -32,10 +33,32 @@ const CHAT_MAX_OUTPUT_TOKENS = 4000;
  */
 const CHAT_EXPECTED_OUTPUT_TOKENS = 1500;
 
-const insufficientFunds = () =>
+/**
+ * Solde insuffisant : on dit COMBIEN il faut et combien l'auteur a. Un simple
+ * « Fonds insuffisants » avec 296 pièces en poche était incompréhensible
+ * (une réécriture de chapitre long peut en demander bien plus).
+ */
+const insufficientFunds = (required: number, balance: number, tip?: string) =>
   NextResponse.json(
-    { error: "Fonds insuffisants. Rechargez des pièces pour continuer à utiliser l'assistant." },
+    {
+      error:
+        `Cette demande peut coûter jusqu'à ${formatCoins(required)} pièces et votre solde est de ${formatCoins(balance)} pièces.` +
+        (tip ? ` ${tip}` : " Rechargez des pièces pour continuer à utiliser l'assistant."),
+      required,
+      balance,
+    },
     { status: 402 }
+  );
+
+/** Conseil affiché quand une MODIFICATION de chapitre dépasse le solde. */
+const MODIFY_TIP =
+  "Astuce : pour une modification ciblée, sélectionnez le passage concerné dans l'éditeur et utilisez les actions d'Iris sur la sélection — c'est bien moins coûteux que de faire réécrire tout le chapitre. Sinon, rechargez des pièces.";
+
+/** Aucun fournisseur d'IA n'a répondu (crédit épuisé, panne…). */
+const aiUnavailable = () =>
+  NextResponse.json(
+    { error: "Iris n'arrive pas à joindre ses modèles d'IA pour le moment. Réessayez dans quelques minutes." },
+    { status: 503 }
   );
 
 export async function POST(req: Request) {
@@ -114,7 +137,7 @@ export async function POST(req: Request) {
 
     // ⚡ OPTIMISATION : Paralléliser TOUTES les requêtes Supabase indépendantes
     // Au lieu de ~5 requêtes séquentielles (3-5s), on les lance en parallèle (~0.5-1s)
-    const [profileResult, quotaResult, balanceOk, chaptersResult] = await Promise.all([
+    const [profileResult, quotaResult, balance, chaptersResult] = await Promise.all([
       // 1. Fetch user profile & plan
       supabase.from("profiles").select("role, plan").eq("id", user.id).single(),
       // 2. Quota check (needs supabase + userId, indépendant du profil à ce stade)
@@ -123,8 +146,8 @@ export async function POST(req: Request) {
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id)
         .gte("created_at", (() => { const d = new Date(); d.setUTCDate(1); d.setUTCHours(0,0,0,0); return d.toISOString(); })()),
-      // 3. Balance check
-      checkMinimumBalance(user.id, MIN_AI_CALL_COINS),
+      // 3. Solde (null si la lecture échoue : on le dit, plutôt que « fonds insuffisants »)
+      getWalletBalance(user.id, supabase),
       // 4. Chapters fetch (si pas fournis dans le body)
       (Array.isArray(bodyChapters) && bodyChapters.length > 0) || !projectId
         ? Promise.resolve({ data: null })
@@ -156,7 +179,13 @@ export async function POST(req: Request) {
     }
 
     // Balance check
-    if (!balanceOk) return insufficientFunds();
+    if (balance === null) {
+      return NextResponse.json(
+        { error: "Impossible de vérifier votre solde pour le moment. Réessayez dans un instant." },
+        { status: 503 }
+      );
+    }
+    if (balance < MIN_AI_CALL_COINS) return insufficientFunds(MIN_AI_CALL_COINS, balance);
 
     // Detect Intent (with conversation history for confirmations like "oui va y", "tu peux le faire sur le livre ?")
     const intent = detectIntent(lastUserMessage, messages);
@@ -265,24 +294,51 @@ Consignes de génération :
         16000,
         Math.max(2000, Math.ceil(estimateTokensFromText(resolved.targetContent) * 1.6) + 1500)
       );
-      if (!(await checkMinimumBalance(user.id, estimateCallCoins(selectedModelName, editPrompt, modifyMaxOutput)))) {
-        return insufficientFunds();
+      const modifyRequired = estimateCallCoins(selectedModelName, editPrompt, modifyMaxOutput);
+      if (balance < modifyRequired) {
+        return insufficientFunds(modifyRequired, balance, MODIFY_TIP);
       }
 
-      const modificationResult = await generateObject({
-        model: getAiModel(selectedModelName),
-        maxOutputTokens: modifyMaxOutput,
-        schema: z.object({
-          chatSummary: z.string().describe("Message conversationnel explicatif pour l'auteur dans le chat"),
-          summary: z.string().describe("Résumé synthétique court des modifications effectuées (1 à 2 phrases)"),
-          newContent: z.string().describe("Le nouveau contenu HTML complet réécrit du chapitre")
-        }),
-        prompt: editPrompt
-      });
+      const runModify = (modelId: string) =>
+        generateObject({
+          model: getAiModel(modelId),
+          maxOutputTokens: modifyMaxOutput,
+          schema: z.object({
+            chatSummary: z.string().describe("Message conversationnel explicatif pour l'auteur dans le chat"),
+            summary: z.string().describe("Résumé synthétique court des modifications effectuées (1 à 2 phrases)"),
+            newContent: z.string().describe("Le nouveau contenu HTML complet réécrit du chapitre")
+          }),
+          prompt: editPrompt
+        });
+
+      // Repli de fournisseur : une panne (crédit Gemini épuisé…) ne doit pas
+      // rendre l'assistant inutilisable alors qu'un autre fournisseur répond.
+      // Un modèle de secours n'est essayé que si le solde couvre SON coût.
+      let modificationResult: Awaited<ReturnType<typeof runModify>> | null = null;
+      let modifyModel = selectedModelName;
+      const modifyErrors: string[] = [];
+      for (const modelId of fallbackChain(selectedModelName)) {
+        if (modelId !== selectedModelName && balance < estimateCallCoins(modelId, editPrompt, modifyMaxOutput)) {
+          modifyErrors.push(`${modelId}: solde insuffisant pour ce modèle`);
+          continue;
+        }
+        try {
+          modificationResult = await runModify(modelId);
+          modifyModel = modelId;
+          break;
+        } catch (err) {
+          modifyErrors.push(`${modelId}: ${err instanceof Error ? err.message : String(err)}`);
+          console.warn(`[chat] modification : ${modelId} a échoué, essai du fournisseur suivant`);
+        }
+      }
+      if (!modificationResult) {
+        console.error("[chat] modification impossible, tous les fournisseurs ont échoué :", modifyErrors.join(" | "));
+        return aiUnavailable();
+      }
 
       await deductGenerationCost(
         user.id,
-        selectedModelName,
+        modifyModel,
         modificationResult.usage,
         "Assistant IA — modification de chapitre",
         {
@@ -370,37 +426,56 @@ Consignes de style :
     }));
 
     const chatInput = systemPrompt + aiMessages.map((m: any) => m.content).join("\n");
-    if (!(await checkMinimumBalance(user.id, estimateCallCoins(selectedModelName, chatInput, CHAT_EXPECTED_OUTPUT_TOKENS)))) {
-      return insufficientFunds();
+    const chatRequired = estimateCallCoins(selectedModelName, chatInput, CHAT_EXPECTED_OUTPUT_TOKENS);
+    if (balance < chatRequired) return insufficientFunds(chatRequired, balance);
+
+    // Réponse en flux avec repli de fournisseur : une erreur de fournisseur
+    // ne coupe pas un flux, elle le termine VIDE — l'assistant « répondait »
+    // alors une bulle blanche tant que le crédit Gemini était épuisé.
+    let streamed;
+    try {
+      streamed = await streamTextWithFallback({
+        preferred: selectedModelName,
+        start: async (modelId) => {
+          if (modelId !== selectedModelName && balance < estimateCallCoins(modelId, chatInput, CHAT_EXPECTED_OUTPUT_TOKENS)) {
+            return null;
+          }
+          return streamText({
+            model: getAiModel(modelId),
+            system: systemPrompt,
+            messages: aiMessages,
+            maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
+            async onFinish({ usage, text }) {
+              // Un fournisseur en échec n'a rien produit : rien à facturer.
+              if (!text) return;
+              await deductGenerationCost(
+                user.id,
+                modelId,
+                usage,
+                "Assistant IA — conversation",
+                {
+                  projectId: bodyProjectId || (context as any)?.projectId || null,
+                  outputText: text,
+                }
+              );
+            },
+          });
+        },
+      });
+    } catch (err) {
+      console.error("[chat] conversation impossible :", err instanceof Error ? err.message : err);
+      return aiUnavailable();
     }
 
-    const result = streamText({
-      model: getAiModel(selectedModelName),
-      system: systemPrompt,
-      messages: aiMessages,
-      maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
-      async onFinish({ usage, text }) {
-        await deductGenerationCost(
-          user.id,
-          selectedModelName,
-          usage,
-          "Assistant IA — conversation",
-          {
-            projectId: bodyProjectId || (context as any)?.projectId || null,
-            outputText: text,
-          }
-        );
-      },
+    // Le débit vit dans onFinish, qui ne s'exécute que si la génération est
+    // lue jusqu'au bout. `done` continue la lecture côté serveur même si le
+    // client coupe la connexion, et after() garde la fonction en vie jusqu'au
+    // débit : couper juste avant la fin ne donne pas une réponse gratuite.
+    after(streamed.done);
+
+    return new Response(streamed.textStream.pipeThrough(new TextEncoderStream()), {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
-
-    // Le débit vit dans onFinish, qui ne s'exécute que si le flux est lu
-    // jusqu'au bout. Sans cela, couper la connexion juste avant la fin
-    // donnait une réponse complète… gratuite. On consomme donc le flux côté
-    // serveur, indépendamment du client, et after() garde la fonction en vie
-    // jusqu'au débit.
-    after(Promise.resolve(result.consumeStream()));
-
-    return result.toTextStreamResponse();
   } catch (error) {
     console.error("Erreur lors du chat IA:", error);
     return NextResponse.json(
