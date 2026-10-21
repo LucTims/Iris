@@ -1,0 +1,454 @@
+{
+  "titre": "De l'élevage au livre : l'histoire de Paul",
+  "format": "Avatar + démonstration réelle d'Iris",
+  "voix": "Martin (Krys Martin-1)",
+  "voice_audio": "voixA.mp3",
+  "avatar_video": "avatar.mp4",
+  "uppercase": true,
+  "hook": {
+    "text": "Il élève des poulets. |Il a écrit un livre.",
+    "until": 3
+  },
+  "badge": {
+    "name": "Martin",
+    "role": "Fondateur d'Iris",
+    "from": 14,
+    "until": 16
+  },
+  "extra": [
+    {
+      "png": "exemple.png",
+      "from": 3,
+      "until": 12
+    },
+    {
+      "png": "comment.png",
+      "from": 50,
+      "until": "end"
+    }
+  ],
+  "chunks": [
+    {
+      "text": "Ça fait douze ans",
+      "hl": [
+        "douze",
+        "ans"
+      ]
+    },
+    {
+      "text": "que Paul élève des poulets de chair,",
+      "hl": [
+        "poulets"
+      ]
+    },
+    {
+      "text": "dans la ville de Douala.",
+      "hl": [
+        "Douala."
+      ]
+    },
+    {
+      "text": "Paul n'est pas écrivain…",
+      "hl": [
+        "écrivain…"
+      ]
+    },
+    {
+      "text": "mais il sait des choses"
+    },
+    {
+      "text": "qu'aucun livre ne dit.",
+      "hl": [
+        "livre"
+      ]
+    },
+    {
+      "text": "Paul est un exemple :",
+      "hl": [
+        "exemple"
+      ]
+    },
+    {
+      "text": "il vit lui-même son activité,"
+    },
+    {
+      "text": "et il aimerait bien partager",
+      "hl": [
+        "partager"
+      ]
+    },
+    {
+      "text": "ce qu'il sait avec le monde…",
+      "hl": [
+        "monde…"
+      ]
+    },
+    {
+      "text": "malheureusement,"
+    },
+    {
+      "text": "il ne sait pas écrire de livre.",
+      "hl": [
+        "écrire"
+      ]
+    },
+    {
+      "text": "Son histoire,"
+    },
+    {
+      "text": "c'est peut-être la tienne.",
+      "hl": [
+        "tienne."
+      ]
+    },
+    {
+      "text": "Alors regarde maintenant"
+    },
+    {
+      "text": "comment son savoir devient un livre.",
+      "hl": [
+        "savoir",
+        "livre."
+      ]
+    },
+    {
+      "text": "D'abord, Paul choisit"
+    },
+    {
+      "text": "le type d'ouvrage :",
+      "hl": [
+        "type"
+      ]
+    },
+    {
+      "text": "un guide pratique.",
+      "hl": [
+        "guide",
+        "pratique."
+      ]
+    },
+    {
+      "text": "Il donne son titre :",
+      "hl": [
+        "titre"
+      ]
+    },
+    {
+      "text": "« Réussir son élevage",
+      "hl": [
+        "Réussir"
+      ]
+    },
+    {
+      "text": "de poulets de chair au Cameroun ».",
+      "hl": [
+        "Cameroun"
+      ]
+    },
+    {
+      "text": "Et il dit à qui il s'adresse :"
+    },
+    {
+      "text": "aux jeunes qui veulent",
+      "hl": [
+        "jeunes"
+      ]
+    },
+    {
+      "text": "se lancer dans l'élevage."
+    },
+    {
+      "text": "Ensuite, il décrit son idée",
+      "hl": [
+        "idée"
+      ]
+    },
+    {
+      "text": "avec ses propres mots,",
+      "hl": [
+        "propres",
+        "mots,"
+      ]
+    },
+    {
+      "text": "comme il l'expliquerait à un ami :",
+      "hl": [
+        "ami"
+      ]
+    },
+    {
+      "text": "les erreurs qui font mourir les poussins,",
+      "hl": [
+        "poussins,"
+      ]
+    },
+    {
+      "text": "l'alimentation, les maladies,",
+      "hl": [
+        "maladies,"
+      ]
+    },
+    {
+      "text": "et comment vendre au bon prix.",
+      "hl": [
+        "bon",
+        "prix."
+      ]
+    },
+    {
+      "text": "Iris lui propose alors",
+      "hl": [
+        "Iris"
+      ]
+    },
+    {
+      "text": "un plan complet,",
+      "hl": [
+        "plan"
+      ]
+    },
+    {
+      "text": "chapitre par chapitre.",
+      "hl": [
+        "chapitre"
+      ]
+    },
+    {
+      "text": "Paul garde ce qui lui plaît,",
+      "hl": [
+        "garde"
+      ]
+    },
+    {
+      "text": "et change ce qu'il veut.",
+      "hl": [
+        "change"
+      ]
+    },
+    {
+      "text": "Puis Iris écrit",
+      "hl": [
+        "écrit"
+      ]
+    },
+    {
+      "text": "le premier chapitre avec lui.",
+      "hl": [
+        "avec",
+        "lui."
+      ]
+    },
+    {
+      "text": "Pas un texte générique :",
+      "hl": [
+        "générique"
+      ]
+    },
+    {
+      "text": "son expérience, son terrain,",
+      "hl": [
+        "expérience,",
+        "terrain,"
+      ]
+    },
+    {
+      "text": "ses conseils.",
+      "hl": [
+        "conseils."
+      ]
+    },
+    {
+      "text": "Et il peut tout modifier,",
+      "hl": [
+        "modifier,"
+      ]
+    },
+    {
+      "text": "pas à pas,"
+    },
+    {
+      "text": "sans tout recommencer.",
+      "hl": [
+        "recommencer."
+      ]
+    },
+    {
+      "text": "À la fin,"
+    },
+    {
+      "text": "il crée sa couverture.",
+      "hl": [
+        "couverture."
+      ]
+    },
+    {
+      "text": "Douze ans d'expérience…",
+      "hl": [
+        "expérience…"
+      ]
+    },
+    {
+      "text": "qui deviennent un vrai livre,",
+      "hl": [
+        "vrai",
+        "livre,"
+      ]
+    },
+    {
+      "text": "à offrir, à partager ou à vendre,"
+    },
+    {
+      "text": "et tout ça en moins de 24 heures.",
+      "hl": [
+        "24",
+        "heures."
+      ]
+    },
+    {
+      "text": "Et toi, c'est quoi ton métier ?",
+      "hl": [
+        "métier"
+      ]
+    },
+    {
+      "text": "Quelle est cette compétence",
+      "hl": [
+        "compétence"
+      ]
+    },
+    {
+      "text": "que tu souhaites partager avec les autres,"
+    },
+    {
+      "text": "mais sans savoir comment faire ?"
+    },
+    {
+      "text": "Dis-le-moi en commentaire,",
+      "hl": [
+        "commentaire,"
+      ]
+    },
+    {
+      "text": "et je te propose le titre de ton livre.",
+      "hl": [
+        "titre"
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "type": "image",
+      "src": "img0.png",
+      "from": 0
+    },
+    {
+      "type": "image",
+      "src": "img1.png",
+      "from": 3
+    },
+    {
+      "type": "close",
+      "from": 6
+    },
+    {
+      "type": "image",
+      "src": "img2.png",
+      "from": 8
+    },
+    {
+      "type": "wide",
+      "from": 10
+    },
+    {
+      "type": "close",
+      "from": 12
+    },
+    {
+      "type": "wide",
+      "from": 14
+    },
+    {
+      "type": "video",
+      "src": "ui-type.mp4",
+      "from": 16
+    },
+    {
+      "type": "video",
+      "src": "ui-titre.mp4",
+      "from": 19
+    },
+    {
+      "type": "video",
+      "src": "ui-public.mp4",
+      "from": 22
+    },
+    {
+      "type": "video",
+      "src": "ui-idee.mp4",
+      "from": 25
+    },
+    {
+      "type": "video",
+      "src": "ui-analyse.mp4",
+      "from": 30
+    },
+    {
+      "type": "video",
+      "src": "ui-plan.mp4",
+      "from": 31
+    },
+    {
+      "type": "video",
+      "src": "ui-plan-edit.mp4",
+      "from": 34
+    },
+    {
+      "type": "video",
+      "src": "ui-redaction.mp4",
+      "from": 36
+    },
+    {
+      "type": "video",
+      "src": "ui-chapitre.mp4",
+      "from": 38
+    },
+    {
+      "type": "video",
+      "src": "ui-modif.mp4",
+      "from": 41
+    },
+    {
+      "type": "video",
+      "src": "ui-couverture.mp4",
+      "from": 44
+    },
+    {
+      "type": "image",
+      "src": "img3.png",
+      "from": 46
+    },
+    {
+      "type": "image",
+      "src": "img2.png",
+      "from": 48
+    },
+    {
+      "type": "close",
+      "from": 50
+    },
+    {
+      "type": "wide",
+      "from": 52
+    },
+    {
+      "type": "close",
+      "from": 54
+    }
+  ],
+  "endcard": {
+    "l1": "Ton savoir,",
+    "l2": "ton livre.",
+    "cta": "Dis-moi ton métier en commentaire"
+  },
+  "legende": "12 ans d'élevage… devenus un livre 📖 Paul est un exemple, mais son histoire est peut-être la tienne.\nQuel est ton métier ? Dis-le en commentaire, je te propose le titre de ton livre 👇\n#livre #ebook #elevage #cameroun #transmettre #savoirfaire #iris"
+}
