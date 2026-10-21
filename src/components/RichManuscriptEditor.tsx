@@ -4,25 +4,6 @@ import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle, us
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 
-import Document from '@tiptap/extension-document';
-import Paragraph from '@tiptap/extension-paragraph';
-import Text from '@tiptap/extension-text';
-import Heading from '@tiptap/extension-heading';
-import Bold from '@tiptap/extension-bold';
-import Italic from '@tiptap/extension-italic';
-import Underline from '@tiptap/extension-underline';
-import Strike from '@tiptap/extension-strike';
-import HardBreak from '@tiptap/extension-hard-break';
-import BulletList from '@tiptap/extension-bullet-list';
-import OrderedList from '@tiptap/extension-ordered-list';
-import ListItem from '@tiptap/extension-list-item';
-import Blockquote from '@tiptap/extension-blockquote';
-import Link from '@tiptap/extension-link';
-import { TextStyle } from '@tiptap/extension-text-style';
-import { Color } from '@tiptap/extension-color';
-import { Highlight } from '@tiptap/extension-highlight';
-import { TextAlign } from '@tiptap/extension-text-align';
-import { FontFamily } from '@tiptap/extension-font-family';
 import {
   FONT_CATEGORY_ORDER,
   fontsByCategory,
@@ -38,7 +19,6 @@ import { ConvertKit } from '@tiptap-pro/extension-convert-kit';
 import { TableKit } from '@tiptap-pro/extension-pages-tablekit';
 import { Pages } from '@tiptap-pro/extension-pages';
 
-import { FontSize } from './editor/FontSizeExtension';
 import { LineHeight } from './editor/LineHeightExtension';
 import { ResizableImage } from './editor/ResizableImageExtension';
 import { Callout, CalloutType } from './editor/CalloutExtension';
@@ -175,37 +155,33 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
 
   // Initialize Tiptap Pro Pages Editor
   const editor = useEditor({
+    // Les extensions de base (paragraphes, titres, gras, listes, liens,
+    // couleurs, polices, tailles, alignement, annuler/rétablir…) viennent TOUTES
+    // de ConvertKit. Elles étaient auparavant AUSSI importées une par une ici :
+    // chaque nom était enregistré deux fois (avertissement « Duplicate extension
+    // names » de Tiptap), plugins et raccourcis tournaient en double, et la
+    // dernière copie l'emportait en silence — c'est ainsi que le menu
+    // « Interligne » appelait le `setLineHeight` de ConvertKit (style posé sur
+    // le texte) au lieu du nôtre (posé sur le paragraphe, lu par la barre
+    // d'outils), et restait sans effet visible.
     extensions: [
-      Document,
-      Paragraph,
-      Text,
-      Heading,
-      Bold,
-      Italic,
-      Underline,
-      Strike,
-      HardBreak,
-      BulletList,
-      OrderedList,
-      ListItem,
-      Blockquote,
       Callout,
       KeyFigure,
       PullQuote,
       DropCap,
       SectionDivider,
       StoryPage,
-      Link.configure({ openOnClick: true, HTMLAttributes: { class: 'text-secondary underline cursor-pointer' } }),
       ResizableImage,
-      TextStyle,
-      Color,
-      Highlight.configure({ multicolor: true }),
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      FontFamily,
-      FontSize,
       LineHeight,
       ConvertKit.configure({
         table: false, // Handled by TableKit
+        image: false, // ResizableImage (poignées, rognage, alignement)
+        link: { openOnClick: true, HTMLAttributes: { class: 'text-secondary underline cursor-pointer' } },
+        highlight: { multicolor: true },
+        textAlign: { types: ['heading', 'paragraph'] },
+        // Interligne au niveau du PARAGRAPHE (LineHeight ci-dessus) : c'est ce
+        // que lit la barre d'outils et ce que reprend l'export.
+        textStyleKit: { lineHeight: false },
       }),
       TableKit,
       Pages.configure({
@@ -505,7 +481,9 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   const handleInsertLinkSubmit = () => {
     if (!editor || !linkUrlInput) return;
     if (linkTextInput) {
-      editor.chain().focus().insertContent(`<a href="${linkUrlInput}">${linkTextInput}</a>`).run();
+      // Texte et URL échappés : un « < » ou un guillemet saisi cassait le HTML
+      // inséré (lien tronqué, balises parasites dans le manuscrit).
+      editor.chain().focus().insertContent(`<a href="${escapeHtml(linkUrlInput)}">${escapeHtml(linkTextInput)}</a>`).run();
     } else {
       editor.chain().focus().setLink({ href: linkUrlInput }).run();
     }
@@ -515,8 +493,21 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
   };
 
   const insertImageIntoDOM = (src: string) => {
-    if (editor) {
-      editor.chain().focus().setImage({ src }).run();
+    const url = src.trim();
+    if (editor && url) {
+      // Image + paragraphe vide juste après, curseur placé dans ce paragraphe.
+      // Avec `setImage` seul, l'image restait SÉLECTIONNÉE après l'insertion :
+      // la frappe suivante la remplaçait (l'image « disparaissait »), et en fin
+      // de chapitre il n'existait aucune ligne sous l'image où continuer à
+      // écrire.
+      editor
+        .chain()
+        .focus()
+        .insertContent([
+          { type: 'image', attrs: { src: url } },
+          { type: 'paragraph' },
+        ])
+        .run();
     }
     setIsImageModalOpen(false);
     setImageUrlInput("");
@@ -968,9 +959,11 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
           {editor && (
             <BubbleMenu
               editor={editor}
-              tippyOptions={{
+              // Tiptap v3 positionne le menu avec Floating UI (`options`), et non plus
+              // Tippy (`tippyOptions`, ignoré et transmis tel quel au DOM).
+              options={{
                 placement: 'top',
-                offset: [0, typeof window !== "undefined" && window.innerWidth < 768 ? 65 : 8]
+                offset: typeof window !== "undefined" && window.innerWidth < 768 ? 65 : 8,
               }}
               className="flex flex-col bg-white dark:bg-neutral-900/95 backdrop-blur-md border border-neutral-200/90 shadow-2xl rounded-2xl px-2 py-1.5 z-50 overflow-hidden max-w-[92vw]"
             >

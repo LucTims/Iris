@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { resolveApiKeyUser } from "@/lib/mcp/auth";
+import { checkRateLimit } from "@/lib/ratelimit";
 import { buildMcpServer } from "@/lib/mcp/server";
 import { StatelessHttpTransport } from "@/lib/mcp/transport";
 
@@ -27,6 +28,19 @@ export async function POST(request: Request) {
         error: { code: -32001, message: "Non autorisé : clé API MCP manquante ou invalide." },
       },
       { status: 401 }
+    );
+  }
+
+  // Une clé MCP peut écrire des chapitres et débiter des pièces : on borne le
+  // débit par utilisateur, comme pour les routes IA de l'application.
+  const rate = await checkRateLimit(`mcp_${auth.userId}`, 60, 60 * 1000);
+  if (!rate.success) {
+    return NextResponse.json(
+      {
+        jsonrpc: "2.0",
+        error: { code: -32029, message: "Trop de requêtes MCP. Réessayez dans une minute." },
+      },
+      { status: 429 }
     );
   }
 

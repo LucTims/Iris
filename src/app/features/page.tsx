@@ -1,5 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "Fonctionnalités",
+  description:
+    "Explorez tous les outils d'Iris : co-rédaction interactive IA, structure de plan, atelier de couverture HD et export multi-format (PDF, Word, EPUB).",
+  openGraph: {
+    title: "Fonctionnalités complètes d'Iris | Studio d'écriture IA",
+    description:
+      "Tous les outils pour co-rédiger, structurer, designer et exporter vos livres numériques.",
+    url: "https://www.irisboom.online/features",
+  },
+};
 
 export default function FeaturesPage() {
   const features = [

@@ -1,5 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "À propos de Boom & Iris",
+  description:
+    "Découvrez la mission de Boom : démocratiser l'écriture et l'auto-édition littéraire assistée par IA pour tous les créateurs et auteurs.",
+  openGraph: {
+    title: "À propos de Boom & Iris",
+    description:
+      "Démocratiser l'écriture et l'auto-édition littéraire par l'intelligence artificielle.",
+    url: "https://www.irisboom.online/about",
+  },
+};
 
 export default function AboutPage() {
   return (

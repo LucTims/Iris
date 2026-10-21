@@ -57,8 +57,8 @@ export default function AdminDashboard() {
                 <YAxis stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => v + " F"} />
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  labelFormatter={(v) => new Date(v).toLocaleDateString('fr-FR')}
-                  formatter={(val: number) => [val + " FCFA", "Revenus"]}
+                  labelFormatter={(v) => new Date(String(v)).toLocaleDateString('fr-FR')}
+                  formatter={(val) => [`${val} FCFA`, "Revenus"]}
                 />
                 <Line type="monotone" dataKey="revenue" stroke="#C84B31" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: '#C84B31' }} />
               </LineChart>
@@ -76,8 +76,8 @@ export default function AdminDashboard() {
                 <YAxis stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  labelFormatter={(v) => new Date(v).toLocaleDateString('fr-FR')}
-                  formatter={(val: number) => [val + " utilisateurs", "Inscriptions"]}
+                  labelFormatter={(v) => new Date(String(v)).toLocaleDateString('fr-FR')}
+                  formatter={(val) => [`${val} utilisateurs`, "Inscriptions"]}
                 />
                 <Line type="monotone" dataKey="signups" stroke="#2563eb" strokeWidth={3} dot={false} activeDot={{ r: 6, fill: '#2563eb' }} />
               </LineChart>

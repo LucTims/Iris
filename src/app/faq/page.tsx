@@ -195,14 +195,14 @@ export default function FAQPage() {
                   </p>
                 </div>
 
-                <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-200/60 text-xs text-emerald-900 font-medium">
-                  Discussion directe avec l&apos;équipe éditoriale &amp; technique
+                <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-200/60 font-mono text-xs text-emerald-900 font-semibold select-all">
+                  +237 680619567
                 </div>
               </div>
 
               <div className="pt-5 mt-3 border-t border-neutral-100 dark:border-neutral-800">
                 <a
-                  href="https://wa.me/?text=Bonjour%20Iris,%20j'ai%20une%20question%20concernant%20la%20plateforme."
+                  href="https://wa.me/237680619567?text=Bonjour%20Iris,%20j'ai%20une%20question%20concernant%20la%20plateforme."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold px-5 py-3 rounded-xl transition-all shadow-2xs hover:shadow-xs cursor-pointer"

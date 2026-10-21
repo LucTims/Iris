@@ -2104,7 +2104,8 @@ function RedactionContent() {
     router.push(coverStudioHref);
   };
 
-  const openExport = () => {
+  const openExport = async () => {
+    await saveCurrentChapterNow();
     if (typeof window !== "undefined" && (window as any).fbq) {
       (window as any).fbq("trackCustom", "BookCompleted", { projectId: currentProjectId });
     }

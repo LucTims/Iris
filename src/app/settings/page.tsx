@@ -7,7 +7,9 @@ import {
   Settings,
   Bell,
   Shield,
-  FileText
+  FileText,
+  Download,
+  Trash2
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -25,6 +27,29 @@ export default function SettingsPage() {
   const handleToggleAppNotif = (val: boolean) => {
     setAppNotifications(val);
     localStorage.setItem("iris_app_notifications", String(val));
+  };
+
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [accountError, setAccountError] = useState("");
+
+  // Suppression définitive du compte (droit à l'effacement, RGPD).
+  const handleDeleteAccount = async () => {
+    setAccountError("");
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: confirmText }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "La suppression a échoué.");
+      window.location.href = "/";
+    } catch (e) {
+      setAccountError(e instanceof Error ? e.message : "La suppression a échoué.");
+      setDeleting(false);
+    }
   };
 
   const handleToggleEmailNotif = (val: boolean) => {
@@ -121,6 +146,59 @@ export default function SettingsPage() {
                   <p className="text-[10px] text-neutral-500">Règles d'utilisation du service</p>
                 </div>
               </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Données personnelles (RGPD) */}
+        <section className="bg-white rounded-3xl border border-neutral-200/80 shadow-2xs overflow-hidden">
+          <div className="p-6 sm:p-8 space-y-6">
+            <div className="flex items-center gap-3 border-b border-neutral-100 pb-4">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-heading text-lg font-extrabold text-neutral-900">Mes données</h2>
+                <p className="text-xs text-neutral-500">Téléchargez vos données ou supprimez votre compte.</p>
+              </div>
+            </div>
+
+            <a
+              href="/api/account"
+              className="flex items-center gap-3 p-4 rounded-2xl border border-neutral-100 hover:border-neutral-200 hover:bg-neutral-50 transition-all group"
+            >
+              <div className="p-2 rounded-xl bg-neutral-100 text-neutral-500 group-hover:text-secondary group-hover:bg-orange-50 transition-colors">
+                <Download className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-neutral-900">Télécharger mes données</h3>
+                <p className="text-[10px] text-neutral-500">Profil, livres, chapitres et historique de pièces (fichier JSON)</p>
+              </div>
+            </a>
+
+            <div className="p-4 rounded-2xl border border-red-200 bg-red-50/50 space-y-3">
+              <h3 className="text-sm font-bold text-red-700">Supprimer mon compte</h3>
+              <p className="text-xs text-red-700/80">
+                Action définitive : vos livres, chapitres, images, couvertures et pièces restantes seront effacés et ne pourront pas être récupérés.
+              </p>
+              <label className="block text-xs font-semibold text-neutral-700">
+                Pour confirmer, tapez <span className="font-mono font-bold">SUPPRIMER</span>
+                <input
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+                  autoComplete="off"
+                />
+              </label>
+              {accountError && <p className="text-xs font-semibold text-red-700">{accountError}</p>}
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={confirmText !== "SUPPRIMER" || deleting}
+                className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-bold disabled:opacity-40"
+              >
+                {deleting ? "Suppression…" : "Supprimer définitivement mon compte"}
+              </button>
             </div>
           </div>
         </section>

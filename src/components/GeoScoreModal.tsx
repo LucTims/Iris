@@ -13,12 +13,6 @@ export default function GeoScoreModal({ isOpen, onClose, bookTitle, bookContent 
   const [loading, setLoading] = useState(false);
   const [geoData, setGeoData] = useState<{ score: number; feedback: string[] } | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      analyzeGEO();
-    }
-  }, [isOpen]);
-
   const analyzeGEO = async () => {
     if (!bookContent) return;
     setLoading(true);
@@ -39,6 +33,13 @@ export default function GeoScoreModal({ isOpen, onClose, bookTitle, bookContent 
       setLoading(false);
     }
   };
+
+  // L'effet est déclaré après analyzeGEO pour ne pas lire la fonction avant sa déclaration.
+  useEffect(() => {
+    if (isOpen) {
+      analyzeGEO();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

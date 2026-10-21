@@ -1,9 +1,10 @@
 import { streamText } from "ai";
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
 import { checkMinimumBalance, deductChapterCost } from "@/lib/ai/cost-engine";
+import { canonicalModelId, estimatePagesCoins, maxChargeForQuote, pagesFromText } from "@/lib/ai/pricing";
 import {
   getAiModel,
   fetchSearchContext,
@@ -38,13 +39,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Le contenu est requis pour une réécriture." }, { status: 400 });
     }
 
-    if (!(await checkMinimumBalance(user.id, 30))) {
-      return NextResponse.json(
-        { error: "Fonds insuffisants (pièces) pour réécrire ce texte." },
-        { status: 402 }
-      );
-    }
-
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, plan")
@@ -54,9 +48,19 @@ export async function POST(req: Request) {
     const userPlan = profile?.plan || "free";
     const userRole = profile?.role || "user";
 
-    let selectedModelName = model || "gemini-3.6-flash";
+    let selectedModelName = canonicalModelId(model);
     if (selectedModelName === "gemini-2.5-pro" && userPlan === "free" && userRole !== "admin") {
       selectedModelName = "gemini-3.6-flash";
+    }
+
+    // Option A : devis = longueur du texte à réécrire ; on exige le montant
+    // maximal facturable (devis + 25 %) avant de lancer l'IA.
+    const quotedCoins = estimatePagesCoins(pagesFromText(content), selectedModelName);
+    if (!(await checkMinimumBalance(user.id, maxChargeForQuote(quotedCoins)))) {
+      return NextResponse.json(
+        { error: "Fonds insuffisants (pièces) pour réécrire ce texte." },
+        { status: 402 }
+      );
     }
 
     const quota = await checkMonthlyQuota(supabase, user.id, userPlan, userRole);
@@ -130,10 +134,14 @@ ${factualityRules(searchContext)}`,
           selectedModelName,
           usage,
           "Réécriture d'un chapitre",
-          { projectId: projectContext?.id || null, outputText: text }
+          { projectId: projectContext?.id || null, outputText: text, quotedCoins }
         );
       },
     });
+
+    // Débit dans onFinish : on lit le flux côté serveur jusqu'au bout, même si
+    // le client coupe la connexion avant la fin (sinon réécriture gratuite).
+    after(Promise.resolve(result.consumeStream()));
 
     return result.toTextStreamResponse();
   } catch (error) {

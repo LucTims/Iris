@@ -1,7 +1,7 @@
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { generateText } from "ai";
+import { generateText, type ToolSet } from "ai";
 
 /**
  * Web search grounding helpers (zero additional cost).
@@ -65,7 +65,7 @@ export function getSearchTools(modelId: string, useWebSearch: boolean) {
   try {
     const tools = (google as unknown as { tools?: { googleSearch?: (args: object) => unknown } }).tools;
     if (tools && typeof tools.googleSearch === "function") {
-      return { google_search: tools.googleSearch({}) } as Record<string, unknown>;
+      return { google_search: tools.googleSearch({}) } as ToolSet;
     }
   } catch (err) {
     console.warn("Google Search tool unavailable, continuing without grounding:", err);
@@ -84,7 +84,13 @@ export function getSearchTools(modelId: string, useWebSearch: boolean) {
 export async function fetchSearchContext(
   _modelId: string,
   useWebSearch: boolean,
-  searchQuery: string
+  searchQuery: string,
+  /**
+   * Facturation du pré-flight (appel IA réel). Les routes tarifées à la page
+   * (chapitre, réécriture, plan) l'incluent dans leur prix ; le chat, lui,
+   * doit le payer à part, sinon chaque message déclenchait un appel offert.
+   */
+  onUsage?: (usage: unknown, text: string) => Promise<unknown>
 ): Promise<string> {
   if (!useWebSearch) return "";
   if (!searchQuery || !searchQuery.trim()) return "";
@@ -108,12 +114,19 @@ export async function fetchSearchContext(
   const timeout = setTimeout(() => controller.abort(), PREFLIGHT_TIMEOUT_MS);
 
   try {
-    const { text } = await generateText({
+    const { text, usage } = await generateText({
       model: google("gemini-3.6-flash"),
       tools,
       abortSignal: controller.signal,
       prompt: `Recherche des données factuelles récentes et vérifiées sur le sujet suivant. Retourne UNIQUEMENT une liste de faits clés avec leurs sources (URLs). Pas de commentaire, pas d'introduction. Maximum 10 faits.\n\nSujet : ${searchQuery}`,
     });
+    if (onUsage) {
+      try {
+        await onUsage(usage, text || "");
+      } catch (billErr) {
+        console.warn("Facturation du pré-flight de recherche échouée:", billErr);
+      }
+    }
     return text && text.trim()
       ? `\n\n--- DONNÉES FACTUELLES ISSUES DE RECHERCHES WEB (à utiliser en priorité) ---\n${text}\n--- FIN DES DONNÉES FACTUELLES ---\n`
       : "";

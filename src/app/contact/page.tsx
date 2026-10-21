@@ -1,5 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { IrisMark } from "@/components/IrisLogo";
+
+export const metadata: Metadata = {
+  title: "Contact",
+  description:
+    "Contactez l'équipe d'Iris pour toute question sur la plateforme, demande de partenariat ou support technique.",
+  openGraph: {
+    title: "Contactez l'équipe Iris",
+    description: "Une question ou besoin d'aide ? Notre équipe est à votre écoute.",
+    url: "https://www.irisboom.online/contact",
+  },
+};
 
 export default function ContactPage() {
   return (

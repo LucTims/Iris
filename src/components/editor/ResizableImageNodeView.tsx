@@ -6,6 +6,36 @@ import {
   AlignLeft, AlignCenter, AlignRight, Crop
 } from 'lucide-react';
 
+const MIN_WIDTH = 100;
+const DEFAULT_WIDTH = 640;
+// Hauteur utile d'une page A4 si l'extension Pages n'a pas encore publié
+// `--page-max-height` (premier rendu).
+const FALLBACK_PAGE_MAX_HEIGHT = 860;
+// Marge sous la hauteur utile de page : bordure de sélection, marges du bloc.
+const PAGE_SAFETY_MARGIN = 32;
+
+/**
+ * Hauteur maximale qu'une image peut occuper sans dépasser une page.
+ *
+ * C'est LA cause des pages blanches à l'insertion : une photo portrait de
+ * 640 px de large mesure ~850 à 1100 px de haut, soit plus que la zone de
+ * texte d'une page A4. L'extension Pages ne pouvant pas couper une image en
+ * deux, elle ajoutait des pages en boucle pour essayer de la caser (dizaines
+ * de pages vides, onglet figé, éditeur inutilisable).
+ */
+function pageMaxHeight(editorDom: HTMLElement): number {
+  const raw = getComputedStyle(editorDom).getPropertyValue('--page-max-height');
+  const parsed = parseFloat(raw);
+  const pageHeight = Number.isFinite(parsed) && parsed > 0 ? parsed : FALLBACK_PAGE_MAX_HEIGHT;
+  return Math.max(MIN_WIDTH, pageHeight - PAGE_SAFETY_MARGIN);
+}
+
+/** Largeur de la zone de texte de la page (hors marges gauche/droite). */
+function pageContentWidth(editorDom: HTMLElement): number {
+  const cs = getComputedStyle(editorDom);
+  return editorDom.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+}
+
 // ─── Crop Modal ──────────────────────────────────────────────────
 function CropModal({ 
   imgSrc, 
@@ -82,25 +112,58 @@ function CropModal({
     return () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
   }, [dragging, dragOrigin, imgDisplaySize]);
 
-  const applyCrop = () => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx || !imgNaturalSize.w) return;
+  const [isApplying, setIsApplying] = useState(false);
+  const [cropError, setCropError] = useState<string | null>(null);
 
-    const scaleX = imgNaturalSize.w / imgDisplaySize.w;
-    const scaleY = imgNaturalSize.h / imgDisplaySize.h;
-    const sw = crop.w * scaleX, sh = crop.h * scaleY;
+  // Le résultat est envoyé au stockage comme une image insérée normalement.
+  // Avant, il était réinjecté en data URL PNG dans le HTML du chapitre : une
+  // image rognée pesait plusieurs Mo de base64 dans `chapters.content`, ce qui
+  // ralentissait chaque frappe (getHTML), chaque sauvegarde et l'IA.
+  // L'image source est lue via `fetch` (et non un <img crossOrigin>) : le
+  // navigateur réutilisait sinon la réponse en cache sans en-têtes CORS de
+  // l'aperçu, le canvas était « contaminé » et le rognage échouait en silence.
+  const applyCrop = async () => {
+    if (!imgNaturalSize.w || !imgDisplaySize.w) return;
+    setIsApplying(true);
+    setCropError(null);
+    try {
+      const res = await fetch(imgSrc);
+      if (!res.ok) throw new Error('source');
+      const sourceBlob = await res.blob();
+      const bitmap = await createImageBitmap(sourceBlob);
 
-    canvas.width = sw;
-    canvas.height = sh;
+      const scaleX = bitmap.width / imgDisplaySize.w;
+      const scaleY = bitmap.height / imgDisplaySize.h;
+      const sw = Math.max(1, Math.round(crop.w * scaleX));
+      const sh = Math.max(1, Math.round(crop.h * scaleY));
 
-    const img = new window.Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      ctx.drawImage(img, crop.x * scaleX, crop.y * scaleY, sw, sh, 0, 0, sw, sh);
-      onApply(canvas.toDataURL('image/png'));
-    };
-    img.src = imgSrc;
+      const canvas = document.createElement('canvas');
+      canvas.width = sw;
+      canvas.height = sh;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('canvas');
+      ctx.drawImage(bitmap, crop.x * scaleX, crop.y * scaleY, sw, sh, 0, 0, sw, sh);
+
+      const outType = sourceBlob.type === 'image/png' ? 'image/png' : 'image/jpeg';
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, outType, 0.9));
+      if (!blob) throw new Error('encode');
+
+      const form = new FormData();
+      form.append('file', blob, outType === 'image/png' ? 'image.png' : 'image.jpg');
+      const upload = await fetch('/api/upload-image', { method: 'POST', body: form });
+      const data = await upload.json().catch(() => ({}));
+      if (!upload.ok || !data.url) throw new Error(data.error || 'upload');
+      onApply(data.url);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      setCropError(
+        message && !['source', 'canvas', 'encode', 'upload'].includes(message)
+          ? message
+          : "Impossible de rogner cette image (elle est peut-être hébergée sur un autre site)."
+      );
+    } finally {
+      setIsApplying(false);
+    }
   };
 
   return (
@@ -151,13 +214,15 @@ function CropModal({
           )}
         </div>
 
+        {cropError && <p className="text-sm text-red-600">{cropError}</p>}
+
         {/* Actions */}
         <div className="flex justify-end gap-3">
           <button onClick={onCancel} className="px-5 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-neutral-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
             Annuler
           </button>
-          <button onClick={applyCrop} className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
-            Appliquer
+          <button onClick={applyCrop} disabled={isApplying} className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-wait">
+            {isApplying ? 'Envoi…' : 'Appliquer'}
           </button>
         </div>
       </div>
@@ -168,7 +233,7 @@ function CropModal({
 // ─── Main NodeView ──────────────────────────────────────────────
 export function ResizableImageNodeView(props: NodeViewProps) {
   const { node, updateAttributes, selected, deleteNode, editor, getPos } = props;
-  const { src, alt, width, rotation = 0, align = 'center' } = node.attrs;
+  const { src, alt, width, height, rotation = 0, align = 'center' } = node.attrs;
 
   const imageRef = useRef<HTMLImageElement>(null);
   const [isResizing, setIsResizing] = useState(false);
@@ -182,6 +247,54 @@ export function ResizableImageNodeView(props: NodeViewProps) {
   } else if (selected && !prevSelected) {
     setPrevSelected(true);
   }
+
+  /**
+   * Borne une largeur souhaitée pour que l'image tienne dans UNE page :
+   * pas plus large que la zone de texte, pas plus haute que la page.
+   */
+  const fitWidth = useCallback(
+    (desired: number): number => {
+      const dom = editor.view.dom as HTMLElement;
+      const img = imageRef.current;
+      let w = desired;
+      const contentWidth = pageContentWidth(dom);
+      if (contentWidth > 0) w = Math.min(w, contentWidth);
+      if (img && img.naturalWidth && img.naturalHeight) {
+        w = Math.min(w, (pageMaxHeight(dom) * img.naturalWidth) / img.naturalHeight);
+      }
+      return Math.max(MIN_WIDTH, Math.round(w));
+    },
+    [editor]
+  );
+
+  /** Hauteur correspondant à une largeur, selon le ratio réel de l'image. */
+  const heightFor = useCallback((w: number): number | null => {
+    const img = imageRef.current;
+    if (!img || !img.naturalWidth || !img.naturalHeight) return null;
+    return Math.round((w * img.naturalHeight) / img.naturalWidth);
+  }, []);
+
+  /**
+   * Met à jour les attributs SANS créer d'étape d'annulation. Utilisé pour le
+   * dimensionnement automatique au chargement : sinon le premier Ctrl+Z après
+   * l'insertion ne faisait que « dé-redimensionner » l'image, et chaque
+   * réaffichage du chapitre ajoutait une transaction dans l'historique.
+   */
+  const setAttrsSilently = useCallback(
+    (attrs: Record<string, unknown>) => {
+      if (typeof getPos !== 'function') return;
+      const pos = getPos();
+      if (typeof pos !== 'number') return;
+      const current = editor.state.doc.nodeAt(pos);
+      if (!current || current.type !== node.type) return;
+      editor.view.dispatch(
+        editor.state.tr
+          .setNodeMarkup(pos, undefined, { ...current.attrs, ...attrs })
+          .setMeta('addToHistory', false)
+      );
+    },
+    [editor, getPos, node.type]
+  );
 
   // Handle resizing logic. Les 4 coins appellent cette même fonction : seul
   // le signe du delta change selon que le coin tiré est à gauche (tl/bl —
@@ -200,7 +313,7 @@ export function ResizableImageNodeView(props: NodeViewProps) {
 
       const onMouseMove = (e: MouseEvent) => {
         const deltaX = (e.clientX - startX) * sign;
-        const newWidth = Math.max(100, startWidth + deltaX * (align === 'center' ? 2 : 1));
+        const newWidth = fitWidth(startWidth + deltaX * (align === 'center' ? 2 : 1));
         setResizeWidth(newWidth);
       };
 
@@ -211,14 +324,15 @@ export function ResizableImageNodeView(props: NodeViewProps) {
         document.removeEventListener('mouseup', onMouseUp);
 
         if (imageRef.current) {
-          updateAttributes({ width: imageRef.current.offsetWidth });
+          const finalWidth = fitWidth(imageRef.current.offsetWidth);
+          updateAttributes({ width: finalWidth, height: heightFor(finalWidth) });
         }
       };
 
       document.addEventListener('mousemove', onMouseMove);
       document.addEventListener('mouseup', onMouseUp);
     },
-    [updateAttributes, align]
+    [updateAttributes, align, fitWidth, heightFor]
   );
 
   // Actions
@@ -250,8 +364,8 @@ export function ResizableImageNodeView(props: NodeViewProps) {
   // ReferenceError et bloquait le redimensionnement d'image dans l'éditeur.
   const resizeBy = (factor: number) => {
     const base = Number(width) || imageRef.current?.offsetWidth || 200;
-    const newW = Math.max(100, Math.round(base * factor));
-    updateAttributes({ width: newW });
+    const newW = fitWidth(base * factor);
+    updateAttributes({ width: newW, height: heightFor(newW) });
   };
 
   const increaseSize = () => resizeBy(1.1);
@@ -275,11 +389,9 @@ export function ResizableImageNodeView(props: NodeViewProps) {
   };
 
   const handleCropApply = (croppedSrc: string) => {
-    updateAttributes({ src: croppedSrc, width: null });
+    // Nouveau ratio : largeur/hauteur recalculées au chargement (onLoad).
+    updateAttributes({ src: croppedSrc, width: null, height: null });
     setShowCropModal(false);
-    setTimeout(() => {
-      if (editor.view) editor.view.dispatch(editor.state.tr);
-    }, 100);
   };
 
   // Alignment classes mapping
@@ -291,7 +403,7 @@ export function ResizableImageNodeView(props: NodeViewProps) {
 
   return (
     <NodeViewWrapper 
-      className={`relative max-w-full transition-all duration-200 clear-none ${alignClasses[align as keyof typeof alignClasses] || 'block mx-auto'} ${selected ? 'ring-1 ring-blue-500 border border-blue-500' : 'border border-transparent'}`}
+      className={`relative max-w-full clear-none ${alignClasses[align as keyof typeof alignClasses] || 'block mx-auto'} ${selected ? 'ring-1 ring-blue-500 border border-blue-500' : 'border border-transparent'}`}
       style={{ 
         width: isResizing && resizeWidth ? `${resizeWidth}px` : (width ? `${width}px` : 'auto'),
       }}
@@ -300,19 +412,33 @@ export function ResizableImageNodeView(props: NodeViewProps) {
         ref={imageRef}
         src={src}
         alt={alt || ''}
-        className="w-full h-auto block select-none transition-transform duration-300"
-        style={{ transform: `rotate(${rotation}deg)` }}
+        draggable={false}
+        className="w-full h-auto block select-none"
+        style={{
+          transform: rotation ? `rotate(${rotation}deg)` : undefined,
+          // Dimensions connues (largeur + hauteur enregistrées) : la place est
+          // réservée AVANT le chargement, la pagination ne saute plus quand
+          // l'image arrive.
+          aspectRatio: width && height ? `${width} / ${height}` : undefined,
+          // Garde-fou CSS : même une image ancienne, jamais redimensionnée,
+          // ne peut plus dépasser la hauteur d'une page.
+          maxHeight: `calc(var(--page-max-height, ${FALLBACK_PAGE_MAX_HEIGHT}px) - ${PAGE_SAFETY_MARGIN}px)`,
+          objectFit: 'contain',
+        }}
         onLoad={() => {
-          // Première insertion (pas de largeur enregistrée) : sans ça, l'image
-          // s'affichait à 100% de la largeur de l'éditeur (souvent bien plus
-          // large qu'une page A4) tant qu'on ne la redimensionnait pas à la
-          // main. On la borne d'emblée à une taille d'affichage raisonnable.
-          if (!width && imageRef.current) {
-            const naturalWidth = imageRef.current.naturalWidth || 640;
-            const defaultWidth = Math.min(naturalWidth, 640);
-            updateAttributes({ width: defaultWidth });
-          }
-          if (editor.view) {
+          const img = imageRef.current;
+          if (!img) return;
+          // Première insertion (pas de largeur enregistrée) ou image trop
+          // grande pour la page : on la borne d'emblée à une taille qui tient
+          // dans UNE page, en largeur comme en hauteur.
+          const desired = Number(width) || Math.min(img.naturalWidth || DEFAULT_WIDTH, DEFAULT_WIDTH);
+          const target = fitWidth(desired);
+          const targetHeight = heightFor(target);
+          if (target !== Number(width) || targetHeight !== Number(height)) {
+            setAttrsSilently({ width: target, height: targetHeight });
+          } else if (editor.view) {
+            // Taille inchangée : on signale tout de même à la pagination que
+            // le contenu a désormais sa hauteur réelle.
             editor.view.dispatch(editor.state.tr);
           }
         }}

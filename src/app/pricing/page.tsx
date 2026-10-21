@@ -80,7 +80,7 @@ function PricingInner() {
     {
       question: "Comment mes pièces sont-elles créditées ?",
       answer:
-        "Dès que vous confirmez votre paiement Mobile Money ou carte bancaire sur Chariow, vos pièces sont créditées automatiquement et instantanément sur votre compte Iris.",
+        "Dès que vous confirmez votre paiement Mobile Money ou carte bancaire, vos pièces sont créditées automatiquement et instantanément sur votre compte Iris.",
     },
     {
       question: "Comment sont décomptées les pièces ?",
@@ -90,7 +90,7 @@ function PricingInner() {
     {
       question: "Quels sont les moyens de paiement acceptés ?",
       answer:
-        "Nous acceptons les paiements par Mobile Money (Orange Money, MTN, Moov, Wave, etc.) et cartes bancaires via notre partenaire sécurisé Chariow.",
+        "Nous acceptons les paiements par Mobile Money (Orange Money, MTN, Moov, Wave, etc.) et cartes bancaires en toute sécurité.",
     },
     {
       question: "Est-ce un abonnement qui se renouvelle automatiquement ?",

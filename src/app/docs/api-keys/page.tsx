@@ -3,7 +3,7 @@ import { KeyRound, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Authentification & Clés d'API - Iris Docs",
+  title: "Authentification & Clés d'API - Documentation",
   description: "Gérer vos clés d'API Iris pour vos automatisations.",
 };
 

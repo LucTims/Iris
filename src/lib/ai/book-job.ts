@@ -1,7 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
+import * as Sentry from "@sentry/nextjs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { checkMinimumBalance, deductChapterCost } from "@/lib/ai/cost-engine";
-import { estimateChapterCoins } from "@/lib/ai/pricing";
+import { canonicalModelId, estimateChapterCoins, maxChargeForQuote } from "@/lib/ai/pricing";
 import { fetchSearchContext } from "@/lib/ai/search-context";
 import { generateWithFallback } from "@/lib/ai/model-fallback";
 import {
@@ -286,10 +287,11 @@ export async function processNextChapter(
   const chapter = job.plan[job.current_index];
   const settings = job.settings;
   const wordsTarget = Math.max(400, Math.min(4000, Number(settings.targetWords) || 800));
-  const selectedModelName = settings.model || "gemini-3.6-flash";
+  const selectedModelName = canonicalModelId(settings.model);
 
   const requiredCoins = estimateChapterCoins(wordsTarget, selectedModelName);
-  const hasEnoughCoins = await checkMinimumBalance(job.user_id, requiredCoins, db);
+  // Option A : solde vérifié sur le montant maximal facturable (devis + 25 %).
+  const hasEnoughCoins = await checkMinimumBalance(job.user_id, maxChargeForQuote(requiredCoins), db);
   if (!hasEnoughCoins) return stop("failed", "insufficient_funds");
 
   const recentSummaries = job.chapter_summaries.slice(-MAX_RECENT_SUMMARIES);
@@ -460,7 +462,7 @@ export async function processNextChapter(
         result.modelUsed,
         result.usage,
         `Génération Chapitre ${chapter.number}: ${chapter.title}`,
-        { projectId: job.project_id, outputText: text, client: db }
+        { projectId: job.project_id, outputText: text, client: db, quotedCoins: requiredCoins }
       );
       if (!deducted) {
         console.error(`[book-job] Échec du débit pour le job ${job.id}, chapitre ${chapter.number}`);
@@ -491,5 +493,6 @@ export async function processNextChapter(
   }
 
   const message = lastError instanceof Error ? lastError.message : String(lastError);
+  Sentry.captureException(lastError, { tags: { area: "book-job" }, extra: { jobId: job.id, chapter: chapter.number } });
   return stop("failed", message.slice(0, 500));
 }

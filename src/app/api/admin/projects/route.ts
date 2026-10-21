@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, getAdminClient, getAuthUsersMap } from "@/lib/admin/isAdmin";
+import { requireAdmin, getAdminClient, getAuthUsersMap, type AuthUsersMap } from "@/lib/admin/isAdmin";
 
 export async function GET() {
   try {
@@ -20,7 +20,7 @@ export async function GET() {
     // 2. Récupérer les profils et les emails auth pour joindre l'auteur
     const userIds = [...new Set((rawProjects || []).map((p) => p.user_id).filter(Boolean))];
     const [authMap, profilesRes] = await Promise.all([
-      getAuthUsersMap(admin).catch(() => ({})),
+      getAuthUsersMap(admin).catch((): AuthUsersMap => ({})),
       userIds.length > 0
         ? admin.from("profiles").select("id, full_name, email").in("id", userIds)
         : Promise.resolve({ data: [] })
@@ -32,7 +32,7 @@ export async function GET() {
     }
 
     // 3. Calculer les pièces dépensées par projet via coin_transactions
-    let projectCoinsMap: Record<string, number> = {};
+    const projectCoinsMap: Record<string, number> = {};
     try {
       const { data: wallets } = await admin.from("wallets").select("id, user_id");
       const walletIds = (wallets || []).map((w) => w.id);

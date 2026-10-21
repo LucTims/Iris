@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMinimumBalance, deductChapterCost } from "@/lib/ai/cost-engine";
 import { generateWithFallback } from "@/lib/ai/model-fallback";
-import { estimateChapterCoins } from "@/lib/ai/pricing";
+import { canonicalModelId, estimateChapterCoins, maxChargeForQuote } from "@/lib/ai/pricing";
 import { fetchSearchContext } from "@/lib/ai/search-context";
 import { detectGenre, shouldGroundWithWebSearch, buildChapterSystemPrompt } from "@/lib/ai/book-style";
 import { sanitizeGeneratedHtml } from "@/lib/ai/sanitize-html";
@@ -123,13 +123,15 @@ export async function POST(req: Request) {
     // des chapitres démesurés qui dépasseraient la limite de temps de 60 s.
     const wordsTarget = Math.max(400, Math.min(4000, Number(targetWords) || 0));
 
-    const selectedModelName = chosenModel || "gemini-3.6-flash";
+    const selectedModelName = canonicalModelId(chosenModel);
 
     // Garde-fou : on exige le coût ESTIMÉ du chapitre (pages × tarif/page) AVANT
     // de générer, pour s'arrêter proprement quand les pièces manquent — sans
     // produire un chapitre qu'on ne pourrait pas facturer.
+    // Option A : on exige le montant MAXIMAL facturable (devis + 25 %), pour
+    // ne jamais produire un chapitre que le solde ne pourrait pas payer.
     const requiredCoins = estimateChapterCoins(wordsTarget || 800, selectedModelName);
-    const hasEnoughCoins = await checkMinimumBalance(user.id, requiredCoins);
+    const hasEnoughCoins = await checkMinimumBalance(user.id, maxChargeForQuote(requiredCoins));
     if (!hasEnoughCoins) {
       return NextResponse.json(
         { error: "Fonds insuffisants. Veuillez acheter des pièces pour continuer à générer des chapitres." },
@@ -241,7 +243,7 @@ export async function POST(req: Request) {
       generated.modelUsed,
       generated.usage,
       `Génération Chapitre ${chapterNumber}: ${chapterTitle}`,
-      { projectId, outputText: cleanText }
+      { projectId, outputText: cleanText, quotedCoins: requiredCoins }
     );
     if (!deducted) {
       console.error(`Erreur lors de la déduction des pièces pour l'utilisateur ${user.id}`);

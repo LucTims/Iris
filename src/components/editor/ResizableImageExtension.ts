@@ -2,6 +2,12 @@ import Image from '@tiptap/extension-image';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { ResizableImageNodeView } from './ResizableImageNodeView';
 
+function parseNumber(value: string | null): number | null {
+  if (value == null || value === '') return null;
+  const n = parseFloat(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 export const ResizableImage = Image.extend({
   inline: false,
   group: 'block',
@@ -12,6 +18,7 @@ export const ResizableImage = Image.extend({
       ...this.parent?.(),
       width: {
         default: null,
+        parseHTML: (element) => parseNumber(element.getAttribute('width')),
         renderHTML: (attributes) => {
           if (!attributes.width) return {};
           return { width: attributes.width };
@@ -19,13 +26,19 @@ export const ResizableImage = Image.extend({
       },
       height: {
         default: null,
+        parseHTML: (element) => parseNumber(element.getAttribute('height')),
         renderHTML: (attributes) => {
           if (!attributes.height) return {};
           return { height: attributes.height };
         },
       },
+      // `rotation` et `align` sont écrits en `data-*` dans le HTML enregistré :
+      // sans `parseHTML` explicite, Tiptap les relisait depuis des attributs
+      // `rotation` / `align` inexistants, et l'alignement comme la rotation
+      // d'une image étaient perdus au rechargement du chapitre.
       rotation: {
         default: 0,
+        parseHTML: (element) => parseNumber(element.getAttribute('data-rotation')) ?? 0,
         renderHTML: (attributes) => {
           if (!attributes.rotation) return {};
           return { 'data-rotation': attributes.rotation };
@@ -33,6 +46,10 @@ export const ResizableImage = Image.extend({
       },
       align: {
         default: 'center',
+        parseHTML: (element) => {
+          const value = element.getAttribute('data-align');
+          return value === 'left' || value === 'right' || value === 'center' ? value : 'center';
+        },
         renderHTML: (attributes) => {
           if (!attributes.align) return {};
           return { 'data-align': attributes.align };

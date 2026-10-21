@@ -17,12 +17,23 @@ import { imagesForChapter } from "@/lib/ai/book-job";
 
 describe("registre des blueprints", () => {
   it("expose un blueprint par type d'ouvrage", () => {
-    expect(BLUEPRINT_LIST.map((b) => b.id).sort()).toEqual([...WORK_TYPES].sort());
+    // Le blueprint historique « livre » s'appelle désormais « roman ».
+    expect(BLUEPRINT_LIST.map((b) => b.id).sort()).toEqual(["ebook", "guide", "roman", "storybook"]);
+    // Chaque type d'ouvrage reste résolu vers un blueprint du registre.
+    for (const workType of WORK_TYPES) {
+      expect(BLUEPRINT_LIST).toContain(getBlueprint(workType));
+    }
   });
 
-  it("retombe sur « livre » pour un identifiant inconnu ou absent", () => {
-    expect(getBlueprint(undefined).id).toBe("livre");
-    expect(getBlueprint("recette-pas-encore-ouverte").id).toBe("livre");
+  it("garde « livre » comme alias historique de « roman »", () => {
+    expect(getBlueprint("livre").id).toBe("roman");
+    expect(getBlueprint(" Livre ").id).toBe("roman");
+  });
+
+  it("retombe sur « roman » pour un identifiant inconnu ou absent", () => {
+    expect(getBlueprint(undefined).id).toBe("roman");
+    expect(getBlueprint(null).id).toBe("roman");
+    expect(getBlueprint("recette-pas-encore-ouverte").id).toBe("roman");
   });
 
   it("ne demande des images QUE pour le storybook", () => {

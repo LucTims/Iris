@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { Zap, ShieldCheck, CheckCircle2 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Automatisation & MCP - Iris Docs",
+  title: "Automatisation & MCP - Documentation",
   description: "Comment utiliser le serveur MCP pour connecter vos assistants IA à Iris.",
 };
 

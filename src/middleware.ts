@@ -35,7 +35,6 @@ export async function middleware(request: NextRequest) {
     '/projects',
     '/redaction',
     '/cover-studio',
-    '/export',
     '/analytics',
     '/settings',
     '/billing',

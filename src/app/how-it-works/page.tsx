@@ -1,5 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "Comment ça marche",
+  description:
+    "Découvrez les 4 étapes simples pour créer votre livre avec Iris : plan structuré, co-rédaction avec l'IA, design de couverture et export prêt à publier.",
+  openGraph: {
+    title: "Comment ça marche | Iris",
+    description:
+      "4 étapes simples pour passer de l'idée au manuscrit publié avec l'IA.",
+    url: "https://www.irisboom.online/how-it-works",
+  },
+};
 
 export default function HowItWorksPage() {
   const steps = [

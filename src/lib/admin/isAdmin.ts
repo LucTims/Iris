@@ -47,11 +47,13 @@ export function getAdminClient(): SupabaseClient {
   );
 }
 
+export type AuthUsersMap = Record<string, { email: string; created_at?: string }>;
+
 export async function getAuthUsersMap(
   adminClient?: SupabaseClient
-): Promise<Record<string, { email: string; created_at?: string }>> {
+): Promise<AuthUsersMap> {
   const admin = adminClient || getAdminClient();
-  const map: Record<string, { email: string; created_at?: string }> = {};
+  const map: AuthUsersMap = {};
   let page = 1;
   while (true) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });

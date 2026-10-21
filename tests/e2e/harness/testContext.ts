@@ -124,6 +124,7 @@ export class MockSupabaseClient {
   }
 
   public from(table: string) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- capturé par les closures du mock
     const self = this;
     let selectedColumns = '*';
     let filterField: string | null = null;
@@ -277,6 +278,7 @@ export class MockSupabaseClient {
 
   public storage = {
     from: (bucketName: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias -- capturé par les closures du mock
       const self = this;
       let bucket = self.storageBuckets.get(bucketName);
       if (!bucket) {

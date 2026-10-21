@@ -37,8 +37,6 @@ function PaymentPendingContent() {
   useEffect(() => {
     if (!txId) return;
 
-    let intervalId: NodeJS.Timeout;
-
     const checkTransactionStatus = async () => {
       try {
         const { data, error } = await supabase
@@ -72,7 +70,7 @@ function PaymentPendingContent() {
     };
 
     // Poll every 3 seconds
-    intervalId = setInterval(checkTransactionStatus, 3000);
+    const intervalId = setInterval(checkTransactionStatus, 3000);
     checkTransactionStatus();
 
     return () => clearInterval(intervalId);
@@ -85,7 +83,7 @@ function PaymentPendingContent() {
           <span className="material-symbols-outlined text-secondary text-6xl animate-spin mb-6">hourglass_top</span>
           <h1 className="font-heading text-3xl font-extrabold text-neutral-900 dark:text-neutral-100 mb-4">En attente de paiement...</h1>
           <p className="text-neutral-600 dark:text-neutral-400 mb-8 max-w-md">
-            Veuillez valider le paiement sur votre téléphone (Mobile Money) ou finaliser la transaction sur la page Sebpay.
+            Veuillez valider le paiement sur votre téléphone (Mobile Money) ou finaliser la transaction sécurisée.
             Cette page s'actualisera automatiquement une fois le paiement confirmé.
           </p>
           {(isDev || isAdmin) && txId && (

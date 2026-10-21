@@ -4,7 +4,8 @@ import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { deductGenerationCost } from "@/lib/ai/cost-engine";
+import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
+import { MIN_AI_CALL_COINS } from "@/lib/ai/pricing";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -176,7 +177,6 @@ export async function POST(req: Request) {
 
     const form = await req.formData();
     const projectId = (form.get("projectId") as string | null) || null;
-    const blueprintId = (form.get("blueprintId") as string | null) || null;
     const files = form.getAll("files").filter((f): f is File => f instanceof File);
 
     if (files.length === 0) {
@@ -206,6 +206,8 @@ export async function POST(req: Request) {
     // `analyze=1` déclenche la description visuelle (flux Vision-to-Story du
     // blueprint Storybook). Les autres blueprints n'en ont pas besoin et ne
     // doivent donc pas payer un appel de vision par image.
+    // L'analyse visuelle est un appel IA facturé : sans solde suffisant pour
+    // toutes les images, on importe sans analyser (relance possible ensuite).
     const shouldAnalyze = form.get("analyze") === "1";
 
     const db = admin();
@@ -281,7 +283,11 @@ export async function POST(req: Request) {
     // Un échec d'analyse n'annule JAMAIS l'import : l'auteur garde son image
     // et le statut `failed` permet de relancer. Perdre une photo parce que le
     // modèle de vision a hoqueté serait absurde.
-    if (shouldAnalyze) {
+    const canPayAnalysis =
+      shouldAnalyze &&
+      uploaded.length > 0 &&
+      (await checkMinimumBalance(user.id, MIN_AI_CALL_COINS * uploaded.length));
+    if (canPayAnalysis) {
       const CONCURRENCY = 4;
       for (let start = 0; start < uploaded.length; start += CONCURRENCY) {
         const batch = uploaded.slice(start, start + CONCURRENCY);
@@ -317,46 +323,8 @@ export async function POST(req: Request) {
     // rattachées juste après via PATCH).
     let finalAssets: any[] = [];
     if (projectId) {
-      const { google } = await import("@ai-sdk/google");
-      const { generateText } = await import("ai");
-      
-      let buildImageAnalysisPrompt = () => "Analysez cette image.";
-      try {
-        const prompts = await import("@/lib/ai/storybook-prompts");
-        if (prompts.buildImageAnalysisPrompt) buildImageAnalysisPrompt = prompts.buildImageAnalysisPrompt;
-      } catch (e) {}
-
       const rows = [];
       for (const u of uploaded) {
-        let aiAnalysis = null;
-        if (blueprintId === "storybook") {
-          try {
-            const analysisPrompt = (typeof buildImageAnalysisPrompt === "function")
-              ? buildImageAnalysisPrompt({
-                  title: "Album illustré",
-                  audience: "Enfants",
-                  imageIndex: u.position + 1,
-                  totalImages: uploaded.length,
-                })
-              : "Analyse cette image en détail pour un album illustré pour enfants.";
-            const { text } = await generateText({
-              model: google("gemini-2.5-flash"),
-              messages: [
-                {
-                  role: "user",
-                  content: [
-                    { type: "text", text: analysisPrompt },
-                    { type: "image", image: new URL(u.url) },
-                  ],
-                },
-              ],
-            });
-            aiAnalysis = text;
-          } catch (aiError) {
-            console.error("[project-assets] Erreur d'analyse AI:", aiError);
-          }
-        }
-        
         rows.push({
           project_id: projectId,
           user_id: user.id,

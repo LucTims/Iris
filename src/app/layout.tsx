@@ -21,13 +21,52 @@ const newsreader = Newsreader({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.irisboom.online"),
-  title: "Iris | La 1ere plateforme de co-creation litteraire assistee par IA",
-  description: "Iris accompagne les experts et createurs dans la redaction, le design et la publication de leurs livres numeriques.",
+  title: {
+    default: "Iris | La 1ère plateforme de co-création littéraire assistée par IA",
+    template: "%s | Iris",
+  },
+  description:
+    "Iris accompagne les experts, formateurs et créateurs dans la rédaction, le design de couverture et la publication de leurs livres numériques.",
   applicationName: "Iris",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Iris", statusBarStyle: "default" },
-  verification: {
-    // google: "AJOUTEZ_VOTRE_CODE_DE_VERIFICATION_ICI_SI_NECESSAIRE",
+  alternates: {
+    canonical: "./",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    url: "https://www.irisboom.online",
+    siteName: "Iris",
+    title: "Iris | La 1ère plateforme de co-création littéraire assistée par IA",
+    description:
+      "Iris accompagne les experts, formateurs et créateurs dans la rédaction, le design de couverture et la publication de leurs livres numériques.",
+    images: [
+      {
+        url: "/iris-video-poster.webp",
+        width: 1200,
+        height: 630,
+        alt: "Iris - Co-création littéraire par IA",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Iris | La 1ère plateforme de co-création littéraire assistée par IA",
+    description:
+      "Iris accompagne les experts, formateurs et créateurs dans la rédaction, le design de couverture et la publication de leurs livres numériques.",
+    images: ["/iris-video-poster.webp"],
   },
 };
 

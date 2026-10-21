@@ -321,7 +321,7 @@ describe('Challenger 1 - Empirical Stress Testing for Intent Detection & Target 
 
     test('MODIFY_CHAPTER HTML Cleaning: newContent strip Markdown code block ```html', () => {
       const rawLLMOutput = "```html\n<h2>Chapitre 3</h2><p>Contenu réécrit</p>\n```";
-      let cleanedHtml = rawLLMOutput
+      const cleanedHtml = rawLLMOutput
         .replace(/^```html\s*/i, "")
         .replace(/^```\s*/i, "")
         .replace(/```\s*$/, "")

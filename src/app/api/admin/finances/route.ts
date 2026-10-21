@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { mockAdminTransactions } from "@/lib/admin/mockData";
 import { AdminTransaction } from "@/lib/admin/types";
-import { requireAdmin, getAdminClient, getAuthUsersMap } from "@/lib/admin/isAdmin";
+import { requireAdmin, getAdminClient, getAuthUsersMap, type AuthUsersMap } from "@/lib/admin/isAdmin";
 
 export async function GET(req: Request) {
   try {
@@ -22,11 +21,11 @@ export async function GET(req: Request) {
       if (!txError && dbTransactions && dbTransactions.length > 0) {
         // Récupérer les profils pour associer les noms et emails
         const userIds = [...new Set(dbTransactions.map((t) => t.user_id).filter(Boolean))];
-        let profilesMap: Record<string, { full_name?: string; email?: string }> = {};
+        const profilesMap: Record<string, { full_name?: string; email?: string }> = {};
 
         if (userIds.length > 0) {
           const [authMap, profilesRes] = await Promise.all([
-            getAuthUsersMap(supabaseAdmin).catch(() => ({})),
+            getAuthUsersMap(supabaseAdmin).catch((): AuthUsersMap => ({})),
             supabaseAdmin.from("profiles").select("id, full_name, email").in("id", userIds)
           ]);
 
@@ -64,12 +63,7 @@ export async function GET(req: Request) {
         }));
       }
     } catch (dbErr) {
-      console.warn("Consultation DB transactions non disponible, utilisation des données démo:", dbErr);
-    }
-
-    // Fallback si aucune transaction en base (ex: environnement dev / mock)
-    if (transactions.length === 0) {
-      transactions = mockAdminTransactions;
+      console.warn("Consultation DB transactions non disponible:", dbErr);
     }
 
     // 2. Calcul des métriques financières (chiffre d'affaires calculé UNIQUEMENT sur les transactions 'paid')
@@ -94,22 +88,11 @@ export async function GET(req: Request) {
     });
   } catch (error: any) {
     console.error("Erreur API Admin Finances:", error);
+    // Jamais de données de démonstration en admin : un tableau financier
+    // inventé pourrait être pris pour de vrais chiffres.
     return NextResponse.json(
-      {
-        error: "Erreur lors de la récupération des finances",
-        transactions: mockAdminTransactions,
-        stats: {
-          totalRevenueFCFA: mockAdminTransactions
-            .filter((t) => t.status === "paid")
-            .reduce((s, t) => s + t.amount, 0),
-          paidCount: mockAdminTransactions.filter((t) => t.status === "paid").length,
-          pendingCount: mockAdminTransactions.filter((t) => t.status === "pending").length,
-          failedCount: mockAdminTransactions.filter((t) => t.status === "failed").length,
-          totalTransactions: mockAdminTransactions.length,
-          conversionRatePct: 60.0,
-        },
-      },
-      { status: 200 }
+      { error: "Erreur lors de la récupération des finances" },
+      { status: 500 }
     );
   }
 }

@@ -52,24 +52,113 @@ function readImageSize(bytes: Uint8Array): { w: number; h: number } | null {
   return null;
 }
 
-/** Construit un paragraphe centré contenant une image base64 (PNG/JPEG). */
-function renderImage(dataUri: string): Paragraph | null {
-  const m = dataUri.match(/^data:image\/(png|jpe?g);base64,/i);
+/** Encode des octets en base64 — par morceaux, pour ne pas saturer la pile. */
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(bin);
+}
+
+const MAX_EMBEDDED_IMAGE_BYTES = 8_000_000;
+
+/** Réencode en PNG une image que Word/docx ne sait pas embarquer (WEBP, GIF). */
+async function blobToPngBytes(blob: Blob): Promise<Uint8Array | null> {
+  if (typeof createImageBitmap !== "function" || typeof document === "undefined") return null;
+  try {
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(bitmap, 0, 0);
+    const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    return png ? new Uint8Array(await png.arrayBuffer()) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Remplace les images distantes (http/https) du HTML par des data URIs.
+ *
+ * Les images insérées depuis l'éditeur sont envoyées au stockage
+ * (`/api/upload-image`) et le chapitre ne contient que leur URL : sans cette
+ * étape, l'export Word ne gardait que les anciennes images base64 et toutes
+ * les images récentes disparaissaient du .docx (l'export PDF, lui, les
+ * récupère déjà — voir `embedExternalImages` dans pdfBook.ts). Une image
+ * introuvable est simplement omise, jamais bloquante.
+ */
+export async function embedRemoteImages(
+  html: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<string> {
+  if (!html) return html;
+  const urls = Array.from(
+    html.matchAll(/<img[^>]*src=["'](https?:\/\/[^"']+)["'][^>]*>/gi),
+    (m) => m[1]
+  );
+  for (const url of Array.from(new Set(urls))) {
+    try {
+      const res = await fetchImpl(url.replace(/&amp;/g, "&"));
+      if (!res.ok) continue;
+      const mime = (res.headers.get("content-type") || "").toLowerCase();
+      let bytes: Uint8Array | null = new Uint8Array(await res.arrayBuffer());
+      let type: "png" | "jpeg";
+      if (/image\/png/.test(mime)) type = "png";
+      else if (/image\/jpe?g/.test(mime)) type = "jpeg";
+      else {
+        bytes = await blobToPngBytes(new Blob([bytes as BlobPart], { type: mime }));
+        type = "png";
+      }
+      if (!bytes || !bytes.length || bytes.length > MAX_EMBEDDED_IMAGE_BYTES) continue;
+      html = html.split(url).join(`data:image/${type};base64,${bytesToBase64(bytes)}`);
+    } catch {
+      // Image injoignable (réseau, CORS) : omise.
+    }
+  }
+  return html;
+}
+
+// Zone utile d'une page A4 avec marges d'un pouce, en pixels à 96 dpi
+// (unité attendue par `ImageRun.transformation`).
+const DOCX_MAX_IMAGE_WIDTH = 600;
+const DOCX_MAX_IMAGE_HEIGHT = 880;
+
+/**
+ * Construit un paragraphe contenant une image base64 (PNG/JPEG), en
+ * respectant la largeur et l'alignement choisis dans l'éditeur
+ * (`width`, `data-align`).
+ */
+function renderImage(imgTag: string): Paragraph | null {
+  const src = imgTag.match(/src=["'](data:image\/[^"']+)["']/i)?.[1];
+  if (!src) return null;
+  const m = src.match(/^data:image\/(png|jpe?g);base64,/i);
   if (!m) return null;
   try {
-    const bytes = dataUriToBytes(dataUri);
+    const bytes = dataUriToBytes(src);
     const size = readImageSize(bytes);
-    const maxW = 460; // largeur max en points (marges A4)
-    let w = maxW;
-    let h = Math.round(maxW * 0.62);
+    const widthAttr = parseFloat(imgTag.match(/\swidth=["']?(\d+(?:\.\d+)?)/i)?.[1] || "");
+    const align = imgTag.match(/data-align=["']?(left|center|right)/i)?.[1]?.toLowerCase();
+    const maxW = DOCX_MAX_IMAGE_WIDTH;
+    let w = Number.isFinite(widthAttr) && widthAttr > 0 ? Math.min(maxW, widthAttr) : 460;
+    let h = Math.round(w * 0.62);
     if (size) {
       const ratio = size.h / size.w;
-      w = Math.min(maxW, size.w);
+      if (!(Number.isFinite(widthAttr) && widthAttr > 0)) w = Math.min(460, size.w);
       h = Math.round(w * ratio);
+      if (h > DOCX_MAX_IMAGE_HEIGHT) {
+        h = DOCX_MAX_IMAGE_HEIGHT;
+        w = Math.round(h / ratio);
+      }
     }
     const type = /png/i.test(m[1]) ? "png" : "jpg";
     return new Paragraph({
-      alignment: AlignmentType.CENTER,
+      alignment:
+        align === "left" ? AlignmentType.LEFT : align === "right" ? AlignmentType.RIGHT : AlignmentType.CENTER,
       spacing: { before: 120, after: 160 },
       children: [
         new ImageRun({
@@ -113,48 +202,72 @@ interface ChapterData {
   number: number;
 }
 
+function parseDocxFontSize(val: string, unit?: string): number | undefined {
+  const num = parseFloat(val);
+  if (isNaN(num) || num <= 0) return undefined;
+  const u = (unit || "").toLowerCase();
+  if (u === "pt") return Math.round(num * 2);
+  if (u === "em" || u === "rem") return Math.round(num * 12 * 2);
+  // px or unitless: 16px is base size (24 half-points = 12pt). 1px = 0.75pt = 1.5 half-points.
+  return Math.round(num * 1.5);
+}
+
 /**
- * Parse inline HTML and extract TextRun objects with bold/italic/color/font formatting.
+ * Parse inline HTML and extract TextRun objects with bold/italic/underline/strike/color/font/size formatting.
  */
-function parseTextRuns(html: string, options?: { forceBold?: boolean; size?: number }): TextRun[] {
+function parseTextRuns(
+  html: string,
+  options?: { forceBold?: boolean; size?: number; defaultFontSize?: number }
+): TextRun[] {
   const baseSize = options?.size ?? 24; // 24 = 12pt par défaut
   const runs: TextRun[] = [];
 
   // Remove block-level opening tags to avoid creating runs for them
-  let cleaned = html.replace(/<(?:p|h[1-6]|li|blockquote|div|table|thead|tbody|tr|td|th)[^>]*>/gi, "");
+  const cleaned = html.replace(/<(?:p|h[1-6]|li|blockquote|div|table|thead|tbody|tr|td|th)[^>]*>/gi, "");
 
   // Split by styling tags
-  const segments = cleaned.split(/(<\/?(?:strong|b|em|i|span)[^>]*>)/gi);
+  const segments = cleaned.split(/(<\/?(?:strong|b|em|i|u|s|strike|del|mark|sub|sup|span)[^>]*>)/gi);
 
-  let isBold = options?.forceBold || false;
-  let isItalic = false;
-  // Corps de texte en serif (Georgia est présente d'office sous Word/Pages) :
-  // rendu « livre » cohérent avec le PDF, au lieu de l'ancien sans-serif Outfit
-  // qui, en plus, n'est pas installé chez la plupart des lecteurs.
+  const boldStack: boolean[] = [options?.forceBold || false];
+  const italicsStack: boolean[] = [false];
+  const underlineStack: boolean[] = [false];
+  const strikeStack: boolean[] = [false];
+  const subStack: boolean[] = [false];
+  const supStack: boolean[] = [false];
   const fontStack: string[] = ["Georgia"];
   const colorStack: string[] = ["222222"];
+  const highlightStack: (string | undefined)[] = [undefined];
+  const fontSizeStack: (number | undefined)[] = [options?.defaultFontSize];
 
   for (const segment of segments) {
     if (!segment) continue;
     const lower = segment.toLowerCase();
 
-    if (lower.startsWith("<strong") || lower.startsWith("<b")) {
-      isBold = true;
+    if (/^<strong\b/i.test(lower) || /^<b\b/i.test(lower)) { boldStack.push(true); continue; }
+    if (lower === "</strong>" || lower === "</b>") { if (boldStack.length > 1) boldStack.pop(); continue; }
+    if (/^<em\b/i.test(lower) || /^<i\b/i.test(lower)) { italicsStack.push(true); continue; }
+    if (lower === "</em>" || lower === "</i>") { if (italicsStack.length > 1) italicsStack.pop(); continue; }
+    if (/^<u\b/i.test(lower)) { underlineStack.push(true); continue; }
+    if (lower === "</u>") { if (underlineStack.length > 1) underlineStack.pop(); continue; }
+    if (/^<s\b/i.test(lower) || /^<strike\b/i.test(lower) || /^<del\b/i.test(lower)) { strikeStack.push(true); continue; }
+    if (lower === "</s>" || lower === "</strike>" || lower === "</del>") { if (strikeStack.length > 1) strikeStack.pop(); continue; }
+    if (/^<sub\b/i.test(lower)) { subStack.push(true); continue; }
+    if (lower === "</sub>") { if (subStack.length > 1) subStack.pop(); continue; }
+    if (/^<sup\b/i.test(lower)) { supStack.push(true); continue; }
+    if (lower === "</sup>") { if (supStack.length > 1) supStack.pop(); continue; }
+
+    if (/^<mark\b/i.test(lower)) {
+      const bgMatch = segment.match(/background(?:-color)?:\s*([^;"'>]+)/i) || segment.match(/data-color=["']([^"']+)["']/i);
+      const col = bgMatch ? bgMatch[1].trim().replace(/^#/, "") : "FEF08A";
+      highlightStack.push(col);
       continue;
     }
-    if (lower === "</strong>" || lower === "</b>") {
-      isBold = options?.forceBold || false; // Revert to base state
+    if (lower === "</mark>") {
+      if (highlightStack.length > 1) highlightStack.pop();
       continue;
     }
-    if (lower.startsWith("<em") || lower.startsWith("<i")) {
-      isItalic = true;
-      continue;
-    }
-    if (lower === "</em>" || lower === "</i>") {
-      isItalic = false;
-      continue;
-    }
-    if (lower.startsWith("<span")) {
+
+    if (/^<span\b/i.test(lower)) {
       let font = fontStack[fontStack.length - 1];
       let color = colorStack[colorStack.length - 1];
 
@@ -165,21 +278,45 @@ function parseTextRuns(html: string, options?: { forceBold?: boolean; size?: num
       }
 
       // Extract color
-      const colorMatch = segment.match(/color:\s*([^;"'>]+)/i);
+      const colorMatch = segment.match(/(?:^|;|\s)color:\s*([^;"'>]+)/i);
       if (colorMatch) {
-        color = colorMatch[1].trim();
-        if (color.startsWith("#")) {
-          color = color.substring(1);
-        }
+        color = colorMatch[1].trim().replace(/^#/, "");
       }
+
+      // Extract font-size
+      const sizeMatch = segment.match(/font-size:\s*([0-9.]+)\s*(px|pt|em|rem)?/i);
+      const fs = sizeMatch ? parseDocxFontSize(sizeMatch[1], sizeMatch[2]) : fontSizeStack[fontSizeStack.length - 1];
+
+      // Extract background
+      const bgMatch = segment.match(/background(?:-color)?:\s*([^;"'>]+)/i);
+      const bg = bgMatch ? bgMatch[1].trim().replace(/^#/, "") : highlightStack[highlightStack.length - 1];
+
+      // Extract text-decoration
+      const tdMatch = segment.match(/text-decoration:\s*([^;"'>]+)/i);
+      underlineStack.push(tdMatch && /underline/i.test(tdMatch[1]) ? true : underlineStack[underlineStack.length - 1]);
+      strikeStack.push(tdMatch && /line-through/i.test(tdMatch[1]) ? true : strikeStack[strikeStack.length - 1]);
+
+      // Extract font-weight / style
+      const fwMatch = segment.match(/font-weight:\s*(bold|[789]00)/i);
+      boldStack.push(fwMatch ? true : boldStack[boldStack.length - 1]);
+      const fsMatch = segment.match(/font-style:\s*italic/i);
+      italicsStack.push(fsMatch ? true : italicsStack[italicsStack.length - 1]);
 
       fontStack.push(font);
       colorStack.push(color);
+      fontSizeStack.push(fs);
+      highlightStack.push(bg);
       continue;
     }
     if (lower === "</span>") {
       if (fontStack.length > 1) fontStack.pop();
       if (colorStack.length > 1) colorStack.pop();
+      if (fontSizeStack.length > 1) fontSizeStack.pop();
+      if (highlightStack.length > 1) highlightStack.pop();
+      if (underlineStack.length > 1) underlineStack.pop();
+      if (strikeStack.length > 1) strikeStack.pop();
+      if (boldStack.length > 1) boldStack.pop();
+      if (italicsStack.length > 1) italicsStack.pop();
       continue;
     }
 
@@ -194,14 +331,23 @@ function parseTextRuns(html: string, options?: { forceBold?: boolean; size?: num
       .replace(/&#39;/g, "'");
 
     if (text) {
+      const currentSize = fontSizeStack[fontSizeStack.length - 1] ?? baseSize;
+      const currentColor = colorStack[colorStack.length - 1];
+      const currentBg = highlightStack[highlightStack.length - 1];
+
       runs.push(
         new TextRun({
           text,
-          bold: isBold,
-          italics: isItalic,
+          bold: boldStack[boldStack.length - 1],
+          italics: italicsStack[italicsStack.length - 1],
+          underline: underlineStack[underlineStack.length - 1] ? {} : undefined,
+          strike: strikeStack[strikeStack.length - 1],
+          subScript: subStack[subStack.length - 1],
+          superScript: supStack[supStack.length - 1],
           font: fontStack[fontStack.length - 1],
-          color: colorStack[colorStack.length - 1],
-          size: baseSize,
+          color: currentColor,
+          shading: currentBg ? { fill: currentBg, type: ShadingType.CLEAR, color: "auto" } : undefined,
+          size: currentSize,
         })
       );
     }
@@ -469,13 +615,13 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
           continue;
         }
 
-        // Images base64 (upload local dans l'éditeur) : rendues comme images
-        // Word. Les URLs externes ne sont pas récupérables côté navigateur ici.
-        const imgRegex = /<img[^>]*src=["'](data:image\/[^"']+)["'][^>]*>/gi;
+        // Images base64 : rendues comme images Word. Les images distantes ont
+        // été converties en base64 en amont (`embedRemoteImages`).
+        const imgRegex = /<img[^>]*src=["']data:image\/[^"']+["'][^>]*>/gi;
         let imgMatch: RegExpExecArray | null;
         let hadImage = false;
         while ((imgMatch = imgRegex.exec(trimmed)) !== null) {
-          const imgPara = renderImage(imgMatch[1]);
+          const imgPara = renderImage(imgMatch[0]);
           if (imgPara) { elements.push(imgPara); hadImage = true; }
         }
         // Retire les balises image du texte restant (évite un « pseudo-texte »).
@@ -503,21 +649,43 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
 
         if (!plainText) continue;
 
-        const runs = parseTextRuns(trimmedNoImg);
+        // Block-level style attributes: alignment, line-height, font-size
+        const alignMatch = trimmedNoImg.match(/text-align:\s*(left|center|right|justify)/i) ||
+                           trimmedNoImg.match(/class=["'][^"']*has-text-align-(left|center|right|justify)/i);
+        const paraAlignment = alignMatch
+          ? (alignMatch[1].toLowerCase() === "left"
+              ? AlignmentType.LEFT
+              : alignMatch[1].toLowerCase() === "center"
+              ? AlignmentType.CENTER
+              : alignMatch[1].toLowerCase() === "right"
+              ? AlignmentType.RIGHT
+              : AlignmentType.JUSTIFIED)
+          : AlignmentType.JUSTIFIED;
+
+        const lhMatch = trimmedNoImg.match(/line-height:\s*([0-9.]+)/i);
+        const paraLineSpacing = lhMatch ? Math.round(parseFloat(lhMatch[1]) * 240) : 320;
+
+        const fsBlockMatch = trimmedNoImg.match(/<(?:p|h[1-6]|blockquote)[^>]*style="[^"]*font-size:\s*([0-9.]+)\s*(px|pt|em|rem)?/i);
+        const defaultDocxSize = fsBlockMatch ? parseDocxFontSize(fsBlockMatch[1], fsBlockMatch[2]) : undefined;
+
+        const runs = parseTextRuns(trimmedNoImg, { defaultFontSize: defaultDocxSize });
 
         if (dropCapMatch) {
-          const dcRuns = parseTextRuns(trimmedNoImg);
+          const dcRuns = parseTextRuns(trimmedNoImg, { defaultFontSize: defaultDocxSize });
           if (dcRuns.length > 0 && plainText.length > 0) {
             const firstLetter = plainText.charAt(0);
-            const rest = plainText.substring(1);
+            const firstRun = dcRuns[0] as any;
+            if (firstRun && typeof firstRun.options?.text === "string") {
+              firstRun.options.text = firstRun.options.text.replace(/^\s+/, "").slice(1);
+            }
             elements.push(
               new Paragraph({
                 children: [
                   new TextRun({ text: firstLetter, bold: true, font: "Georgia", size: 56, color: "1E293B" }),
-                  new TextRun({ text: rest, font: "Georgia", size: 24, color: "222222" }),
+                  ...dcRuns,
                 ],
-                spacing: { before: 120, after: 120 },
-                alignment: AlignmentType.JUSTIFIED,
+                spacing: { before: 120, after: 120, line: paraLineSpacing },
+                alignment: paraAlignment,
               })
             );
           }
@@ -530,26 +698,28 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
           }
           elements.push(
             new Paragraph({
-              children: parseTextRuns(trimmedNoImg, { forceBold: true, size: 32 }), // 16pt
+              children: parseTextRuns(trimmedNoImg, { forceBold: true, size: 32, defaultFontSize: defaultDocxSize }), // 16pt
               heading: HeadingLevel.HEADING_1,
-              spacing: { before: 400, after: 200 },
-              alignment: AlignmentType.CENTER,
+              spacing: { before: 400, after: 200, line: paraLineSpacing },
+              alignment: alignMatch ? paraAlignment : AlignmentType.CENTER,
             })
           );
         } else if (h2Match) {
           elements.push(
             new Paragraph({
-              children: parseTextRuns(trimmedNoImg, { forceBold: true, size: 28 }), // 14pt
+              children: parseTextRuns(trimmedNoImg, { forceBold: true, size: 28, defaultFontSize: defaultDocxSize }), // 14pt
               heading: HeadingLevel.HEADING_2,
-              spacing: { before: 300, after: 150 },
+              spacing: { before: 300, after: 150, line: paraLineSpacing },
+              alignment: alignMatch ? paraAlignment : undefined,
             })
           );
         } else if (h3Match) {
           elements.push(
             new Paragraph({
-              children: parseTextRuns(trimmedNoImg, { forceBold: true, size: 26 }), // 13pt
+              children: parseTextRuns(trimmedNoImg, { forceBold: true, size: 26, defaultFontSize: defaultDocxSize }), // 13pt
               heading: HeadingLevel.HEADING_3,
-              spacing: { before: 200, after: 100 },
+              spacing: { before: 200, after: 100, line: paraLineSpacing },
+              alignment: alignMatch ? paraAlignment : undefined,
             })
           );
         } else if (bqMatch) {
@@ -560,7 +730,8 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
               border: {
                 left: { style: BorderStyle.SINGLE, size: 6, color: "999999" },
               },
-              spacing: { before: 100, after: 100 },
+              spacing: { before: 100, after: 100, line: paraLineSpacing },
+              alignment: alignMatch ? paraAlignment : undefined,
             })
           );
         } else if (liMatch) {
@@ -568,15 +739,15 @@ function htmlToDocxElements(html: string): (Paragraph | Table)[] {
             new Paragraph({
               children: [new TextRun({ text: "• " }), ...runs],
               indent: { left: 360 },
-              spacing: { before: 60, after: 60 },
+              spacing: { before: 60, after: 60, line: paraLineSpacing },
             })
           );
         } else {
           elements.push(
             new Paragraph({
               children: runs,
-              spacing: { before: 60, after: 120 },
-              alignment: AlignmentType.JUSTIFIED,
+              spacing: { before: 60, after: 120, line: paraLineSpacing },
+              alignment: paraAlignment,
             })
           );
         }
@@ -688,7 +859,8 @@ export async function generateDocx(
   // with its own <h1> title we use that text and drop the duplicate heading, so
   // there is exactly one chapter title (no doubled title, no near-blank page).
   for (const chapter of chapters) {
-    const { title: leadTitle, rest } = extractLeadingHeading(chapter.content);
+    const content = await embedRemoteImages(chapter.content);
+    const { title: leadTitle, rest } = extractLeadingHeading(content);
     const effectiveTitle = leadTitle || chapter.title;
 
     const chapterElements: (Paragraph | Table)[] = [

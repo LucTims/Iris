@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import LegalPageLayout, { LegalSection } from "@/components/LegalPageLayout";
 
 export const metadata: Metadata = {
-  title: "Conditions générales d'utilisation | Iris",
+  title: "Conditions générales d'utilisation",
   description:
     "Les règles d'utilisation d'Iris : compte, pièces et paiements, propriété des écrits, usage de l'IA, responsabilités et résiliation.",
 };
