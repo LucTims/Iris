@@ -54,6 +54,23 @@ const insufficientFunds = (required: number, balance: number, tip?: string) =>
 const MODIFY_TIP =
   "Astuce : la modification réécrit tout le chapitre. Pour une modification ciblée, sélectionnez le passage concerné dans l'éditeur et utilisez les actions d'Iris sur la sélection ; si tout le livre est d'un seul tenant, « Découper en chapitres » (menu des chapitres) limite la réécriture au chapitre visé. Sinon, rechargez des pièces.";
 
+/**
+ * Le modèle choisi ne répond pas et le modèle de secours coûterait plus que le
+ * solde. Avant, l'auteur lisait « Iris n'arrive pas à joindre ses modèles »
+ * alors qu'un secours répondait — il était seulement trop cher pour son solde.
+ */
+const backupTooExpensive = (required: number, balance: number) =>
+  NextResponse.json(
+    {
+      error:
+        `Le modèle d'IA habituel ne répond pas pour le moment. Le modèle de secours coûterait jusqu'à ${formatCoins(required)} pièces pour cette demande et votre solde est de ${formatCoins(balance)} pièces. ` +
+        "Réessayez dans quelques minutes, ou rechargez des pièces pour passer par le modèle de secours.",
+      required,
+      balance,
+    },
+    { status: 402 }
+  );
+
 /** Aucun fournisseur d'IA n'a répondu (crédit épuisé, panne…). */
 const aiUnavailable = () =>
   NextResponse.json(
@@ -317,9 +334,12 @@ Consignes de génération :
       let modificationResult: Awaited<ReturnType<typeof runModify>> | null = null;
       let modifyModel = selectedModelName;
       const modifyErrors: string[] = [];
+      const modifySkipped: number[] = [];
       for (const modelId of fallbackChain(selectedModelName)) {
-        if (modelId !== selectedModelName && balance < estimateCallCoins(modelId, editPrompt, modifyMaxOutput)) {
+        const required = estimateCallCoins(modelId, editPrompt, modifyMaxOutput);
+        if (modelId !== selectedModelName && balance < required) {
           modifyErrors.push(`${modelId}: solde insuffisant pour ce modèle`);
+          modifySkipped.push(required);
           continue;
         }
         try {
@@ -333,7 +353,7 @@ Consignes de génération :
       }
       if (!modificationResult) {
         console.error("[chat] modification impossible, tous les fournisseurs ont échoué :", modifyErrors.join(" | "));
-        return aiUnavailable();
+        return modifySkipped.length > 0 ? backupTooExpensive(Math.min(...modifySkipped), balance) : aiUnavailable();
       }
 
       await deductGenerationCost(
@@ -433,11 +453,14 @@ Consignes de style :
     // ne coupe pas un flux, elle le termine VIDE — l'assistant « répondait »
     // alors une bulle blanche tant que le crédit Gemini était épuisé.
     let streamed;
+    const chatSkipped: number[] = [];
     try {
       streamed = await streamTextWithFallback({
         preferred: selectedModelName,
         start: async (modelId) => {
-          if (modelId !== selectedModelName && balance < estimateCallCoins(modelId, chatInput, CHAT_EXPECTED_OUTPUT_TOKENS)) {
+          const required = estimateCallCoins(modelId, chatInput, CHAT_EXPECTED_OUTPUT_TOKENS);
+          if (modelId !== selectedModelName && balance < required) {
+            chatSkipped.push(required);
             return null;
           }
           return streamText({
@@ -464,7 +487,7 @@ Consignes de style :
       });
     } catch (err) {
       console.error("[chat] conversation impossible :", err instanceof Error ? err.message : err);
-      return aiUnavailable();
+      return chatSkipped.length > 0 ? backupTooExpensive(Math.min(...chatSkipped), balance) : aiUnavailable();
     }
 
     // Le débit vit dans onFinish, qui ne s'exécute que si la génération est

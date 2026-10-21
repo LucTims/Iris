@@ -1,14 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 /**
- * Superposition animée affichée au-dessus du canevas de l'éditeur pendant que
- * l'IA écrit ou réécrit le livre. Objectif : montrer clairement à l'auteur que
- * son manuscrit est en train d'être rédigé, avec une animation soignée
- * (plume qui écrit, lignes de texte qui se remplissent, particules, barre de
- * progression indéterminée) — sans jamais bloquer le rendu du texte en dessous.
+ * Superposition affichée au-dessus du canevas de l'éditeur pendant qu'Iris
+ * écrit ou réécrit le livre.
+ *
+ * Direction artistique : un MANUSCRIT qui s'écrit, pas une « IA » — pas
+ * d'étincelles, de dégradés ni de halos. Une page posée sur une pile de
+ * feuilles : le titre du chapitre se trace, les lignes s'écrivent une à une
+ * derrière un curseur, puis la page se tourne et la suivante commence. La
+ * seule couleur est la terracotta de la marque ; la signature est l'œil
+ * d'Iris (le point du « i » du logo), dont la pupille respire.
+ *
+ * Respecte « réduire les animations » : page pleine et immobile.
  */
 
 const DEFAULT_MESSAGES = [
@@ -18,6 +24,30 @@ const DEFAULT_MESSAGES = [
   "Peaufinage du style et du rythme…",
 ];
 
+const ACCENT = "#C84B31"; // --color-secondary (terracotta éditoriale)
+const INK = "#1F2937";
+
+/* ------------------------------------------------------------------ *
+ * Géométrie de la page (viewBox 160 × 124)
+ * ------------------------------------------------------------------ */
+const PAGE = { x: 36, y: 10, width: 88, height: 104 };
+const LEFT = PAGE.x + 12;
+const TITLE = { y: 24, w: 38 };
+const FIRST_LINE_Y = 38;
+const LINE_GAP = 8.6;
+/** Longueurs des lignes : un paragraphe, une ligne vide, puis un second paragraphe. */
+const LINES = [62, 58, 63, 41, 0, 60, 63, 52];
+
+const TITLE_DURATION = 0.5;
+const LINE_DURATION = 0.48;
+const HOLD = 0.9;
+const START = 0.25;
+
+const drawnLines = LINES.map((w, i) => ({ w, i })).filter((l) => l.w > 0);
+const lineStart = (order: number) => START + TITLE_DURATION + order * LINE_DURATION;
+/** Durée d'une page complète, jusqu'au moment où elle se tourne. */
+const PAGE_CYCLE_S = lineStart(drawnLines.length) + HOLD;
+
 export default function EditorGenerationOverlay({
   label = "Iris écrit votre livre",
   messages = DEFAULT_MESSAGES,
@@ -26,21 +56,26 @@ export default function EditorGenerationOverlay({
 }: {
   label?: string;
   messages?: string[];
-  /** Progression réelle (chapitre courant / total) — affiche une barre déterminée. */
+  /** Progression réelle (chapitres terminés / total) — affiche une barre déterminée. */
   progress?: { current: number; total: number } | null;
   /** Callback d'arrêt : affiche un bouton « Arrêter » (stop après le chapitre en cours). */
   onStop?: () => void;
 }) {
+  const reduceMotion = useReducedMotion() ?? false;
   const pct =
     progress && progress.total > 0
       ? Math.min(100, Math.round((progress.current / progress.total) * 100))
       : null;
-  const [msgIndex, setMsgIndex] = useState(0);
 
+  // « Rédaction 3/9… · 338 pièces utilisées » : le statut en titre, le
+  // compteur de pièces sur une ligne discrète en dessous.
+  const [title, ...metaParts] = label.split(" · ");
+  const meta = metaParts.join(" · ");
+
+  const [msgIndex, setMsgIndex] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => {
-      setMsgIndex((i) => (i + 1) % messages.length);
-    }, 2600);
+    if (messages.length < 2) return;
+    const id = setInterval(() => setMsgIndex((i) => (i + 1) % messages.length), 3200);
     return () => clearInterval(id);
   }, [messages.length]);
 
@@ -49,96 +84,33 @@ export default function EditorGenerationOverlay({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-      className="absolute inset-0 z-40 flex items-center justify-center overflow-hidden bg-gradient-to-b from-white/85 via-white/75 to-[#F3F4F6]/85 backdrop-blur-[3px]"
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="absolute inset-0 z-40 flex items-center justify-center overflow-hidden bg-[#F9FAFB]/80 backdrop-blur-[2px]"
       role="status"
       aria-live="polite"
     >
-      {/* Halos doux en fond */}
-      <div className="pointer-events-none absolute -top-24 -left-16 w-72 h-72 rounded-full bg-neutral-200/50 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -right-10 w-80 h-80 rounded-full bg-neutral-200/50 blur-3xl" />
-
-      {/* Carte centrale */}
       <motion.div
-        initial={{ scale: 0.92, y: 10 }}
-        animate={{ scale: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 220, damping: 20 }}
-        className="relative flex flex-col items-center gap-5 rounded-3xl border border-white/70 bg-white dark:bg-neutral-900/80 px-8 py-8 shadow-2xl backdrop-blur-md max-w-[86vw] w-[360px]"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="relative flex w-[340px] max-w-[86vw] flex-col items-center gap-6 rounded-2xl border border-neutral-200/80 bg-white px-7 pb-6 pt-7 shadow-[0_24px_60px_-24px_rgba(17,24,39,0.28)]"
       >
-        {/* Plume qui écrit sur une ligne */}
-        <div className="relative w-44 h-20">
-          <svg viewBox="0 0 200 90" className="w-full h-full overflow-visible">
-            {/* Ligne d'écriture qui se dessine */}
-            <motion.path
-              d="M 20 62 C 60 40, 90 78, 120 58 S 170 44, 182 60"
-              fill="none"
-              stroke="#F95738"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              initial={{ pathLength: 0, opacity: 0.2 }}
-              animate={{ pathLength: [0, 1, 1], opacity: [0.3, 1, 0.3] }}
-              transition={{ duration: 2.4, ease: "easeInOut", repeat: Infinity }}
-            />
-            {/* Plume / stylo animé qui suit la ligne */}
-            <motion.g
-              initial={{ x: 0, y: 0 }}
-              animate={{ x: [0, 60, 100, 162], y: [0, -12, 4, 0] }}
-              transition={{ duration: 2.4, ease: "easeInOut", repeat: Infinity }}
-              style={{ transformOrigin: "center" }}
-            >
-              <motion.g
-                animate={{ rotate: [-6, 4, -6] }}
-                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-              >
-                {/* corps de la plume */}
-                <path d="M 20 60 L 34 20 L 40 24 L 26 62 Z" fill="#111827" />
-                <path d="M 24 54 L 34 30" stroke="#F95738" strokeWidth="1.6" strokeLinecap="round" />
-                {/* pointe */}
-                <circle cx="21" cy="61" r="2.4" fill="#F95738" />
-              </motion.g>
-            </motion.g>
-          </svg>
-        </div>
+        <Manuscript reduceMotion={reduceMotion} />
 
-        {/* Lignes de texte simulées qui se remplissent */}
-        <div className="w-full flex flex-col gap-2">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-2 rounded-full bg-neutral-200/70 overflow-hidden">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-secondary to-amber-400"
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: [0, 1, 1, 0] }}
-                style={{ transformOrigin: "left" }}
-                transition={{
-                  duration: 2.8,
-                  times: [0, 0.5, 0.8, 1],
-                  ease: "easeInOut",
-                  repeat: Infinity,
-                  delay: i * 0.35,
-                }}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Titre + message rotatif */}
-        <div className="flex flex-col items-center gap-1 text-center">
-          <div className="flex items-center gap-2 font-heading font-extrabold text-neutral-900 dark:text-neutral-100 text-base">
-            <span className="material-symbols-outlined text-secondary text-lg animate-pulse">auto_awesome</span>
-            <span>{label}</span>
-            <span className="inline-flex w-5 justify-start">
-              <AnimatedDots />
-            </span>
+        <div className="flex w-full flex-col items-center gap-1.5 text-center">
+          <div className="flex items-center gap-2">
+            <IrisEye reduceMotion={reduceMotion} />
+            <h3 className="font-heading text-[15px] font-bold tracking-[-0.01em] text-neutral-900">{title}</h3>
           </div>
-          <div className="h-5 relative w-full">
-            <AnimatePresence mode="wait">
+          <div className="relative h-4 w-full">
+            <AnimatePresence mode="wait" initial={false}>
               <motion.p
                 key={msgIndex}
-                initial={{ opacity: 0, y: 6 }}
+                initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.35 }}
-                className="text-xs font-medium text-neutral-500 dark:text-neutral-400 absolute inset-0"
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="absolute inset-0 text-[12px] font-medium text-neutral-500"
               >
                 {messages[msgIndex]}
               </motion.p>
@@ -146,55 +118,185 @@ export default function EditorGenerationOverlay({
           </div>
         </div>
 
-        {/* Barre de progression : déterminée si on connaît l'avancement, sinon shimmer */}
         {pct != null ? (
-          <div className="w-full space-y-1.5">
-            <div className="flex items-center justify-between text-[11px] font-bold text-neutral-500 dark:text-neutral-400">
-              <span>Chapitre {progress!.current} / {progress!.total}</span>
-              <span>{pct}%</span>
+          <div className="w-full space-y-2">
+            <div className="flex items-baseline justify-between text-[11px] font-semibold tabular-nums text-neutral-500">
+              <span>
+                Chapitre {Math.min(progress!.current + 1, progress!.total)} sur {progress!.total}
+              </span>
+              <span>{pct} %</span>
             </div>
-            <div className="relative w-full h-2 rounded-full bg-neutral-200/70 overflow-hidden">
+            <div className="relative h-1 w-full overflow-hidden rounded-full bg-neutral-100">
               <motion.div
-                className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-secondary to-amber-400"
+                className="absolute inset-y-0 left-0 rounded-full bg-secondary"
                 initial={false}
-                animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
+                animate={{ width: `${Math.max(pct, 2)}%` }}
+                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
               />
             </div>
           </div>
         ) : (
-          <div className="relative w-full h-1.5 rounded-full bg-neutral-200/70 overflow-hidden">
-            <motion.div
-              className="absolute top-0 h-full w-1/3 rounded-full bg-gradient-to-r from-transparent via-secondary to-transparent"
-              initial={{ x: "-40%" }}
-              animate={{ x: "340%" }}
-              transition={{ duration: 1.4, ease: "easeInOut", repeat: Infinity }}
-            />
+          <div className="relative h-[3px] w-full overflow-hidden rounded-full bg-neutral-100">
+            {!reduceMotion && (
+              <motion.div
+                className="absolute inset-y-0 w-1/4 rounded-full bg-secondary/70"
+                initial={{ left: "-25%" }}
+                animate={{ left: "100%" }}
+                transition={{ duration: 1.6, ease: [0.65, 0, 0.35, 1], repeat: Infinity, repeatDelay: 0.2 }}
+              />
+            )}
           </div>
         )}
 
-        {/* Bouton d'arrêt (stop après le chapitre en cours) */}
-        {onStop && (
-          <button
-            onClick={onStop}
-            className="mt-1 inline-flex items-center gap-1.5 rounded-xl border border-neutral-300 bg-white dark:bg-neutral-900/80 px-4 py-2 text-xs font-bold text-neutral-700 dark:text-neutral-300 hover:bg-white dark:bg-neutral-900 hover:border-red-300 hover:text-red-600 transition-colors"
-          >
-            <span className="material-symbols-outlined text-base">stop_circle</span>
-            Arrêter
-          </button>
+        {(meta || onStop) && (
+          <div className="-mt-2 flex w-full items-center justify-between gap-3">
+            <span className="text-[11px] tabular-nums text-neutral-400">{meta}</span>
+            {onStop && (
+              <button
+                onClick={onStop}
+                className="text-[12px] font-semibold text-neutral-500 underline-offset-4 transition-colors hover:text-neutral-900 hover:underline"
+              >
+                {pct != null ? "Arrêter après ce chapitre" : "Arrêter"}
+              </button>
+            )}
+          </div>
         )}
       </motion.div>
     </motion.div>
   );
 }
 
-function AnimatedDots() {
-  const [dots, setDots] = useState("");
+/* ------------------------------------------------------------------ *
+ * La page qui s'écrit puis se tourne
+ * ------------------------------------------------------------------ */
+function Manuscript({ reduceMotion }: { reduceMotion: boolean }) {
+  const [page, setPage] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => {
-      setDots((d) => (d.length >= 3 ? "" : d + "."));
-    }, 400);
+    if (reduceMotion) return;
+    const id = setInterval(() => setPage((p) => p + 1), PAGE_CYCLE_S * 1000);
     return () => clearInterval(id);
-  }, []);
-  return <span className="text-secondary">{dots}</span>;
+  }, [reduceMotion]);
+
+  return (
+    <svg viewBox="0 0 160 124" className="h-[124px] w-[160px] overflow-visible" aria-hidden="true">
+      {/* Pile de feuilles déjà écrites */}
+      <rect {...PAGE} rx="3" fill="#F2EFEA" transform="rotate(-5 80 62) translate(-3 3)" />
+      <rect {...PAGE} rx="3" fill="#F7F5F1" stroke="#ECE8E1" strokeWidth="0.75" transform="rotate(3 80 62) translate(2 2)" />
+
+      <AnimatePresence>
+        <motion.g
+          key={page}
+          initial={reduceMotion ? false : { opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0, rotate: 0 }}
+          exit={{ opacity: 0, x: -26, rotate: -7 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          style={{ transformBox: "fill-box", transformOrigin: "0% 100%" }}
+        >
+          <WritingPage reduceMotion={reduceMotion} />
+        </motion.g>
+      </AnimatePresence>
+    </svg>
+  );
+}
+
+function WritingPage({ reduceMotion }: { reduceMotion: boolean }) {
+  const caret = caretKeyframes();
+  return (
+    <g>
+      <rect {...PAGE} rx="3" fill="#FFFFFF" stroke="#E7E3DC" strokeWidth="0.75" />
+
+      {/* Titre du chapitre */}
+      <motion.rect
+        x={LEFT}
+        y={TITLE.y}
+        height={3.5}
+        rx={1.75}
+        fill={ACCENT}
+        initial={reduceMotion ? { width: TITLE.w } : { width: 0 }}
+        animate={{ width: TITLE.w }}
+        transition={{ delay: START, duration: TITLE_DURATION, ease: [0.45, 0, 0.55, 1] }}
+      />
+
+      {/* Lignes de texte, écrites une à une */}
+      {drawnLines.map((line, order) => (
+        <motion.rect
+          key={line.i}
+          x={LEFT}
+          y={FIRST_LINE_Y + line.i * LINE_GAP}
+          height={2.2}
+          rx={1.1}
+          fill="#CFC8BE"
+          initial={reduceMotion ? { width: line.w } : { width: 0 }}
+          animate={{ width: line.w }}
+          transition={{ delay: lineStart(order), duration: LINE_DURATION, ease: "linear" }}
+        />
+      ))}
+
+      {/* Curseur d'écriture */}
+      {!reduceMotion && (
+        <motion.rect
+          width={1.3}
+          height={6.5}
+          rx={0.65}
+          fill={ACCENT}
+          initial={{ x: caret.x[0], y: caret.y[0], opacity: 0 }}
+          animate={{ x: caret.x, y: caret.y, opacity: caret.opacity }}
+          transition={{ duration: caret.duration, times: caret.times, ease: "linear" }}
+        />
+      )}
+
+      {/* Numéro de page */}
+      <rect x={PAGE.x + PAGE.width / 2 - 3} y={PAGE.y + PAGE.height - 6} width={6} height={1.6} rx={0.8} fill="#E2DDD5" />
+    </g>
+  );
+}
+
+/**
+ * Trajectoire du curseur : il suit le titre puis chaque ligne, de gauche à
+ * droite, en même temps que le trait se dessine, et s'efface en fin de page.
+ */
+function caretKeyframes() {
+  const x: number[] = [];
+  const y: number[] = [];
+  const at: number[] = [];
+  const opacity: number[] = [];
+  const push = (px: number, py: number, t: number, o = 1) => {
+    x.push(px);
+    y.push(py);
+    at.push(t);
+    opacity.push(o);
+  };
+
+  push(LEFT, TITLE.y - 1.5, 0, 0);
+  push(LEFT, TITLE.y - 1.5, START, 1);
+  push(LEFT + TITLE.w + 1, TITLE.y - 1.5, START + TITLE_DURATION);
+  drawnLines.forEach((line, order) => {
+    const ly = FIRST_LINE_Y + line.i * LINE_GAP - 2.2;
+    push(LEFT, ly, lineStart(order));
+    push(LEFT + line.w + 1, ly, lineStart(order) + LINE_DURATION);
+  });
+  const end = lineStart(drawnLines.length);
+  const duration = end + HOLD * 0.6;
+  push(x[x.length - 1], y[y.length - 1], duration, 0);
+
+  return { x, y, opacity, times: at.map((t) => t / duration), duration };
+}
+
+/* ------------------------------------------------------------------ *
+ * L'œil d'Iris : le point du « i » du logo, pupille qui respire
+ * ------------------------------------------------------------------ */
+function IrisEye({ reduceMotion }: { reduceMotion: boolean }) {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0" aria-hidden="true">
+      <circle cx="10" cy="10" r="9" fill={ACCENT} />
+      <motion.circle
+        cx="10"
+        cy="10"
+        r="4.6"
+        fill={INK}
+        animate={reduceMotion ? undefined : { r: [4.6, 3.4, 4.6] }}
+        transition={{ duration: 2.8, ease: "easeInOut", repeat: Infinity }}
+      />
+    </svg>
+  );
 }
