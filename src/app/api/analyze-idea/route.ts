@@ -58,7 +58,11 @@ export async function POST(req: Request) {
     }
 
     const prompt = mode === "questions" ? buildIdeaQuestionsPrompt(input) : buildIdeaAnalysisPrompt(input);
-    const result = await generateWithFallback({ preferred: DEFAULT_WRITING_MODEL, prompt, maxAttempts: 2 });
+    // Les TROIS fournisseurs : limité à deux (Gemini puis OpenAI), l'analyse
+    // échouait systématiquement dès que ces deux comptes étaient à court de
+    // crédit, alors que Claude répondait — et l'auteur arrivait à l'étape 4
+    // avec « Iris n'a pas pu analyser votre idée » et un public cible vide.
+    const result = await generateWithFallback({ preferred: DEFAULT_WRITING_MODEL, prompt });
 
     await deductFixedCoins(
       user.id,

@@ -1,10 +1,9 @@
-import { generateText } from "ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { checkMonthlyQuota } from "@/lib/ai/quota";
 import { checkMinimumBalance, deductGenerationCost } from "@/lib/ai/cost-engine";
-import { getAiModel } from "@/lib/ai/search-context";
+import { ALL_PROVIDERS_FAILED, generateWithFallback } from "@/lib/ai/model-fallback";
 import { canonicalModelId, estimateCallCoins, estimateTokensFromText } from "@/lib/ai/pricing";
 
 export const maxDuration = 60;
@@ -147,8 +146,11 @@ Instructions impératives :
       );
     }
 
-    const genResult = await generateText({
-      model: getAiModel(selectedModelName),
+    // Repli de fournisseur : avec un seul fournisseur, une panne (crédit Gemini
+    // épuisé…) rendait les actions sur la sélection inutilisables. On facture
+    // le modèle qui a réellement répondu.
+    const genResult = await generateWithFallback({
+      preferred: selectedModelName,
       system: systemPrompt,
       prompt,
       maxOutputTokens,
@@ -156,7 +158,7 @@ Instructions impératives :
 
     await deductGenerationCost(
       user.id,
-      selectedModelName,
+      genResult.modelUsed,
       genResult.usage,
       `Action IA : ${customInstruction ? "instruction libre" : actionType}`,
       { projectId, outputText: genResult.text }
@@ -179,6 +181,14 @@ Instructions impératives :
   } catch (error) {
     console.error("Erreur lors de l'action IA contextuelle:", error);
     const detail = error instanceof Error ? error.message : String(error);
+    // Le détail des fournisseurs (facturation, quotas) n'a rien à faire sous
+    // les yeux de l'auteur.
+    if (detail.startsWith(ALL_PROVIDERS_FAILED)) {
+      return NextResponse.json(
+        { error: "Iris n'arrive pas à joindre ses modèles d'IA pour le moment. Réessayez dans quelques minutes." },
+        { status: 503 }
+      );
+    }
     return NextResponse.json(
       { error: `Erreur IA : ${detail}` },
       { status: 500 }
