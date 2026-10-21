@@ -108,6 +108,9 @@ export default function NewBookWizard() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Verrou SYNCHRONE contre la double création : l'état React ne désactive le
+  // bouton qu'au rendu suivant, un double clic rapide créait deux projets.
+  const submittingRef = useRef(false);
   // Modèle d'écriture choisi UNE fois, ici, puis enregistré sur le projet :
   // l'éditeur ne redemande plus ni la longueur ni le modèle.
   const [selectedModel, setSelectedModel] = useState<string>(() => {
@@ -353,7 +356,12 @@ export default function NewBookWizard() {
   };
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setIsSubmitting(true);
+    // Reste verrouillé après un succès, pendant l'ouverture de l'éditeur :
+    // le bouton redevenait cliquable et un second clic créait un doublon.
+    let created = false;
 
     try {
       try {
@@ -427,6 +435,7 @@ export default function NewBookWizard() {
           });
         }
 
+        created = true;
         router.push(`/redaction?projectId=${data.project.id}&new=true`);
         return;
       }
@@ -435,7 +444,10 @@ export default function NewBookWizard() {
       alert('Erreur lors de la création du projet. Veuillez vérifier votre connexion et réessayer.');
       return;
     } finally {
-      setIsSubmitting(false);
+      if (!created) {
+        submittingRef.current = false;
+        setIsSubmitting(false);
+      }
     }
   };
 
