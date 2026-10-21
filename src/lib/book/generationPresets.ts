@@ -71,4 +71,4 @@ export const modelLabel = (id: string | null | undefined): string =>
   BOOK_MODELS.find((m) => m.id === id)?.label || id || BOOK_MODELS[0].label;
 
 // Les estimateurs de coût en pièces vivent dans la source unique @/lib/ai/pricing.
-export { estimateChapterCoins, estimateBookCoins, estimatePagesCoins, coinsPerPage } from "@/lib/ai/pricing";
+export { estimateChapterCoins, estimateBookCoins, estimatePagesCoins, bookChargeCeiling, coinsPerPage } from "@/lib/ai/pricing";

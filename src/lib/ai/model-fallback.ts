@@ -70,6 +70,8 @@ export async function generateWithFallback(opts: {
   images?: string[];
   /** Nombre maximum de fournisseurs essayés (défaut 3). */
   maxAttempts?: number;
+  /** Longueur maximale de la réponse (borne le coût de l'appel). */
+  maxOutputTokens?: number;
 }): Promise<FallbackResult> {
   // Imports PARESSEUX : le SDK IA n'est chargé qu'au moment de générer, ce qui
   // garde ce module importable (et testable) sans dépendance lourde.
@@ -104,6 +106,7 @@ export async function generateWithFallback(opts: {
       const res = await generateText({
         model: getAiModel(modelId),
         system: opts.system,
+        ...(opts.maxOutputTokens ? { maxOutputTokens: opts.maxOutputTokens } : {}),
         ...payload,
       } as Parameters<typeof generateText>[0]);
       const text = (res.text || "").trim();
@@ -120,5 +123,149 @@ export async function generateWithFallback(opts: {
     }
   }
 
-  throw new Error(`Tous les fournisseurs IA ont échoué. ${errors.join(" | ")}`);
+  throw new Error(`${ALL_PROVIDERS_FAILED} ${errors.join(" | ")}`);
+}
+
+/** Début du message d'erreur levé quand aucun fournisseur n'a répondu. */
+export const ALL_PROVIDERS_FAILED = "Tous les fournisseurs IA ont échoué.";
+
+/** Morceau du flux complet d'une génération (`streamText(...).stream`) utile au repli. */
+export interface FallbackStreamPart {
+  type: string;
+  text?: string;
+  error?: unknown;
+}
+
+export interface FallbackStreamResult {
+  /** Texte de la réponse, morceau par morceau. */
+  textStream: ReadableStream<string>;
+  /** Modèle qui produit réellement la réponse (c'est lui qui est facturé). */
+  modelUsed: string;
+  /** Erreurs des fournisseurs essayés avant celui-ci (diagnostic). */
+  errors: string[];
+  /**
+   * Se résout quand la génération est lue jusqu'au bout — y compris si le
+   * client coupe la connexion avant la fin. À passer à `after()` : le débit
+   * (dans `onFinish`) n'a lieu qu'en fin de génération.
+   */
+  done: Promise<void>;
+}
+
+const errorText = (err: unknown): string =>
+  err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+
+/**
+ * Réponse EN FLUX avec repli automatique de fournisseur.
+ *
+ * Une erreur de fournisseur (crédit épuisé, quota, clé invalide) n'interrompt
+ * pas un flux `streamText` : elle arrive comme un événement `error`, et le
+ * flux de texte se termine simplement VIDE. Pour l'auteur, l'assistant
+ * répondait donc… rien. Ici, on lit les premiers événements : tant qu'aucun
+ * texte n'est sorti, une erreur fait basculer sur le fournisseur suivant. Dès
+ * le premier morceau de texte, on reste sur ce fournisseur jusqu'au bout.
+ *
+ * `start(modelId)` lance la génération pour un modèle, ou renvoie `null` pour
+ * le passer (par exemple si le solde ne couvre pas son coût).
+ */
+export async function streamTextWithFallback(opts: {
+  preferred: string;
+  start: (modelId: string) => Promise<{ stream: AsyncIterable<FallbackStreamPart> } | null>;
+  maxAttempts?: number;
+}): Promise<FallbackStreamResult> {
+  const chain = fallbackChain(opts.preferred).slice(0, Math.max(1, opts.maxAttempts ?? 3));
+  const errors: string[] = [];
+
+  for (const modelId of chain) {
+    let started: { stream: AsyncIterable<FallbackStreamPart> } | null;
+    try {
+      started = await opts.start(modelId);
+    } catch (err) {
+      errors.push(`${modelId}: ${errorText(err)}`);
+      continue;
+    }
+    if (!started) {
+      errors.push(`${modelId}: ignoré`);
+      continue;
+    }
+
+    const it = started.stream[Symbol.asyncIterator]();
+    let first: string | null = null;
+    let failure: string | null = null;
+    try {
+      while (first === null && failure === null) {
+        const { value, done } = await it.next();
+        if (done) break;
+        if (value.type === "error") failure = errorText(value.error);
+        else if (value.type === "text-delta" && value.text) first = value.text;
+      }
+    } catch (err) {
+      failure = errorText(err);
+    }
+
+    if (first === null) {
+      errors.push(`${modelId}: ${failure ?? "réponse vide"}`);
+      console.warn(`[model-fallback] ${modelId} n'a rien produit, essai du fournisseur suivant :`, failure ?? "réponse vide");
+      void it.return?.();
+      continue;
+    }
+
+    // Lecture de la suite. Le client peut couper avant la fin : on continue
+    // alors à lire côté serveur, pour que la génération se termine (et soit
+    // facturée) quoi qu'il arrive.
+    let clientGone = false;
+    let resolveDone!: () => void;
+    const done = new Promise<void>((resolve) => (resolveDone = resolve));
+    const firstText = first;
+
+    const nextText = async (): Promise<string | null> => {
+      while (true) {
+        const { value, done: finished } = await it.next();
+        if (finished) return null;
+        if (value.type === "text-delta" && value.text) return value.text;
+        if (value.type === "error") {
+          console.warn(`[model-fallback] ${modelId} : erreur en cours de réponse :`, errorText(value.error));
+        }
+      }
+    };
+    const drain = async () => {
+      try {
+        while ((await nextText()) !== null) {
+          /* lecture jusqu'au bout */
+        }
+      } catch {
+        /* fin de flux */
+      } finally {
+        resolveDone();
+      }
+    };
+
+    const textStream = new ReadableStream<string>({
+      start(controller) {
+        controller.enqueue(firstText);
+      },
+      async pull(controller) {
+        if (clientGone) return;
+        try {
+          const text = await nextText();
+          if (text === null) {
+            controller.close();
+            resolveDone();
+          } else {
+            controller.enqueue(text);
+          }
+        } catch {
+          controller.close();
+          resolveDone();
+        }
+      },
+      cancel() {
+        clientGone = true;
+        void drain();
+      },
+    });
+
+    return { textStream, modelUsed: modelId, errors, done };
+  }
+
+  throw new Error(`${ALL_PROVIDERS_FAILED} ${errors.join(" | ")}`);
 }
