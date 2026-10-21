@@ -1,7 +1,6 @@
-import { generateText } from "ai";
-import { google } from "@ai-sdk/google";
 import { createClient as createAdminClient, type SupabaseClient } from "@supabase/supabase-js";
 import { checkRateLimit } from "@/lib/ratelimit";
+import { generateWithFallback } from "@/lib/ai/model-fallback";
 import { checkMinimumBalance, deductFixedCoins } from "@/lib/ai/cost-engine";
 import { COVER_IMAGE_COINS, COVER_STANDARD_COINS } from "@/lib/ai/pricing";
 import {
@@ -503,6 +502,21 @@ async function executeImagePipeline(
 /** Modèle de la direction artistique (traduction + enrichissement du prompt). */
 const ART_DIRECTION_MODEL = "gemini-3.6-flash";
 
+/**
+ * Délai maximal de la direction artistique, repli de fournisseur compris :
+ * au-delà, on génère l'image avec la consigne d'origine plutôt que de faire
+ * attendre l'auteur.
+ */
+const ART_DIRECTION_TIMEOUT_MS = 20_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`délai dépassé (${ms} ms)`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 export interface GenerateCoverInput {
   projectId?: string;
   engine: CoverEngine;
@@ -606,14 +620,17 @@ export async function generateCoverForUser(
   // anglais professionnel. La consigne de longueur est stricte : en mode
   // gratuit le prompt voyage dans une URL GET, et un pavé de 1 500 caractères
   // faisait rejeter la requête par Pollinations.
+  //
+  // Avec repli de fournisseur : limitée à Gemini, elle échouait dès que le
+  // crédit Gemini était épuisé, et la consigne brute EN FRANÇAIS partait au
+  // moteur d'image — qui produisait alors des images sans rapport avec le
+  // livre (une femme dans une forêt pour un guide d'élevage de poulets).
   let finalPrompt = basePrompt;
   try {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 9000);
-    const { text } = await generateText({
-      model: google(ART_DIRECTION_MODEL),
-      abortSignal: controller.signal,
-      prompt: `You are a world-renowned visual art director and master concept artist creating multimillion-dollar bestseller book covers and cinematic movie posters.
+    const { text } = await withTimeout(
+      generateWithFallback({
+        preferred: ART_DIRECTION_MODEL,
+        prompt: `You are a world-renowned visual art director and master concept artist creating multimillion-dollar bestseller book covers and cinematic movie posters.
 
 Convert this book concept/request into a breathtaking, ultra-detailed, majestic art prompt:
 "${basePrompt}"
@@ -627,8 +644,9 @@ Essential Requirements:
 6. Absolutely NO typography, NO letters, NO text, NO numbers, NO watermark.
 7. HARD LIMIT: 80 words maximum, a single dense paragraph. Be concise and concrete, never verbose.
 8. Return strictly the prompt text only, without quotes or preface.`,
-    });
-    clearTimeout(t);
+      }),
+      ART_DIRECTION_TIMEOUT_MS
+    );
     if (text.trim()) {
       finalPrompt = truncatePrompt(text.trim());
     }
