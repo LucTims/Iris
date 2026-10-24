@@ -1245,6 +1245,19 @@ function RedactionContent() {
     void runWholeBookGeneration({ sizeKey: projectSizeKey, model: projectModel });
   };
 
+  const rememberBookHasToc = async (pId: string) => {
+    setProjectData((prev: any) => ({ ...(prev || {}), style_settings: { ...(prev?.style_settings || {}), includeToc: true } }));
+    try {
+      await fetch(`/api/projects/${pId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ style_settings: { includeToc: true } }),
+      });
+    } catch {
+      // Sans réglage, un « Livre complet » garde son sommaire par défaut.
+    }
+  };
+
   // FIN DE RÉDACTION : le livre s'affiche d'un seul tenant (« Livre complet »),
   // sans le sommaire qui n'était que le plan. « Découper en chapitres » reste
   // disponible. On ne fusionne que si TOUS les chapitres sont rédigés, pour
@@ -1269,6 +1282,9 @@ function RedactionContent() {
         setChapters(persisted);
         setActiveChapterIndex(0);
         setSaveStatus("saved");
+        // Le chapitre « Sommaire » (le plan) quitte le document : on retient
+        // que le livre a un sommaire, affiché dans l'éditeur et à l'export.
+        if (rows.some((c) => isOutlineTitle(c.title))) await rememberBookHasToc(pId);
       } else {
         setSaveStatus("error");
       }
@@ -2312,6 +2328,7 @@ function RedactionContent() {
                         setSaveStatus("saving");
                         const persisted = await replaceChaptersOnServer(pId, chapters, [mergedChapter]);
                         if (persisted) {
+                          if (chapters.some((c) => isOutlineTitle(c.title))) void rememberBookHasToc(pId);
                           setChapters(persisted);
                           setActiveChapterIndex(0);
                           setSaveStatus("saved");
