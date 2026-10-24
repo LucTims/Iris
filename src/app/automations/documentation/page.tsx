@@ -76,7 +76,7 @@ const TOOLS: ToolDoc[] = [
   {
     name: "update_book",
     summary: "Modifie la fiche d'un livre : titre, sous-titre, auteur, résumé, catégorie, ton, public, consignes.",
-    params: "book_id, title, subtitle, author, synopsis, category, tone, audience, instructions",
+    params: "book_id, title, subtitle, author, synopsis, category, tone, audience, instructions, include_toc",
     writes: true,
   },
   {

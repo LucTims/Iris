@@ -17,6 +17,7 @@ const RichManuscriptEditor = dynamic(
 const ImportManuscriptModal = dynamic(() => import("@/components/ImportManuscriptModal"), { ssr: false });
 const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
 const BookInfoModal = dynamic(() => import("@/components/BookInfoModal"), { ssr: false });
+const BookFrontMatter = dynamic(() => import("@/components/BookFrontMatter"), { ssr: false });
 const GeoScoreModal = dynamic(() => import("@/components/GeoScoreModal"), { ssr: false });
 
 const ChapterGenerateModal = dynamic(() => import("@/components/ChapterGenerateModal"), { ssr: false });
@@ -2153,6 +2154,27 @@ function RedactionContent() {
     </div>
   );
 
+  // Réglages de mise en page du livre (sommaire, format, polices…), enregistrés
+  // avec le projet : l'éditeur, l'export et l'assistant MCP lisent les mêmes.
+  const saveStyleSettings = async (patch: Record<string, unknown>) => {
+    setProjectData((prev: any) => ({ ...(prev || {}), style_settings: { ...(prev?.style_settings || {}), ...patch } }));
+    if (!currentProjectId) return;
+    try {
+      const res = await fetch(`/api/projects/${currentProjectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ style_settings: patch }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.project) {
+        setProjectData((prev: any) => ({ ...(prev || {}), style_settings: data.project.style_settings }));
+      }
+    } catch {
+      // Réglage conservé localement ; il sera renvoyé au prochain changement.
+    }
+  };
+  const updateIncludeToc = (include: boolean) => saveStyleSettings({ includeToc: include });
+
   const canvasHeader = isOutlineView ? (
     <div className="rounded-2xl border-2 border-dashed border-[#F4C5BC] bg-white dark:bg-neutral-900 p-4 sm:p-5 flex flex-col sm:flex-row gap-3 sm:items-center">
       <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -2179,7 +2201,8 @@ function RedactionContent() {
       )}
     </div>
   ) : showCoverSlot ? (
-    coverUrl ? (
+    <>
+      {coverUrl ? (
       <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
         <div className="bg-white dark:bg-neutral-900 rounded-[2rem] border border-neutral-200 dark:border-neutral-800 shadow-xl p-8 sm:p-12 max-w-lg w-full flex flex-col items-center text-center gap-6">
           <div className="relative w-40 sm:w-52 aspect-[2/3] rounded-2xl shadow-2xl border border-neutral-200/60 overflow-hidden"><Image src={coverUrl} alt="Couverture du livre" fill sizes="(max-width: 640px) 160px, 208px" className="object-cover" /></div>
@@ -2211,7 +2234,21 @@ function RedactionContent() {
           </button>
         </div>
       </div>
-    )
+    )}
+      {/* Pages de début (titre, mentions légales, sommaire) telles qu'à l'export. */}
+      <BookFrontMatter
+        title={bookTitle}
+        subtitle={projectData?.subtitle}
+        author={projectData?.author}
+        category={projectData?.category}
+        workType={bookWorkType}
+        coverUrl={coverUrl}
+        styleSettings={projectData?.style_settings}
+        chapters={chapters}
+        onEditInfo={() => setIsBookInfoOpen(true)}
+        onToggleToc={updateIncludeToc}
+      />
+    </>
   ) : null;
 
   return (
@@ -2884,8 +2921,10 @@ function RedactionContent() {
           category: projectData?.category || undefined,
           work_type: bookWorkType,
           cover_url: (projectData as any)?.cover_url || undefined,
+          style_settings: projectData?.style_settings,
           chapters: chapters
         }}
+        onStyleChange={(patch) => saveStyleSettings(patch)}
         hasUnsavedChanges={saveStatus !== "saved"}
       />
 
