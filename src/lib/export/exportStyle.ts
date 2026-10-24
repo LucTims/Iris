@@ -16,6 +16,37 @@ export interface ExportStyle {
   pageFormat?: PageFormatKey;
   /** Ajouter un sommaire paginé en tête du livre. */
   includeToc?: boolean;
+  /**
+   * Corrections manuelles du sommaire, par entrée : « c3 » = 4e chapitre,
+   * « c3s1 » = 2e intertitre de ce chapitre. Un champ absent reste automatique.
+   */
+  tocOverrides?: Record<string, TocOverride>;
+}
+
+export interface TocOverride {
+  label?: string;
+  title?: string;
+  /** Numéro de page imposé (sinon calculé à la mise en page). */
+  page?: number;
+}
+
+export const tocKey = (chapterIndex: number, sectionIndex?: number) =>
+  sectionIndex === undefined ? `c${chapterIndex}` : `c${chapterIndex}s${sectionIndex}`;
+
+function sanitizeTocOverrides(raw: unknown): Record<string, TocOverride> | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const out: Record<string, TocOverride> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>).slice(0, 400)) {
+    if (!/^c\d{1,3}(s\d{1,3})?$/.test(key) || !value || typeof value !== "object") continue;
+    const v = value as Record<string, unknown>;
+    const o: TocOverride = {};
+    if (typeof v.label === "string") o.label = v.label.trim().slice(0, 80);
+    if (typeof v.title === "string" && v.title.trim()) o.title = v.title.trim().slice(0, 300);
+    const page = typeof v.page === "string" ? parseInt(v.page, 10) : v.page;
+    if (typeof page === "number" && Number.isInteger(page) && page >= 1 && page <= 9999) o.page = page;
+    if (Object.keys(o).length) out[key] = o;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 export type PageFormatKey = "a4" | "letter" | "a5" | "6x9" | "5.5x8.5" | "5x8";
@@ -97,6 +128,8 @@ export function sanitizeExportStyle(input: unknown): ExportStyle {
   if (accent) style.accentColor = accent;
   if (format) style.pageFormat = format;
   if (typeof raw.includeToc === "boolean") style.includeToc = raw.includeToc;
+  const overrides = sanitizeTocOverrides(raw.tocOverrides);
+  if (overrides) style.tocOverrides = overrides;
   return style;
 }
 

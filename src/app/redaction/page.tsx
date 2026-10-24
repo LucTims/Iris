@@ -2173,7 +2173,6 @@ function RedactionContent() {
       // Réglage conservé localement ; il sera renvoyé au prochain changement.
     }
   };
-  const updateIncludeToc = (include: boolean) => saveStyleSettings({ includeToc: include });
 
   const canvasHeader = isOutlineView ? (
     <div className="rounded-2xl border-2 border-dashed border-[#F4C5BC] bg-white dark:bg-neutral-900 p-4 sm:p-5 flex flex-col sm:flex-row gap-3 sm:items-center">
@@ -2235,7 +2234,7 @@ function RedactionContent() {
         </div>
       </div>
     )}
-      {/* Pages de début (titre, mentions légales, sommaire) telles qu'à l'export. */}
+      {/* Pages de début (titre, mentions légales, sommaire s'il y en a un), telles qu'à l'export. */}
       <BookFrontMatter
         title={bookTitle}
         subtitle={projectData?.subtitle}
@@ -2246,7 +2245,7 @@ function RedactionContent() {
         styleSettings={projectData?.style_settings}
         chapters={chapters}
         onEditInfo={() => setIsBookInfoOpen(true)}
-        onToggleToc={updateIncludeToc}
+        onSaveTocOverrides={(overrides) => saveStyleSettings({ tocOverrides: overrides })}
       />
     </>
   ) : null;

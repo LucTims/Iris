@@ -7,7 +7,7 @@ import {
 import { bookFontPairing, detectGenre } from "@/lib/ai/book-style";
 import { resolveWorkType, workTypeLayout } from "@/lib/book/work-type";
 import { PDF_FONT_KEYS } from "@/lib/export/fontRegistry";
-import { pageFormatDef, type ExportStyle, type PageFormatKey } from "@/lib/export/exportStyle";
+import { pageFormatDef, tocKey, type ExportStyle, type PageFormatKey } from "@/lib/export/exportStyle";
 import { copyrightNotice, printableChapters, resolveIncludeToc, splitChapterHeading, tocHeading } from "@/lib/export/bookStructure";
 
 export { splitChapterHeading };
@@ -241,7 +241,7 @@ function buildDocDefinition(opts: BuildOptions): BuiltDoc {
   const realChapters = printableChapters(chapters, workType);
 
   // Sommaire : choix de l'auteur (enregistré avec le livre), oui par défaut.
-  const hasToc = realChapters.length > 0 && resolveIncludeToc(style, workType);
+  const hasToc = realChapters.length > 0 && resolveIncludeToc(style, workType, chapters);
 
   // Chapitres composés d'abord : le sommaire a besoin de leurs intertitres.
   const tocEntries: TocEntry[] = [];
@@ -301,28 +301,35 @@ function buildDocDefinition(opts: BuildOptions): BuiltDoc {
     const tocTitle = tocHeading(chapters);
     content.push({ text: tocTitle, style: "tocTitle", margin: [0, 30, 0, 26] });
     const maxSections = tocEntries.length > 14 ? 0 : 8;
-    for (const e of tocEntries) {
+    // Corrections de l'auteur (titre, étiquette, numéro de page) : un champ
+    // corrigé remplace la valeur calculée, les autres restent automatiques.
+    const overrides = style.tocOverrides || {};
+    const pageCell = (id: string, page: number | undefined) => (page ? `${page}` : [{ pageReference: id }]);
+    tocEntries.forEach((e, ci) => {
+      const o = overrides[tocKey(ci)] || {};
+      const label = o.label !== undefined ? o.label || null : e.label;
       const rows: any[] = [];
-      if (e.label) rows.push({ text: e.label.toUpperCase(), style: "tocLabel" });
+      if (label) rows.push({ text: label.toUpperCase(), style: "tocLabel" });
       rows.push({
         columns: [
-          { width: "*", text: e.title, style: "tocItem", linkToDestination: e.id },
-          { width: 44, text: [{ pageReference: e.id }], style: "tocItem", alignment: "right" },
+          { width: "*", text: o.title || e.title, style: "tocItem", linkToDestination: e.id },
+          { width: 44, text: pageCell(e.id, o.page), style: "tocItem", alignment: "right" },
         ],
         columnGap: 8,
       });
-      for (const s of e.sections.slice(0, maxSections)) {
+      e.sections.slice(0, maxSections).forEach((s, si) => {
+        const so = overrides[tocKey(ci, si)] || {};
         rows.push({
           columns: [
-            { width: "*", text: s.title, style: "tocSection", linkToDestination: s.id },
-            { width: 44, text: [{ pageReference: s.id }], style: "tocSection", alignment: "right" },
+            { width: "*", text: so.title || s.title, style: "tocSection", linkToDestination: s.id },
+            { width: 44, text: pageCell(s.id, so.page), style: "tocSection", alignment: "right" },
           ],
           columnGap: 8,
           margin: [16, 2, 0, 0],
         });
-      }
+      });
       content.push({ stack: rows, margin: [0, 0, 0, 12], unbreakable: e.sections.length <= 8 });
-    }
+    });
   }
 
   content.push(...body);
