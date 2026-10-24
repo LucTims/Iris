@@ -89,11 +89,27 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const body = await req.json();
     
-    // Allow updating specific fields
     const updates: any = {};
-    if (body.title !== undefined) updates.title = body.title;
-    if (body.subtitle !== undefined) updates.subtitle = body.subtitle;
-    if (body.category !== undefined) updates.category = body.category;
+    if (body.title !== undefined) {
+      const title = String(body.title ?? "").trim();
+      if (!title) return NextResponse.json({ error: "Le titre ne peut pas être vide." }, { status: 400 });
+      updates.title = title.slice(0, 300);
+    }
+    // Champs texte de la fiche du livre : une chaîne vide efface la valeur.
+    const TEXT_FIELDS: Record<string, number> = {
+      subtitle: 300,
+      author: 200,
+      category: 120,
+      synopsis: 8000,
+      tone: 300,
+      audience: 300,
+      instructions: 8000,
+    };
+    for (const [field, max] of Object.entries(TEXT_FIELDS)) {
+      if (body[field] === undefined) continue;
+      const value = body[field] === null ? "" : String(body[field]).trim();
+      updates[field] = value ? value.slice(0, max) : null;
+    }
     if (body.cover_url !== undefined) updates.cover_url = body.cover_url;
 
     // Statut du livre. Deux garde-fous :

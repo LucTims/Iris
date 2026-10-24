@@ -16,6 +16,7 @@ const RichManuscriptEditor = dynamic(
 );
 const ImportManuscriptModal = dynamic(() => import("@/components/ImportManuscriptModal"), { ssr: false });
 const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
+const BookInfoModal = dynamic(() => import("@/components/BookInfoModal"), { ssr: false });
 const GeoScoreModal = dynamic(() => import("@/components/GeoScoreModal"), { ssr: false });
 
 const ChapterGenerateModal = dynamic(() => import("@/components/ChapterGenerateModal"), { ssr: false });
@@ -93,6 +94,7 @@ interface Chapter {
 import { useUser } from "@/hooks/useUser";
 import { resolveWorkType, chapterNounFor } from "@/lib/book/work-type";
 import { assignChapterLabels } from "@/lib/book/chapter-heading";
+import { parseSommaire, sommaireBrief } from "@/lib/book/sommaire";
 import { detectGenre } from "@/lib/ai/book-style";
 import { findUnwrittenSections, canResume } from "@/lib/book/unwritten";
 import { bookJobFailureMessage, type BookJobSnapshot } from "@/lib/book/generation-job";
@@ -248,6 +250,7 @@ function RedactionContent() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isImportLoading, setIsImportLoading] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isBookInfoOpen, setIsBookInfoOpen] = useState(false);
   const [isGeoScoreModalOpen, setIsGeoScoreModalOpen] = useState(false);
 
   // Auto-scroll chat to bottom
@@ -1047,50 +1050,10 @@ function RedactionContent() {
   };
 
 
-  // Extrait la liste des chapitres (titre + aperçu) depuis le HTML du sommaire.
-  // On ne garde que les items de PREMIER niveau de la liste (les sous-points
-  // imbriqués sont ignorés). Le titre est dans le <strong>, l'aperçu après.
-  const parseSommaireChapters = (html: string): { title: string; brief: string }[] => {
-    if (!html) return [];
-    const outer = html.match(/<ul[^>]*>([\s\S]*)<\/ul>/i)?.[1] || html;
-    let inner = outer;
-    let prev = "";
-    do {
-      prev = inner;
-      inner = inner.replace(/<ul[^>]*>[\s\S]*?<\/ul>/gi, "");
-    } while (inner !== prev);
-    const clean = (s: string) =>
-      s.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
-
-    const splitTitleBrief = (rawLi: string): { title: string; brief: string } => {
-      const strong = rawLi.match(/<strong[^>]*>([\s\S]*?)<\/strong>/i);
-      if (strong) {
-        const title = clean(strong[1]);
-        const brief = clean(rawLi.replace(strong[0], "")).replace(/^[\s—–:-]+/, "").trim();
-        return { title, brief };
-      }
-      const text = clean(rawLi);
-      const sep = text.split(/\s[—–-]\s/);
-      if (sep.length > 1) return { title: sep[0].trim(), brief: sep.slice(1).join(" — ").trim() };
-      return { title: text, brief: "" };
-    };
-
-    // On EXCLUT toute entrée qui désigne le sommaire lui-même : sans ce filtre,
-    // « Sommaire » devient un chapitre et l'IA rédige un essai SUR les sommaires
-    // au lieu du sujet du livre (bug observé en production).
-    const isTocEntry = (t: string) => /^\s*(sommaire|table des mati)/i.test(t);
-    let items = Array.from(inner.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi))
-      .map((m) => splitTitleBrief(m[1]))
-      .filter((c) => c.title.length > 1 && !isTocEntry(c.title));
-    if (items.length === 0) {
-      items = Array.from(html.matchAll(/<(?:h2|h3)[^>]*>([\s\S]*?)<\/(?:h2|h3)>/gi))
-        .map((m) => ({ title: clean(m[1]), brief: "" }))
-        .filter((c) => c.title.length > 2 && !/sommaire|table des mati/i.test(c.title));
-    }
-    // Dédoublonnage sur le titre en conservant l'ordre
-    const seen = new Set<string>();
-    return items.filter((c) => (seen.has(c.title) ? false : (seen.add(c.title), true))).slice(0, 24);
-  };
+  // Extrait la liste des chapitres depuis le HTML du sommaire : titre, et
+  // consigne de rédaction tirée de l'aperçu et/ou des intertitres prévus.
+  const parseSommaireChapters = (html: string): { title: string; brief: string }[] =>
+    parseSommaire(html).map((e) => ({ title: e.title, brief: sommaireBrief(e) }));
 
   // Forme de l'ouvrage (livre / guide / ebook) : choisie par l'auteur à la
   // création, déduite par heuristique pour les projets antérieurs. Elle pilote
@@ -2285,6 +2248,16 @@ function RedactionContent() {
                 />
               </div>
 
+              <button
+                type="button"
+                onClick={() => setIsBookInfoOpen(true)}
+                className="flex items-center gap-1 text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:text-secondary bg-neutral-100 dark:bg-neutral-800 px-2.5 py-2 rounded-xl transition-all shrink-0"
+                title="Fiche du livre : sous-titre, auteur, résumé…"
+              >
+                <span className="material-symbols-outlined text-base">menu_book</span>
+                <span className="hidden lg:inline">Fiche du livre</span>
+              </button>
+
               <select
                 value={activeChapterIndex}
                 onChange={async (e) => {
@@ -2904,6 +2877,7 @@ function RedactionContent() {
           id: currentProjectId || undefined,
           title: bookTitle,
           subtitle: projectData?.subtitle || undefined,
+          author: projectData?.author || undefined,
           // La catégorie choisit la palette typographique et la forme décide de
           // la mise en page : sans elles, l'export depuis l'éditeur retombait
           // sur la composition générique, quelle que soit la nature du livre.
@@ -2913,6 +2887,25 @@ function RedactionContent() {
           chapters: chapters
         }}
         hasUnsavedChanges={saveStatus !== "saved"}
+      />
+
+      <BookInfoModal
+        isOpen={isBookInfoOpen}
+        onClose={() => setIsBookInfoOpen(false)}
+        projectId={currentProjectId}
+        initial={{
+          title: bookTitle,
+          subtitle: projectData?.subtitle,
+          author: projectData?.author,
+          category: projectData?.category,
+          synopsis: projectData?.synopsis,
+          audience: projectData?.audience,
+          tone: projectData?.tone,
+        }}
+        onSaved={(saved) => {
+          setProjectData((prev: any) => ({ ...(prev || {}), ...saved }));
+          if (typeof saved.title === "string") setBookTitle(saved.title);
+        }}
       />
 
       {/* GEO SCORE MODAL */}

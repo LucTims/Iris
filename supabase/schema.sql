@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS public.projects (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   subtitle TEXT,
+  author TEXT,
   category TEXT,
   synopsis TEXT,
   tone TEXT,
