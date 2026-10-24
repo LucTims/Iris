@@ -10,6 +10,7 @@ import {
   EXPORT_HEADING_FONTS,
   PAGE_FORMATS,
   pageFormatDef,
+  sanitizeExportStyle,
   type ExportStyle,
   type PageFormatKey,
 } from "@/lib/export/exportStyle";
@@ -27,6 +28,8 @@ interface ExportBookModalProps {
     work_type?: string;
     chapters?: any[];
     cover_url?: string;
+    /** Réglages de mise en page enregistrés avec le livre. */
+    style_settings?: unknown;
   } | null;
   /** Étape de départ (3 = aller directement au choix du format, sans l'upsell couverture). */
   initialStep?: 1 | 3;
@@ -35,9 +38,11 @@ interface ExportBookModalProps {
    * versions locales priment alors sur celles de la base pour ces chapitres.
    */
   hasUnsavedChanges?: boolean;
+  /** Enregistre un changement de style (sinon la fenêtre l'enregistre elle-même). */
+  onStyleChange?: (patch: Partial<ExportStyle>) => void;
 }
 
-export default function ExportBookModal({ isOpen, onClose, project, initialStep = 1, hasUnsavedChanges = false }: ExportBookModalProps) {
+export default function ExportBookModal({ isOpen, onClose, project, initialStep = 1, hasUnsavedChanges = false, onStyleChange }: ExportBookModalProps) {
   const router = useRouter();
 
   // Steps: 1 = Cover, 2 = Layout, 3 = Final Download, 4 = Congratulations
@@ -51,10 +56,8 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
 
   // Step 3 state (Original Export logic)
   const [selectedFormat, setSelectedFormat] = useState<"epub" | "pdf" | "docx" | "markdown">("epub");
-  // Style du PDF choisi par l'auteur. Vide = automatique (police selon le
-  // genre du livre, format A4). Mémorisé par projet dans ce navigateur.
-  const hasSummaryChapter = (project?.chapters || []).some((c: any) => /sommaire|table des mati/i.test(c?.title || ""));
-  const styleKey = `iris-export-style-${project?.id || "default"}`;
+  // Style du PDF : enregistré avec le livre (style_settings), partagé avec
+  // l'aperçu des pages de début dans l'éditeur et avec l'assistant MCP.
   const [pdfStyle, setPdfStyle] = useState<ExportStyle>({});
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
@@ -63,27 +66,40 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
 
   useEffect(() => {
     if (!isOpen) return;
-    try {
-      const saved = localStorage.getItem(styleKey);
-      setPdfStyle(saved ? JSON.parse(saved) : {});
-    } catch {
-      setPdfStyle({});
+    if (project?.style_settings !== undefined) {
+      setPdfStyle(sanitizeExportStyle(project.style_settings));
+      return;
     }
-  }, [isOpen, styleKey]);
+    if (!project?.id) return;
+    let cancelled = false;
+    fetch(`/api/projects/${project.id}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.project) setPdfStyle(sanitizeExportStyle(data.project.style_settings));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, project?.id]);
 
   const updateStyle = (patch: Partial<ExportStyle>) => {
-    setPdfStyle((prev) => {
-      const next = { ...prev, ...patch };
-      try { localStorage.setItem(styleKey, JSON.stringify(next)); } catch {}
-      return next;
-    });
+    setPdfStyle((prev) => ({ ...prev, ...patch }));
+    if (onStyleChange) {
+      onStyleChange(patch);
+    } else if (project?.id) {
+      fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ style_settings: patch }),
+      }).catch(() => {});
+    }
   };
 
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview.url); }, [preview]);
 
   if (!isOpen) return null;
 
-  const effectiveStyle: ExportStyle = { ...pdfStyle, includeToc: pdfStyle.includeToc ?? hasSummaryChapter };
+  const effectiveStyle: ExportStyle = pdfStyle;
   const pageFormat: PageFormatKey = pdfStyle.pageFormat || "a4";
 
   const bookTitle = project?.title || "Mon Livre Iris";
@@ -495,15 +511,11 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
                     <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1">Fleurons, filets, étiquettes « Chapitre » et sommaire.</p>
                   </div>
 
-                  <label className="flex items-center gap-2 text-xs font-bold text-neutral-700 dark:text-neutral-300 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={!!effectiveStyle.includeToc}
-                      onChange={(e) => updateStyle({ includeToc: e.target.checked })}
-                      className="accent-orange-500 w-4 h-4"
-                    />
-                    Ajouter un sommaire paginé (chapitres et intertitres)
-                  </label>
+                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                    {effectiveStyle.includeToc === false
+                      ? "Sans sommaire. Vous pouvez l'activer dans l'éditeur, au-dessus du premier chapitre (pages de début)."
+                      : "Le sommaire paginé est inclus, comme dans les pages de début visibles dans l'éditeur."}
+                  </p>
 
                   <button
                     type="button"

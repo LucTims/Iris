@@ -25,17 +25,22 @@ const exportStyleSchema = {
   body_font: z.string().optional().describe(`Police du texte. Au choix : ${FONT_CHOICES}. Par défaut : choisie selon le genre du livre.`),
   heading_font: z.string().optional().describe("Police des titres (même liste que body_font)."),
   accent_color: z.string().optional().describe("Couleur d'accent au format #rrggbb (fleurons, filets, étiquettes « Chapitre », sommaire). Par défaut #b08d57 (or antique)."),
-  include_toc: z.boolean().optional().describe("Ajouter un sommaire paginé (chapitres + intertitres ##) en tête du livre. Par défaut : oui."),
+  include_toc: z.boolean().optional().describe("Ajouter un sommaire paginé (chapitres + intertitres ##) en tête du livre. Par défaut : le réglage enregistré avec le livre (oui si rien n'est enregistré)."),
 };
 
-function styleFromArgs(args: { page_format?: string; body_font?: string; heading_font?: string; accent_color?: string; include_toc?: boolean }): { style: ExportStyle; ignored: string[] } {
-  const style = sanitizeExportStyle({
+/** Style d'export : réglages enregistrés avec le livre, surchargés par les arguments de l'outil. */
+function styleFromArgs(
+  args: { page_format?: string; body_font?: string; heading_font?: string; accent_color?: string; include_toc?: boolean },
+  saved: unknown
+): { style: ExportStyle; ignored: string[] } {
+  const requested = sanitizeExportStyle({
     pageFormat: args.page_format,
     bodyFont: args.body_font,
     headingFont: args.heading_font,
     accentColor: args.accent_color,
-    includeToc: args.include_toc ?? true,
+    includeToc: args.include_toc,
   });
+  const style: ExportStyle = { ...sanitizeExportStyle(saved), ...requested };
   const ignored: string[] = [];
   if (args.page_format && !style.pageFormat) ignored.push(`format de page « ${args.page_format} »`);
   if (args.body_font && !style.bodyFont) ignored.push(`police « ${args.body_font} »`);
@@ -49,7 +54,7 @@ function describeLayout(layout: BookLayoutSummary): string {
     const span = c.startPage === null ? "page inconnue" : c.endPage && c.endPage > c.startPage ? `pages ${c.startPage}–${c.endPage}` : `page ${c.startPage}`;
     const pages = c.startPage !== null && c.endPage !== null ? c.endPage - c.startPage + 1 : null;
     const warn = pages === 1 ? " ⚠ chapitre très court (1 page)" : "";
-    return `- ${c.title} : ${span}${c.sections ? `, ${c.sections} intertitre(s)` : ""}${warn}`;
+    return `- ${c.title} : ${span}${c.sections.length ? `, ${c.sections.length} intertitre(s)` : ""}${warn}`;
   });
   return [
     `${layout.pageCount} pages au format ${layout.pageFormat}${layout.hasToc ? ", avec sommaire paginé" : ", sans sommaire"}.`,
@@ -184,10 +189,11 @@ export function buildMcpServer(userId: string): McpServer {
       tone: z.string().optional().describe("Ton"),
       audience: z.string().optional().describe("Public visé"),
       instructions: z.string().optional().describe("Consignes d'écriture permanentes pour Iris"),
+      include_toc: z.boolean().optional().describe("Le livre comporte-t-il un sommaire paginé (visible dans l'éditeur et à l'export) ?"),
     },
-    async ({ book_id, ...fields }) => {
+    async ({ book_id, include_toc, ...fields }) => {
       const limits: Record<string, number> = { title: 300, subtitle: 300, author: 200, synopsis: 8000, category: 120, tone: 300, audience: 300, instructions: 8000 };
-      const updates: Record<string, string | null> = {};
+      const updates: Record<string, unknown> = {};
       for (const [key, raw] of Object.entries(fields)) {
         if (raw === undefined) continue;
         const value = String(raw).trim();
@@ -196,8 +202,18 @@ export function buildMcpServer(userId: string): McpServer {
         }
         updates[key] = value ? value.slice(0, limits[key] ?? 300) : null;
       }
+      if (include_toc !== undefined) {
+        const { data: current } = await supabase
+          .from("projects")
+          .select("style_settings")
+          .eq("id", book_id)
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (!current) return { content: [{ type: "text", text: "Projet introuvable." }], isError: true };
+        updates.style_settings = sanitizeExportStyle({ ...(current.style_settings || {}), includeToc: include_toc });
+      }
       if (Object.keys(updates).length === 0) {
-        return { content: [{ type: "text", text: "Aucun champ à modifier : précisez au moins un champ (title, subtitle, author, synopsis…)." }], isError: true };
+        return { content: [{ type: "text", text: "Aucun champ à modifier : précisez au moins un champ (title, subtitle, author, synopsis, include_toc…)." }], isError: true };
       }
 
       const { data, error } = await supabase
@@ -205,7 +221,7 @@ export function buildMcpServer(userId: string): McpServer {
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", book_id)
         .eq("user_id", userId)
-        .select("id, title, subtitle, author, category, synopsis, tone, audience")
+        .select("id, title, subtitle, author, category, synopsis, tone, audience, style_settings")
         .maybeSingle();
 
       if (error) {
@@ -430,11 +446,11 @@ export function buildMcpServer(userId: string): McpServer {
   type ExportRow = { number: number; title: string; content: string | null; word_count: number | null };
   type LoadedBook =
     | { error: string }
-    | { project: { id: string; title: string; subtitle: string | null; author: string | null; category: string | null; cover_url: string | null; work_type: string | null }; written: ExportRow[] };
+    | { project: { id: string; title: string; subtitle: string | null; author: string | null; category: string | null; cover_url: string | null; work_type: string | null; style_settings: unknown }; written: ExportRow[] };
   async function loadBookForExport(bookId: string): Promise<LoadedBook> {
     const { data: project } = await supabase
       .from("projects")
-      .select("id, title, subtitle, author, category, cover_url, work_type")
+      .select("id, title, subtitle, author, category, cover_url, work_type, style_settings")
       .eq("id", bookId)
       .eq("user_id", userId)
       .maybeSingle();
@@ -465,7 +481,7 @@ export function buildMcpServer(userId: string): McpServer {
       if (written.length === 0) {
         return { content: [{ type: "text", text: "Aucun chapitre rédigé : rien à mettre en page." }] };
       }
-      const { style, ignored } = styleFromArgs(styleArgs);
+      const { style, ignored } = styleFromArgs(styleArgs, project.style_settings);
       try {
         const { layout } = await renderBookPdfWithLayout({
           title: project.title,
@@ -511,7 +527,7 @@ export function buildMcpServer(userId: string): McpServer {
       }
 
       const exportFormat = format === "print" ? "print" : "digital";
-      const { style, ignored } = styleFromArgs(styleArgs);
+      const { style, ignored } = styleFromArgs(styleArgs, project.style_settings);
       try {
         // Rendu direct, sans passer par /api/export/pdf : cette route exige
         // une session navigateur, que l'appel MCP n'a pas (401 systématique).

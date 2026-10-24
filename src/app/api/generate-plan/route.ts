@@ -300,6 +300,27 @@ ${factualityRules(searchContext)}`;
       { projectId, outputText: generated.text, maxCoins: PLAN_MAX_COINS }
     );
 
+    // Le choix « avec / sans sommaire » de la création devient un réglage du
+    // livre : l'éditeur (pages de début), l'export et le MCP le respectent.
+    if (projectId && !storybookPrompt) {
+      try {
+        const { data: proj } = await supabase
+          .from("projects")
+          .select("style_settings")
+          .eq("id", projectId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        const current = (proj?.style_settings || {}) as Record<string, unknown>;
+        if (proj && typeof current.includeToc !== "boolean") {
+          await supabase
+            .from("projects")
+            .update({ style_settings: { ...current, includeToc: !!includeToc } })
+            .eq("id", projectId)
+            .eq("user_id", user.id);
+        }
+      } catch { /* best-effort */ }
+    }
+
     // Sommaire au format d'un livre publié : étiquettes « Chapitre N » posées
     // une fois pour toutes (jamais par le modèle), intertitres en retrait.
     const outputText =

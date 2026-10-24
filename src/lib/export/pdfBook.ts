@@ -3,12 +3,14 @@ import path from "path";
 import {
   htmlToPdfmakeContent,
   extractLeadingHeading,
-  isSummaryChapter,
 } from "@/lib/export/htmlToPdfmake";
 import { bookFontPairing, detectGenre } from "@/lib/ai/book-style";
 import { resolveWorkType, workTypeLayout } from "@/lib/book/work-type";
 import { PDF_FONT_KEYS } from "@/lib/export/fontRegistry";
 import { pageFormatDef, type ExportStyle, type PageFormatKey } from "@/lib/export/exportStyle";
+import { copyrightNotice, printableChapters, resolveIncludeToc, splitChapterHeading, tocHeading } from "@/lib/export/bookStructure";
+
+export { splitChapterHeading };
 
 /**
  * Moteur d'export PDF (pdfmake), commun à la route /api/export/pdf (export
@@ -126,24 +128,6 @@ async function inlineCover(url: string | undefined | null): Promise<string | nul
   }
 }
 
-/** Étiquette de chapitre détachée du titre : « Chapitre 3 : Titre » → { label, title }. */
-export function splitChapterHeading(raw: string): { label: string | null; title: string } {
-  const text = (raw || "").replace(/\s+/g, " ").trim();
-  const m = text.match(
-    /^(chapitre|chapter|étape|etape|partie|part|module|leçon|lecon|jour|day)\s+(\d{1,3}|[ivxlcdm]{1,7})\s*[:.–—-]\s*(.+)$/i
-  );
-  if (!m) {
-    // Liminaires et fins d'ouvrage : « Introduction : Le grand cirque du monde ».
-    const lim = text.match(
-      /^(introduction|conclusion|prologue|épilogue|epilogue|préface|preface|avant-propos|postface|post-scriptum)\s*[:.–—-]\s*(.+)$/i
-    );
-    if (lim) return { label: lim[1].charAt(0).toUpperCase() + lim[1].slice(1).toLowerCase(), title: lim[2].trim() };
-    return { label: null, title: text };
-  }
-  const noun = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
-  return { label: `${noun} ${m[2].toUpperCase()}`, title: m[3].trim() };
-}
-
 function plainTextOf(node: any): string {
   if (!node) return "";
   if (typeof node === "string") return node;
@@ -165,7 +149,12 @@ export interface BookLayoutSummary {
   hasToc: boolean;
   /** Première page numérotée (après couverture, titre, mentions, sommaire). */
   firstBodyPage: number | null;
-  chapters: { title: string; startPage: number | null; endPage: number | null; sections: number }[];
+  chapters: {
+    title: string;
+    startPage: number | null;
+    endPage: number | null;
+    sections: { title: string; page: number | null }[];
+  }[];
 }
 
 interface BuildOptions {
@@ -184,7 +173,7 @@ interface BuildOptions {
 
 interface BuiltDoc {
   docDefinition: any;
-  chapterNodes: { title: string; node: any; sections: number }[];
+  chapterNodes: { title: string; node: any; sections: { title: string; node: any }[] }[];
   hasToc: boolean;
   pageFormat: PageFormatKey;
   firstBodyPage: number;
@@ -239,27 +228,20 @@ function buildDocDefinition(opts: BuildOptions): BuiltDoc {
   if (layout.copyrightPage) {
     content.push({ text: title || "Sans titre", style: "copyrightTitle", margin: [0, Math.round(pageH * 0.45), 0, 0] });
     content.push({
-      text: `© ${year}${author ? ` ${author}` : ""}. Tous droits réservés.\n\nAucune partie de cet ouvrage ne peut être reproduite ou transmise sous quelque forme que ce soit sans l'autorisation écrite de l'auteur.`,
+      text: copyrightNotice(author, year),
       style: "copyright",
       margin: [0, 12, 0, 0],
       pageBreak: "after",
     });
   }
 
-  const summaryChapter = chapters.find((ch) => isSummaryChapter(ch.title, ch.content));
 
-  // Corps du livre : on écarte le chapitre-sommaire (remplacé par un vrai
-  // sommaire paginé) et les chapitres « fantômes » sans contenu réel.
-  let realChapters = chapters.filter((ch) => {
-    if (workType !== "storybook" && isSummaryChapter(ch.title, ch.content)) return false;
-    const { rest } = extractLeadingHeading(ch.content || "");
-    const bodyText = (rest || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-    return bodyText.length >= 20;
-  });
-  if (realChapters.length === 0 && chapters.length > 0) realChapters = chapters;
+  // Corps du livre : sans le chapitre-sommaire (plan de travail remplacé par
+  // le sommaire paginé) ni les chapitres encore vides.
+  const realChapters = printableChapters(chapters, workType);
 
-  // Sommaire : choix explicite de l'auteur, sinon présent si le projet en a un.
-  const hasToc = workType !== "storybook" && realChapters.length > 0 && (style.includeToc ?? !!summaryChapter);
+  // Sommaire : choix de l'auteur (enregistré avec le livre), oui par défaut.
+  const hasToc = realChapters.length > 0 && resolveIncludeToc(style, workType);
 
   // Chapitres composés d'abord : le sommaire a besoin de leurs intertitres.
   const tocEntries: TocEntry[] = [];
@@ -298,23 +280,25 @@ function buildDocDefinition(opts: BuildOptions): BuiltDoc {
 
     const nodes = htmlToPdfmakeContent(rest, { onePageEach: workType === "storybook" });
     const sections: TocEntry["sections"] = [];
+    const sectionNodes: { title: string; node: any }[] = [];
     nodes.forEach((n: any, k: number) => {
       if (n && n.style === "h2") {
         const t = plainTextOf(n.text).replace(/\s+/g, " ").trim();
         if (!t) return;
         n.id = `${id}-s${k}`;
         sections.push({ id: n.id, title: t });
+        sectionNodes.push({ title: t, node: n });
       }
     });
     body.push(...nodes);
     tocEntries.push({ id, label, title: shortTitle, sections });
-    chapterNodes.push({ title: effectiveTitle, node: titleNode, sections: sections.length });
+    chapterNodes.push({ title: effectiveTitle, node: titleNode, sections: sectionNodes });
   });
 
   if (hasToc) {
     // Sommaire de livre édité : étiquette « CHAPITRE N » en petites capitales,
     // titre en gras, intertitres en retrait, numéros de page alignés à droite.
-    const tocTitle = summaryChapter?.title && /table des mati/i.test(summaryChapter.title) ? "Table des matières" : "Sommaire";
+    const tocTitle = tocHeading(chapters);
     content.push({ text: tocTitle, style: "tocTitle", margin: [0, 30, 0, 26] });
     const maxSections = tocEntries.length > 14 ? 0 : 8;
     for (const e of tocEntries) {
@@ -450,7 +434,7 @@ function summarize(built: BuiltDoc, pdfDoc: any): BookLayoutSummary {
         title: c.title,
         startPage: start,
         endPage: start === null ? null : next ? Math.max(start, next - 1) : pageCount,
-        sections: c.sections,
+        sections: c.sections.map((sec) => ({ title: sec.title, page: firstPageOf(sec.node) })),
       };
     }),
   };
