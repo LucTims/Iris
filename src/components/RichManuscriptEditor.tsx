@@ -1094,6 +1094,43 @@ const RichManuscriptEditor = forwardRef<RichManuscriptEditorHandle, RichManuscri
               border: 2px dashed #F4C5BC;
               box-shadow: none;
             }
+            /* …mais composé comme la page de sommaire d'un livre publié :
+               titres de chapitre en gras, intertitres en retrait, sans puces. */
+            .iris-outline-mode .tiptap h1 {
+              text-align: center;
+              letter-spacing: 0.02em;
+              margin-bottom: 1.5em;
+            }
+            .iris-outline-mode .tiptap :is(ul, ol):not(li *) {
+              list-style: none;
+              padding-left: 0;
+            }
+            .iris-outline-mode .tiptap :is(ul, ol):not(li *) > li {
+              margin: 0 0 1.1em;
+            }
+            .iris-outline-mode .tiptap :is(ul, ol):not(li *) > li > p {
+              text-align: left;
+              margin: 0;
+            }
+            .iris-outline-mode .tiptap :is(ul, ol):not(li *) > li > p:first-child strong {
+              font-family: var(--book-display-font, 'Playfair Display'), Georgia, serif;
+              font-size: 1.08em;
+            }
+            .iris-outline-mode .tiptap :is(ul, ol):not(li *) > li > p em {
+              color: #6b7280;
+              font-size: 0.92em;
+            }
+            .iris-outline-mode .tiptap li ul {
+              list-style: none;
+              padding-left: 1.6em;
+              margin: 0.2em 0 0;
+            }
+            .iris-outline-mode .tiptap li ul p {
+              text-align: left;
+              margin: 0;
+              color: #4b5563;
+              line-height: 1.6;
+            }
 
             .tiptap a {
               color: #2563eb;

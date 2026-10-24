@@ -11,10 +11,12 @@ import {
   workTypeOutlineRules,
   isImageDrivenWorkType,
   WORK_TYPE_META,
+  chapterNounFor,
 } from "@/lib/book/work-type";
 import { visionInstruction } from "@/lib/book/book-blueprint";
 import { buildStorybookPlanPrompt, isStorybookBlueprint } from "@/lib/ai/storybook-prompts";
 import { factualityRules } from "@/lib/ai/factuality";
+import { formatSommaireHtml } from "@/lib/book/sommaire";
 
 export const maxDuration = 60;
 
@@ -163,7 +165,9 @@ export async function POST(req: Request) {
 Consignes :
 1. Choisis le libellé le plus adapté : écris **Table des matières** pour un ouvrage formel, académique, technique ou professionnel, sinon **Sommaire**. C'est le titre <h1> tout en haut.
 2. Liste les grands chapitres sous forme de liste à puces (<ul><li>…</li></ul>). Reste CONCIS sur le nombre de chapitres (ni trop peu, ni surdécoupé).
-3. Pour CHAQUE chapitre, mets le titre du chapitre dans une balise <strong>, suivi d'un tiret «— » puis d'un **aperçu de 1 à 2 phrases** décrivant ce que le chapitre couvrira. Exemple : <li><strong>Chapitre 1 : Le titre</strong> — Aperçu en une ou deux phrases de ce que contiendra ce chapitre.</li>
+3. Le sommaire doit ressembler à celui d'un livre publié. ${genre === "fiction"
+  ? `Pour CHAQUE chapitre : le titre dans une balise <strong>, puis sur la ligne suivante, en italique, une phrase qui résume ce qui s'y passe (elle guidera la rédaction). Exemple : <li><p><strong>La traversée</strong></p><p><em>Awa quitte son village et découvre que la route du nord est fermée.</em></p></li>`
+  : `Pour CHAQUE chapitre : le titre dans une balise <strong>, puis une sous-liste de 3 à 6 INTERTITRES courts (les grandes sections du chapitre, formulés comme de vrais intertitres, 2 à 8 mots, sans phrase descriptive). Exemple : <li><p><strong>Le pouvoir de l'habitude</strong></p><ul><li><p>La grande question</p></li><li><p>Tout s'apprend</p></li><li><p>Vous avez le contrôle</p></li></ul></li>`}
 4. N'écris AUCUN contenu de chapitre, aucun paragraphe de corps de texte, aucune balise <hr data-page-break>. Uniquement le titre <h1> puis la liste.
 5. NE NUMÉROTE PAS toi-même les entrées « Chapitre 1 », « Chapitre 2 »… : écris uniquement le TITRE de chaque partie. La numérotation est appliquée automatiquement ensuite, et un double préfixe (« Chapitre 5 : Chapitre 3 : … ») est le défaut le plus visible d'un livre mal fabriqué. Les seules exceptions sont « Introduction » et « Conclusion », qui gardent leur nom.
 
@@ -296,7 +300,14 @@ ${factualityRules(searchContext)}`;
       { projectId, outputText: generated.text, maxCoins: PLAN_MAX_COINS }
     );
 
-    return new Response(generated.text, {
+    // Sommaire au format d'un livre publié : étiquettes « Chapitre N » posées
+    // une fois pour toutes (jamais par le modèle), intertitres en retrait.
+    const outputText =
+      includeToc && !storybookPrompt
+        ? formatSommaireHtml(generated.text, chapterNounFor(workType, genre))
+        : generated.text;
+
+    return new Response(outputText, {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
     });

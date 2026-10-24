@@ -104,6 +104,67 @@ function renderInline(text: string, escape: boolean): string {
 type HeadingLevelOf = (hashes: number) => number;
 
 /**
+ * Encadrés en Markdown, syntaxe « admonition » de GitHub :
+ *   > [!CONSEIL] Titre facultatif
+ *   > Texte de l'encadré
+ * Les mêmes blocs que l'éditeur et les exports (PDF, DOCX, EPUB) savent rendre.
+ */
+const ADMONITIONS: Record<string, { kind: "callout"; type: "info" | "warning" | "tip" | "example" } | { kind: "key-figure" } | { kind: "pull-quote" }> = {
+  info: { kind: "callout", type: "info" },
+  note: { kind: "callout", type: "info" },
+  important: { kind: "callout", type: "warning" },
+  warning: { kind: "callout", type: "warning" },
+  attention: { kind: "callout", type: "warning" },
+  caution: { kind: "callout", type: "warning" },
+  danger: { kind: "callout", type: "warning" },
+  tip: { kind: "callout", type: "tip" },
+  conseil: { kind: "callout", type: "tip" },
+  astuce: { kind: "callout", type: "tip" },
+  example: { kind: "callout", type: "example" },
+  exemple: { kind: "callout", type: "example" },
+  chiffre: { kind: "key-figure" },
+  "chiffre-cle": { kind: "key-figure" },
+  "chiffre-clé": { kind: "key-figure" },
+  stat: { kind: "key-figure" },
+  key: { kind: "key-figure" },
+  citation: { kind: "pull-quote" },
+  quote: { kind: "pull-quote" },
+};
+
+function admonitionToHtml(lines: string[]): string | null {
+  const head = lines[0]?.match(/^\[!([\p{L}-]+)\]\s*(.*)$/u);
+  if (!head) return null;
+  const def = ADMONITIONS[head[1].toLowerCase()];
+  if (!def) return null;
+  const title = head[2].trim();
+  const body = lines.slice(1).filter((l) => l.trim());
+  if (def.kind === "key-figure" || def.kind === "pull-quote") {
+    // Nœuds « en ligne » dans l'éditeur : un seul texte, sans paragraphe.
+    const text = [title, ...body].filter(Boolean).join(" ");
+    return text ? `<div class="${def.kind}">${text}</div>` : null;
+  }
+  const paragraphs = [title ? `<p><strong>${title}</strong></p>` : "", ...body.map((b) => `<p>${b}</p>`)].join("");
+  return `<div class="callout callout-${def.type}" data-callout-type="${def.type}">${paragraphs || "<p></p>"}</div>`;
+}
+
+/** Tableau Markdown (GFM) → <table>. La ligne de tirets désigne l'en-tête. */
+function tableToHtml(rows: string[], inline: (s: string) => string): string {
+  const cells = (row: string) =>
+    row.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map((c) => c.trim());
+  const isSeparator = (row: string) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(row);
+  const hasHeader = rows.length > 1 && isSeparator(rows[1]);
+  const body = rows.filter((r, i) => !(hasHeader && i === 1) && !isSeparator(r));
+  const width = Math.max(...body.map((r) => cells(r).length));
+  const html = body.map((r, i) => {
+    const tag = hasHeader && i === 0 ? "th" : "td";
+    const row = cells(r);
+    while (row.length < width) row.push("");
+    return `<tr>${row.map((c) => `<${tag}><p>${inline(c)}</p></${tag}>`).join("")}</tr>`;
+  });
+  return `<table><tbody>${html.join("")}</tbody></table>`;
+}
+
+/**
  * Texte brut / Markdown → blocs HTML. Comme l'éditeur quand on y colle du
  * texte, chaque ligne non vide devient un paragraphe : un LLM sépare ses
  * paragraphes aussi bien par une ligne vide que par un simple retour.
@@ -112,6 +173,7 @@ function textToBlocks(text: string, headingLevelOf: HeadingLevelOf, escape: bool
   const out: string[] = [];
   let list: { tag: "ul" | "ol"; items: string[] } | null = null;
   let quote: string[] = [];
+  let table: string[] = [];
   const inline = (s: string) => renderInline(s.trim(), escape);
 
   const flushList = () => {
@@ -119,12 +181,20 @@ function textToBlocks(text: string, headingLevelOf: HeadingLevelOf, escape: bool
     list = null;
   };
   const flushQuote = () => {
-    if (quote.length) out.push(`<blockquote>${quote.map((q) => `<p>${q}</p>`).join("")}</blockquote>`);
+    if (quote.length) {
+      out.push(admonitionToHtml(quote) ?? `<blockquote>${quote.map((q) => `<p>${q}</p>`).join("")}</blockquote>`);
+    }
     quote = [];
+  };
+  const flushTable = () => {
+    if (table.length >= 2) out.push(tableToHtml(table, inline));
+    else if (table.length === 1) out.push(`<p>${inline(table[0])}</p>`);
+    table = [];
   };
   const flushAll = () => {
     flushList();
     flushQuote();
+    flushTable();
   };
 
   for (const raw of text.split("\n")) {
@@ -133,6 +203,14 @@ function textToBlocks(text: string, headingLevelOf: HeadingLevelOf, escape: bool
       flushAll();
       continue;
     }
+
+    if (/^\|.*\|$/.test(line)) {
+      flushList();
+      flushQuote();
+      table.push(line);
+      continue;
+    }
+    flushTable();
 
     // Séparateur de scène (---, ***, * * *, ⁂) : jamais un saut de page.
     if (/^(?:[-*_]\s*){3,}$/.test(line) || /^[⁂❦✻]+$/.test(line)) {

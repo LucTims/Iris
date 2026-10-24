@@ -763,7 +763,8 @@ export async function generateDocx(
   title: string,
   subtitle: string | undefined,
   chapters: ChapterData[],
-  coverUrl?: string
+  coverUrl?: string,
+  author?: string
 ): Promise<Blob> {
   const sections: any[] = [];
 
@@ -849,6 +850,14 @@ export async function generateDocx(
       spacing: { after: 600 },
     })
   );
+  if (author) {
+    titlePageChildren.push(
+      new Paragraph({
+        children: [new TextRun({ text: author, font: "Georgia", size: 28, color: "333333" })],
+        alignment: AlignmentType.CENTER,
+      })
+    );
+  }
 
   sections.push({
     properties: {},
@@ -913,6 +922,7 @@ export async function generateDocx(
   const doc = new Document({
     title: title,
     description: title,
+    ...(author ? { creator: author } : {}),
     sections,
   });
 

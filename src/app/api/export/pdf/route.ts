@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { renderBookPdf, type ChapterData } from "@/lib/export/pdfBook";
+import { renderBookPdfWithLayout, type ChapterData } from "@/lib/export/pdfBook";
+import { sanitizeExportStyle } from "@/lib/export/exportStyle";
 import { checkRateLimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
@@ -23,26 +24,30 @@ export async function POST(req: Request) {
       );
     }
 
-    const { title, subtitle, category, chapters, coverUrl, format, workType } = await req.json();
+    const { title, subtitle, author, category, chapters, coverUrl, format, workType, style, preview } = await req.json();
     if (!Array.isArray(chapters) || chapters.length === 0) {
       return NextResponse.json({ error: "Aucun chapitre à exporter." }, { status: 400 });
     }
 
-    const buffer = await renderBookPdf({
+    const { buffer, layout } = await renderBookPdfWithLayout({
       title,
       subtitle,
+      author: typeof author === "string" ? author : undefined,
       category,
       chapters: chapters.map((ch: ChapterData) => ({ title: ch.title, number: ch.number, content: ch.content || "" })),
       coverUrl,
       format: format === "print" ? "print" : "digital",
       workType,
+      style: sanitizeExportStyle(style),
     });
 
     return new Response(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": 'attachment; filename="livre.pdf"',
+        // Aperçu : affiché dans la fenêtre d'export avant le téléchargement.
+        "Content-Disposition": preview ? 'inline; filename="apercu.pdf"' : 'attachment; filename="livre.pdf"',
+        "X-Iris-Page-Count": String(layout.pageCount),
         "Cache-Control": "no-store",
       },
     });
