@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { bookFontPairing, detectGenre } from "@/lib/ai/book-style";
 import { resolveWorkType, workTypeLayout } from "@/lib/book/work-type";
 import { cssFamilyForPdfKey } from "@/lib/export/fontRegistry";
-import { pageFormatDef, sanitizeExportStyle, type ExportStyle } from "@/lib/export/exportStyle";
+import { pageFormatDef, sanitizeExportStyle, tocKey, type ExportStyle, type TocOverride } from "@/lib/export/exportStyle";
 import { bookTocEntries, copyrightNotice, resolveIncludeToc, tocHeading } from "@/lib/export/bookStructure";
 
 interface FrontMatterChapter {
@@ -24,14 +24,14 @@ interface BookFrontMatterProps {
   styleSettings?: unknown;
   chapters: FrontMatterChapter[];
   onEditInfo: () => void;
-  onToggleToc: (include: boolean) => void;
+  /** Enregistre les corrections du sommaire (null = sommaire automatique). */
+  onSaveTocOverrides: (overrides: Record<string, TocOverride> | null) => void;
 }
 
 interface Pagination {
   chapters: { startPage: number | null; sections: { page: number | null }[] }[];
 }
 
-const COLLAPSE_KEY = "iris-front-matter-collapsed";
 
 /**
  * Pages de début du livre (page de titre, mentions légales, sommaire), rendues
@@ -49,12 +49,12 @@ export default function BookFrontMatter({
   styleSettings,
   chapters,
   onEditInfo,
-  onToggleToc,
+  onSaveTocOverrides,
 }: BookFrontMatterProps) {
   const style: ExportStyle = useMemo(() => sanitizeExportStyle(styleSettings), [styleSettings]);
   const workType = resolveWorkType({ explicit: workTypeInput, category, title });
   const layout = workTypeLayout(workType, detectGenre(category));
-  const includeToc = resolveIncludeToc(style, workType);
+  const includeToc = resolveIncludeToc(style, workType, chapters);
   const page = pageFormatDef(style.pageFormat || "a4");
   const pairing = bookFontPairing(category);
   const bodyFamily = cssFamilyForPdfKey(style.bodyFont || pairing.body);
@@ -64,18 +64,31 @@ export default function BookFrontMatter({
   const entries = useMemo(() => bookTocEntries(chapters, workType), [chapters, workType]);
   const heading = useMemo(() => tocHeading(chapters), [chapters]);
 
-  const [collapsed, setCollapsed] = useState(false);
+  // Corrections du sommaire saisies par l'auteur, enregistrées à la sortie du champ.
+  const [overrides, setOverrides] = useState<Record<string, TocOverride>>(style.tocOverrides || {});
+  const savedOverrides = JSON.stringify(style.tocOverrides || {});
   useEffect(() => {
-    try {
-      setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
-    } catch {}
-  }, []);
-  const toggleCollapsed = () => {
-    setCollapsed((c) => {
-      try { localStorage.setItem(COLLAPSE_KEY, c ? "0" : "1"); } catch {}
-      return !c;
+    setOverrides(JSON.parse(savedOverrides));
+  }, [savedOverrides]);
+  const editOverride = (key: string, patch: TocOverride) => {
+    setOverrides((prev) => {
+      const merged: TocOverride = { ...(prev[key] || {}), ...patch };
+      (Object.keys(merged) as (keyof TocOverride)[]).forEach((k) => merged[k] === undefined && delete merged[k]);
+      const next = { ...prev };
+      if (Object.keys(merged).length) next[key] = merged;
+      else delete next[key];
+      return next;
     });
   };
+  const commitOverrides = () => {
+    if (JSON.stringify(overrides) === savedOverrides) return;
+    onSaveTocOverrides(Object.keys(overrides).length ? overrides : null);
+  };
+  const resetOverrides = () => {
+    setOverrides({});
+    onSaveTocOverrides(null);
+  };
+  const hasOverrides = Object.keys(overrides).length > 0;
 
   // Numéros de page : calculés par le moteur d'export (mise en page réelle).
   const [pagination, setPagination] = useState<Pagination | null>(null);
@@ -122,10 +135,10 @@ export default function BookFrontMatter({
   // Premier calcul à l'ouverture ; ensuite à la demande (chaque calcul compose le livre entier).
   const firstRun = useRef(false);
   useEffect(() => {
-    if (firstRun.current || collapsed || !includeToc || entries.length === 0) return;
+    if (firstRun.current || !includeToc || entries.length === 0) return;
     firstRun.current = true;
     computePageNumbers();
-  }, [collapsed, includeToc, entries.length, computePageNumbers]);
+  }, [includeToc, entries.length, computePageNumbers]);
 
   const signature = useMemo(
     () => JSON.stringify([entries, style.pageFormat, style.bodyFont, style.headingFont, author, subtitle, !!coverUrl]),
@@ -153,44 +166,32 @@ export default function BookFrontMatter({
     </div>
   );
 
-  const pageNo = (n: number | null | undefined) =>
-    n ? <span className="tabular-nums">{n}</span> : <span className="text-neutral-300">{paginating ? "…" : "–"}</span>;
+  // Champ de sommaire modifiable, à l'apparence du texte imprimé.
+  const field = "bg-transparent border-0 outline-none rounded-sm hover:bg-orange-50 focus:bg-orange-50 focus:ring-1 focus:ring-orange-300 p-0 m-0 w-full";
+  const pageInput = (key: string, computed: number | null | undefined, fontSize: string) => {
+    const forced = overrides[key]?.page;
+    return (
+      <input
+        type="text"
+        inputMode="numeric"
+        aria-label="Numéro de page"
+        title={forced ? "Numéro de page corrigé à la main" : "Numéro de page calculé (cliquez pour corriger)"}
+        value={forced ?? computed ?? ""}
+        placeholder={paginating ? "…" : "–"}
+        onChange={(e) => {
+          const v = e.target.value.replace(/\D/g, "").slice(0, 4);
+          const n = v ? parseInt(v, 10) : undefined;
+          editOverride(key, { page: n && n !== computed ? n : undefined });
+        }}
+        onBlur={commitOverrides}
+        className={`${field} text-right tabular-nums shrink-0 ${forced ? "text-secondary" : ""}`}
+        style={{ width: pt(44), fontSize, fontFamily: "inherit", fontWeight: "inherit", color: forced ? undefined : "inherit" }}
+      />
+    );
+  };
 
   return (
     <div className="w-full flex flex-col gap-4 mb-6">
-      <div className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <span className="material-symbols-outlined text-2xl text-secondary shrink-0">auto_stories</span>
-          <div className="min-w-0">
-            <p className="font-heading font-extrabold text-sm text-neutral-900">Pages de début du livre</p>
-            <p className="text-xs text-neutral-500 leading-snug">
-              Telles qu&apos;elles figureront dans le livre exporté{includeToc ? ", sommaire compris" : ""}. Elles se mettent à jour avec vos chapitres et la fiche du livre.
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <button type="button" onClick={onEditInfo} className="text-xs font-bold px-3 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 flex items-center gap-1">
-            <span className="material-symbols-outlined text-base">menu_book</span>Fiche du livre
-          </button>
-          {workType !== "storybook" && (
-            <label className="text-xs font-bold px-3 py-2 rounded-xl bg-neutral-100 text-neutral-700 flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={includeToc}
-                onChange={(e) => onToggleToc(e.target.checked)}
-                className="accent-orange-500 w-4 h-4"
-              />
-              Sommaire
-            </label>
-          )}
-          <button type="button" onClick={toggleCollapsed} className="text-xs font-bold px-3 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700">
-            {collapsed ? "Afficher" : "Masquer"}
-          </button>
-        </div>
-      </div>
-
-      {!collapsed && (
-        <>
           {sheet(
             <div className="h-full flex flex-col items-center text-center" style={{ paddingTop: pt(page.height * 0.24) }}>
               <p style={{ fontFamily: `'${displayFamily}', Georgia, serif`, fontSize: pt(compact ? 24 : 30), fontWeight: 700, letterSpacing: pt(1), lineHeight: 1.2, textTransform: "uppercase" }}>
@@ -229,28 +230,58 @@ export default function BookFrontMatter({
                 </p>
                 {entries.map((e, i) => {
                   const pg = pagination?.chapters[i];
+                  const key = tocKey(i);
+                  const o = overrides[key] || {};
+                  const label = o.label !== undefined ? o.label : e.label || "";
                   const sections = entries.length > 14 ? [] : e.sections.slice(0, 8);
+                  const titleSize = pt(compact ? 11 : 12);
                   return (
                     <div key={`${e.fullTitle}-${i}`} style={{ marginBottom: pt(12) }}>
-                      {e.label && (
-                        <p style={{ fontFamily: `'${displayFamily}', Georgia, serif`, fontSize: pt(8), fontWeight: 700, letterSpacing: pt(1.6), color: accent, textTransform: "uppercase" }}>
-                          {e.label}
-                        </p>
-                      )}
-                      <div className="flex justify-between gap-4" style={{ fontFamily: `'${displayFamily}', Georgia, serif`, fontSize: pt(compact ? 11 : 12), fontWeight: 700 }}>
-                        <span>{e.title}</span>
-                        {pageNo(pg?.startPage)}
+                      <input
+                        aria-label="Étiquette du chapitre"
+                        value={label}
+                        placeholder={e.label ? "" : "+ étiquette"}
+                        onChange={(ev) => editOverride(key, { label: ev.target.value === (e.label || "") ? undefined : ev.target.value })}
+                        onBlur={commitOverrides}
+                        className={`${field} placeholder:text-neutral-200`}
+                        style={{ fontFamily: `'${displayFamily}', Georgia, serif`, fontSize: pt(8), fontWeight: 700, letterSpacing: pt(1.6), color: accent, textTransform: "uppercase" }}
+                      />
+                      <div className="flex justify-between gap-4" style={{ fontFamily: `'${displayFamily}', Georgia, serif`, fontSize: titleSize, fontWeight: 700 }}>
+                        <input
+                          aria-label="Titre du chapitre"
+                          value={o.title ?? e.title}
+                          onChange={(ev) => editOverride(key, { title: ev.target.value === e.title ? undefined : ev.target.value })}
+                          onBlur={commitOverrides}
+                          className={field}
+                          style={{ fontSize: titleSize, fontFamily: "inherit", fontWeight: "inherit" }}
+                        />
+                        {pageInput(key, pg?.startPage, titleSize)}
                       </div>
-                      {sections.map((s, k) => (
-                        <div key={`${s}-${k}`} className="flex justify-between gap-4" style={{ fontSize: pt(compact ? 9.5 : 10.5), color: "#555", paddingLeft: pt(16), marginTop: pt(2) }}>
-                          <span>{s}</span>
-                          {pageNo(pg?.sections[k]?.page)}
-                        </div>
-                      ))}
+                      {sections.map((s, k) => {
+                        const sk = tocKey(i, k);
+                        const so = overrides[sk] || {};
+                        const sectionSize = pt(compact ? 9.5 : 10.5);
+                        return (
+                          <div key={`${s}-${k}`} className="flex justify-between gap-4" style={{ fontSize: sectionSize, color: "#555", paddingLeft: pt(16), marginTop: pt(2) }}>
+                            <input
+                              aria-label="Intertitre"
+                              value={so.title ?? s}
+                              onChange={(ev) => editOverride(sk, { title: ev.target.value === s ? undefined : ev.target.value })}
+                              onBlur={commitOverrides}
+                              className={field}
+                              style={{ fontSize: sectionSize, fontFamily: "inherit", color: "inherit" }}
+                            />
+                            {pageInput(sk, pg?.sections[k]?.page, sectionSize)}
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
-                <div className="flex justify-center pt-2">
+                <p className="text-center text-[11px] text-neutral-400 pt-1">
+                  Cliquez sur un titre ou un numéro de page pour le corriger. Les corrections sont reprises à l&apos;export.
+                </p>
+                <div className="flex justify-center gap-4 pt-2">
                   <button
                     type="button"
                     onClick={computePageNumbers}
@@ -260,13 +291,17 @@ export default function BookFrontMatter({
                     <span className={`material-symbols-outlined text-sm ${paginating ? "animate-spin" : ""}`}>{paginating ? "progress_activity" : "refresh"}</span>
                     {paginating ? "Calcul des numéros de page…" : paginationStale || !pagination ? "Mettre à jour les numéros de page" : "Numéros de page à jour"}
                   </button>
+                  {hasOverrides && (
+                    <button type="button" onClick={resetOverrides} className="text-[11px] font-bold text-neutral-500 hover:text-secondary flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">restart_alt</span>
+                      Revenir au sommaire automatique
+                    </button>
+                  )}
                 </div>
               </div>,
               "toc",
               { height: "auto" }
             )}
-        </>
-      )}
     </div>
   );
 }

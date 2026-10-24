@@ -4,10 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, LayoutTemplate, Download, ArrowRight, ArrowLeft } from "lucide-react";
 import { saveAs } from "file-saver";
+import { resolveIncludeToc } from "@/lib/export/bookStructure";
 import {
-  ACCENT_COLORS,
-  EXPORT_BODY_FONTS,
-  EXPORT_HEADING_FONTS,
   PAGE_FORMATS,
   pageFormatDef,
   sanitizeExportStyle,
@@ -461,60 +459,10 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <label className="block">
-                      <span className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-1">Police du texte</span>
-                      <select
-                        value={pdfStyle.bodyFont || ""}
-                        onChange={(e) => updateStyle({ bodyFont: e.target.value || undefined })}
-                        className="w-full text-xs rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2"
-                      >
-                        <option value="">Automatique (selon le genre)</option>
-                        {EXPORT_BODY_FONTS.map((f) => (
-                          <option key={f.pdf} value={f.pdf} style={{ fontFamily: f.css }}>{f.label}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="block">
-                      <span className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-1">Police des titres</span>
-                      <select
-                        value={pdfStyle.headingFont || ""}
-                        onChange={(e) => updateStyle({ headingFont: e.target.value || undefined })}
-                        className="w-full text-xs rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2"
-                      >
-                        <option value="">Automatique (selon le genre)</option>
-                        {EXPORT_HEADING_FONTS.map((f) => (
-                          <option key={f.pdf} value={f.pdf} style={{ fontFamily: f.css }}>{f.label}</option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-2">Couleur d&apos;accent</p>
-                    <div className="flex flex-wrap gap-2">
-                      {ACCENT_COLORS.map((c) => {
-                        const active = (pdfStyle.accentColor || "#b08d57") === c.value;
-                        return (
-                          <button
-                            key={c.value}
-                            type="button"
-                            title={c.label}
-                            aria-label={c.label}
-                            onClick={() => updateStyle({ accentColor: c.value })}
-                            className={`w-8 h-8 rounded-full border-2 transition-all ${active ? "border-secondary scale-110" : "border-white dark:border-neutral-800 shadow"}`}
-                            style={{ backgroundColor: c.value }}
-                          />
-                        );
-                      })}
-                    </div>
-                    <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1">Fleurons, filets, étiquettes « Chapitre » et sommaire.</p>
-                  </div>
-
                   <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                    {effectiveStyle.includeToc === false
-                      ? "Sans sommaire. Vous pouvez l'activer dans l'éditeur, au-dessus du premier chapitre (pages de début)."
-                      : "Le sommaire paginé est inclus, comme dans les pages de début visibles dans l'éditeur."}
+                    {resolveIncludeToc(effectiveStyle, project?.work_type, chaptersData)
+                      ? "Le sommaire du livre est inclus, avec vos corrections faites dans l'éditeur."
+                      : "Ce livre n'a pas de sommaire."}
                   </p>
 
                   <button

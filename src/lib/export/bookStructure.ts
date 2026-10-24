@@ -78,10 +78,18 @@ export function bookTocEntries(chapters: BookChapterLike[], workType?: string | 
   });
 }
 
-/** Le livre comporte-t-il un sommaire ? Choix enregistré de l'auteur, sinon oui. */
-export function resolveIncludeToc(style: ExportStyle | null | undefined, workType?: string | null): boolean {
+/**
+ * Le livre comporte-t-il un sommaire ? Oui s'il en a un (chapitre « Sommaire »
+ * créé avec le livre), sauf réglage explicite (création, assistant MCP).
+ */
+export function resolveIncludeToc(
+  style: ExportStyle | null | undefined,
+  workType: string | null | undefined,
+  chapters: BookChapterLike[]
+): boolean {
   if (workType === "storybook") return false;
-  return style?.includeToc ?? true;
+  if (typeof style?.includeToc === "boolean") return style.includeToc;
+  return chapters.some((ch) => isSummaryChapter(ch.title, ch.content));
 }
 
 /** Texte de la page de mentions légales (identique dans l'éditeur et à l'export). */

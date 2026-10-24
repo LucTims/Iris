@@ -25,7 +25,7 @@ const exportStyleSchema = {
   body_font: z.string().optional().describe(`Police du texte. Au choix : ${FONT_CHOICES}. Par défaut : choisie selon le genre du livre.`),
   heading_font: z.string().optional().describe("Police des titres (même liste que body_font)."),
   accent_color: z.string().optional().describe("Couleur d'accent au format #rrggbb (fleurons, filets, étiquettes « Chapitre », sommaire). Par défaut #b08d57 (or antique)."),
-  include_toc: z.boolean().optional().describe("Ajouter un sommaire paginé (chapitres + intertitres ##) en tête du livre. Par défaut : le réglage enregistré avec le livre (oui si rien n'est enregistré)."),
+  include_toc: z.boolean().optional().describe("Ajouter un sommaire paginé (chapitres + intertitres ##) en tête du livre. Par défaut : le réglage du livre — un livre a un sommaire s'il en a été doté (update_book avec include_toc: true, ou sommaire créé dans Iris)."),
 };
 
 /** Style d'export : réglages enregistrés avec le livre, surchargés par les arguments de l'outil. */
@@ -189,7 +189,7 @@ export function buildMcpServer(userId: string): McpServer {
       tone: z.string().optional().describe("Ton"),
       audience: z.string().optional().describe("Public visé"),
       instructions: z.string().optional().describe("Consignes d'écriture permanentes pour Iris"),
-      include_toc: z.boolean().optional().describe("Le livre comporte-t-il un sommaire paginé (visible dans l'éditeur et à l'export) ?"),
+      include_toc: z.boolean().optional().describe("Doter le livre d'un sommaire paginé (true) ou le retirer (false). Il apparaît alors dans l'éditeur (pages de début) et à chaque export."),
     },
     async ({ book_id, include_toc, ...fields }) => {
       const limits: Record<string, number> = { title: 300, subtitle: 300, author: 200, synopsis: 8000, category: 120, tone: 300, audience: 300, instructions: 8000 };
