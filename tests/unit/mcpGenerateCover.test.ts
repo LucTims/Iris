@@ -123,6 +123,24 @@ describe("MCP generate_cover", () => {
     );
   });
 
+  it("crédit Gemini épuisé : la direction artistique passe par un autre fournisseur, pas la consigne brute en français", async () => {
+    generateText.mockReset();
+    generateText
+      .mockRejectedValueOnce(new Error("Your prepayment credits are depleted"))
+      .mockResolvedValueOnce({ text: "Healthy broiler chicks in a clean Cameroonian poultry house, warm morning light.", usage: {} });
+
+    const result = await callTool("generate_cover", {
+      book_id: BOOK,
+      prompt: "Des poussins de poulets de chair dans un poulailler propre au Cameroun",
+    });
+
+    expect(result.isError).toBe(false);
+    expect(generateText).toHaveBeenCalledTimes(2);
+    const imageUrl = calledUrls().find((u) => u.includes("pollinations")) || "";
+    expect(decodeURIComponent(imageUrl)).toContain("Healthy broiler chicks");
+    expect(decodeURIComponent(imageUrl)).not.toContain("Des poussins");
+  });
+
   it("premium : débite le forfait couverture au compte de la clé API", async () => {
     const result = await callTool("generate_cover", { book_id: BOOK, engine: "premium", prompt: "Un chat royal" });
 

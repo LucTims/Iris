@@ -45,7 +45,7 @@ const TOOLS: ToolDoc[] = [
   },
   {
     name: "get_project",
-    summary: "Fiche complète d'un livre : synopsis, ton, public, personnages, consignes.",
+    summary: "Fiche complète d'un livre : sous-titre, auteur, synopsis, ton, public, personnages, consignes.",
     params: "book_id",
     writes: false,
   },
@@ -70,13 +70,19 @@ const TOOLS: ToolDoc[] = [
   {
     name: "create_book",
     summary: "Crée un nouveau projet de livre (forme : livre, guide ou ebook).",
-    params: "title, synopsis, category, tone, audience, work_type",
+    params: "title, subtitle, author, synopsis, category, tone, audience, work_type",
+    writes: true,
+  },
+  {
+    name: "update_book",
+    summary: "Modifie la fiche d'un livre : titre, sous-titre, auteur, résumé, catégorie, ton, public, consignes.",
+    params: "book_id, title, subtitle, author, synopsis, category, tone, audience, instructions, include_toc",
     writes: true,
   },
   {
     name: "write_chapter",
     summary:
-      "Écrit ou remplace le contenu d'un chapitre. Texte brut, Markdown ou HTML : le contenu est mis au format du manuscrit (paragraphes, intertitres, listes), pour l'éditeur comme pour les exports.",
+      "Écrit ou remplace le contenu d'un chapitre. Texte brut, Markdown ou HTML : le contenu est mis au format du manuscrit (paragraphes, intertitres, listes, tableaux « | a | b | », encadrés « > [!CONSEIL] », chiffres clés « > [!CHIFFRE] », citations « > [!CITATION] »), pour l'éditeur comme pour les exports.",
     params: "book_id, chapter_number, title, content",
     writes: true,
     costsCoins: `${MCP_COINS_PER_PAGE} pièces par page ajoutée (≈ ${WORDS_PER_PAGE} mots) ; réécrire sans allonger est gratuit`,
@@ -90,8 +96,14 @@ const TOOLS: ToolDoc[] = [
   },
   {
     name: "export_pdf",
-    summary: "Compose le livre en PDF et renvoie le lien de téléchargement.",
-    params: "book_id, format",
+    summary: "Compose le livre en PDF avec le style choisi (format de page, polices, couleur, sommaire paginé) et renvoie le lien de téléchargement et la carte des pages.",
+    params: "book_id, format, page_format, body_font, heading_font, accent_color, include_toc",
+    writes: false,
+  },
+  {
+    name: "preview_layout",
+    summary: "Aperçu de la mise en page avant export : nombre de pages, pages de chaque chapitre, points à vérifier.",
+    params: "book_id, page_format, body_font, heading_font, accent_color, include_toc",
     writes: false,
   },
 ];

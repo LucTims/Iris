@@ -16,6 +16,8 @@ const RichManuscriptEditor = dynamic(
 );
 const ImportManuscriptModal = dynamic(() => import("@/components/ImportManuscriptModal"), { ssr: false });
 const ExportBookModal = dynamic(() => import("@/components/ExportBookModal"), { ssr: false });
+const BookInfoModal = dynamic(() => import("@/components/BookInfoModal"), { ssr: false });
+const BookFrontMatter = dynamic(() => import("@/components/BookFrontMatter"), { ssr: false });
 const GeoScoreModal = dynamic(() => import("@/components/GeoScoreModal"), { ssr: false });
 
 const ChapterGenerateModal = dynamic(() => import("@/components/ChapterGenerateModal"), { ssr: false });
@@ -55,9 +57,9 @@ async function loadProjectImageUrls(
   return Array.isArray(fallback) ? fallback.filter(isHttpUrl) : [];
 }
 import { splitHtmlIntoChapters } from "@/lib/parser/splitChapters";
-import { SIZE_PRESETS, lengthToSizeKey, estimatePagesCoins, modelLabel, BOOK_MODELS } from "@/lib/book/generationPresets";
+import { SIZE_PRESETS, lengthToSizeKey, modelLabel, BOOK_MODELS } from "@/lib/book/generationPresets";
 import type { BookSizeKey } from "@/lib/book/generationPresets";
-import { WORDS_PER_PAGE, DEFAULT_WRITING_MODEL } from "@/lib/ai/pricing";
+import { bookChargeCeiling, DEFAULT_WRITING_MODEL } from "@/lib/ai/pricing";
 import { mergeChaptersHtml, MERGED_BOOK_TITLE, isOutlineTitle } from "@/lib/book/mergeBook";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import ReactMarkdown from "react-markdown";
@@ -93,6 +95,7 @@ interface Chapter {
 import { useUser } from "@/hooks/useUser";
 import { resolveWorkType, chapterNounFor } from "@/lib/book/work-type";
 import { assignChapterLabels } from "@/lib/book/chapter-heading";
+import { parseSommaire, sommaireBrief } from "@/lib/book/sommaire";
 import { detectGenre } from "@/lib/ai/book-style";
 import { findUnwrittenSections, canResume } from "@/lib/book/unwritten";
 import { bookJobFailureMessage, type BookJobSnapshot } from "@/lib/book/generation-job";
@@ -248,6 +251,7 @@ function RedactionContent() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isImportLoading, setIsImportLoading] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isBookInfoOpen, setIsBookInfoOpen] = useState(false);
   const [isGeoScoreModalOpen, setIsGeoScoreModalOpen] = useState(false);
 
   // Auto-scroll chat to bottom
@@ -1047,50 +1051,10 @@ function RedactionContent() {
   };
 
 
-  // Extrait la liste des chapitres (titre + aperçu) depuis le HTML du sommaire.
-  // On ne garde que les items de PREMIER niveau de la liste (les sous-points
-  // imbriqués sont ignorés). Le titre est dans le <strong>, l'aperçu après.
-  const parseSommaireChapters = (html: string): { title: string; brief: string }[] => {
-    if (!html) return [];
-    const outer = html.match(/<ul[^>]*>([\s\S]*)<\/ul>/i)?.[1] || html;
-    let inner = outer;
-    let prev = "";
-    do {
-      prev = inner;
-      inner = inner.replace(/<ul[^>]*>[\s\S]*?<\/ul>/gi, "");
-    } while (inner !== prev);
-    const clean = (s: string) =>
-      s.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
-
-    const splitTitleBrief = (rawLi: string): { title: string; brief: string } => {
-      const strong = rawLi.match(/<strong[^>]*>([\s\S]*?)<\/strong>/i);
-      if (strong) {
-        const title = clean(strong[1]);
-        const brief = clean(rawLi.replace(strong[0], "")).replace(/^[\s—–:-]+/, "").trim();
-        return { title, brief };
-      }
-      const text = clean(rawLi);
-      const sep = text.split(/\s[—–-]\s/);
-      if (sep.length > 1) return { title: sep[0].trim(), brief: sep.slice(1).join(" — ").trim() };
-      return { title: text, brief: "" };
-    };
-
-    // On EXCLUT toute entrée qui désigne le sommaire lui-même : sans ce filtre,
-    // « Sommaire » devient un chapitre et l'IA rédige un essai SUR les sommaires
-    // au lieu du sujet du livre (bug observé en production).
-    const isTocEntry = (t: string) => /^\s*(sommaire|table des mati)/i.test(t);
-    let items = Array.from(inner.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi))
-      .map((m) => splitTitleBrief(m[1]))
-      .filter((c) => c.title.length > 1 && !isTocEntry(c.title));
-    if (items.length === 0) {
-      items = Array.from(html.matchAll(/<(?:h2|h3)[^>]*>([\s\S]*?)<\/(?:h2|h3)>/gi))
-        .map((m) => ({ title: clean(m[1]), brief: "" }))
-        .filter((c) => c.title.length > 2 && !/sommaire|table des mati/i.test(c.title));
-    }
-    // Dédoublonnage sur le titre en conservant l'ordre
-    const seen = new Set<string>();
-    return items.filter((c) => (seen.has(c.title) ? false : (seen.add(c.title), true))).slice(0, 24);
-  };
+  // Extrait la liste des chapitres depuis le HTML du sommaire : titre, et
+  // consigne de rédaction tirée de l'aperçu et/ou des intertitres prévus.
+  const parseSommaireChapters = (html: string): { title: string; brief: string }[] =>
+    parseSommaire(html).map((e) => ({ title: e.title, brief: sommaireBrief(e) }));
 
   // Forme de l'ouvrage (livre / guide / ebook) : choisie par l'auteur à la
   // création, déduite par heuristique pour les projets antérieurs. Elle pilote
@@ -1253,10 +1217,10 @@ function RedactionContent() {
   }, [currentProjectId]);
   const projectModel: string = projectData?.writing_model || storedModel || DEFAULT_WRITING_MODEL;
   const projectSizeKey: BookSizeKey = lengthToSizeKey(projectData?.length);
-  const bookPagesEstimate = sommaireChapterCount
-    ? Math.max(1, Math.round((sommaireChapterCount * SIZE_PRESETS[projectSizeKey].wordsPerChapter) / WORDS_PER_PAGE))
-    : SIZE_PRESETS[projectSizeKey].pagesEstimate;
-  const bookCostEstimate = estimatePagesCoins(bookPagesEstimate, projectModel);
+  const bookChapterCount = sommaireChapterCount || SIZE_PRESETS[projectSizeKey].chaptersIfNoSommaire;
+  // Montant maximal facturable (devis + 25 % par chapitre) : c'est ce que le
+  // serveur exige avant de lancer la rédaction, donc ce qu'on annonce.
+  const bookCostEstimate = bookChargeCeiling(bookChapterCount, SIZE_PRESETS[projectSizeKey].wordsPerChapter, projectModel);
   const plainLength = (html: string | null | undefined) =>
     (html || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().length;
   const bookHasWrittenBody = chapters.some((c) => !isOutlineTitle(c.title) && plainLength(c.content) > 200);
@@ -1267,18 +1231,31 @@ function RedactionContent() {
   const handleGenerateWholeBook = () => {
     if (isBatchGenerating) return;
     if (!userLoading && walletBalance < bookCostEstimate) {
-      if (confirm(`La rédaction de ce livre coûte environ ${fmtCoins(bookCostEstimate)} pièces et votre solde est de ${fmtCoins(walletBalance)} pièces.\n\nRecharger maintenant ?`)) {
+      if (confirm(`La rédaction de ce livre peut coûter jusqu'à ${fmtCoins(bookCostEstimate)} pièces et votre solde est de ${fmtCoins(walletBalance)} pièces.\n\nRecharger maintenant ?`)) {
         router.push("/billing");
       }
       return;
     }
     if (
       bookHasWrittenBody &&
-      !confirm(`Votre livre contient déjà du texte. Le régénérer remplacera tout le contenu actuel (≈ ${fmtCoins(bookCostEstimate)} pièces). Continuer ?`)
+      !confirm(`Votre livre contient déjà du texte. Le régénérer remplacera tout le contenu actuel (jusqu'à ${fmtCoins(bookCostEstimate)} pièces). Continuer ?`)
     ) {
       return;
     }
     void runWholeBookGeneration({ sizeKey: projectSizeKey, model: projectModel });
+  };
+
+  const rememberBookHasToc = async (pId: string) => {
+    setProjectData((prev: any) => ({ ...(prev || {}), style_settings: { ...(prev?.style_settings || {}), includeToc: true } }));
+    try {
+      await fetch(`/api/projects/${pId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ style_settings: { includeToc: true } }),
+      });
+    } catch {
+      // Sans réglage, un « Livre complet » garde son sommaire par défaut.
+    }
   };
 
   // FIN DE RÉDACTION : le livre s'affiche d'un seul tenant (« Livre complet »),
@@ -1305,6 +1282,9 @@ function RedactionContent() {
         setChapters(persisted);
         setActiveChapterIndex(0);
         setSaveStatus("saved");
+        // Le chapitre « Sommaire » (le plan) quitte le document : on retient
+        // que le livre a un sommaire, affiché dans l'éditeur et à l'export.
+        if (rows.some((c) => isOutlineTitle(c.title))) await rememberBookHasToc(pId);
       } else {
         setSaveStatus("error");
       }
@@ -1472,7 +1452,8 @@ function RedactionContent() {
       });
 
       if (startResp.status === 402) {
-        alert("Fonds insuffisants pour démarrer la génération du livre.");
+        const err = await startResp.json().catch(() => null);
+        alert(err?.error || "Fonds insuffisants pour démarrer la génération du livre.");
         return;
       }
       if (!startResp.ok) {
@@ -1580,12 +1561,7 @@ function RedactionContent() {
     setBatchProgress(null);
     setIsBatchGenerating(true);
     batchStartBalanceRef.current = userLoading ? null : walletBalance;
-    setBatchCoinPlan(
-      estimatePagesCoins(
-        Math.max(1, Math.round((targets.length * SIZE_PRESETS[projectSizeKey].wordsPerChapter) / WORDS_PER_PAGE)),
-        model
-      )
-    );
+    setBatchCoinPlan(bookChargeCeiling(targets.length, SIZE_PRESETS[projectSizeKey].wordsPerChapter, model));
     setBatchLabel("Reprise de la rédaction…");
     try {
       const sommaire =
@@ -1643,7 +1619,11 @@ function RedactionContent() {
       });
 
       if (startResp.status === 402) {
-        alert("Pièces insuffisantes pour continuer. Rechargez votre solde puis cliquez à nouveau sur « Continuer la rédaction ».");
+        const err = await startResp.json().catch(() => null);
+        alert(
+          (err?.error ? `${err.error}\n\n` : "Pièces insuffisantes pour continuer. ") +
+            "Une fois rechargé, cliquez à nouveau sur « Continuer la rédaction »."
+        );
         return;
       }
       if (!startResp.ok) {
@@ -2134,7 +2114,7 @@ function RedactionContent() {
     >
       <span className="material-symbols-outlined text-base">auto_stories</span>
       <span>{bookHasWrittenBody ? "Régénérer le livre" : "Générer le livre"}</span>
-      <span className="font-semibold text-white/85 tabular-nums">· ≈ {fmtCoins(bookCostEstimate)} pièces</span>
+      <span className="font-semibold text-white/85 tabular-nums">· max. {fmtCoins(bookCostEstimate)} pièces</span>
     </button>
   );
 
@@ -2158,7 +2138,7 @@ function RedactionContent() {
           <Coins className="w-3.5 h-3.5 text-secondary" />
           {batchProgress ? `Chapitre ${Math.min(batchProgress.current + 1, batchProgress.total)}/${batchProgress.total} · ` : ""}
           {coinsUsedLive !== null ? `${fmtCoins(coinsUsedLive)} pièces utilisées` : "Rédaction en cours"}
-          {batchCoinPlan ? ` / ≈ ${fmtCoins(batchCoinPlan)}` : ""}
+          {batchCoinPlan ? ` / max. ${fmtCoins(batchCoinPlan)}` : ""}
         </span>
       )}
 
@@ -2190,6 +2170,26 @@ function RedactionContent() {
     </div>
   );
 
+  // Réglages de mise en page du livre (sommaire, format, polices…), enregistrés
+  // avec le projet : l'éditeur, l'export et l'assistant MCP lisent les mêmes.
+  const saveStyleSettings = async (patch: Record<string, unknown>) => {
+    setProjectData((prev: any) => ({ ...(prev || {}), style_settings: { ...(prev?.style_settings || {}), ...patch } }));
+    if (!currentProjectId) return;
+    try {
+      const res = await fetch(`/api/projects/${currentProjectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ style_settings: patch }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.project) {
+        setProjectData((prev: any) => ({ ...(prev || {}), style_settings: data.project.style_settings }));
+      }
+    } catch {
+      // Réglage conservé localement ; il sera renvoyé au prochain changement.
+    }
+  };
+
   const canvasHeader = isOutlineView ? (
     <div className="rounded-2xl border-2 border-dashed border-[#F4C5BC] bg-white dark:bg-neutral-900 p-4 sm:p-5 flex flex-col sm:flex-row gap-3 sm:items-center">
       <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -2211,12 +2211,13 @@ function RedactionContent() {
           className={`${actionBtn} justify-center bg-[#C84B31] hover:bg-[#B83E26] text-white shadow-sm self-stretch sm:self-auto`}
         >
           <span className="material-symbols-outlined text-base">auto_stories</span>
-          <span>Générer le livre · ≈ {fmtCoins(bookCostEstimate)} pièces</span>
+          <span>Générer le livre · max. {fmtCoins(bookCostEstimate)} pièces</span>
         </button>
       )}
     </div>
   ) : showCoverSlot ? (
-    coverUrl ? (
+    <>
+      {coverUrl ? (
       <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
         <div className="bg-white dark:bg-neutral-900 rounded-[2rem] border border-neutral-200 dark:border-neutral-800 shadow-xl p-8 sm:p-12 max-w-lg w-full flex flex-col items-center text-center gap-6">
           <div className="relative w-40 sm:w-52 aspect-[2/3] rounded-2xl shadow-2xl border border-neutral-200/60 overflow-hidden"><Image src={coverUrl} alt="Couverture du livre" fill sizes="(max-width: 640px) 160px, 208px" className="object-cover" /></div>
@@ -2248,7 +2249,21 @@ function RedactionContent() {
           </button>
         </div>
       </div>
-    )
+    )}
+      {/* Pages de début (titre, mentions légales, sommaire s'il y en a un), telles qu'à l'export. */}
+      <BookFrontMatter
+        title={bookTitle}
+        subtitle={projectData?.subtitle}
+        author={projectData?.author}
+        category={projectData?.category}
+        workType={bookWorkType}
+        coverUrl={coverUrl}
+        styleSettings={projectData?.style_settings}
+        chapters={chapters}
+        onEditInfo={() => setIsBookInfoOpen(true)}
+        onSaveTocOverrides={(overrides) => saveStyleSettings({ tocOverrides: overrides })}
+      />
+    </>
   ) : null;
 
   return (
@@ -2285,6 +2300,16 @@ function RedactionContent() {
                 />
               </div>
 
+              <button
+                type="button"
+                onClick={() => setIsBookInfoOpen(true)}
+                className="flex items-center gap-1 text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:text-secondary bg-neutral-100 dark:bg-neutral-800 px-2.5 py-2 rounded-xl transition-all shrink-0"
+                title="Fiche du livre : sous-titre, auteur, résumé…"
+              >
+                <span className="material-symbols-outlined text-base">menu_book</span>
+                <span className="hidden lg:inline">Fiche du livre</span>
+              </button>
+
               <select
                 value={activeChapterIndex}
                 onChange={async (e) => {
@@ -2303,6 +2328,7 @@ function RedactionContent() {
                         setSaveStatus("saving");
                         const persisted = await replaceChaptersOnServer(pId, chapters, [mergedChapter]);
                         if (persisted) {
+                          if (chapters.some((c) => isOutlineTitle(c.title))) void rememberBookHasToc(pId);
                           setChapters(persisted);
                           setActiveChapterIndex(0);
                           setSaveStatus("saved");
@@ -2904,15 +2930,37 @@ function RedactionContent() {
           id: currentProjectId || undefined,
           title: bookTitle,
           subtitle: projectData?.subtitle || undefined,
+          author: projectData?.author || undefined,
           // La catégorie choisit la palette typographique et la forme décide de
           // la mise en page : sans elles, l'export depuis l'éditeur retombait
           // sur la composition générique, quelle que soit la nature du livre.
           category: projectData?.category || undefined,
           work_type: bookWorkType,
           cover_url: (projectData as any)?.cover_url || undefined,
+          style_settings: projectData?.style_settings,
           chapters: chapters
         }}
+        onStyleChange={(patch) => saveStyleSettings(patch)}
         hasUnsavedChanges={saveStatus !== "saved"}
+      />
+
+      <BookInfoModal
+        isOpen={isBookInfoOpen}
+        onClose={() => setIsBookInfoOpen(false)}
+        projectId={currentProjectId}
+        initial={{
+          title: bookTitle,
+          subtitle: projectData?.subtitle,
+          author: projectData?.author,
+          category: projectData?.category,
+          synopsis: projectData?.synopsis,
+          audience: projectData?.audience,
+          tone: projectData?.tone,
+        }}
+        onSaved={(saved) => {
+          setProjectData((prev: any) => ({ ...(prev || {}), ...saved }));
+          if (typeof saved.title === "string") setBookTitle(saved.title);
+        }}
       />
 
       {/* GEO SCORE MODAL */}

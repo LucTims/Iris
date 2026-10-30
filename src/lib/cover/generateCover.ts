@@ -1,7 +1,6 @@
-import { generateText } from "ai";
-import { google } from "@ai-sdk/google";
 import { createClient as createAdminClient, type SupabaseClient } from "@supabase/supabase-js";
 import { checkRateLimit } from "@/lib/ratelimit";
+import { generateWithFallback } from "@/lib/ai/model-fallback";
 import { checkMinimumBalance, deductFixedCoins } from "@/lib/ai/cost-engine";
 import { COVER_IMAGE_COINS, COVER_STANDARD_COINS } from "@/lib/ai/pricing";
 import {
@@ -503,6 +502,21 @@ async function executeImagePipeline(
 /** Modèle de la direction artistique (traduction + enrichissement du prompt). */
 const ART_DIRECTION_MODEL = "gemini-3.6-flash";
 
+/**
+ * Délai maximal de la direction artistique, repli de fournisseur compris :
+ * au-delà, on génère l'image avec la consigne d'origine plutôt que de faire
+ * attendre l'auteur.
+ */
+const ART_DIRECTION_TIMEOUT_MS = 20_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`délai dépassé (${ms} ms)`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 export interface GenerateCoverInput {
   projectId?: string;
   engine: CoverEngine;
@@ -627,6 +641,7 @@ export async function generateCoverForUser(
 
   // Direction artistique IA via Gemini : traduit et enrichit le prompt en
   // anglais professionnel en s'ancrant profondément dans l'histoire du livre.
+  // Repli automatique : Gemini -> OpenAI -> Claude, borné à 20 s.
   let finalPrompt = basePrompt;
   try {
     const userPromptClean = (userPrompt || "").trim();
@@ -662,14 +677,13 @@ ESSENTIAL REQUIREMENTS:
 7. HARD LIMIT: 80 words maximum, a single dense paragraph. Be concise and concrete, never verbose.
 8. Return strictly the prompt text only, without quotes or preface.`;
 
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 9000);
-    const { text } = await generateText({
-      model: google(ART_DIRECTION_MODEL),
-      abortSignal: controller.signal,
-      prompt: artDirectionPrompt,
-    });
-    clearTimeout(t);
+    const { text } = await withTimeout(
+      generateWithFallback({
+        preferred: ART_DIRECTION_MODEL,
+        prompt: artDirectionPrompt,
+      }),
+      ART_DIRECTION_TIMEOUT_MS
+    );
     if (text.trim()) {
       finalPrompt = truncatePrompt(text.trim());
     }

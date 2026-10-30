@@ -4,6 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, LayoutTemplate, Download, ArrowRight, ArrowLeft } from "lucide-react";
 import { saveAs } from "file-saver";
+import { resolveIncludeToc } from "@/lib/export/bookStructure";
+import {
+  PAGE_FORMATS,
+  pageFormatDef,
+  sanitizeExportStyle,
+  type ExportStyle,
+  type PageFormatKey,
+} from "@/lib/export/exportStyle";
 
 interface ExportBookModalProps {
   isOpen: boolean;
@@ -12,11 +20,14 @@ interface ExportBookModalProps {
     id?: string;
     title?: string;
     subtitle?: string;
+    author?: string;
     category?: string;
     /** Forme de l'ouvrage : pilote la mise en page de l'export. */
     work_type?: string;
     chapters?: any[];
     cover_url?: string;
+    /** Réglages de mise en page enregistrés avec le livre. */
+    style_settings?: unknown;
   } | null;
   /** Étape de départ (3 = aller directement au choix du format, sans l'upsell couverture). */
   initialStep?: 1 | 3;
@@ -25,9 +36,11 @@ interface ExportBookModalProps {
    * versions locales priment alors sur celles de la base pour ces chapitres.
    */
   hasUnsavedChanges?: boolean;
+  /** Enregistre un changement de style (sinon la fenêtre l'enregistre elle-même). */
+  onStyleChange?: (patch: Partial<ExportStyle>) => void;
 }
 
-export default function ExportBookModal({ isOpen, onClose, project, initialStep = 1, hasUnsavedChanges = false }: ExportBookModalProps) {
+export default function ExportBookModal({ isOpen, onClose, project, initialStep = 1, hasUnsavedChanges = false, onStyleChange }: ExportBookModalProps) {
   const router = useRouter();
 
   // Steps: 1 = Cover, 2 = Layout, 3 = Final Download, 4 = Congratulations
@@ -41,13 +54,51 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
 
   // Step 3 state (Original Export logic)
   const [selectedFormat, setSelectedFormat] = useState<"epub" | "pdf" | "docx" | "markdown">("epub");
-  // Mise en page du PDF : "digital" (A4, lecture écran) ou "print" (6×9",
-  // marges compatibles KDP pour l'impression papier).
-  const [pdfLayout, setPdfLayout] = useState<"digital" | "print">("digital");
+  // Style du PDF : enregistré avec le livre (style_settings), partagé avec
+  // l'aperçu des pages de début dans l'éditeur et avec l'assistant MCP.
+  const [pdfStyle, setPdfStyle] = useState<ExportStyle>({});
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [preview, setPreview] = useState<{ url: string; pages: number | null } | null>(null);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (project?.style_settings !== undefined) {
+      setPdfStyle(sanitizeExportStyle(project.style_settings));
+      return;
+    }
+    if (!project?.id) return;
+    let cancelled = false;
+    fetch(`/api/projects/${project.id}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.project) setPdfStyle(sanitizeExportStyle(data.project.style_settings));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, project?.id]);
+
+  const updateStyle = (patch: Partial<ExportStyle>) => {
+    setPdfStyle((prev) => ({ ...prev, ...patch }));
+    if (onStyleChange) {
+      onStyleChange(patch);
+    } else if (project?.id) {
+      fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ style_settings: patch }),
+      }).catch(() => {});
+    }
+  };
+
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview.url); }, [preview]);
 
   if (!isOpen) return null;
+
+  const effectiveStyle: ExportStyle = pdfStyle;
+  const pageFormat: PageFormatKey = pdfStyle.pageFormat || "a4";
 
   const bookTitle = project?.title || "Mon Livre Iris";
   const sanitizedTitle = bookTitle.toLowerCase().replace(/[^a-z0-9àâäéèêëïîôùûüÿçœæ]/gi, "_").replace(/_+/g, "_");
@@ -62,38 +113,89 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
     }));
   const chaptersData = toExportChapters(project?.chapters || []);
 
+  // Relit le livre enregistré : un assistant connecté en MCP a pu écrire des
+  // chapitres depuis l'ouverture de l'éditeur. Les modifications locales pas
+  // encore enregistrées priment sur la base.
+  const loadBook = async () => {
+    let finalChapters = chaptersData;
+    let coverUrl = project?.cover_url || "";
+    let author = project?.author || "";
+    let subtitle = project?.subtitle || "";
+    if (project?.id) {
+      const res = await fetch(`/api/projects/${project.id}`, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        coverUrl = data.project?.cover_url || coverUrl;
+        author = data.project?.author || author;
+        subtitle = data.project?.subtitle ?? subtitle;
+        if (data.chapters && data.chapters.length > 0) {
+          finalChapters = toExportChapters(data.chapters).map((saved) => {
+            const local = chaptersData.find((c) => c.id === saved.id);
+            if (local && (hasUnsavedChanges || (!saved.content && local.content))) {
+              return { ...saved, title: local.title, content: local.content };
+            }
+            return saved;
+          });
+        }
+      }
+    }
+    return { finalChapters, coverUrl, author, subtitle };
+  };
+
+  const requestPdf = async (book: Awaited<ReturnType<typeof loadBook>>, asPreview: boolean) => {
+    const res = await fetch("/api/export/pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: bookTitle,
+        subtitle: book.subtitle,
+        author: book.author,
+        category: project?.category,
+        chapters: book.finalChapters,
+        coverUrl: book.coverUrl,
+        format: pageFormatDef(pageFormat).trim ? "print" : "digital",
+        workType: project?.work_type,
+        style: effectiveStyle,
+        preview: asPreview,
+      }),
+    });
+    if (!res.ok) {
+      let message = "La génération du PDF a échoué. Veuillez réessayer.";
+      try {
+        const err = await res.json();
+        if (err?.error) message = err.error;
+      } catch {}
+      throw new Error(message);
+    }
+    const pages = Number(res.headers.get("X-Iris-Page-Count")) || null;
+    return { blob: await res.blob(), pages };
+  };
+
+  const handlePreview = async () => {
+    setIsPreviewing(true);
+    try {
+      const book = await loadBook();
+      if (book.finalChapters.length === 0) {
+        alert("Aucun chapitre à prévisualiser. Rédigez d'abord du contenu dans votre livre.");
+        return;
+      }
+      const { blob, pages } = await requestPdf(book, true);
+      setPreview({ url: URL.createObjectURL(blob), pages });
+    } catch (error) {
+      alert(error instanceof Error && error.message ? error.message : "Impossible de générer l'aperçu.");
+    } finally {
+      setIsPreviewing(false);
+    }
+  };
+
   const handleDownload = async () => {
     setIsExporting(true);
     setExportSuccess(false);
 
     try {
-      let finalChapters = chaptersData;
-      // Source de vérité de la couverture : la valeur en base (cover_url),
-      // appliquée depuis le Studio de couverture.
-      let coverUrl = project?.cover_url || "";
-
-      // SOURCE DE VÉRITÉ : la base. Les chapitres fournis par l'appelant
-      // peuvent être périmés — un assistant IA connecté en MCP a pu écrire
-      // des chapitres depuis l'ouverture de l'éditeur, qui manquaient alors à
-      // l'export. On relit donc toujours le livre enregistré ; seules les
-      // modifications locales pas encore enregistrées priment sur la base.
-      if (project?.id) {
-        const res = await fetch(`/api/projects/${project.id}`, { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          coverUrl = data.project?.cover_url || coverUrl;
-          if (data.chapters && data.chapters.length > 0) {
-            finalChapters = toExportChapters(data.chapters).map((saved) => {
-              const local = chaptersData.find((c) => c.id === saved.id);
-              if (local && (hasUnsavedChanges || (!saved.content && local.content))) {
-                return { ...saved, title: local.title, content: local.content };
-              }
-              return saved;
-            });
-          }
-        }
-      }
-
+      const book = await loadBook();
+      const finalChapters = book.finalChapters;
+      const coverUrl = book.coverUrl;
       if (finalChapters.length === 0) {
         alert("Aucun chapitre à exporter. Rédigez d'abord du contenu dans votre livre.");
         setIsExporting(false);
@@ -102,48 +204,21 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
 
       if (selectedFormat === "docx") {
         const { generateDocx } = await import("@/lib/export/generateDocx");
-        const blob = await generateDocx(bookTitle, project?.subtitle, finalChapters, coverUrl);
+        const blob = await generateDocx(bookTitle, book.subtitle || undefined, finalChapters, coverUrl, book.author || undefined);
         saveAs(blob, `${sanitizedTitle}.docx`);
 
       } else if (selectedFormat === "epub") {
         const { generateEpub } = await import("@/lib/export/generateEpub");
-        const blob = await generateEpub(bookTitle, project?.subtitle, "Auteur", finalChapters, coverUrl);
+        const blob = await generateEpub(bookTitle, book.subtitle || undefined, book.author || "Auteur", finalChapters, coverUrl);
         saveAs(blob, `${sanitizedTitle}.epub`);
 
       } else if (selectedFormat === "pdf") {
-        // Server-side PDF engine (headless Chrome / Puppeteer) — renders the
-        // real HTML/CSS and returns a downloadable file, faithful to the editor.
-        const res = await fetch("/api/export/pdf", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: bookTitle,
-            subtitle: project?.subtitle,
-            category: project?.category,
-            chapters: finalChapters,
-            coverUrl,
-            format: pdfLayout,
-            // Un guide ne doit pas être composé comme un roman (ni fleuron,
-            // ni lettrine, ni page « Fin »).
-            workType: project?.work_type,
-          }),
-        });
-
-        if (!res.ok) {
-          let message = "La génération du PDF a échoué. Veuillez réessayer.";
-          try {
-            const err = await res.json();
-            if (err?.error) message = err.error;
-          } catch {}
-          throw new Error(message);
-        }
-
-        const blob = await res.blob();
+        const { blob } = await requestPdf(book, false);
         saveAs(blob, `${sanitizedTitle}.pdf`);
 
       } else if (selectedFormat === "markdown") {
         const { generateMarkdown } = await import("@/lib/export/generateMarkdown");
-        const blob = generateMarkdown(bookTitle, project?.subtitle, finalChapters);
+        const blob = generateMarkdown(bookTitle, book.subtitle || undefined, finalChapters);
         saveAs(blob, `${sanitizedTitle}.md`);
       }
 
@@ -364,31 +439,70 @@ export default function ExportBookModal({ isOpen, onClose, project, initialStep 
 
               </div>
 
-              {/* Choix de mise en page — visible uniquement pour le PDF */}
+              {/* Style du PDF : format, polices, couleur, sommaire, aperçu */}
               {selectedFormat === "pdf" && (
-                <div className="mt-4 border-t border-neutral-100 dark:border-neutral-800 pt-4">
-                  <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-2">Mise en page du PDF</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setPdfLayout("digital")}
-                      className={`text-left p-3 rounded-xl border transition-all ${pdfLayout === "digital" ? "border-secondary bg-orange-50/60" : "border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:bg-neutral-800/50"}`}
-                    >
-                      <span className="block text-xs font-bold text-neutral-900 dark:text-neutral-100">Numérique (A4)</span>
-                      <span className="block text-[11px] text-neutral-500 dark:text-neutral-400">Lecture à l'écran</span>
-                    </button>
-                    <button
-                      onClick={() => setPdfLayout("print")}
-                      className={`text-left p-3 rounded-xl border transition-all ${pdfLayout === "print" ? "border-secondary bg-orange-50/60" : "border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:bg-neutral-800/50"}`}
-                    >
-                      <span className="block text-xs font-bold text-neutral-900 dark:text-neutral-100">Impression · KDP (6×9")</span>
-                      <span className="block text-[11px] text-neutral-500 dark:text-neutral-400">Marges prêtes pour Amazon</span>
-                    </button>
+                <div className="mt-4 border-t border-neutral-100 dark:border-neutral-800 pt-4 space-y-4">
+                  <div>
+                    <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-2">Format de page</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {PAGE_FORMATS.map((f) => (
+                        <button
+                          key={f.key}
+                          type="button"
+                          onClick={() => updateStyle({ pageFormat: f.key })}
+                          className={`text-left p-2.5 rounded-xl border transition-all ${pageFormat === f.key ? "border-secondary bg-orange-50/60 dark:bg-orange-950/30" : "border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50"}`}
+                        >
+                          <span className="block text-xs font-bold text-neutral-900 dark:text-neutral-100">{f.label}</span>
+                          <span className="block text-[10px] leading-tight text-neutral-500 dark:text-neutral-400">{f.hint}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
+
+                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                    {resolveIncludeToc(effectiveStyle, project?.work_type, chaptersData)
+                      ? "Le sommaire du livre est inclus, avec vos corrections faites dans l'éditeur."
+                      : "Ce livre n'a pas de sommaire."}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={handlePreview}
+                    disabled={isPreviewing}
+                    className="w-full flex items-center justify-center gap-2 text-xs font-bold py-2.5 rounded-xl border border-secondary text-secondary hover:bg-orange-50 dark:hover:bg-orange-950/30 disabled:opacity-50"
+                  >
+                    <span className={`material-symbols-outlined text-base ${isPreviewing ? "animate-spin" : ""}`}>{isPreviewing ? "progress_activity" : "visibility"}</span>
+                    {isPreviewing ? "Mise en page en cours..." : "Aperçu des pages avant export"}
+                  </button>
                 </div>
               )}
             </div>
 
           </div>
+
+          {preview && (
+            <div className="absolute inset-0 z-30 bg-white dark:bg-neutral-900 flex flex-col">
+              <div className="px-4 py-3 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold text-neutral-900 dark:text-neutral-100">Aperçu du PDF</p>
+                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                    {pageFormatDef(pageFormat).label}{preview.pages ? ` · ${preview.pages} pages` : ""} — vérifiez la mise en page avant de télécharger.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a href={preview.url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold px-3 py-2 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">Plein écran</a>
+                  <button
+                    type="button"
+                    onClick={() => setPreview(null)}
+                    className="text-xs font-bold px-3 py-2 rounded-xl bg-secondary text-white"
+                  >
+                    Modifier le style
+                  </button>
+                </div>
+              </div>
+              <iframe src={`${preview.url}#view=FitH`} title="Aperçu du PDF" className="flex-1 w-full bg-neutral-200" />
+            </div>
+          )}
 
           {/* Modal Footer Actions */}
           <div className="px-6 sm:px-8 py-4 border-t border-neutral-100 dark:border-neutral-800 bg-neutral-50/60 flex items-center justify-between gap-4 shrink-0">

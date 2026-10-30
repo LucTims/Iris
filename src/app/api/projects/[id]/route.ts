@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { evaluateCompletion, resolveBookStatus } from "@/lib/book/completion";
+import { sanitizeExportStyle } from "@/lib/export/exportStyle";
 
 /** Statuts de livre acceptés en base (tout le reste est refusé). */
 const ALLOWED_STATUSES = ["Brouillon", "En cours", "En rédaction", "Mise en page", "Terminé"];
@@ -89,12 +90,42 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const body = await req.json();
     
-    // Allow updating specific fields
     const updates: any = {};
-    if (body.title !== undefined) updates.title = body.title;
-    if (body.subtitle !== undefined) updates.subtitle = body.subtitle;
-    if (body.category !== undefined) updates.category = body.category;
+    if (body.title !== undefined) {
+      const title = String(body.title ?? "").trim();
+      if (!title) return NextResponse.json({ error: "Le titre ne peut pas être vide." }, { status: 400 });
+      updates.title = title.slice(0, 300);
+    }
+    // Champs texte de la fiche du livre : une chaîne vide efface la valeur.
+    const TEXT_FIELDS: Record<string, number> = {
+      subtitle: 300,
+      author: 200,
+      category: 120,
+      synopsis: 8000,
+      tone: 300,
+      audience: 300,
+      instructions: 8000,
+    };
+    for (const [field, max] of Object.entries(TEXT_FIELDS)) {
+      if (body[field] === undefined) continue;
+      const value = body[field] === null ? "" : String(body[field]).trim();
+      updates[field] = value ? value.slice(0, max) : null;
+    }
     if (body.cover_url !== undefined) updates.cover_url = body.cover_url;
+
+    // Réglages de mise en page du livre (sommaire, format, polices, couleur) :
+    // fusionnés avec ceux déjà enregistrés ; `null` sur une clé la retire.
+    if (body.style_settings !== undefined && body.style_settings !== null && typeof body.style_settings === "object") {
+      const { data: current } = await supabase
+        .from("projects")
+        .select("style_settings")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const merged: Record<string, unknown> = { ...(current?.style_settings || {}), ...body.style_settings };
+      for (const [k, v] of Object.entries(merged)) if (v === null) delete merged[k];
+      updates.style_settings = sanitizeExportStyle(merged);
+    }
 
     // Statut du livre. Deux garde-fous :
     //  1. seules les valeurs connues sont acceptées (sinon n'importe quelle

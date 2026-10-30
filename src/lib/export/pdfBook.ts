@@ -3,11 +3,14 @@ import path from "path";
 import {
   htmlToPdfmakeContent,
   extractLeadingHeading,
-  isSummaryChapter,
 } from "@/lib/export/htmlToPdfmake";
 import { bookFontPairing, detectGenre } from "@/lib/ai/book-style";
 import { resolveWorkType, workTypeLayout } from "@/lib/book/work-type";
 import { PDF_FONT_KEYS } from "@/lib/export/fontRegistry";
+import { pageFormatDef, tocKey, type ExportStyle, type PageFormatKey } from "@/lib/export/exportStyle";
+import { copyrightNotice, printableChapters, resolveIncludeToc, splitChapterHeading, tocHeading } from "@/lib/export/bookStructure";
+
+export { splitChapterHeading };
 
 /**
  * Moteur d'export PDF (pdfmake), commun à la route /api/export/pdf (export
@@ -125,34 +128,81 @@ async function inlineCover(url: string | undefined | null): Promise<string | nul
   }
 }
 
-function buildDocDefinition(
-  title: string,
-  subtitle: string | undefined,
-  chapters: ChapterData[],
-  coverImage: string | null,
-  category: string | undefined,
-  format: "digital" | "print" = "digital",
-  workTypeInput?: string | null
-): any {
+function plainTextOf(node: any): string {
+  if (!node) return "";
+  if (typeof node === "string") return node;
+  if (Array.isArray(node)) return node.map(plainTextOf).join("");
+  if (typeof node.text !== "undefined") return plainTextOf(node.text);
+  return "";
+}
+
+interface TocEntry {
+  id: string;
+  label: string | null;
+  title: string;
+  sections: { id: string; title: string }[];
+}
+
+export interface BookLayoutSummary {
+  pageCount: number;
+  pageFormat: PageFormatKey;
+  hasToc: boolean;
+  /** Première page numérotée (après couverture, titre, mentions, sommaire). */
+  firstBodyPage: number | null;
+  chapters: {
+    title: string;
+    startPage: number | null;
+    endPage: number | null;
+    sections: { title: string; page: number | null }[];
+  }[];
+}
+
+interface BuildOptions {
+  title: string;
+  subtitle?: string;
+  author?: string;
+  chapters: ChapterData[];
+  coverImage: string | null;
+  category?: string;
+  format: "digital" | "print";
+  workType?: string | null;
+  style: ExportStyle;
+  /** Page du premier chapitre, connue après une première mise en page. */
+  firstBodyPage?: number;
+}
+
+interface BuiltDoc {
+  docDefinition: any;
+  chapterNodes: { title: string; node: any; sections: { title: string; node: any }[] }[];
+  hasToc: boolean;
+  pageFormat: PageFormatKey;
+  firstBodyPage: number;
+}
+
+function buildDocDefinition(opts: BuildOptions): BuiltDoc {
+  const { title, subtitle, author, chapters, coverImage, category, format, workType: workTypeInput, style } = opts;
   // MISE EN PAGE PAR FORME D'OUVRAGE. Un livre s'habille comme un livre
   // (titre centré haut de page, fleuron, texte justifié, page de fin) ; un
-  // guide se compose comme un manuel (titre à gauche, pas de fleuron, texte
-  // au fer à gauche pour éviter les lézardes dans un texte riche en listes) ;
-  // un ebook reste compact. Auparavant, les trois recevaient exactement la
-  // même mise en page de roman.
+  // guide se compose comme un manuel ; un ebook reste compact.
   const genre = detectGenre(category);
   const workType = resolveWorkType({ explicit: workTypeInput, category, title });
   const layout = workTypeLayout(workType, genre);
-  // Palette typographique riche, choisie selon le STYLE du livre (roman,
-  // jeunesse, thriller, business, académique…) — pas seulement fiction/non-fiction.
-  const { body: bodyFont, display: displayFont } = bookFontPairing(category);
-  // Dimensions de page selon le format (impression 6×9" ou A4 numérique).
-  const pageW = format === "print" ? 432 : 595;
-  const pageH = format === "print" ? 648 : 842;
+  // Police : choix de l'auteur à l'export, sinon palette selon le style du livre.
+  const pairing = bookFontPairing(category);
+  const bodyFont = style.bodyFont || pairing.body;
+  const displayFont = style.headingFont || pairing.display;
+  const accent = style.accentColor || "#b08d57";
+
+  // Format de page : choix explicite, sinon « impression » = 6×9 po, « numérique » = A4.
+  const pageFormat: PageFormatKey = style.pageFormat || (format === "print" ? "6x9" : "a4");
+  const page = pageFormatDef(pageFormat);
+  const pageW = page.width;
+  const pageH = page.height;
+  const isTrim = page.trim;
+  const compact = pageW <= 420;
+  const bodySize = compact ? 10.5 : 11.5;
   const content: any[] = [];
 
-  // Page de couverture pleine page. L'image est posée en absolu pour occuper
-  // toute la page (sans marges), aux dimensions du format choisi, puis saut.
   if (coverImage) {
     content.push({
       image: coverImage,
@@ -163,134 +213,150 @@ function buildDocDefinition(
     });
   }
 
-  // Page de titre intérieure
-  content.push({ text: (title || "Sans titre").toUpperCase(), style: "coverTitle", margin: [0, 200, 0, 10] });
+  // Page de titre intérieure : titre, sous-titre, auteur.
+  content.push({ text: (title || "Sans titre").toUpperCase(), style: "coverTitle", margin: [0, Math.round(pageH * 0.24), 0, 10] });
   if (subtitle) content.push({ text: subtitle, style: "coverSubtitle" });
   if (layout.ornaments) {
-    content.push({ text: "❦", alignment: "center", color: "#b08d57", fontSize: 18, margin: [0, 30, 0, 0], pageBreak: "after" });
-  } else {
-    content.push({ text: "", margin: [0, 30, 0, 0], pageBreak: "after" });
+    content.push({ text: "❦", alignment: "center", color: accent, fontSize: 18, margin: [0, 30, 0, 0] });
   }
+  if (author) {
+    content.push({ text: author, style: "coverAuthor", margin: [0, layout.ornaments ? 40 : 60, 0, 0] });
+  }
+  content.push({ text: "", pageBreak: "after" });
 
-  // Page de copyright (mentions légales minimales d'un vrai livre). Un ebook
-  // court s'en passe : elle y coûterait une page sur quinze.
   const year = new Date().getFullYear();
   if (layout.copyrightPage) {
-    content.push({ text: title || "Sans titre", style: "copyrightTitle", margin: [0, 320, 0, 0] });
-    // Le livre exporté ne porte AUCUNE marque de fabrique : il appartient
-    // entièrement à son auteur. Le saut de page qui suivait la ligne de
-    // branding est reporté ici pour conserver la pagination d'origine.
+    content.push({ text: title || "Sans titre", style: "copyrightTitle", margin: [0, Math.round(pageH * 0.45), 0, 0] });
     content.push({
-      text: `© ${year}. Tous droits réservés.\n\nAucune partie de cet ouvrage ne peut être reproduite ou transmise sous quelque forme que ce soit sans l'autorisation écrite de l'auteur.`,
+      text: copyrightNotice(author, year),
       style: "copyright",
       margin: [0, 12, 0, 0],
       pageBreak: "after",
     });
   }
 
-  // Détecte si l'auteur a demandé un sommaire : en mode « avec sommaire »,
-  // generate-plan crée un chapitre « Sommaire » / « Table des matières ». Sa
-  // présence = l'utilisateur veut une table des matières. En mode « sans
-  // sommaire », il n'y en a pas → on n'ajoute AUCUNE table des matières
-  // (avant, une TOC apparaissait à tort même quand l'auteur l'avait désactivée).
-  const hasSummary = chapters.some((ch) => isSummaryChapter(ch.title, ch.content));
 
-  // Corps du livre : on écarte (a) le chapitre-sommaire lui-même (remplacé par
-  // une vraie TOC paginée), et (b) les chapitres « fantômes » sans contenu réel
-  // — des placeholders titre-seul hérités du plan qui produisaient des
-  // pages-titres en double avant chaque chapitre.
-  let realChapters = chapters.filter((ch) => {
-    // Le storybook génère tout son contenu dans un seul chapitre. S'il a un titre
-    // "Sommaire", il ne doit pas être supprimé.
-    if (workType !== "storybook" && isSummaryChapter(ch.title, ch.content)) return false;
-    const { rest } = extractLeadingHeading(ch.content || "");
-    const bodyText = (rest || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-    return bodyText.length >= 20;
-  });
+  // Corps du livre : sans le chapitre-sommaire (plan de travail remplacé par
+  // le sommaire paginé) ni les chapitres encore vides.
+  const realChapters = printableChapters(chapters, workType);
 
-  // Sécurité: si tous les chapitres ont été supprimés (ex: un seul chapitre avec < 20 caractères), on le garde.
-  if (realChapters.length === 0 && chapters.length > 0) {
-    realChapters = chapters;
-  }
+  // Sommaire : choix de l'auteur (enregistré avec le livre), oui par défaut.
+  const hasToc = realChapters.length > 0 && resolveIncludeToc(style, workType, chapters);
 
-  // Table des matières native (numéros de page résolus par pdfmake en 2 passes)
-  // UNIQUEMENT en mode « avec sommaire ». Pas de pageBreak:"after" : le premier
-  // chapitre force déjà son propre saut de page.
-  const hasToc = hasSummary && workType !== "storybook";
-  if (hasToc) {
-    content.push({
-      toc: {
-        title: { text: "Table des matières", style: "tocTitle", margin: [0, 40, 0, 24] },
-      },
-    });
-  }
-
-  // Chapitres. Chaque chapitre commence sur une nouvelle page. Quand le corps
-  // commence déjà par son propre <h1>, on en extrait le titre (et on supprime
-  // le doublon + son saut de page redondant) pour n'avoir qu'un seul titre.
+  // Chapitres composés d'abord : le sommaire a besoin de leurs intertitres.
+  const tocEntries: TocEntry[] = [];
+  const chapterNodes: BuiltDoc["chapterNodes"] = [];
+  const body: any[] = [];
   realChapters.forEach((ch, idx) => {
     const { title: leadTitle, rest } = extractLeadingHeading(ch.content);
     const effectiveTitle = leadTitle || ch.title || `Chapitre ${ch.number || idx + 1}`;
-    content.push({
-      text: effectiveTitle,
-      style: "chapterTitle",
-      tocItem: true,
-      tocStyle: { fontSize: 12, font: bodyFont, color: "#333333" },
-      tocMargin: [0, 6, 0, 0],
-      // Sans table des matières, les pages liminaires se terminent déjà par
-      // un saut de page : un second saut avant le 1er chapitre laissait une
-      // page blanche (systématique pour un livre écrit via MCP, sans sommaire).
-      pageBreak: idx === 0 && !hasToc ? undefined : "before",
-      margin: [0, layout.chapterTitleTopMargin, 0, 6],
-    });
-    if (layout.ornaments) {
-      content.push({ text: "❦", alignment: "center", color: "#b08d57", fontSize: 14, margin: [0, 0, 0, 24] });
+    const { label, title: shortTitle } = splitChapterHeading(effectiveTitle);
+    const id = `iris-ch-${idx}`;
+    const breakBefore = idx === 0 && !hasToc ? undefined : "before";
+
+    // L'ancre (id) doit être portée par un nœud texte : pdfmake ignore les
+    // id des conteneurs pour les renvois de page.
+    const titleNode: any = { text: shortTitle, style: "chapterTitle", id };
+    if (label) {
+      body.push({
+        stack: [{ text: label.toUpperCase(), style: "chapterLabel" }, titleNode],
+        pageBreak: breakBefore,
+        margin: [0, layout.chapterTitleTopMargin, 0, 6],
+      });
     } else {
-      // Un filet sobre remplace le fleuron dans un guide / un ebook.
-      content.push({
-        canvas: [{ type: "line", x1: 0, y1: 0, x2: 120, y2: 0, lineWidth: 2, lineColor: "#b08d57" }],
+      titleNode.pageBreak = breakBefore;
+      titleNode.margin = [0, layout.chapterTitleTopMargin, 0, 6];
+      body.push(titleNode);
+    }
+    if (layout.ornaments) {
+      body.push({ text: "❦", alignment: "center", color: accent, fontSize: 14, margin: [0, 0, 0, 24] });
+    } else {
+      const lineX = layout.chapterTitleAlignment === "center" ? (pageW - 120) / 2 - 72 : 0;
+      body.push({
+        canvas: [{ type: "line", x1: Math.max(0, lineX), y1: 0, x2: Math.max(0, lineX) + 120, y2: 0, lineWidth: 2, lineColor: accent }],
         margin: [0, 6, 0, 20],
       });
     }
-    // Album illustré : une page du livre = une page imprimée. Deux
-    // illustrations sur la même feuille casseraient le rythme de lecture à
-    // voix haute et rendraient l'album inutilisable à l'impression.
-    content.push(...htmlToPdfmakeContent(rest, { onePageEach: workType === "storybook" }));
+
+    const nodes = htmlToPdfmakeContent(rest, { onePageEach: workType === "storybook" });
+    const sections: TocEntry["sections"] = [];
+    const sectionNodes: { title: string; node: any }[] = [];
+    nodes.forEach((n: any, k: number) => {
+      if (n && n.style === "h2") {
+        const t = plainTextOf(n.text).replace(/\s+/g, " ").trim();
+        if (!t) return;
+        n.id = `${id}-s${k}`;
+        sections.push({ id: n.id, title: t });
+        sectionNodes.push({ title: t, node: n });
+      }
+    });
+    body.push(...nodes);
+    tocEntries.push({ id, label, title: shortTitle, sections });
+    chapterNodes.push({ title: effectiveTitle, node: titleNode, sections: sectionNodes });
   });
 
-  // Page de FIN — clôt un livre comme un ouvrage édité. Un guide se termine
-  // sur sa dernière étape, pas sur un « Fin » de roman.
-  if (layout.endPage) {
-    content.push({ text: "Fin", style: "endMark", pageBreak: "before", margin: [0, 260, 0, 0] });
-    content.push({ text: "❦", alignment: "center", color: "#b08d57", fontSize: 16, margin: [0, 18, 0, 0] });
+  if (hasToc) {
+    // Sommaire de livre édité : étiquette « CHAPITRE N » en petites capitales,
+    // titre en gras, intertitres en retrait, numéros de page alignés à droite.
+    const tocTitle = tocHeading(chapters);
+    content.push({ text: tocTitle, style: "tocTitle", margin: [0, 30, 0, 26] });
+    const maxSections = tocEntries.length > 14 ? 0 : 8;
+    // Corrections de l'auteur (titre, étiquette, numéro de page) : un champ
+    // corrigé remplace la valeur calculée, les autres restent automatiques.
+    const overrides = style.tocOverrides || {};
+    const pageCell = (id: string, page: number | undefined) => (page ? `${page}` : [{ pageReference: id }]);
+    tocEntries.forEach((e, ci) => {
+      const o = overrides[tocKey(ci)] || {};
+      const label = o.label !== undefined ? o.label || null : e.label;
+      const rows: any[] = [];
+      if (label) rows.push({ text: label.toUpperCase(), style: "tocLabel" });
+      rows.push({
+        columns: [
+          { width: "*", text: o.title || e.title, style: "tocItem", linkToDestination: e.id },
+          { width: 44, text: pageCell(e.id, o.page), style: "tocItem", alignment: "right" },
+        ],
+        columnGap: 8,
+      });
+      e.sections.slice(0, maxSections).forEach((s, si) => {
+        const so = overrides[tocKey(ci, si)] || {};
+        rows.push({
+          columns: [
+            { width: "*", text: so.title || s.title, style: "tocSection", linkToDestination: s.id },
+            { width: 44, text: pageCell(s.id, so.page), style: "tocSection", alignment: "right" },
+          ],
+          columnGap: 8,
+          margin: [16, 2, 0, 0],
+        });
+      });
+      content.push({ stack: rows, margin: [0, 0, 0, 12], unbreakable: e.sections.length <= 8 });
+    });
   }
 
-  // Nombre de pages liminaires (front matter) à NE PAS numéroter ni coiffer
-  // d'un en-tête courant : couverture (si image) + titre + copyright + TOC.
-  const frontMatterCount =
-    (coverImage ? 1 : 0) + 1 + (layout.copyrightPage ? 1 : 0) + (hasSummary ? 1 : 0);
+  content.push(...body);
+
+  if (layout.endPage) {
+    content.push({ text: "Fin", style: "endMark", pageBreak: "before", margin: [0, Math.round(pageH * 0.3), 0, 0] });
+    content.push({ text: "❦", alignment: "center", color: accent, fontSize: 16, margin: [0, 18, 0, 0] });
+  }
+
+  // Pages liminaires sans numéro ni titre courant. Estimation au premier
+  // passage ; la vraie valeur (sommaire sur plusieurs pages) est fournie au second.
+  const estimatedFront = (coverImage ? 1 : 0) + 1 + (layout.copyrightPage ? 1 : 0) + (hasToc ? 1 : 0) + 1;
+  const firstBodyPage = opts.firstBodyPage ?? estimatedFront;
   const runningTitle = (title || "").toUpperCase();
 
-  // Format d'impression : "print" = trim 6×9 pouces (432×648 pt) avec des
-  // marges compatibles KDP (gouttière intérieure généreuse) ; "digital" = A4.
-  const isPrint = format === "print";
-  const pageSize = isPrint ? { width: 432, height: 648 } : "A4";
-  const pageMargins: [number, number, number, number] = isPrint
-    ? [58, 64, 54, 64] // [intérieur/gouttière, haut, extérieur, bas] ~0.75"/0.9"/0.75"/0.9"
+  const pageMargins: [number, number, number, number] = isTrim
+    ? compact ? [50, 58, 46, 58] : [58, 64, 54, 64]
     : [72, 80, 72, 80];
 
-  return {
-    pageSize,
+  const docDefinition = {
+    pageSize: { width: pageW, height: pageH },
     pageMargins,
-    // Métadonnées du PDF : rien qui trahisse l'outil de composition.
-    info: { title, subject: title },
+    info: { title, subject: title, ...(author ? { author } : {}) },
     content,
-    // En-tête courant : titre du livre en petites capitales grises, sur les
-    // pages de contenu uniquement (ni sur le front matter, ni sur la page de fin).
     header: (currentPage: number, pageCount: number) => {
       if (!layout.runningHead) return null;
-      if (currentPage <= frontMatterCount) return null;
-      // La dernière page n'est exclue que lorsqu'elle porte le « Fin ».
+      if (currentPage < firstBodyPage) return null;
       if (layout.endPage && currentPage >= pageCount) return null;
       return {
         text: runningTitle,
@@ -303,41 +369,35 @@ function buildDocDefinition(
       };
     },
     footer: (currentPage: number, pageCount: number) => {
-      // Pas de numéro sur le front matter ni sur la page « Fin ».
-      if (currentPage <= frontMatterCount) return null;
+      if (currentPage < firstBodyPage) return null;
       if (layout.endPage && currentPage >= pageCount) return null;
-      // En impression : numéro à l'extérieur (gauche sur page paire, droite sur
-      // page impaire) ; en numérique : centré.
-      const alignment = isPrint ? (currentPage % 2 === 0 ? "left" : "right") : "center";
-      const margin: [number, number, number, number] = isPrint
-        ? [54, 16, 54, 0]
-        : [0, 16, 0, 0];
-      return {
-        text: `${currentPage}`,
-        alignment,
-        font: bodyFont,
-        fontSize: 10,
-        color: "#999999",
-        margin,
-      };
+      const alignment = isTrim ? (currentPage % 2 === 0 ? "left" : "right") : "center";
+      const margin: [number, number, number, number] = isTrim ? [54, 16, 54, 0] : [0, 16, 0, 0];
+      return { text: `${currentPage}`, alignment, font: bodyFont, fontSize: 10, color: "#999999", margin };
     },
     styles: {
-      coverTitle: { font: displayFont, fontSize: 30, bold: true, alignment: "center", color: "#1a1a1a", characterSpacing: 1 },
-      coverSubtitle: { font: displayFont, fontSize: 15, italics: true, alignment: "center", color: "#666666", margin: [0, 10, 0, 0] },
+      coverTitle: { font: displayFont, fontSize: compact ? 24 : 30, bold: true, alignment: "center", color: "#1a1a1a", characterSpacing: 1 },
+      coverSubtitle: { font: displayFont, fontSize: compact ? 13 : 15, italics: true, alignment: "center", color: "#666666", margin: [0, 10, 0, 0] },
+      coverAuthor: { font: displayFont, fontSize: compact ? 12 : 14, alignment: "center", color: "#333333", characterSpacing: 1.5 },
       copyrightTitle: { font: displayFont, fontSize: 14, alignment: "center", color: "#333333" },
       copyright: { font: bodyFont, fontSize: 9, alignment: "center", color: "#888888", lineHeight: 1.4 },
-      tocTitle: { font: displayFont, fontSize: 22, bold: true, alignment: "center", color: "#1a1a1a" },
-      chapterTitle: { font: displayFont, fontSize: 24, bold: true, alignment: layout.chapterTitleAlignment, color: "#1a1a1a" },
-      h1: { font: displayFont, fontSize: 17, bold: true, color: "#1a1a1a", margin: [0, 16, 0, 8] },
-      h2: { font: displayFont, fontSize: 14, bold: true, color: "#333333", margin: [0, 14, 0, 6] },
-      h3: { font: displayFont, fontSize: 12.5, bold: true, color: "#333333", margin: [0, 10, 0, 4] },
-      paragraph: { fontSize: 11.5, alignment: layout.bodyAlignment, margin: [0, 0, 0, 9] },
-      blockquote: { fontSize: 11.5, italics: true, color: "#555555" },
+      tocTitle: { font: displayFont, fontSize: compact ? 18 : 22, bold: true, alignment: "center", color: "#1a1a1a" },
+      tocLabel: { font: displayFont, fontSize: 8, bold: true, characterSpacing: 1.6, color: accent, margin: [0, 0, 0, 1] },
+      tocItem: { font: displayFont, fontSize: compact ? 11 : 12, bold: true, color: "#1a1a1a" },
+      tocSection: { font: bodyFont, fontSize: compact ? 9.5 : 10.5, color: "#555555" },
+      chapterLabel: { font: displayFont, fontSize: compact ? 9 : 10, bold: true, characterSpacing: 2.5, color: accent, alignment: layout.chapterTitleAlignment, margin: [0, 0, 0, 6] },
+      chapterTitle: { font: displayFont, fontSize: compact ? 20 : 24, bold: true, alignment: layout.chapterTitleAlignment, color: "#1a1a1a" },
+      h1: { font: displayFont, fontSize: compact ? 15 : 17, bold: true, color: "#1a1a1a", margin: [0, 16, 0, 8] },
+      h2: { font: displayFont, fontSize: compact ? 13 : 14, bold: true, color: "#333333", margin: [0, 14, 0, 6] },
+      h3: { font: displayFont, fontSize: compact ? 11.5 : 12.5, bold: true, color: "#333333", margin: [0, 10, 0, 4] },
+      paragraph: { fontSize: bodySize, alignment: layout.bodyAlignment, margin: [0, 0, 0, 9] },
+      blockquote: { fontSize: bodySize, italics: true, color: "#555555" },
       endMark: { font: displayFont, fontSize: 20, italics: true, alignment: "center", color: "#1a1a1a" },
     },
-    // LA correction clé : police par défaut = serif de livre, plus Roboto.
-    defaultStyle: { font: bodyFont, fontSize: 11.5, lineHeight: layout.lineHeight },
+    defaultStyle: { font: bodyFont, fontSize: bodySize, lineHeight: layout.lineHeight },
   };
+
+  return { docDefinition, chapterNodes, hasToc, pageFormat, firstBodyPage };
 }
 
 function streamToBuffer(pdfDoc: any): Promise<Buffer> {
@@ -353,15 +413,44 @@ function streamToBuffer(pdfDoc: any): Promise<Buffer> {
 export interface BookPdfInput {
   title?: string | null;
   subtitle?: string | null;
+  author?: string | null;
   category?: string | null;
   chapters: ChapterData[];
   coverUrl?: string | null;
   format?: "digital" | "print";
   workType?: string | null;
+  style?: ExportStyle;
 }
 
-export async function renderBookPdf(input: BookPdfInput): Promise<Buffer> {
-  // Images distantes inlinées pour que pdfmake puisse les embarquer.
+function firstPageOf(node: any): number | null {
+  return node?.positions?.[0]?.pageNumber ?? null;
+}
+
+function summarize(built: BuiltDoc, pdfDoc: any): BookLayoutSummary {
+  const pageCount: number = pdfDoc?._pdfMakePages?.length ?? 0;
+  const starts = built.chapterNodes.map((c) => firstPageOf(c.node));
+  return {
+    pageCount,
+    pageFormat: built.pageFormat,
+    hasToc: built.hasToc,
+    firstBodyPage: starts.find((p) => p !== null) ?? null,
+    chapters: built.chapterNodes.map((c, i) => {
+      const next = starts.slice(i + 1).find((p) => p !== null);
+      const start = starts[i];
+      return {
+        title: c.title,
+        startPage: start,
+        endPage: start === null ? null : next ? Math.max(start, next - 1) : pageCount,
+        sections: c.sections.map((sec) => ({ title: sec.title, page: firstPageOf(sec.node) })),
+      };
+    }),
+  };
+}
+
+/** Compose le livre et renvoie le PDF ET la carte de sa mise en page (pages de chaque chapitre). */
+export async function renderBookPdfWithLayout(
+  input: BookPdfInput
+): Promise<{ buffer: Buffer; layout: BookLayoutSummary }> {
   const preparedChapters: ChapterData[] = [];
   for (const ch of input.chapters) {
     preparedChapters.push({
@@ -373,14 +462,33 @@ export async function renderBookPdf(input: BookPdfInput): Promise<Buffer> {
 
   const coverImage = await inlineCover(input.coverUrl);
   const printer = await getPrinter();
-  const docDefinition = buildDocDefinition(
-    input.title || "Mon Livre",
-    input.subtitle || undefined,
-    preparedChapters,
+  const baseOptions: BuildOptions = {
+    title: input.title || "Mon Livre",
+    subtitle: input.subtitle || undefined,
+    author: (input.author || "").trim() || undefined,
+    chapters: preparedChapters,
     coverImage,
-    input.category || undefined,
-    input.format === "print" ? "print" : "digital",
-    input.workType
-  );
-  return streamToBuffer(printer.createPdfKitDocument(docDefinition));
+    category: input.category || undefined,
+    format: input.format === "print" ? "print" : "digital",
+    workType: input.workType,
+    style: input.style || {},
+  };
+
+  let built = buildDocDefinition(baseOptions);
+  let pdfDoc = printer.createPdfKitDocument(built.docDefinition);
+  let layout = summarize(built, pdfDoc);
+
+  // Un sommaire long occupe plusieurs pages : en-têtes et numéros de page
+  // doivent démarrer au premier chapitre réel, connu après la mise en page.
+  if (layout.firstBodyPage && layout.firstBodyPage !== built.firstBodyPage) {
+    built = buildDocDefinition({ ...baseOptions, firstBodyPage: layout.firstBodyPage });
+    pdfDoc = printer.createPdfKitDocument(built.docDefinition);
+    layout = summarize(built, pdfDoc);
+  }
+
+  return { buffer: await streamToBuffer(pdfDoc), layout };
+}
+
+export async function renderBookPdf(input: BookPdfInput): Promise<Buffer> {
+  return (await renderBookPdfWithLayout(input)).buffer;
 }

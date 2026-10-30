@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
-import { SIZE_PRESETS, BOOK_MODELS, LENGTH_OPTIONS, estimatePagesCoins, lengthToSizeKey, coinsPerPage } from "@/lib/book/generationPresets";
+import { SIZE_PRESETS, BOOK_MODELS, LENGTH_OPTIONS, bookChargeCeiling, lengthToSizeKey, coinsPerPage } from "@/lib/book/generationPresets";
 import { BOOK_CATEGORIES, BOOK_TONES, EMPTY_IDEA_ANALYSIS, type IdeaAnalysis } from "@/lib/book/ideaAnalysis";
 import { useUser } from "@/hooks/useUser";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
@@ -108,6 +108,9 @@ export default function NewBookWizard() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Verrou SYNCHRONE contre la double création : l'état React ne désactive le
+  // bouton qu'au rendu suivant, un double clic rapide créait deux projets.
+  const submittingRef = useRef(false);
   // Modèle d'écriture choisi UNE fois, ici, puis enregistré sur le projet :
   // l'éditeur ne redemande plus ni la longueur ni le modèle.
   const [selectedModel, setSelectedModel] = useState<string>(() => {
@@ -353,7 +356,12 @@ export default function NewBookWizard() {
   };
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setIsSubmitting(true);
+    // Reste verrouillé après un succès, pendant l'ouverture de l'éditeur :
+    // le bouton redevenait cliquable et un second clic créait un doublon.
+    let created = false;
 
     try {
       try {
@@ -427,6 +435,7 @@ export default function NewBookWizard() {
           });
         }
 
+        created = true;
         router.push(`/redaction?projectId=${data.project.id}&new=true`);
         return;
       }
@@ -435,7 +444,10 @@ export default function NewBookWizard() {
       alert('Erreur lors de la création du projet. Veuillez vérifier votre connexion et réessayer.');
       return;
     } finally {
-      setIsSubmitting(false);
+      if (!created) {
+        submittingRef.current = false;
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -1053,8 +1065,13 @@ export default function NewBookWizard() {
 
                         {/* Modèle d'écriture : choisi ici, une seule fois. */}
                         {(() => {
-                          const pages = SIZE_PRESETS[lengthToSizeKey(formData.length)].pagesEstimate;
-                          const cost = estimatePagesCoins(pages, selectedModel);
+                          const preset = SIZE_PRESETS[lengthToSizeKey(formData.length)];
+                          const pages = preset.pagesEstimate;
+                          // Montant maximal facturable, celui que l'éditeur exige avant de lancer
+                          // la rédaction (le nombre réel de chapitres dépend du sommaire).
+                          const ceiling = (model: string) =>
+                            bookChargeCeiling(preset.chaptersIfNoSommaire, preset.wordsPerChapter, model);
+                          const cost = ceiling(selectedModel);
                           const balance = userLoading ? null : walletBalance;
                           return (
                             <div className="space-y-2">
@@ -1074,7 +1091,7 @@ export default function NewBookWizard() {
                                       <span className={`block text-sm font-bold ${selected ? 'text-[#C84B31]' : 'text-neutral-800'}`}>{m.label}</span>
                                       <span className="block text-[11px] text-neutral-500">{m.hint}</span>
                                       <span className="block text-[11px] font-semibold text-neutral-700 mt-1">
-                                        {coinsPerPage(m.id)} pièces / page · ≈ {estimatePagesCoins(pages, m.id).toLocaleString("fr-FR")}
+                                        {coinsPerPage(m.id)} pièces / page · max. {ceiling(m.id).toLocaleString("fr-FR")}
                                       </span>
                                     </button>
                                   );
@@ -1083,9 +1100,9 @@ export default function NewBookWizard() {
                               <div className="rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-800/40 p-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
                                 <span className="flex items-center gap-1.5 font-semibold text-neutral-700 dark:text-neutral-300">
                                   <Coins className="w-3.5 h-3.5 text-[#C84B31]" />
-                                  Coût estimé du livre (~{pages} pages)
+                                  Coût maximal du livre (~{pages} pages)
                                 </span>
-                                <span className="font-bold text-[#C84B31] text-sm">≈ {cost.toLocaleString("fr-FR")} pièces</span>
+                                <span className="font-bold text-[#C84B31] text-sm">jusqu&apos;à {cost.toLocaleString("fr-FR")} pièces</span>
                                 {balance !== null && (
                                   <span className={`w-full text-[11px] ${balance < cost ? "text-amber-700 font-semibold" : "text-neutral-500"}`}>
                                     Votre solde : {balance.toLocaleString("fr-FR")} pièces

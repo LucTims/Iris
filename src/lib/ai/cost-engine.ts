@@ -21,11 +21,16 @@ import {
  * service_role peut débiter n'importe quel utilisateur).
  */
 
-export async function checkMinimumBalance(
+/**
+ * Solde du portefeuille, ou `null` si la lecture échoue (timeout, table
+ * indisponible, wallet absent…). Permet aux routes de distinguer « solde
+ * insuffisant » (402, avec le montant manquant) d'un incident technique
+ * (« réessayez ») — deux situations que `checkMinimumBalance` confond.
+ */
+export async function getWalletBalance(
   userId: string,
-  requiredCoins: number,
   client?: SupabaseClient
-): Promise<boolean> {
+): Promise<number | null> {
   const supabase = client ?? (await createClient());
 
   const { data: wallet, error } = await supabase
@@ -34,15 +39,34 @@ export async function checkMinimumBalance(
     .eq("user_id", userId)
     .single();
 
+  if (error || !wallet) {
+    console.error("Lecture du portefeuille impossible:", error?.message);
+    return null;
+  }
+  return Number(wallet.balance) || 0;
+}
+
+export async function checkMinimumBalance(
+  userId: string,
+  requiredCoins: number,
+  client?: SupabaseClient
+): Promise<boolean> {
+  const balance = await getWalletBalance(userId, client);
+
   // Fail CLOSED : une erreur DB (timeout, table indisponible, wallet absent...)
   // ne doit jamais se traduire par une génération gratuite. Un incident
   // d'infra doit produire un message "réessayez", pas une fuite de facturation.
-  if (error || !wallet) {
-    console.error("Wallet check failed — generation refusée par sécurité:", error?.message);
+  if (balance === null) {
+    console.error("Wallet check failed — generation refusée par sécurité");
     return false;
   }
 
-  return wallet.balance >= requiredCoins;
+  return balance >= requiredCoins;
+}
+
+/** Montant de pièces lisible (« 1 692 »). */
+export function formatCoins(n: number): string {
+  return Math.round(n).toLocaleString("fr-FR");
 }
 
 /**
