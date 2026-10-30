@@ -38,7 +38,7 @@ export default function CoverStudioEditorPage() {
   const [previewAngle, setPreviewAngle] = useState<"face" | "iso-left" | "iso-right">("face");
   const [showAutoConfirm, setShowAutoConfirm] = useState(false);
 
-  const [promptText, setPromptText] = useState("Illustration abstraite géométrique dorée et moderne");
+  const [promptText, setPromptText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   // La couverture a-t-elle été appliquée au livre (cover_url en base) ?
@@ -95,7 +95,7 @@ export default function CoverStudioEditorPage() {
   // consigne saisie). `engine` : "free" (Pollinations, gratuit) ou "premium"
   // (Imagen, facturé en pièces).
   const runCoverGeneration = async (opts: { auto: boolean }) => {
-    if (!opts.auto && !promptText.trim()) return;
+    const customPrompt = promptText.trim();
     setIsGenerating(true);
     try {
       const res = await fetch("/api/generate-cover", {
@@ -104,7 +104,7 @@ export default function CoverStudioEditorPage() {
         body: JSON.stringify({
           projectId,
           engine: coverEngine,
-          prompt: opts.auto ? undefined : promptText,
+          prompt: opts.auto ? undefined : customPrompt || undefined,
         }),
       });
       if (res.status === 402) {
@@ -532,7 +532,7 @@ export default function CoverStudioEditorPage() {
                        </div>
                      </div>
                    ) : (
-                     <p className="text-xs text-neutral-400 text-center mt-auto mb-auto">Demandez à l'IA de générer une couverture, ou utilisez le bouton rapide pour utiliser les informations de votre livre.</p>
+                     <p className="text-xs text-neutral-400 text-center mt-auto mb-auto">L&apos;IA analyse le titre, le synopsis et les chapitres de votre livre pour créer une couverture fidèle à son histoire. Vous pouvez aussi ajouter une consigne ci-dessous.</p>
                    )}
                 </div>
 
@@ -550,12 +550,16 @@ export default function CoverStudioEditorPage() {
                           }
                         }
                       }}
-                      placeholder="Décrivez votre image (ex: un dragon sur une montagne...)"
+                      placeholder={
+                        title && title !== "Chargement..."
+                          ? `Guider l'IA pour "${title}" (ex: une silhouette, un élément clé... ou laissez vide pour une scène automatique)`
+                          : "Décrivez votre idée (ou laissez vide pour une scène automatique basée sur le livre)..."
+                      }
                       className="w-full bg-neutral-50 dark:bg-neutral-800/50 p-4 pr-14 border border-neutral-200 dark:border-neutral-800 rounded-2xl text-xs font-medium focus:border-secondary focus:ring-2 focus:ring-orange-100 outline-none resize-none"
                     />
                     <button
                       onClick={handleGenerateAI}
-                      disabled={isGenerating || !promptText.trim()}
+                      disabled={isGenerating}
                       className={`absolute right-3 top-3 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                         isGenerating ? 'bg-neutral-200 text-neutral-400' : 'bg-secondary text-white hover:bg-orange-600 shadow-sm'
                       }`}

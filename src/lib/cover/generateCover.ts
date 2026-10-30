@@ -569,18 +569,41 @@ export async function generateCoverForUser(
   }
 
   // Métadonnées du projet pour contextualiser si nécessaire
-  let meta: { title?: string; subtitle?: string; category?: string; synopsis?: string; tone?: string } = {};
+  let meta: { title?: string; subtitle?: string; category?: string; synopsis?: string; tone?: string; audience?: string } = {};
   let project: { id: string; title: string | null } | null = null;
+  let chaptersContext = "";
+
   if (projectId) {
     const { data } = await db
       .from("projects")
-      .select("id, title, subtitle, category, synopsis, tone")
+      .select("id, title, subtitle, category, synopsis, tone, audience")
       .eq("id", projectId)
       .eq("user_id", userId)
       .maybeSingle();
     if (data) {
       meta = data;
       project = { id: data.id, title: data.title ?? null };
+    }
+
+    // Récupère les premiers chapitres ou le plan pour nourrir la direction artistique
+    try {
+      const { data: chaptersData } = await db
+        .from("chapters")
+        .select("number, title, content")
+        .eq("project_id", projectId)
+        .order("number", { ascending: true })
+        .limit(6);
+
+      if (chaptersData && chaptersData.length > 0) {
+        chaptersContext = chaptersData
+          .map((c) => {
+            const clean = (c.content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+            return `Chapitre ${c.number} (${c.title}): ${clean.slice(0, 180)}`;
+          })
+          .join("\n");
+      }
+    } catch {
+      // Tolérant si la table chapters est indisponible
     }
   }
 
@@ -603,30 +626,48 @@ export async function generateCoverForUser(
   }
 
   // Direction artistique IA via Gemini : traduit et enrichit le prompt en
-  // anglais professionnel. La consigne de longueur est stricte : en mode
-  // gratuit le prompt voyage dans une URL GET, et un pavé de 1 500 caractères
-  // faisait rejeter la requête par Pollinations.
+  // anglais professionnel en s'ancrant profondément dans l'histoire du livre.
   let finalPrompt = basePrompt;
   try {
+    const userPromptClean = (userPrompt || "").trim();
+    const storyDetails: string[] = [
+      meta.title ? `Title: "${meta.title}"` : "",
+      meta.subtitle ? `Subtitle: "${meta.subtitle}"` : "",
+      meta.category ? `Genre/Category: "${meta.category}"` : "",
+      meta.tone ? `Tone & Atmosphere: "${meta.tone}"` : "",
+      meta.audience ? `Target Audience: "${meta.audience}"` : "",
+      meta.synopsis ? `Story premise / synopsis: "${meta.synopsis}"` : "",
+      chaptersContext ? `Key chapters & narrative context:\n${chaptersContext}` : "",
+    ].filter(Boolean);
+
+    const storyDescription = storyDetails.join("\n");
+
+    const artDirectionPrompt = `You are a world-renowned visual art director and master concept artist creating multimillion-dollar bestseller book covers and cinematic movie posters.
+
+${storyDescription ? `BOOK DETAILS & STORY CONTEXT:
+${storyDescription}
+` : ""}
+${userPromptClean ? `AUTHOR'S SPECIFIC REQUEST:
+"${userPromptClean}"
+
+TASK: Interpret the author's request within the authentic world, characters, time period, culture, and storyline of this specific book. The visual elements MUST belong to this book's universe.` : `TASK: Identify the single most iconic, dramatic, visually captivating scene or central symbolic metaphor that authentically represents this specific book's narrative and world.`}
+
+ESSENTIAL REQUIREMENTS:
+1. Deep Story Alignment: The visual elements (lighting, architecture, landscape, attire, characters, mood) MUST strictly match the genre, era, culture, and storyline of this book. Never add generic fantasy or sci-fi elements if the book is realistic, contemporary, or historical.
+2. Translate into breathtaking, vivid, evocative ENGLISH.
+3. Aesthetic quality: "cinematic masterpiece, dramatic lighting, volumetric god rays, rich vibrant color harmony, Octane Render, 8k resolution, razor sharp focus, award-winning illustration".
+4. Composition: Full-bleed vertical portrait orientation (2:3 or 9:16 aspect ratio).
+5. NEVER include words like "book cover", "book lying on desk", "pages", "paper", "reading", "spine". Describe ONLY the visual scene directly.
+6. Absolutely NO typography, NO letters, NO text, NO numbers, NO watermark.
+7. HARD LIMIT: 80 words maximum, a single dense paragraph. Be concise and concrete, never verbose.
+8. Return strictly the prompt text only, without quotes or preface.`;
+
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), 9000);
     const { text } = await generateText({
       model: google(ART_DIRECTION_MODEL),
       abortSignal: controller.signal,
-      prompt: `You are a world-renowned visual art director and master concept artist creating multimillion-dollar bestseller book covers and cinematic movie posters.
-
-Convert this book concept/request into a breathtaking, ultra-detailed, majestic art prompt:
-"${basePrompt}"
-
-Essential Requirements:
-1. Translate to rich, vivid, evocative ENGLISH.
-2. Elevate the scene: make the subject look noble, majestic, cinematic, and gorgeous. If it mentions a character or animal (e.g. a cat with gold coins), describe a regal subject with luminous glowing eyes, gleaming fur/attire, surrounded by glittering antique minted gold coins, ancient treasure chests, shimmering dust particles, and golden hour lighting.
-3. Include high-end aesthetic details: "cinematic masterpiece, dramatic lighting, volumetric god rays, rich vibrant color harmony, Octane Render, 8k resolution, razor sharp focus, award-winning illustration".
-4. Composition: Full-bleed vertical portrait orientation (2:3 or 9:16 aspect ratio).
-5. NEVER include words like "book cover", "book lying on desk", "pages", "paper", "reading", "spine". Describe ONLY the visual scene directly.
-6. Absolutely NO typography, NO letters, NO text, NO numbers, NO watermark.
-7. HARD LIMIT: 80 words maximum, a single dense paragraph. Be concise and concrete, never verbose.
-8. Return strictly the prompt text only, without quotes or preface.`,
+      prompt: artDirectionPrompt,
     });
     clearTimeout(t);
     if (text.trim()) {

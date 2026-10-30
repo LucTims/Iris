@@ -31,29 +31,32 @@ export interface CoverPromptInput {
   category?: string;
   synopsis?: string;
   tone?: string;
-  /** Consigne libre de l'auteur (prioritaire). Si absente → prompt auto. */
+  /** Consigne libre de l'auteur. Si absente → prompt auto. */
   userPrompt?: string;
 }
 
 /**
- * Construit un prompt de couverture riche. En mode auto (pas de consigne
- * utilisateur), on dérive une description depuis les métadonnées du livre.
- * On demande explicitement une illustration SANS texte : le titre est ajouté
- * proprement par-dessus dans le studio (typographie maîtrisée), pas laissé au
- * modèle d'image (qui écrit mal le texte).
+ * Construit un prompt de couverture riche combinant l'histoire du livre
+ * et l'éventuelle consigne de l'auteur. Le contexte narratif n'est jamais
+ * perdu, même si l'auteur donne une directive particulière.
  */
 export function buildCoverPrompt(input: CoverPromptInput): string {
-  const base = (input.userPrompt || "").trim();
-  if (base) {
-    return base;
-  }
-
   const parts = [
     input.title ? `Title theme: ${input.title}` : "",
     input.category ? `Genre: ${input.category}` : "",
     input.tone ? `Mood and atmosphere: ${input.tone}` : "",
     input.synopsis ? `Story premise: ${input.synopsis}` : "",
   ].filter(Boolean);
+
+  const bookContext = parts.join(". ");
+  const user = (input.userPrompt || "").trim();
+
+  if (user && bookContext) {
+    return `${user}. Book story: ${bookContext}`;
+  }
+  if (user) {
+    return user;
+  }
 
   return parts.length > 0
     ? parts.join(". ")
