@@ -3,10 +3,10 @@
 //   2. détourage gratuit (rembg) + trame papier (paper.py) ;
 //   3. voix de la révélation (une seule prise, avec les instants de chaque mot) ; voix des indices et de la fin réutilisées ;
 //   4. animation calée sur les mots (gabarit.mjs), bande son (son.py), encodage ffmpeg ;
-//   5. envoi dans Supabase Storage puis rappel à n8n, qui poste la vidéo sur Telegram avec les boutons.
+//   5. envoi de la vidéo à n8n, qui la range dans Supabase Storage et la poste sur Telegram avec les boutons.
 // Entrées (variables d'environnement) :
 //   EPISODE_JSON  {"idee_id":1,"essai":1,"contenu":{…}}  (contenu = ligne automatisations.iris_idees)
-//   ELEVENLABS_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_KEY, N8N_RAPPEL_URL, N8N_RAPPEL_SECRET
+//   ELEVENLABS_API_KEY, N8N_RAPPEL_URL, N8N_RAPPEL_SECRET
 //   OUTILS  dossier préparé par studio-tiktok/outils/installer.sh (fonts/, grain.png, paper.py)
 // Usage : node produire.mjs <dossier de travail> [--sans-envoi]
 import { execFileSync } from 'node:child_process';
@@ -232,32 +232,27 @@ const legende = () => `Devine son métier 🔎 Épisode ${C.episode} : tu avais 
   + `Ce qu'${C.genre === 'f' ? 'elle' : 'il'} sait vaut un livre… et ton métier aussi. `
   + `Donne-nous 3 indices sur le tien en commentaire, on devine ! 👇 #devinesonmetier #metier #livre #afrique #iris`;
 
-async function rappel(corps) {
+// Rappel à n8n : la vidéo part avec (formulaire multipart), n8n la range dans Supabase Storage et l'envoie sur Telegram.
+// Ainsi aucune clé Supabase n'est nécessaire côté GitHub.
+async function rappel(corps, mp4) {
   if (SANS_ENVOI) return log('rappel (non envoyé)', JSON.stringify(corps));
-  const r = await fetch(env('N8N_RAPPEL_URL'), {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ secret: env('N8N_RAPPEL_SECRET'), idee_id: EP.idee_id, essai: EP.essai, ...corps }),
-  });
+  const form = new FormData();
+  for (const [k, v] of Object.entries({ secret: env('N8N_RAPPEL_SECRET'), idee_id: EP.idee_id, essai: EP.essai, ...corps })) {
+    form.append(k, String(v));
+  }
+  if (mp4) form.append('video', new Blob([fs.readFileSync(mp4)], { type: 'video/mp4' }), `episode-${C.episode}-${EP.idee_id}-${EP.essai}.mp4`);
+  const r = await fetch(env('N8N_RAPPEL_URL'), { method: 'POST', body: form });
   log('rappel n8n', r.status);
+  if (!r.ok) throw new Error(`rappel n8n → ${r.status} ${(await r.text()).slice(0, 300)}`);
 }
 
+let fini = false;
 try {
   const { mp4, duree } = await principal();
-  let video_url = null;
-  if (!SANS_ENVOI) {
-    const base = env('SUPABASE_URL').replace(/\/$/, ''), cle = env('SUPABASE_SERVICE_KEY');
-    const chemin = `iris/episode-${C.episode}-${EP.idee_id}-${EP.essai}-${Date.now()}.mp4`;
-    const r = await fetch(`${base}/storage/v1/object/automatisations-videos/${chemin}`, {
-      method: 'POST', headers: { authorization: `Bearer ${cle}`, apikey: cle, 'content-type': 'video/mp4', 'x-upsert': 'true' },
-      body: fs.readFileSync(mp4),
-    });
-    if (!r.ok) throw new Error(`Supabase Storage → ${r.status} ${(await r.text()).slice(0, 300)}`);
-    video_url = `${base}/storage/v1/object/public/automatisations-videos/${chemin}`;
-    log('envoyée', video_url);
-  }
-  await rappel({ statut: 'ok', video_url, duree, legende: legende(), titre: `Devine son métier · épisode ${C.episode}` });
+  await rappel({ statut: 'ok', duree, legende: legende(), titre: `Devine son métier · épisode ${C.episode}` }, mp4);
+  fini = true;
 } catch (e) {
   console.error(e);
-  try { await rappel({ statut: 'erreur', erreur: String(e.message || e).slice(0, 500) }); } catch (e2) { console.error(e2); }
+  if (!fini) try { await rappel({ statut: 'erreur', erreur: String(e.message || e).slice(0, 500) }); } catch (e2) { console.error(e2); }
   process.exit(1);
 }

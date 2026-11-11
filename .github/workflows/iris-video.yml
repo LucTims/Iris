@@ -59,9 +59,7 @@ jobs:
           EPISODE_JSON: ${{ github.event_name == 'repository_dispatch' && toJSON(github.event.client_payload) || inputs.episode }}
           OUTILS: ${{ runner.temp }}/outils
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          N8N_RAPPEL_URL: ${{ secrets.N8N_RAPPEL_URL }}
+          N8N_RAPPEL_URL: https://n8n-with-ai-assistant-qgyz.srv1928272.hstgr.cloud/webhook/iris-video-prete
           N8N_RAPPEL_SECRET: ${{ secrets.N8N_RAPPEL_SECRET }}
         run: node marketing/automation-iris/produire.mjs "$RUNNER_TEMP/travail"
 
