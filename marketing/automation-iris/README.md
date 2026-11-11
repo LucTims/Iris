@@ -16,3 +16,10 @@ Test local sans envoi : `EPISODE_JSON='{…}' OUTILS=<dossier installer.sh> node
 (les images et la voix déjà présentes dans `travail/` sont réutilisées, rien n'est refacturé).
 
 `ressources/` : voix fixes (indices, « À toi… ») et musique de l'épisode 1, œil du « i ». `supabase.sql` : la banque et ses fonctions.
+
+Mise en route :
+- le fichier `.github/workflows/iris-video.yml` doit être sur la branche par défaut (GitHub n'écoute `repository_dispatch` que là) ;
+- n8n : choisir le bot @irisboom_bot dans tous les nœuds Telegram des workflows « Iris - 1/2/3 », créer l'identifiant
+  « GitHub Iris (dispatch) » (en-tête `Authorization: Bearer <jeton GitHub avec droit Actions/Contents en écriture sur ce dépôt>`),
+  renseigner `CANAL_TIKTOK_IRIS` (nœud « Decider » du workflow 3) puis activer les trois workflows ;
+- `N8N_RAPPEL_URL` = URL de production du webhook `iris-video-prete` du workflow 2.
