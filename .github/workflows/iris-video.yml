@@ -6,6 +6,9 @@ name: Vidéo Iris
 on:
   repository_dispatch:
     types: [iris-video]
+  # Essai depuis une branche (avant fusion) : modifier test-episode.json et pousser.
+  push:
+    paths: [marketing/automation-iris/test-episode.json]
   workflow_dispatch:
     inputs:
       episode:
@@ -61,7 +64,9 @@ jobs:
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           N8N_RAPPEL_URL: https://n8n-with-ai-assistant-qgyz.srv1928272.hstgr.cloud/webhook/iris-video-prete
           N8N_RAPPEL_SECRET: ${{ secrets.N8N_RAPPEL_SECRET }}
-        run: node marketing/automation-iris/produire.mjs "$RUNNER_TEMP/travail"
+        run: |
+          if [ "${{ github.event_name }}" = push ]; then export EPISODE_JSON="$(cat marketing/automation-iris/test-episode.json)"; fi
+          node marketing/automation-iris/produire.mjs "$RUNNER_TEMP/travail"
 
       - name: Aperçus (en cas d'échec)
         if: failure()
