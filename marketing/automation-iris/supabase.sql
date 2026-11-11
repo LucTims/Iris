@@ -55,7 +55,7 @@ declare
 begin
   for i in 0..60 loop
     v_creneau := ((v_jour + i)::timestamp + time '12:30') at time zone 'Africa/Lagos';
-    continue when v_creneau < now() + interval '20 minutes';
+    continue when v_creneau < now() + interval '5 minutes';
     continue when exists (select 1 from automatisations.iris_idees
       where statut = 'programmee' and publication_prevue = v_creneau);
     return jsonb_build_object('creneau', v_creneau);
