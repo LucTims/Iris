@@ -1,5 +1,5 @@
 // Fabrique un épisode « Devine son métier » de bout en bout, sans intervention : c'est ce que lance GitHub Actions.
-//   1. images ElevenLabs (1K, qualité moyenne) : portrait, même personne qui tient un livre, bande de 3 indices ;
+//   1. images OpenAI si OPENAI_API_KEY est fourni, sinon ElevenLabs (forfait Pro) — 1K, qualité moyenne : portrait, même personne qui tient un livre, bande de 3 indices ;
 //   2. détourage gratuit (rembg) + trame papier (paper.py) ;
 //   3. voix de la révélation (une seule prise, avec les instants de chaque mot) ; voix des indices et de la fin réutilisées ;
 //   4. animation calée sur les mots (gabarit.mjs), bande son (son.py), encodage ffmpeg ;
@@ -48,9 +48,42 @@ async function xi(method, url, body) {
 }
 
 // Image : création puis attente du résultat (interrogé au plus toutes les 3 s).
+// Images OpenAI (si OPENAI_API_KEY est fourni) : pas besoin du forfait Pro d'ElevenLabs. Qualité moyenne.
+async function imageOpenAI(nom, prompt, aspect, ref, fichier) {
+  const size = aspect === '3:1' ? '1536x1024' : '1024x1024';
+  const model = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
+  const headers = { authorization: `Bearer ${env('OPENAI_API_KEY')}` };
+  let r;
+  for (let essai = 1; ; essai++) {
+    if (ref) {
+      const form = new FormData();
+      form.append('model', model); form.append('prompt', prompt); form.append('size', size); form.append('quality', 'medium');
+      form.append('image[]', new Blob([fs.readFileSync(ref)], { type: 'image/png' }), 'reference.png');
+      r = await fetch('https://api.openai.com/v1/images/edits', { method: 'POST', headers, body: form });
+    } else {
+      r = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+        body: JSON.stringify({ model, prompt, size, quality: 'medium', n: 1 }),
+      });
+    }
+    if ((r.status === 429 || r.status >= 500) && essai < 4) { await sleep(8000 * essai); continue; }
+    break;
+  }
+  const txt = await r.text();
+  if (!r.ok) throw new Error(`OpenAI image ${nom} → ${r.status} ${txt.slice(0, 400)}`);
+  const d = JSON.parse(txt).data?.[0];
+  const buf = d?.b64_json ? Buffer.from(d.b64_json, 'base64') : Buffer.from(await (await fetch(d.url)).arrayBuffer());
+  const brut = path.join(W, 'raw', nom + '.src');
+  fs.writeFileSync(brut, buf);
+  run('ffmpeg', ['-v', 'error', '-y', '-i', brut, fichier]);
+  log('image', nom, 'ok (OpenAI)');
+  return fichier;
+}
+
 async function image(nom, prompt, aspect, ref) {
   const fichier = path.join(W, 'raw', nom + '.png');
   if (fs.existsSync(fichier)) return fichier;
+  if (process.env.OPENAI_API_KEY) return imageOpenAI(nom, prompt, aspect, ref, fichier);
   const body = { model_id: 'gpt-image-2.5-sunburst', prompt, aspect_ratio: aspect, resolution: '1K', quality: 'medium' };
   if (ref) body.images = [{ type: 'inline_base64', content_base64: fs.readFileSync(ref).toString('base64'), mime_type: 'image/png' }];
   let g = await xi('POST', '/v1/flows/image', body);
