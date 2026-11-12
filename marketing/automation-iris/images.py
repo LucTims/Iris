@@ -32,7 +32,8 @@ def detoure(im):
 
 
 def rogne(im, marge=12):
-    box = im.getchannel('A').point(lambda v: 255 if v > 20 else 0).getbbox()
+    # Seuil haut : le détourage laisse un voile presque transparent autour du sujet, qu'on ne veut pas garder.
+    box = im.getchannel('A').point(lambda v: 255 if v > 128 else 0).getbbox()
     if not box:
         raise SystemExit('détourage vide')
     x0, y0, x1, y1 = box

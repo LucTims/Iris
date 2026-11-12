@@ -117,9 +117,12 @@ function enLettres(n) {
   return String(n);
 }
 
+// « de femmes », mais « d'apprentis » : élision devant une voyelle ou un h muet.
+const dePublic = (p) => (/^[aeiouyhàâéèêëîïôûœ]/i.test(p) ? "d'" : 'de ') + p;
+
 async function voix() {
   const il = C.genre === 'f' ? 'elle' : 'il';
-  const texte = `C'est ${C.nom}, ${C.metier} depuis ${enLettres(C.annees)} ans. Ce qu'${il} sait, des milliers de ${C.public} `
+  const texte = `C'est ${C.nom}, ${C.metier} depuis ${enLettres(C.annees)} ans. Ce qu'${il} sait, des milliers ${dePublic(C.public)} `
     + `le cherchent. Avec Iris, ${il} en a fait un livre.`;
   const cache = path.join(W, 'voix.json');
   let res;
@@ -241,7 +244,7 @@ async function principal() {
   const il2 = C.genre === 'f' ? 'elle' : 'il';
   fs.writeFileSync(path.join(W, 'params.json'), JSON.stringify({
     T, indices, couv: cv,
-    txt: { episode: C.episode, nom: C.nom, metier: C.metier, annees: C.annees, public: C.public, ceQu: `Ce qu’${il2} sait,`,
+    txt: { episode: C.episode, nom: C.nom, metier: C.metier, annees: C.annees, public: C.public, dePublic: dePublic(C.public).replace("'", '’'), ceQu: `Ce qu’${il2} sait,`,
       livre: C.titre_livre, questions: C.questions },
   }, null, 1));
   fs.writeFileSync(path.join(W, 'son.json'), JSON.stringify(son));

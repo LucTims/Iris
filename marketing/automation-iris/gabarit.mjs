@@ -88,7 +88,7 @@ body{background:var(--cobalt);-webkit-font-smoothing:antialiased}
   ${txt.questions.map(bubble).join('')}
   <div id="h4a" class="h fit" style="left:64px;top:200px;font-size:110px;color:var(--cream)">${esc(txt.ceQu)}</div>
   <div id="h4b" class="h fit" style="left:64px;top:320px;font-size:130px;color:var(--yellow)">des milliers</div>
-  <div id="h4c" class="h fit" style="left:70px;top:460px;font-size:54px;color:var(--cream)">de ${esc(txt.public)} le cherchent.</div>
+  <div id="h4c" class="h fit" style="left:70px;top:460px;font-size:54px;color:var(--cream)">${esc(txt.dePublic || 'de ' + txt.public)} le cherchent.</div>
 </div>
 
 <div id="s5" class="scene">
