@@ -73,7 +73,7 @@ body{background:var(--cobalt);-webkit-font-smoothing:antialiased}
   <svg id="pie" class="abs" width="260" height="260" style="left:660px;top:1420px;overflow:visible;filter:drop-shadow(7px 9px 0 rgba(0,0,0,.22));visibility:hidden">
     <circle cx="130" cy="130" r="124" fill="#FBF8F1" stroke="#121110" stroke-width="8"/>
     <path id="wedge" fill="#2252FF"/>
-    <text x="130" y="178" text-anchor="middle" font-family="A" font-size="140" fill="#121110">?</text>
+    <text id="pieTxt" x="130" y="178" text-anchor="middle" font-family="A" font-size="140" fill="#121110">?</text>
   </svg>
 </div>
 
@@ -190,10 +190,11 @@ function slap(sel, t, t0, { rot = 0, out = 99, dir = [0, -1] } = {}) {
 
 const K = ${JSON.stringify(K)};
 const LOOK = [[0, [0, 0]], [2.72, K.k1], [3.7, K.k2], [4.5, K.k3], [5.2, [0, 0]], [5.8, K.k1], [6.4, K.k3], [7, K.k2], [7.6, [0, 0]],
+  [T.b0 - 6.8, K.k1], [T.b0 - 5.3, K.k3], [T.b0 - 3.8, K.k2], [T.b0 - 2.2, [0, 0]],
   [T.b0 + .3, [540, 1200]], [T.b0 + 1.4, [0, 0]], [T.q[0], [300, 900]], [T.q[2] + .2, [700, 1150]], [T.q[4] + .2, [300, 1350]],
   [T.s5 + .05, [0, 0]], [T.s5 + .65, [540, 1300]], [T.s6 + .15, [0, 0]], [T.slots[0] - .03, [200, 700]], [T.slots[1], [540, 700]],
   [T.slots[2], [870, 700]], [T.slots[2] + .5, [0, 0]]];
-const BLINKS = [7.8, T.s4 + .25, T.s6 - .15, T.sortie - .35];
+const BLINKS = [7.8, T.b0 - 4.5, T.s4 + .25, T.s6 - .15, T.sortie - .35];
 const IRIS_C = 582 * 249 / 1164;
 
 let lockS, lockX, lockY;
@@ -224,6 +225,10 @@ window.frame = (t) => {
   slap('#k3', t, 4.5, { rot: -4 });
   slap('#pie', t, 5.6, { rot: 4 });
   $('#wedge').setAttribute('d', wedge(P(t, 5.7, T.b0 - .1)));
+  // Compte à rebours des secondes de réflexion dans le cadran, puis « ? » à la fin.
+  const reste = T.b0 - .1 - t;
+  $('#pieTxt').textContent = t >= 5.7 && reste > 0 ? String(Math.ceil(reste)) : '?';
+  $('#pieTxt').setAttribute('font-size', t >= 5.7 && reste > 0 ? 120 : 140);
 
   // 3 · révélation, calée sur les mots de la voix.
   const fIn = bo(P(t, T.b0 + .1, T.b0 + .55), 2);

@@ -14,9 +14,15 @@ mots = [(mo.group(), mo.start()) for mo in re.finditer(r"\S+", texte)]
 # Une apostrophe colle deux mots chez Whisper ou non : on compare mot à mot, au mieux.
 sm = difflib.SequenceMatcher(a=[norm(w) for w, _ in mots], b=[norm(h[0]) for h in heard], autojunk=False)
 t_mot = [None] * len(mots)
-for a, b, n in sm.get_matching_blocks():
-    for k in range(n):
-        t_mot[a + k] = heard[b + k][1:]
+for op, a0, a1, b0, b1 in sm.get_opcodes():
+    if op == 'equal':
+        for k in range(a1 - a0):
+            t_mot[a0 + k] = heard[b0 + k][1:]
+    elif op == 'replace':
+        # Mots mal entendus (« Adjoie » pour « Adjoa », « C » + « 'est ») : on répartit les mots entendus en proportion.
+        for k in range(a1 - a0):
+            j0 = b0 + (k * (b1 - b0)) // (a1 - a0); j1 = max(j0, b0 + ((k + 1) * (b1 - b0)) // (a1 - a0) - 1)
+            t_mot[a0 + k] = (heard[j0][1], heard[j1][2])
 # Mots non reconnus : interpolés entre voisins.
 for i in range(len(mots)):
     if t_mot[i] is None:

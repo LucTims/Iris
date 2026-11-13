@@ -162,7 +162,8 @@ async function voix() {
 
 // Instants de toute la vidéo : début fixe (voix des indices réutilisée), puis calés sur la voix.
 function timeline(m) {
-  const b0 = 8.3, r = (x) => Math.round(x * 1000) / 1000;
+  // Temps de réflexion après « Tu trouves ? » : le minuteur tourne REFLEXION secondes à partir de 5,7 s.
+  const REFLEXION = 10, b0 = 5.7 + REFLEXION + .1, r = (x) => Math.round(x * 1000) / 1000;
   const T = { b0 };
   for (const k of ['nom', 'metier', 'annees', 'ceQu', 'milliers', 'public', 'livre']) T[k] = r(b0 + m[k]);
   T.s4 = r(T.ceQu - .1);
@@ -182,7 +183,9 @@ function timeline(m) {
     voix: [[path.join(RES, 'voix-indices.mp3'), 2.3], [path.join(W, 'voix-b.mp3'), b0], [path.join(RES, 'voix-a-toi.mp3'), c0]],
     cues: {
       claques, bulles: T.q, bips: [[.8, 880], [1.3, 880], [1.8, 880], [2.3, 1320]],
-      tics: Array.from({ length: 10 }, (_, k) => 5.7 + k * .25), souffles: [0, 2.25, b0, T.s4, T.s5, T.s6, T.lock],
+      // Tic-tac toutes les demi-secondes, qui s'accélère sur les 3 dernières secondes.
+      tics: [...Array.from({ length: (REFLEXION - 3) * 2 }, (_, k) => 5.7 + k * .5),
+        ...Array.from({ length: 12 }, (_, k) => 5.7 + REFLEXION - 3 + k * .25)], souffles: [0, 2.25, b0, T.s4, T.s5, T.s6, T.lock],
       tada: b0 + .15, clin: T.clin + .02,
     },
   };
